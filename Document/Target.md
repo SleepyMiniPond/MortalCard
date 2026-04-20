@@ -1,54 +1,128 @@
-# Target 子系統 - 目標指定與條件判斷機制
+# Target 目標系統
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Target 子系統是 GameModel 中負責目標指定與條件判斷的編輯器支援機制**，提供統一的目標選擇介面，讓設計師在編輯效果時能夠精確指定「誰是目標」、「如何選擇目標」，並支援複雜的條件判斷邏輯。
+## 設計理念
 
-## 📊 目標系統架構設計
+目標系統負責回答一個關鍵問題：**「效果要作用於誰？」**。它將目標解析抽象為介面層級的組合，使得效果定義可以用宣告式語法指定目標，而具體的目標實體在運行時才被解析。
 
-### 目標抽象層級設計
-**選擇介面層**：定義玩家在遊戲中的目標選擇行為  
-**目標評估層**：基於遊戲狀態動態計算目標對象
-**數值計算層**：支援條件判斷與數值計算的邏輯表達式
-**組合邏輯層**：允許複雜的目標選擇條件組合
+核心設計：所有目標都是 `ITargetValue` 的實作，在 `TriggerContext` 下動態求值。
 
-### 核心目標分類
+## 目標值型別體系
 
-#### 互動目標選擇
-**[TargetSelectable.cs](Assets/Scripts/GameModel/Target/TargetSelectable.cs)** 定義玩家可選擇的目標類型
-- 角色選擇：`CharacterSelectable`、`CharacterAllySelectable` 等精確的選擇範圍
-- 選擇類型：透過 `SelectType` 枚舉標準化選擇行為  
-- 無目標：`NoneSelectable` 支援不需要選擇的效果設計
+### 卡牌目標
 
-#### 實體目標評估
-各種實體的目標計算介面，支援基於遊戲狀態的動態目標解析：
+```
+ITargetCardValue（單張卡牌）
+├── SelectedCard         # 當前選取的卡牌
+├── PlayingCard          # 正在打出的卡牌
+└── IndexOfCardCollection # 卡牌區域中特定位置的卡牌
 
-**[TargetCardValue.cs](Assets/Scripts/GameModel/Target/TargetCardValue.cs)** - 卡牌目標系統
-- 當前選中卡牌：`SelectedCard` 獲取玩家選擇的卡牌
-- 正在使用卡牌：`PlayingCard` 指向觸發效果的卡牌
-- 支援複雜的卡牌檢索邏輯
+ITargetCardCollectionValue（多張卡牌）
+└── AllyHandCards        # 指定玩家的手牌集合
+```
 
-**[TargetCharacterValue.cs](Assets/Scripts/GameModel/Target/TargetCharacterValue.cs)** - 角色目標系統  
-- 主要角色：`MainCharacterOfPlayer` 獲取玩家的主角色
-- 角色關聯：透過 `ITargetPlayerValue` 建立角色與玩家的連接
-- 動態角色選擇支援
+### 玩家目標
 
-**[TargetPlayerValue.cs](Assets/Scripts/GameModel/Target/TargetPlayerValue.cs)** - 玩家目標系統
-- 當前玩家：`CurrentPlayer` 指向目前行動的玩家
-- 玩家關聯：支援複雜的玩家關係判斷
+```
+ITargetPlayerValue（單個玩家）
+├── CurrentPlayer    # 當前行動玩家
+├── OppositePlayer   # 對手玩家
+├── CardOwner        # 卡牌擁有者
+├── CharacterOwner   # 角色擁有者
+└── SelectedPlayer   # 當前選取的玩家
 
-#### 增益目標系統
-**[TargetPlayerBuffValue.cs](Assets/Scripts/GameModel/Target/TargetPlayerBuffValue.cs)** 與 **[TargetCardBuffValue.cs](Assets/Scripts/GameModel/Target/TargetCardBuffValue.cs)** 提供 Buff 效果的精確目標指定
+ITargetPlayerCollectionValue（多個玩家）
+└── SinglePlayerCollection  # 單個玩家包裝為集合
+```
 
-## 🔧 條件判斷機制
+### 角色目標
 
-### 數值計算系統
-**[IntegerValue.cs](Assets/Scripts/GameModel/Target/IntegerValue.cs)** 實現複雜的數值計算邏輯
-- 常數值：`ConstInteger` 提供固定數值配置
-- 算術運算：`ArithmeticInteger` 支援加減乘除等運算組合
-- 動態數值：基於遊戲狀態的即時數值計算
+```
+ITargetCharacterValue（單個角色）
+├── MainCharacterOfPlayer  # 指定玩家的主角色
+└── SelectedCharacter       # 當前選取的角色
 
-### 布林邏輯系統  
-**[BooleanValue.cs](Assets/Scripts/GameModel/Target/BooleanValue.cs)** 提供條件判斷的基礎邏輯
-- 固定值：`TrueValue`、`FalseValue` 提供基礎布林常數
-- 支援複雜條件邏輯的組合與評估
+ITargetCharacterCollectionValue（多個角色）
+└── SingleCharacterCollection  # 單個角色包裝為集合
+```
+
+### Buff 目標
+
+```
+ITargetPlayerBuffValue（玩家 Buff）
+└── TriggeredPlayerBuff  # 觸發此效果的玩家 Buff
+
+ITargetCardBuffValue（卡牌 Buff）
+└── TriggeredCardBuff    # 觸發此效果的卡牌 Buff
+```
+
+## 選取系統（Selectable）
+
+選取系統定義了「玩家在 UI 上可以選什麼」的規則，是卡牌打出時目標互動的核心。
+
+### 主目標選取（IMainTargetSelectable）
+
+```
+NoneSelectable              # 不需要選取目標
+CharacterSelectable         # 任意角色
+CharacterAllySelectable     # 友方角色
+CharacterEnemySelectable    # 敵方角色
+CardSelectable              # 任意卡牌
+CardAllySelectable          # 友方卡牌
+CardEnemySelectable         # 敵方卡牌
+```
+
+### 子目標選取群組（ISubSelectionGroup）
+
+支援多步驟的複雜選取，例如「選擇 2 張手牌丟棄，然後抽 3 張牌」：
+
+```
+ExistCardSelectionGroup   # 從現有卡牌中選取
+NewCardSelectionGroup     # 創建新卡牌供選取
+NewEffectSelectionGroup   # 選擇效果變體
+```
+
+每個群組定義最少/最大選取數量，以及是否為必須選取。
+
+## 數值型別（Integer / Boolean）
+
+目標系統同時提供抽象數值，用於效果計算的參數化：
+
+### IIntegerValue（整數值）
+
+```
+ConstInteger          # 固定常數
+ArithmeticInteger     # 運算式（左運算元 ○ 右運算元）
+CardIntegerProperty   # 從卡牌屬性讀取（費用、威力等）
+PlayerIntegerProperty # 從玩家屬性讀取（能量、生命等）
+ConditionalValue      # 根據條件返回不同值
+```
+
+### IBooleanValue（布林值）
+
+```
+TrueValue   # 固定 true
+FalseValue  # 固定 false
+```
+
+## 設計價值
+
+### 組合性
+目標和數值都是可組合的。例如 `ArithmeticInteger` 的左右運算元本身也是 `IIntegerValue`，可以嵌套出任意複雜的運算式。
+
+### 延遲求值
+所有目標值都在 `TriggerContext` 下動態求值，這意味著：
+- 效果定義時不需要知道具體目標
+- 相同的效果定義可以在不同上下文下產生不同結果
+- Buff 修正可以影響目標解析結果
+
+### UI 協同
+`IMainTargetSelectable` 直接映射到 View 層的互動邏輯——View 根據選取類型決定哪些 UI 元件可以被點擊/拖曳。
+
+## 與其他系統的關係
+
+- **Effect 系統**：EffectDataResolver 使用 ITargetCollectionValue 解析效果目標
+- **Condition 系統**：條件使用 ITargetValue 解析需要判斷的實體
+- **GameView**：IMainTargetSelectable 驅動 UI 的可選取狀態
+- **CardData**：效果定義中嵌入 ITargetCollectionValue 指定目標規則

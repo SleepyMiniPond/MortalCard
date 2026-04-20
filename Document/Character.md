@@ -1,47 +1,114 @@
-# Character 子系統 - 戰鬥單位實體管理機制
+# Character 角色系統
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Character 子系統是 GameModel\Entity 中負責戰鬥單位實體管理的核心機制**，與 Player 系統形成明確分工：**Player 管理陣營層級的資源**（手牌、能量條等），**Character 管理單位層級的狀態**（血量、角色狀態等）。支援敵方多個單位同時在場上的戰鬥邏輯。
+## 設計理念
 
-## 📊 Character 系統架構設計
+角色（Character）是戰鬥場上的**生命單位**，承載血量、護甲與角色 Buff。角色是判定勝負的核心——當一方所有角色死亡時，該玩家失敗。
 
-### 核心 Character 實體
+角色系統刻意保持輕量，將狀態管理委派給 HealthManager 和 CharacterBuffManager。角色本身主要是這些子系統的**組合容器**。
 
-#### 角色核心實體
-**[CharacterEntity.cs](Assets/Scripts/GameModel/Entity/Character/CharacterEntity.cs)** 戰鬥中單個角色單位的完整表示
-- **身份標識**：透過 `Identity` 與 `NameKey` 進行角色識別與本地化
-- **生命管理**：整合 `IHealthManager` 處理生命值、護甲等生存狀態
-- **狀態管理**：整合 `ICharacterBuffManager` 處理角色身上的所有增益效果
-- **狀態查詢**：提供 `CurrentHealth`、`MaxHealth`、`IsDead` 等即時狀態查詢
-- **參數建構**：透過 `CharacterParameter` 記錄進行標準化的角色創建
+## CharacterEntity — 角色實體
 
-#### 健康狀態管理
-**[HealthManager.cs](Assets/Scripts/GameModel/Entity/Character/HealthManager.cs)** 專門處理角色的生命與護甲系統
-- **生命值系統**：管理當前生命值（Hp）與最大生命值（MaxHp）
-- **護甲系統**：管理護甲值（Dp）與傷害吸收邏輯
-- **傷害處理**：不同傷害類型的精確處理邏輯
-  - **一般傷害**：優先扣除護甲，再影響生命值
-  - **穿透傷害**：直接影響生命值，無視護甲
-- **治療機制**：生命值恢復與溢出處理
-- **護盾機制**：護甲值增加與上限控制
+### 組成結構
 
-## 🛡️ CharacterBuff 增益系統
+```
+CharacterEntity
+├── Identity (Guid)         # 唯一身份
+├── NameKey                 # 本地化名稱鍵
+├── HealthManager           # 血量/護甲管理
+│   ├── Hp / MaxHp          # 生命值
+│   └── Dp                  # 護甲值（Defense Points）
+├── CharacterBuffManager    # 角色 Buff 管理
+│   └── CharacterBuffEntity[]
+└── IsDead                  # HP ≤ 0
+```
 
-### CharacterBuff 核心實體
-**[CharacterBuffEntity.cs](Assets/Scripts/GameModel/Entity/Character/CharacterBuff/CharacterBuffEntity.cs)** 角色身上的增益效果管理
-- **資料連結**：透過 `Id` 連接到 GameData 中的 CharacterBuff 定義
-- **等級疊加**：支援 Buff 的等級累積與強化機制
-- **施法者追蹤**：記錄 Buff 的施加來源，支援追溯邏輯
-- **反應會話**：透過 `ReactionSessions` 實現複雜的觸發與反應邏輯
-- **屬性修飾**：透過 `Properties` 對角色屬性進行動態修改
+### 建構方式
 
-### CharacterBuff 管理器
-**[CharacterBuffManager.cs](Assets/Scripts/GameModel/Entity/Character/CharacterBuff/CharacterBuffManager.cs)** 統一管理角色的所有增益效果
-- **Buff 操作**：提供 Buff 的添加、移除與狀態查詢功能
-- **生命週期管理**：統一處理所有 Buff 的時間更新與過期清理
-- **結果回饋**：詳細的 Buff 操作結果與狀態變化通知
+透過 `CharacterParameter` Record 建構，包含：
+- Identity、NameKey
+- MaxHealth、CurrentHealth
+- MaxEnergy（影響所屬玩家的能量上限）
 
-### CharacterBuff 生命週期
-**[CharacterBuffLifeTimeEntity.cs](Assets/Scripts/GameModel/Entity/Character/CharacterBuff/CharacterBuffLifeTimeEntity.cs)** 控制 Buff 的持續時間
-- **動態更新**：基於遊戲狀態的生命週期自動管理
+### Dummy 模式
+
+`DummyCharacter.Instance` 提供 Null Object 實作，確保安全的預設引用。
+
+## HealthManager — 雙層防禦機制
+
+這是角色系統中最重要的子系統，實現了**護甲優先吸收**的傷害模型。
+
+### 設計模型
+
+```
+傳入傷害
+    ↓
+判斷傷害類型
+    ├── Normal / Additional → 護甲優先吸收
+    │   ├── 傷害 ≤ 護甲 → 全額扣護甲
+    │   └── 傷害 > 護甲 → 護甲歸零 + 溢出扣血
+    └── Penetrate / Effective → 無視護甲，直接扣血
+```
+
+### 操作與結果
+
+| 操作 | 回傳結果 | 關鍵資訊 |
+|------|----------|----------|
+| TakeDamage | TakeDamageResult | 實際扣血、護甲吸收、溢出值 |
+| GetHeal | GetHealResult | 實際回復量（不超過上限） |
+| GetShield | GetShieldResult | 護甲增加量 |
+
+所有結果都是帶 Delta 值的結構，供事件系統產生精確動畫。
+
+## CharacterBuff — 角色 Buff 系統
+
+### CharacterBuffData（設計時）
+
+```
+CharacterBuffData
+├── ID, MaxLevel          # 識別與最大疊加層數
+├── Sessions{}            # 反應會話
+├── BuffEffects{}         # GameTiming → ConditionalCharacterBuffEffect[]
+├── PropertyDatas[]       # 屬性修正工廠列表
+└── LifeTimeData          # 生命週期策略
+```
+
+### 效果類型
+
+- `EffectiveDamageCharacterBuffEffect`：對目標造成確實傷害（無視護甲）
+
+### 屬性修正
+
+| 屬性 | 效果 |
+|------|------|
+| `MaxHealthPropertyCharacterBuffEntity` | 增加角色最大生命值 |
+| `MaxEnergyPropertyCharacterBuffEntity` | 增加所屬玩家最大能量 |
+
+### 生命週期
+
+- `AlwaysLifeTime`：永久
+- `TurnLifeTime`：N 回合後過期
+
+### CharacterBuffManager
+
+管理單個角色的所有 Buff，提供新增/移除/修改/更新操作。`Update()` 回傳變化的 Buff 集合，供事件產生。
+
+### CharacterBuffLibrary
+
+查詢服務，使用 **Option 模式** 處理「無此 Buff」或「該時機無效果」的情況。
+
+## 與其他系統的關係
+
+- **PlayerEntity**：角色隸屬於玩家，玩家持有角色集合
+- **HealthManager**：角色的核心戰鬥數值管理
+- **Effect 系統**：傷害/治療/護甲效果直接操作 HealthManager
+- **GameFormula**：傷害計算會查詢角色的 Buff 屬性修正
+- **GameView/CharacterView**：角色的視覺呈現
+
+## 相關文件
+
+- [Entity 實體系統](Entity.md) — CharacterEntity 在實體階層中的位置
+- [Player 玩家系統](Player.md) — 角色的擁有者
+- [Effect 效果管線](Effect.md) — 作用於角色的效果處理
+- [CharacterView 角色視圖](CharacterView.md) — 角色的視覺呈現

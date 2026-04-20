@@ -56,7 +56,7 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "MortalGame.sln",
+    "dotnet.defaultSolution": "MortalCard.sln",
     "github.copilot.advanced": {
         "debug.overrideEngine": "gpt-4"
     },

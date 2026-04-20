@@ -1,51 +1,81 @@
-# Instance 子系統 - 遊戲局級物件管理機制
+# Instance 實例層
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Instance 子系統是 GameModel 中負責遊戲局級物件管理的持久化機制**，管理從出發點到終點整局遊戲過程中需要跨戰鬥保持的物件。與 Entity 子系統形成對比：Instance 處理**跨戰鬥的持久性物件**，而 Entity 處理**單場戰鬥內的臨時物件**。
+## 設計理念
 
-## 📊 Instance 系統架構設計
+Instance 層是三層資料架構的**中間橋樑**，代表「可持久化的遊戲狀態快照」。它的存在解決了一個核心問題：**Data 是不可變的設計模板，Entity 是戰鬥中的可變物件，那「遊戲存檔」該存什麼？**
 
-### 持久性物件分層設計
-**玩家層級**：整局遊戲的玩家狀態與進度資訊
-**收藏層級**：玩家在整局遊戲中獲得並保持的資源（如卡牌收集）
-**跨戰鬥狀態**：需要在多場戰鬥間保持的玩家屬性與配置
+答案就是 Instance——使用 C# Record 類型確保不可變性，攜帶唯一 Guid 確保身份追蹤，同時只保存跨場景需要持久化的資訊。
 
-### 核心 Instance 類型
+## CardInstance — 卡牌實例
 
-#### 盟友實例 (Ally Instance)
-**[AllyInstance.cs](Assets/Scripts/GameModel/Instance/AllyInstance.cs)** 管理玩家角色的局級狀態
-- **基礎屬性**：生命值、能量值、好感度等跨戰鬥保持的數值
-- **收集資源**：牌組 `Deck` 作為玩家在整局遊戲中收集的卡牌集合
-- **配置資訊**：手牌上限等影響戰鬥的基礎設定
-- **身份標識**：透過 `Guid Identity` 確保實例的唯一性與追蹤
+### 職責
+從 CardData（設計模板）到 CardEntity（戰鬥物件）的中間態，代表牌組中的一張具體卡牌。
 
-#### 卡牌實例 (Card Instance)  
-**[CardInstance.cs](Assets/Scripts/GameModel/Instance/CardInstance.cs)** 管理玩家收集卡牌的個體狀態
-- **靜態資料連接**：透過 `CardDataId` 連結到 GameData 中的卡牌定義
-- **動態屬性擴展**：`AdditionPropertyDatas` 支援卡牌的個性化強化與修改
-- **實例追蹤**：每張卡牌實例都有獨特的 `InstanceGuid`，支援精確管理
-- **工廠創建**：提供 `Create` 方法從 CardData 生成新的卡牌實例
+### 設計要點
+- **Record 類型**：不可變，天生適合序列化
+- **InstanceGuid**：唯一識別碼，跨場景/存檔追蹤
+- **CardDataId**：指向設計模板（而非直接引用物件）
+- **AdditionPropertyDatas**：附加屬性（超出原始設計的額外修正）
 
-## 🔧 跨戰鬥管理機制
+### 建構流程
 
-### 狀態持久化設計
-Instance 物件使用 Record 類型確保資料不可變性，適合序列化與狀態管理
+```
+CardData（設計師配置）
+    ↓ CardInstance.Create(CardData)
+CardInstance（持久化快照）
+    ↓ CardEntity.CreateFromInstance(CardInstance, CardLibrary)
+CardEntity（戰鬥實體）
+```
 
-### 實例化追蹤系統
-所有 Instance 物件都配備 Guid 標識，支援跨場景的物件追蹤與狀態同步
+### 設計意義
 
-### 動態擴展支援
-透過 `AdditionPropertyDatas` 等機制，支援遊戲過程中的物件屬性動態調整
+一個 CardData 可以產生多個 CardInstance（例如牌組中有 3 張「基本攻擊」），每個 Instance 有獨立 Guid。戰鬥開始時，每個 Instance 轉化為 CardEntity，在戰鬥中擁有獨立的 Buff 和狀態。
 
-## 💡 與 Entity 系統的分工
+## AllyInstance — 友軍實例
 
-### Instance 特徵
-- **生命週期**：整局遊戲的開始到結束
-- **數量規模**：相對較少，主要是核心持久性資源
-- **典型物件**：玩家角色、收集的卡牌、遊戲進度狀態
+### 職責
+持久化友軍玩家的完整狀態，用於跨場景保存進度。
 
-### Entity 特徵  
-- **生命週期**：單場戰鬥的開始到結束
-- **數量規模**：相對較多，包含所有戰鬥內臨時物件
-- **典型物件**：戰鬥中的 Buff、臨時卡牌、戰鬥狀態
+### 包含資訊
+- **Identity**：玩家識別碼
+- **NameKey**：本地化名稱鍵
+- **CurrentDisposition**：當前好感度
+- **CurrentHealth / MaxHealth**：生命值狀態
+- **CurrentEnergy / MaxEnergy**：能量狀態
+- **Deck**：卡牌實例列表（`List<CardInstance>`）
+- **HandCardMaxCount**：手牌上限
+
+### 設計意義
+
+AllyInstance 是「遊戲進度」的具體化。當玩家完成一場戰鬥後，AllyInstance 可以記錄戰後狀態（剩餘血量、牌組變化、好感度變動），並帶入下一場戰鬥。
+
+## 三層架構中的位置
+
+```
+Data 層（設計時）      Instance 層（持久化）    Entity 層（戰鬥時）
+───────────────     ─────────────────     ─────────────────
+CardData            CardInstance           CardEntity
+PlayerData          AllyInstance           AllyEntity
+EnemyData           ─                      EnemyEntity
+CardBuffData        ─                      CardBuffEntity
+PlayerBuffData      ─                      PlayerBuffEntity
+CharacterBuffData   ─                      CharacterBuffEntity
+```
+
+注意：目前只有 Card 和 Ally 有明確的 Instance 層。Buff 和 Enemy 直接從 Data 轉為 Entity，因為它們不需要跨場景持久化。這是一個務實的設計——不為不需要的功能建立抽象層。
+
+## 與其他系統的關係
+
+- **GameData**：提供 Data 模板，Instance 從中建構
+- **Entity 系統**：從 Instance 建構運行時實體
+- **BattleBuilder**：在戰鬥建構時將 AllyInstance 轉換為 AllyEntity
+- **Scene/Presenter**：跨場景傳遞 Instance 作為遊戲進度
+
+## 相關文件
+
+- [SystemArchitecture 架構總覽](SystemArchitecture.md) — 三層架構說明
+- [Card 卡牌系統](Card.md) — CardInstance 的使用
+- [Player 玩家系統](Player.md) — AllyInstance 的使用
+- [Entity 實體系統](Entity.md) — Entity 層的完整結構

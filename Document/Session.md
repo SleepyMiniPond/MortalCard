@@ -1,78 +1,131 @@
-# Session 子系統 - 條件觸發與生命週期管理機制
+# Session 反應會話系統
 
-## 🎯 子系統定位與核心價值
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Session 子系統是 GameModel\Entity 中專門處理「區域變數」型態機制的創新設計**，專門實現需要**特定生命週期**與**條件計數觸發**的遊戲機制。此系統讓設計師能在編輯器中快速配置複雜的觸發條件，例如「這回合內每3次出牌就XXX」或「這場戰鬥每5次受到攻擊就XXX」等機制。
+## 設計理念
 
-## 🏗️ Session 系統三層架構
+Session 系統解決了 Buff 系統中一個精巧的需求：**Buff 需要追蹤動態狀態**。
 
-### 核心設計理念
-**臨時狀態管理**：不同於永久性的 Buff 系統，Session 專門管理有明確生命週期的臨時狀態  
-**條件觸發設計**：支援複雜的條件判斷與計數觸發機制  
-**編輯器友善**：透過 Odin Inspector 提供設計師直觀的配置介面  
-**生命週期自動化**：根據指定的生命週期範圍自動管理狀態重置與清理
+例如一個 Buff 的效果是「每回合首次造成傷害時，額外造成 2 點傷害」。為了實現「首次」這個限制，Buff 需要記住「本回合是否已經觸發過」。Session 就是為此而生的——它是 Buff 附帶的可變狀態容器，根據遊戲時機自動更新。
 
-### ReactionSession 核心機制
+## 核心概念
 
-#### 反應會話實體
-**[ReactionSessionEntity.cs](Assets/Scripts/GameModel/Entity/Session/ReactionSessionEntity.cs)** 反應會話的核心控制器
-- **生命週期管控**：根據 `SessionLifeTime` 自動管理會話的啟動、重置、清理
-- **數值封裝**：透過 Option 模式安全封裝 Boolean/Integer 數值存取
-- **觸發更新**：接收 `TriggerContext` 並協調內部 SessionValue 的更新邏輯
-- **狀態追蹤**：透過 `IsSessionValueUpdated` 追蹤會話是否有數值變化
+### ReactionSessionData（設計時定義）
 
-#### 生命週期類型設計
+每個 Session 定義：
+- **初始值**：Boolean 或 Integer
+- **生命週期**（LifeTime）：決定何時重置
+  - `WholeGame`：整場遊戲存在
+  - `WholeTurn`：每回合重置
+  - `PlayCard`：每次打牌重置
+- **更新規則**：在特定 GameTiming、滿足特定條件時，如何更新值
+
+### ReactionSessionEntity（運行時實體）
+
+持有當前值，並在遊戲事件發生時評估更新規則。
+
+## 兩種會話型別
+
+### SessionBoolean — 布林狀態
+
+適用於「是否已觸發」類型的追蹤。
+
+**更新操作**：
+| 操作 | 行為 |
+|------|------|
+| Overwrite | 直接覆寫為新值 |
+| AndOrigin | 新值 = 舊值 AND 更新值 |
+| OrOrigin | 新值 = 舊值 OR 更新值 |
+
+**典型用途**：
+- 「本回合是否已造成傷害」→ 初始 false，TurnStart 重置為 false，造成傷害時 OrOrigin true
+- 條件效果檢查此值：若為 false（尚未觸發），觸發效果
+
+### SessionInteger — 整數計數器
+
+適用於「觸發了幾次」或「累計了多少」類型的追蹤。
+
+**更新操作**：
+| 操作 | 行為 |
+|------|------|
+| Overwrite | 直接覆寫為新值 |
+| AddOrigin | 新值 = 舊值 + 更新值 |
+
+**典型用途**：
+- 「本回合打出幾張牌」→ 初始 0，TurnStart 重置為 0，每次打牌 AddOrigin 1
+- 條件效果檢查此值：若 ≤ 3，觸發額外效果
+
+## 更新規則
+
+每個 Session 可以有多組更新規則，每組綁定到特定的 GameTiming：
+
 ```
-📅 WholeGame：整場戰鬥的持續性會話
-🔄 WholeTurn：單一回合內的臨時會話  
-⚡ PlayCard：單次出牌過程的短期會話
+TimingRule
+├── GameTiming        # 何時觸發此規則（TurnStart、PlayCardEnd 等）
+└── UpdateRules[]     # 條件更新規則列表
+    └── ConditionUpdateRule
+        ├── Conditions[]  # 前置條件（全部滿足才執行）
+        └── NewValue      # 更新值
+        └── Operation     # 更新操作（Overwrite/And/Or/Add）
 ```
 
-### SessionValue 數值管理系統
+**求值流程**：
+1. 遊戲觸發特定 GameTiming
+2. 找到匹配該 Timing 的所有 TimingRule
+3. 對每個 ConditionUpdateRule：
+   a. 評估所有 Conditions
+   b. 全部通過 → 執行更新操作
+   c. 有任一未通過 → 跳過
 
-#### 數值實體核心
-**[SessionValueEntity.cs](Assets/Scripts/GameModel/Entity/Session/SessionValueEntity.cs)** 會話數值的具體實現
-- **型別支援**：支援 Boolean 與 Integer 兩種基礎數值類型
-- **規則驅動**：基於 TimingRule 系統，在特定時機觸發數值更新
-- **條件判斷**：每個更新規則包含完整的條件檢查邏輯
-- **運算支援**：Boolean 支援 AND/OR/覆寫，Integer 支援 加法/覆寫
+## 生命週期管理
 
-#### Boolean 會話數值
-- **邏輯運算**：`AndOrigin` 與原值 AND、`OrOrigin` 與原值 OR、`Overwrite` 直接覆寫
-- **狀態追蹤**：適合實現開關型態的觸發機制
-- **條件更新**：基於 `ConditionBooleanUpdateRule` 的條件驅動更新
+Session 的重置時機由 LifeTime 決定：
 
-#### Integer 會話數值  
-- **計數機制**：`AddOrigin` 累積計數、`Overwrite` 重置計數
-- **閾值判斷**：適合實現「每N次就觸發」的計數機制
-- **數值運算**：基於 `ConditionIntegerUpdateRule` 的數值計算邏輯
+| LifeTime | 重置時機 | 典型場景 |
+|----------|----------|----------|
+| WholeGame | 不重置（或手動重置） | 累計整場遊戲的統計 |
+| WholeTurn | TurnStart 時重置 | 「每回合首次」限制 |
+| PlayCard | PlayCardStart 時重置 | 「本次打牌」內的追蹤 |
 
-### SelectedCard 選擇管理系統
+### 延遲初始化
 
-#### 卡牌選擇實體
-**[SelectedCardEntity.cs](Assets/Scripts/GameModel/Entity/Session/SelectedCardEntity.cs)** 臨時卡牌選擇狀態管理
-- **容量控制**：透過 `MaxCount` 限制同時選擇的卡牌數量
-- **選擇管理**：`TryAddCard`/`RemoveCard` 安全的卡牌選擇操作
-- **批次操作**：`UnSelectAllCards` 一次性清空所有選擇
-- **身份查詢**：透過 `TryGetCard` 根據卡牌 Identity 快速查找
+Session 值採用**延遲初始化**——在首次被存取時才建立，這避免了不必要的物件建立開銷。
 
-## 🛠️ Data 層配置設計
+## 與 Buff 系統的整合
 
-### 編輯器配置優勢
-**[ReactionSessionData.cs](Assets/Scripts/GameData/Session/ReactionSessionData.cs)** 為設計師提供強大的編輯器配置能力
-- **視覺化配置**：透過 Odin Inspector 的 `[TableList]` 提供表格化的規則配置
-- **時機選擇**：`[ValueDropdown]` 提供所有可用的 `GameTiming` 選項
-- **規則組合**：支援多個 TimingRule 的複雜組合邏輯
+```
+Buff 效果觸發流程：
 
-## 🔧 更新規則系統
+1. GameTiming 發生（例如 TurnStart）
+2. Buff 的 ReactionSessions 收到通知
+   → Session 根據 UpdateRules 更新自己的值
+3. Buff 的 ConditionalEffect 被檢查
+   → 條件中可能包含 SessionValueCondition
+   → SessionValueCondition 讀取 Session 當前值
+   → 判斷是否滿足觸發條件
+4. 若條件通過 → 執行 Buff 效果
+```
 
-### 條件驅動更新
-**[SessionValueUpdateRule.cs](Assets/Scripts/GameData/Session/SessionValueUpdateRule.cs)** 統一的條件更新框架
-- **條件檢查**：每個更新規則包含完整的 `ICondition` 陣列
-- **數值來源**：支援 `IBooleanValue`/`IIntegerValue` 動態數值計算
-- **操作類型**：明確定義不同數值類型的可用操作
+## SelectedCardEntity（附屬實體）
 
-### 觸發時機整合
-- **與 Action 系統協作**：接收各種遊戲動作的觸發信號
-- **與 Condition 系統協作**：利用完整的條件判斷體系
-- **與 Target 系統協作**：支援基於目標的條件判斷
+Session 子目錄下還包含 `SelectedCardEntity`，用於追蹤敵人 AI 選定的卡牌：
+- `Cards`：已選定的卡牌集合
+- `MaxCount`：選取上限
+- `TryAddCard()` / `RemoveCard()` / `UnSelectAllCards()`
+
+這與 Session 系統的「狀態追蹤」哲學一致——追蹤一個臨時的、會在回合間重置的狀態。
+
+## 設計價值
+
+1. **關注點分離**：Buff 的「效果」和「追蹤狀態」分開定義
+2. **可組合性**：Session 的條件和更新規則可以任意組合
+3. **宣告式**：設計師只需定義「什麼時候更新」和「怎麼更新」，執行邏輯自動完成
+4. **生命週期明確**：每個 Session 的有效範圍清晰定義
+
+## 相關文件
+
+- [CardBuff 卡牌 Buff](CardBuff.md) — Session 的宿主之一
+- [Player 玩家系統](Player.md) — PlayerBuff 的 Session
+- [Character 角色系統](Character.md) — CharacterBuff 的 Session
+- [Condition 條件系統](Condition.md) — SessionValueCondition 讀取 Session 值
+- [GameModel 核心邏輯](GameModel.md) — GameTiming 觸發 Session 更新

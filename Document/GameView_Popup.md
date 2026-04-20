@@ -1,72 +1,89 @@
-# GameView\Popup 系統 - 彈出視窗與互動面板
+# GameView Popup 彈窗面板
 
-## 🎯 系統定位
-GameView\Popup 系統負責管理遊戲中的各種彈出視窗、詳細資訊面板與玩家互動介面。採用 **MVP 架構**設計，透過 Presenter 處理複雜的異步互動流程，並提供統一的事件驅動機制。
+> 最後更新：2026-04-20 | 版本：v2.0
 
-## 🏗️ 核心設計架構
+## 設計理念
 
-### MVP 架構分離設計
-系統嚴格遵循 **Presenter-View 分離**原則：
-- **Presenter**：處理業務邏輯、事件協調、異步流程控制
-- **Panel/View**：負責純粹的視覺呈現與基礎互動回應
-- **UniTaskPresenter**：提供統一的異步事件處理框架
+Popup 面板負責**模態互動**——需要玩家注意力或選擇的臨時彈窗。這些面板在需要時顯示，完成後隱藏，使用 UniTask 實現非同步的等待-回應流程。
 
-### 事件驅動互動模式
-所有 Popup 都採用**基於事件的異步互動模式**：
-- Record 類型事件定義，確保型別安全
-- UniTask 支援的異步生命週期管理
-- 統一的開啟-互動-關閉流程
+## 元件列表
 
-## 📋 核心 Popup 系統
+### CardSelectionPanel — 卡牌多選面板
 
-### 卡牌詳細資訊系統
-#### [AllCardDetailPresenter](Assets/Scripts/GameView/Panel/Popup/AllCardDetailPresenter.cs) + [AllCardDetailPanel](Assets/Scripts/GameView/Panel/Popup/AllCardDetailPanel.cs)
-**設計要點**：
-- **多重卡牌瀏覽**：同時顯示牌組、手牌、墓地的所有卡牌
-- **分類切換機制**：透過 Deck/HandCard/Graveyard 按鈕切換不同卡牌集合
-- **CardDetailProperty 封裝**：整合卡牌資訊、Buff 提示、關鍵字提示的複合資料結構
-- **工廠模式整合**：透過 CardViewFactory 動態建立卡牌視圖組件
+用於效果中的「選擇 N 張卡牌」互動（如「丟棄 2 張手牌」）：
+- 追蹤已選卡牌（`_cardViewMap`）
+- 根據選取數量更新確認按鈕狀態
+- 支援「必須選取」模式（IsMustSelect）
+- 支援最大選取數量限制
+- 提供：描述文字、確認/關閉按鈕、可見性切換
 
-#### [SingleCardDetailPopupPanel](Assets/Scripts/GameView/Panel/Popup/SingleCardDetailPopupPanel.cs)
-**設計要點**：
-- **單卡詳細展示**：專注於單張卡牌的完整資訊呈現
-- **提示系統整合**：整合 CardPropertyHint 顯示 Buff 與關鍵字詳細說明
-- **異步生命週期**：完整的開啟-等待-關閉異步流程控制
+### AllCardDetailPanel — 卡牌瀏覽面板
 
-### 卡牌選擇與互動系統
-#### [SubSelectionPresenter](Assets/Scripts/GameView/Panel/Popup/SubSelectionPresenter.cs) + [CardSelectionPanel](Assets/Scripts/GameView/Panel/Popup/CardSelectionPanel.cs)
-**設計要點**：
-- **複雜選擇邏輯處理**：支援多種卡牌選擇模式（ExistCardSelectionInfo）
-- **選擇狀態管理**：追蹤已選卡牌、最大選擇數量、確認狀態
-- **字典式回傳**：透過 IReadOnlyDictionary 回傳選擇結果
-- **視覺回饋控制**：支援面板顯示/隱藏切換、選擇描述文字更新
+用於瀏覽卡牌集合（牌組、手牌、墓地）：
+- `Open()`：顯示面板
+- `Render()`：根據卡牌屬性建立顯示元件
+- `Close()`：清理並隱藏
+- 提供牌組/手牌/墓地的切換按鈕
 
-### 遊戲結果展示系統
-#### [GameResultWinPresenter](Assets/Scripts/GameView/Panel/Popup/GameResultWinPresenter.cs) / [GameResultLosePresenter](Assets/Scripts/GameView/Panel/Popup/GameResultLosePresenter.cs)
-**設計要點**：
-- **結果狀態處理**：封裝勝利/失敗的結果資料結構
-- **簡潔的異步等待**：提供基礎的結果展示與關閉機制
-- **未來擴展預備**：為複雜的結果動畫與統計資訊預留架構空間
+### AllCardDetailPresenter — 卡牌瀏覽流程
 
-## 🔧 共用基礎設施
+狀態機控制瀏覽流程：
+- **DeckEvent**：顯示牌組卡牌
+- **HandCardEvent**：顯示手牌
+- **GraveyardEvent**：顯示墓地
+- **CardDetailEvent**：開啟單卡詳情彈窗
+- **CloseEvent**：關閉瀏覽
 
-### 異步事件處理框架 - [UniTaskPresenter](Assets/Scripts/GameView/Panel/Popup/UniTaskPresenter.cs)
-**設計要點**：
-- **事件佇列機制**：支援事件的排隊與順序處理
-- **條件式執行**：透過 conditionFunc 控制異步流程的執行條件
-- **取消支援**：完整的 CancellationToken 整合
-- **事件型別安全**：基於 Record 的事件型別系統
+使用 `IUniTaskPresenter` 進行非同步事件處理。
 
-### 提示系統 - [SimpleTitleInfoHintView](Assets/Scripts/GameView/Panel/Popup/SimpleTitleIInfoHintView.cs)
-**設計要點**：
-- **智慧定位**：根據目標位置自動調整提示框顯示方向
-- **本地化支援**：完整的多語言標題與內容顯示
-- **Layout 自適應**：自動重建版面配置以適應內容長度
-- **生命週期管理**：統一的顯示-隱藏生命週期控制
+### SingleCardDetailPopupPanel — 單卡詳情彈窗
 
-## 🔗 系統間協作關係
+全螢幕的單張卡牌詳情展示：
+1. 渲染卡牌視圖
+2. 顯示 Buff 和關鍵字提示
+3. 非同步等待玩家關閉
+4. 清理並隱藏
 
-### 與 GameModel 的資料流
-- 接收 **CardInfo、CardCollectionInfo** 等遊戲資料結構
-- 透過 **IGameViewModel** 訂閱遊戲狀態變化
-- 回傳選擇結果給 GameModel 進行後續處理
+### SimpleTitleInfoHintView — 提示框
+
+通用的懸停提示框元件：
+- 接收標題 + 說明文字
+- **智慧定位**：避免超出畫面邊緣，必要時翻轉顯示方向
+- 使用 `LayoutRebuilder` 確保文字換行正確
+
+### 勝負結果面板
+
+**GameResultWinPanel**：
+- 最簡設計：顯示/隱藏勝利畫面
+- 由 GameResultWinPresenter 控制
+
+**GameResultLosePanel**：
+- 提供三個按鈕：重試（Retry）、重新開始（Restart）、退出（Quit）
+- 玩家選擇決定遊戲迴圈的下一步
+
+**GameResultWinPresenter / GameResultLosePresenter**：
+- 監聽按鈕事件，回傳結果型別
+- LosePresenter 回傳 `GameplayLoseResult`（含反應類型：Retry/Restart/Quit）
+
+### SubSelectionPresenter — 子選取流程
+
+處理卡牌效果的多步驟選取互動：
+- **事件**：SelectCardEvent、LongTouchCardEvent、ConfirmEvent、VisibleToggleEvent、CloseEvent
+- **狀態管理**：追蹤已選卡牌、可見狀態
+- **輸出**：`IReadOnlyDictionary<string, ISubSelectionAction>`（以選取群組 ID 為鍵）
+
+### UniTaskPresenter — 非同步事件迴圈
+
+泛型的非同步事件處理框架：
+- 接收 Disposable、條件函式、取消令牌、事件處理器
+- 透過 `TryEnqueueNextEvent()` 取出事件
+- 非同步執行處理器
+- 根據回傳值決定繼續（None）或停止（Halt）
+
+被 UIPresenter、SubSelectionPresenter、AllCardDetailPresenter 共用。
+
+## 相關文件
+
+- [GameView_Panel 面板系統](GameView_Panel.md) — Popup 的父容器
+- [Presenter 協調層](Presenter.md) — 觸發彈窗流程
+- [CardView 卡牌視圖](CardView.md) — 卡牌詳情顯示

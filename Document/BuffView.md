@@ -1,71 +1,53 @@
-# BuffView 子系統 - 增益效果視覺化呈現機制
+# BuffView Buff 視圖
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**BuffView 子系統是 GameView 中負責增益效果視覺化的專門機制**，提供統一的 Buff 狀態視覺呈現與玩家互動介面。此系統採用**模板化設計**與**響應式更新**，確保不同類型的 Buff 效果都能獲得一致且直觀的視覺回饋。
+## 設計理念
 
-## 📊 BuffView 系統架構設計
+BuffView 系統負責 Buff 效果在 UI 上的視覺呈現，包括 Buff 圖示、層數顯示、以及懸停提示。設計上採用**響應式訂閱**——每個 BuffView 訂閱 GameViewModel 中對應 Buff 的 ReactiveProperty，資料變化時自動刷新。
 
-### 視覺分層設計
-**資訊抽象層**：統一的 BuffInfo 資料結構，封裝 Buff 的視覺化資訊
-**視覺呈現層**：具體的 BuffView 元件，處理圖示、數值、互動等視覺元素
-**集合管理層**：BuffCollectionView 統籌多個 Buff 的集合顯示與生命週期
-**工廠支援層**：透過 Factory 模式實現 BuffView 的高效創建與回收
+## 資料模型
 
-### 核心 BuffInfo 資訊架構
+### PlayerBuffInfo
+玩家 Buff 的顯示資訊：
+- Id：Buff Data ID
+- Identity：唯一 Guid
+- Level：當前層數
+- SessionIntegers：Session 整數值集合
+- `GetTemplateValues()`：供本地化模板替換
 
-#### PlayerBuffInfo 資料結構
-**[PlayerBuffInfo.cs](Assets/Scripts/GameView/BuffView/PlayerBuffInfo.cs)** 玩家增益的視覺化資訊封裝
-- **身份識別**：透過 `Id` 連接 GameData 定義，`Identity` 追蹤唯一實例
-- **等級顯示**：`Level` 提供 Buff 疊加層數的視覺化數值
-- **會話數據**：`SessionIntegers` 封裝 Session 系統的動態計數資訊
-- **模板支援**：`GetTemplateValues()` 為本地化文字提供動態數值替換
+### CharacterBuffInfo
+角色 Buff 的顯示資訊（與 PlayerBuffInfo 結構相同）。
 
-#### CharacterBuffInfo 資料結構
-**[CharacterBuffInfo.cs](Assets/Scripts/GameView/BuffView/CharacterBuffInfo.cs)** 角色增益的視覺化資訊封裝
-- **統一設計**：與 PlayerBuffInfo 保持一致的資料結構設計
-- **角色特化**：專門針對角色層級 Buff 的視覺化需求
-- **模板一致性**：相同的模板值生成機制，確保視覺呈現的統一性
+## PlayerBuffView — 單個 Buff 圖示
 
-### PlayerBuff 視覺化系統
+每個 Buff 對應一個 PlayerBuffView 實例：
+- 訂閱 `ViewModel.ObservablePlayerBuffInfo(identity)` 取得即時更新
+- 顯示 Buff 層數
+- 懸停時顯示本地化的 Buff 名稱與說明（透過 SimpleTitleInfoHintView）
+- 使用 `CompositeDisposable` 管理訂閱生命週期
+- 實作 `IRecyclable` 支援物件池回收
 
-#### PlayerBuffView 核心視覺元件
-**[PlayerBuffView.cs](Assets/Scripts/GameView/BuffView/PlayerBuffView.cs)** 單一玩家 Buff 的完整視覺呈現
-- **視覺元素**：整合 `_buffIcon` 圖示與 `_levelText` 等級顯示
-- **響應式更新**：透過 UniRx 訂閱 GameModel 的 Buff 狀態變化
-- **互動支援**：滑鼠懸停顯示詳細資訊，離開時自動隱藏
-- **資源管理**：實現 `IRecyclable` 介面，支援物件池回收機制
+## PlayerBuffCollectionView — Buff 集合容器
 
-#### 響應式更新機制
-- **即時同步**：Buff 狀態變化立即反映到視覺呈現
-- **自動清理**：CompositeDisposable 確保訂閱的正確清理
-- **記憶體安全**：避免記憶體洩漏與無效訂閱
+管理單個玩家的所有 Buff 圖示：
+- 維護 `_buffViewDict`（Dictionary）進行 O(1) 查詢
+- 透過 BuffViewFactory 建立/回收 BuffView
+- 響應遊戲事件：
+  - `AddPlayerBuffEvent`：建立新 BuffView
+  - `RemovePlayerBuffEvent`：移除並回收 BuffView
+  - `ModifyPlayerBuffLevelEvent`：更新層數顯示
 
-#### PlayerBuffCollectionView 集合管理
-**[PlayerBuffCollectionView.cs](Assets/Scripts/GameView/BuffView/PlayerBuffCollectionView.cs)** 玩家所有 Buff 的集合管理
+## 與其他系統的關係
 
-## 💡 互動體驗設計
+- **GameViewModel**：透過 ReactiveProperty 提供即時狀態
+- **Factory**：BuffViewFactory 管理 BuffView 物件池
+- **LocalizeLibrary**：提供 Buff 名稱與描述的本地化文字
+- **SimpleTitleInfoHintView**：懸停提示框元件
 
-### 資訊提示系統
-- **懸停顯示**：滑鼠懸停時顯示詳細的 Buff 資訊
-- **即時反饋**：Buff 等級與效果數值的即時更新
-- **優雅隱藏**：滑鼠離開時自動隱藏詳細資訊
+## 相關文件
 
-### 視覺回饋機制
-- **等級指示**：清晰的數值顯示 Buff 疊加層數
-- **圖示識別**：直觀的圖示幫助玩家快速識別 Buff 類型
-- **動態更新**：Buff 狀態變化時的平滑視覺轉換
-
-## 🔄 與其他系統協作
-
-### 與 GameModel 系統協作
-**資料來源**：接收 GameModel 中 PlayerBuff/CharacterBuff 的狀態資料
-
-### 與 Session 系統協作
-**會話數據**：顯示 Session 系統的計數與狀態資訊
-
-### 與本地化系統協作
-**文字模板**：透過 LocalizeLibrary 提供多語言的 Buff 描述
-
-### 與 Factory 系統協作
-**物件管理**：利用工廠模式實現高效的視覺元件生命週期管理
+- [GameView 視覺呈現層](GameView.md) — BuffView 的父系統
+- [Player 玩家系統](Player.md) — PlayerBuff 的邏輯層
+- [CardBuff 卡牌 Buff](CardBuff.md) — 另一套 Buff 的 View 需求
+- [Factory 工廠系統](Factory.md) — BuffViewFactory

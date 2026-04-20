@@ -1,69 +1,139 @@
-# Card 子系統 - 戰鬥卡牌實體管理機制
+# Card 卡牌系統
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Card 子系統是 GameModel\Entity 中負責戰鬥內卡牌實體管理的核心機制**，將 Instance 層的卡牌實例轉換為戰鬥中可操作的動態實體。管理卡牌在戰鬥中的狀態變化、區域轉移、屬性修改等所有與戰鬥相關的卡牌邏輯。
+## 設計理念
 
-## 📊 卡牌實體架構設計
+卡牌是 MortalGame 最核心的遊戲元素。卡牌系統完整體現了三層資料架構的設計哲學：**CardData（設計模板）→ CardInstance（持久快照）→ CardEntity（戰鬥實體）**。這三層分離使得同一張設計卡牌可以在不同遊戲場景中產生不同的實例，而每個實例在戰鬥中又可以擁有獨立的狀態。
 
-### 實體-區域分離設計
-**卡牌實體層**：管理單張卡牌的狀態、屬性與行為邏輯
-**區域管理層**：管理不同卡牌區域（牌庫、手牌、墓地等）的集合操作
-**屬性系統層**：處理戰鬥中卡牌的動態屬性變化
-**Buff 管理層**：處理卡牌上的臨時增益效果
+## 三層流轉
 
-### 核心卡牌實體
+### CardData（設計時）
+設計師在 Unity 編輯器中配置的卡牌模板，定義卡牌的「先天特質」：
+- **分類**：類型（Attack/Defense/Speech/Sneak/Special/Item）、稀有度、門派主題
+- **基礎數值**：費用（0-10）、威力（0-20）
+- **效果定義**：直接效果列表 + 觸發效果列表
+- **目標規則**：主目標選取 + 子目標選取群組
+- **屬性工廠**：PropertyData 列表，透過 CreateEntity() 產生運行時屬性
 
-#### 卡牌核心實體
-**[CardEntity.cs](Assets/Scripts/GameModel/Entity/Card/CardEntity.cs)** 戰鬥中單張卡牌的完整表示
-- **身份管理**：透過 `Identity` 與 `OriginCardInstanceGuid` 建立與 Instance 層的連接
-- **資料連結**：透過 `CardDataId` 連接到 GameData 中的靜態定義
-- **動態屬性**：管理戰鬥中的費用、威力等可變屬性
-- **效果系統**：整合卡牌效果與觸發時機的完整邏輯
+### CardInstance（存檔時）
+Record 類型的不可變快照，代表牌組中的一張具體卡牌：
+- **唯一身份**：InstanceGuid（跨場景追蹤）
+- **資料引用**：CardDataId（指向哪張設計卡牌）
+- **附加屬性**：AdditionPropertyDatas（超出 CardData 定義的額外屬性）
 
-#### 卡牌屬性實體  
-**[CardPropertyEntity.cs](Assets/Scripts/GameModel/Entity/Card/CardPropertyEntity.cs)** 管理卡牌的特殊屬性
+### CardEntity（戰鬥中）
+完整的戰鬥運行時物件：
+- **唯一身份**：Identity（戰鬥內 Guid）
+- **動態資料**：支援卡牌「變身」（`_mutationCardDataIds`）
+- **Buff 管理**：CardBuffManager 管理施加在卡上的 Buff
+- **屬性實體**：運行時的 CardPropertyEntity 集合
 
-## 🗃️ 卡牌區域管理系統
+## 卡牌效果體系
 
-### 區域抽象架構
-**[CardCollectionZone.cs](Assets/Scripts/GameModel/Entity/Card/CardCollectionZone.cs)** 提供統一的卡牌區域管理介面
-- **類型標識**：透過 `CardCollectionType` 明確區分不同區域
-- **統一操作**：提供添加、移除、搜尋卡牌的標準介面
-- **集合管理**：維護各區域的卡牌集合狀態
+### 直接效果（Effects）
 
-### 專門區域實體
+打出卡牌時立即執行的效果列表，按目標類型分類：
 
-#### 牌庫管理
-**[DeckEntity.cs](Assets/Scripts/GameModel/Entity/Card/DeckEntity.cs)** 戰鬥中的牌庫管理
-- **抽牌機制**：`PopCard` 提供從牌庫頂抽取卡牌的邏輯
-- **洗牌功能**：`EnqueueCardsThenShuffle` 支援卡牌回收與洗牌
-- **順序管理**：維護牌庫中卡牌的排列順序
+**角色目標效果**
+- DamageEffect（造成傷害）、PenetrateDamageEffect（穿甲傷害）
+- AdditionalAttackEffect（追加傷害）、EffectiveAttackEffect（確實傷害）
+- ShieldEffect（給予護甲）、HealEffect（治療）
 
-#### 手牌管理
-**[HandCardEntity.cs](Assets/Scripts/GameModel/Entity/Card/HandCardEntity.cs)** 戰鬥中的手牌管理
-- **容量限制**：透過 `MaxCount` 管理手牌上限
-- **清理機制**：`ClearHand` 實現回合結束時的手牌處理
-- **保留邏輯**：自動識別並保留具有 Preserved 屬性的卡牌
+**玩家目標效果**
+- GainEnergyEffect / LoseEnergyEffect（能量增減）
+- AddPlayerBuffEffect / RemovePlayerBuffEffect（Buff 操作）
+- IncreaseDispositionEffect / DecreaseDispositionEffect（好感度增減）
 
-#### 墓地管理
-**[GraveyardEntity.cs](Assets/Scripts/GameModel/Entity/Card/GraveyardEntity.cs)** 戰鬥中的墓地管理
-- **全部回收**：`PopAllCards` 支援墓地所有卡牌的回收
-- **選擇回收**：`PopRecycleCards` 只回收具有 Recycle 屬性的卡牌
-- **過濾邏輯**：基於卡牌屬性的智能過濾與管理
+**卡牌目標效果**
+- DrawCardEffect / DiscardCardEffect / ConsumeCardEffect / DisposeCardEffect
+- CreateCardEffect（創建新卡牌，可附帶 Buff）
+- CloneCardEffect（複製卡牌）
+- AddCardBuffEffect / RemoveCardBuffEffect
 
-#### 特殊區域
-- **[DisposeZoneEntity.cs](Assets/Scripts/GameModel/Entity/Card/DisposeZoneEntity.cs)**：管理被棄置的卡牌
-- **[ExclusionZoneEntity.cs](Assets/Scripts/GameModel/Entity/Card/ExclusionZoneEntity.cs)**：管理被排除的卡牌
+### 觸發效果（TriggeredEffects）
 
-## 🔧 與 Instance 系統的關係
+基於 `CardTriggeredTiming` 的事件驅動效果：
+- 抽到時（Drawed）、打出時（Played）、保留時（Preserved）、丟棄時（Discarded）
+- 每個觸發效果包裝為 `TriggeredCardEffect`，內含時機 + ICardEffect 列表
 
-### 生命週期轉換
-- **戰鬥開始**：CardInstance → CardEntity 實體化轉換
-- **戰鬥進行**：CardEntity 管理所有戰鬥內的狀態變化
-- **戰鬥結束**：CardEntity → CardInstance 狀態回寫（如有需要）
+### 效果參數化
 
-### 資料流向設計
-- **靜態資料**：透過 `CardDataId` 連接 GameData 定義
-- **實例資料**：透過 `OriginCardInstanceGuid` 追蹤來源 Instance
-- **動態資料**：戰鬥內的所有狀態變化與臨時效果
+所有效果的數值和目標都使用抽象介面：
+- **數值**：`IIntegerValue`（可以是常數、運算式、從實體屬性讀取）
+- **目標**：`ITargetCollectionValue`（動態解析目標實體列表）
+
+這種參數化設計使得效果定義可以高度複用。
+
+## 卡牌屬性系統
+
+屬性代表卡牌的**行為標記**，影響卡牌在不同區域轉換時的行為：
+
+| 屬性 | 效果 | 來源 |
+|------|------|------|
+| Preserved | 回合結束保留在手牌 | CardPropertyData |
+| Consumable | 可重複打出 | CardPropertyData |
+| Dispose | 打出後進入消耗區 | CardPropertyData |
+| AutoDispose | 自動進入消耗區 | CardPropertyData |
+| Sealed | 被封印，無法打出 | CardBuffPropertyData |
+| Recycle | 墓地中可被回收 | CardPropertyData |
+| InitialPriority | 初始抽牌優先 | CardPropertyData |
+
+### Data→Entity 工廠模式
+
+每個 `ICardPropertyData` 都有 `CreateEntity()` 方法，產生對應的 `ICardPropertyEntity`。這是 Data 層到 Entity 層的橋樑。
+
+## 卡牌目標選取
+
+### 主目標（MainSelect）
+定義玩家打出卡牌時需要選取的目標類型：
+- None：不需要選取（自動效果）
+- Character（All/Ally/Enemy）：選取角色
+- Card（All/Ally/Enemy）：選取卡牌
+
+附帶 `TargetLogicTag` 供 AI 使用（ToEnemy/ToAlly/ToRandom）。
+
+### 子目標（SubSelects）
+支援多步驟複雜選取：
+1. 從現有卡牌選取（ExistCardSelectionGroup）
+2. 從新建卡牌選取（NewCardSelectionGroup）
+3. 從效果變體選取（NewEffectSelectionGroup）
+
+## 卡牌區域流動
+
+```
+DeckEntity（牌組）──抽牌──→ HandCardEntity（手牌）
+    ↑                           │
+    │ 回收(Recycle)          打出 │ 丟棄
+    │                           ↓
+    ← ─ ─ ─ ─ ─ ─ ─ ─ ─  GraveyardEntity（墓地）
+                                │
+                          排除   │ 消耗(Dispose)
+                                ↓
+ExclusionZoneEntity ←─── DisposeZoneEntity
+```
+
+## 卡牌 Buff 系統
+
+詳見：[CardBuff 卡牌 Buff 系統](CardBuff.md)
+
+CardBuff 是施加在單張卡牌上的修正器，可以改變卡牌的威力、費用、或添加/移除屬性。
+
+## 與門派主題的關係
+
+每張卡牌可以屬於一或多個門派主題（CardTheme）：
+- **唐門**（TangSect）
+- **峨嵋**（Emei）
+- **嵩山**（Songshan）
+- **丐幫**（BeggarClan）
+- **滇蒼**（DianCang）
+
+門派主題影響卡牌的風格分類，未來可能擴展為門派親和度或門派專屬機制。
+
+## 相關文件
+
+- [CardBuff 卡牌 Buff](CardBuff.md) — 卡牌級別的 Buff 系統
+- [Effect 效果管線](Effect.md) — 卡牌效果的執行流程
+- [Target 目標系統](Target.md) — 目標選取規則
+- [Entity 實體系統](Entity.md) — CardEntity 的詳細結構
+- [Instance 實例層](Instance.md) — CardInstance 的設計

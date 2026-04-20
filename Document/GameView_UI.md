@@ -1,46 +1,42 @@
-# GameView\UI 系統 - 介面操作工具組件
+# GameView UI 工具元件
 
-## 🎯 系統定位
-GameView\UI 系統提供專注於玩家操作與遊戲流程控制的輕量級介面組件。不同於 Info 系統專注於資訊顯示，UI 系統的組件主要負責**觸發遊戲動作**與**快捷操作入口**。
+> 最後更新：2026-04-20 | 版本：v2.0
 
-## 🏗️ 核心設計理念
+## 設計理念
 
-### 操作導向設計
-每個 UI 組件都圍繞**特定玩家操作**設計：
-- **按鈕驅動**：主要互動透過按鈕點擊觸發
-- **狀態響應**：即時反映遊戲狀態變化
-- **動作整合**：直接與 GameModel 的動作系統連接
+UI 工具元件是最輕量的 View 子系統，提供簡單的按鈕互動和數值顯示。遵循**單一職責原則**——每個元件只做一件事。
 
-## 📋 核心組件詳析
+## 元件列表
 
-### 牌堆互動組件 - [DeckCardView](Assets/Scripts/GameView/Panel/UI/DeckCardView.cs)
-**設計要點**：
-- **數量監控**：即時顯示牌堆剩餘卡牌數量
-- **響應式更新**：透過 UniRx 訂閱 CardCollectionInfo 變化
-- **操作入口**：提供牌堆相關操作的觸發點（透過 DeckButton）
+### DeckCardView — 牌組按鈕
 
-### 墓地互動組件 - [GraveyardCardView](Assets/Scripts/GameView/Panel/UI/GraveyardCardView.cs)
-**設計要點**：
-- **墓地狀態追蹤**：監控墓地卡牌數量變化
-- **對稱設計**：與 DeckCardView 採用相同的設計模式
-- **快捷存取**：提供墓地檢視的快速入口
+- 顯示牌組剩餘卡牌數量
+- 訂閱 `ViewModel.ObservableCardCollectionInfo(Faction.Ally, CardCollectionType.Deck)`
+- 數量變化時自動更新文字
+- 點擊觸發牌組瀏覽（透過 UIPresenter）
 
-### 回合提交組件 - [SubmitView](Assets/Scripts/GameView/Panel/UI/SubmitView.cs)
-**設計要點**：
-- **動作觸發器**：直接觸發遊戲核心動作
-- **流程控制**：控制回合結束的關鍵操作
-- **指令整合**：與 GameplayActionReciever 直接連接
+### GraveyardCardView — 墓地按鈕
 
-## 🔄 系統設計模式
+- 顯示墓地卡牌數量
+- 訂閱 `ViewModel.ObservableCardCollectionInfo(Faction.Ally, CardCollectionType.Graveyard)`
+- 與 DeckCardView 相同的更新模式
+- 點擊觸發墓地瀏覽
 
-### 響應式狀態同步
-**設計優勢**：
-- 確保 UI 狀態與遊戲資料的即時同步
-- 透過 CompositeDisposable 管理訂閱生命週期
-- 避免手動輪詢檢查狀態變化
+### SubmitView — 送出按鈕
 
-### 指令模式整合
-**設計優勢**：
-- 清晰的操作與結果對應關係
-- 透過指令模式與 GameModel 解耦
-- 支援複雜的動作組合與序列
+- 回合結束按鈕
+- 點擊時直接發送 `TurnSubmitCommand` 到 ActionReceiver
+- 最簡單的互動：一個按鈕、一個命令
+
+## 設計特點
+
+這三個元件體現了「最小必要」的設計原則：
+- 沒有複雜的狀態管理
+- 沒有動畫效果
+- 直接透過 UniRx 訂閱或簡單事件回調
+- 各自獨立，不互相依賴
+
+## 相關文件
+
+- [GameView_Panel 面板系統](GameView_Panel.md) — UI 的父容器
+- [GameView 視覺呈現層](GameView.md) — 事件分發與整合

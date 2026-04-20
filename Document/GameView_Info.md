@@ -1,61 +1,75 @@
-# GameView\Info 系統 - 遊戲資訊顯示組件
+# GameView Info 資訊面板
 
-## 🎯 系統定位
-GameView\Info 系統負責提供玩家在戰鬥過程中所需的各類遊戲資訊顯示，包含玩家狀態、敵人狀態、遊戲回合、以及各種數值條與提示資訊。
+> 最後更新：2026-04-20 | 版本：v2.0
 
-## 🏗️ 核心設計架構
+## 設計理念
 
-### 雙陣營資訊顯示架構
-系統採用**雙陣營對稱設計**，為我方與敵方提供統一的資訊顯示模式：
-- **AllyInfoView**：我方完整資訊面板
-- **EnemyInfoView**：敵方完整資訊面板
-- 兩者共享相同的子組件，確保資訊顯示的一致性
+Info 面板負責**持續顯示遊戲狀態**——血量、能量、好感度、回合數等。這些是「永遠可見」的 UI 元件，設計上以**被動更新**為原則：透過 UniRx 訂閱 ViewModel 的狀態變化，自動刷新顯示。
 
-### 模組化組件設計
-每個資訊類型都封裝為獨立可重用的組件：
-- **HealthBarView**：生命值與護盾顯示
-- **EnergyBarView**：能量值顯示  
-- **DispositionView**：角色性格狀態顯示
-- **TopBarInfoView**：回合資訊顯示
-- **GameKeyWordInfoView**：遊戲關鍵字資訊提示
+## 元件列表
 
-## 📊 資訊顯示組件詳析
+### TopBarInfoView — 回合數
 
-### 生命值系統 - [HealthBarView](Assets/Scripts/GameView/Panel/Info/HealthBarView.cs)
-**設計要點**：
-- 雙數值顯示設計：同時顯示生命值與護盾值
-- 視覺化比例表示：透過 fillAmount 顯示生命值比例
-- 護盾狀態控制：護盾存在時動態顯示護盾相關物件
+- 顯示當前回合/回合數
+- 簡單的文字更新
 
-### 能量系統 - [EnergyBarView](Assets/Scripts/GameView/Panel/Info/EnergyBarView.cs)
-**設計要點**：
-- 當前值/最大值雙顯示模式
-- 比例條視覺化回饋
-- 即時更新機制，回應能量變化事件
+### HealthBarView — 血量狀態
 
-### 性格系統 - [DispositionView](Assets/Scripts/GameView/Panel/Info/DispositionView.cs)
-**設計要點**：
-- **響應式更新**：透過 UniRx 訂閱性格變化
-- **懸停提示功能**：滑鼠懸停顯示詳細說明
-- **動態本地化**：根據性格數值查詢對應文字描述
-- **視覺回饋**：fillAmount 反映性格強度
+- 顯示當前/最大血量（填充條）
+- 顯示護甲值（護甲存在時切換顯示物件）
+- 提供更新方法供遊戲事件驅動
 
-## 🔄 事件驅動更新機制
+### EnergyBarView — 能量狀態
 
-### 資料驅動渲染
-所有資訊組件都採用**資料驅動渲染模式**：
-- 接收標準化的資料結構
-- 透過統一的 SetInfo/UpdateInfo 方法更新顯示
-- 支援本地化文字與視覺樣式的動態切換
+- 顯示當前/最大能量（填充條）
+- 與 HealthBarView 相同的更新模式
 
-## 🔗 系統間協作關係
+### DispositionView — 好感度狀態
 
-### 與 GameModel 的資料流
-- 訂閱 **IGameViewModel** 取得即時遊戲狀態
-- 回應各類遊戲事件（健康值變化、能量變化、Buff 變化）
-- 透過 **Entity** 資料結構接收角色完整資訊
+- 以圖片填充表示好感度等級
+- 訂閱 `ViewModel.ObservableDispositionInfo` 取得即時更新
+- 懸停時顯示本地化的好感度名稱與效果說明
+- 使用 `DispositionLibrary` 將數值映射為等級名稱
 
-### 與其他 GameView 組件協作
-- **BuffView** 系統：顯示角色身上的增益/減益效果
-- **Factory** 系統：透過物件池管理資訊組件的建立與回收
-- **UI 工具**：使用基礎 UI 組件實現數值條與文字顯示
+### AllyInfoView — 友軍資訊面板
+
+聚合顯示友軍的所有狀態：
+- 內含 HealthBarView、EnergyBarView、DispositionView
+- 內含 PlayerBuffCollectionView（Buff 圖示集合）
+- `Init()` 接收 ViewModel、LocalizeLibrary、DispositionLibrary、SimpleTitleInfoHintView
+- 提供各種更新方法，由 GameplayView.Render() 在對應事件觸發時呼叫
+
+### EnemyInfoView — 敵軍資訊面板
+
+與 AllyInfoView 結構相同，但用於敵方玩家：
+- 聚合 HealthBarView、EnergyBarView
+- 包含 PlayerBuffCollectionView
+- 無 DispositionView（敵人沒有好感度機制）
+
+### GameKeyWordInfoView — 關鍵字說明
+
+- 可回收的關鍵字資訊元件
+- 顯示遊戲機制的本地化名稱與說明
+- 用於提示框系統
+
+## 更新模式
+
+Info 面板的更新遵循兩種模式：
+
+### 1. 響應式訂閱（持續更新）
+```
+ViewModel.ObservableXxx() → Subscribe → 自動更新 UI
+```
+適用：DispositionView、DeckCardView、GraveyardCardView
+
+### 2. 事件驅動（離散更新）
+```
+GameplayView.Render() → 識別事件 → 呼叫 InfoView.Update()
+```
+適用：HealthBarView、EnergyBarView、TopBarInfoView
+
+## 相關文件
+
+- [GameView_Panel 面板系統](GameView_Panel.md) — Info 的父容器
+- [GameView 視覺呈現層](GameView.md) — 事件分發源
+- [BuffView Buff 視圖](BuffView.md) — Buff 集合的 View

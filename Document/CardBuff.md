@@ -1,84 +1,99 @@
-# CardBuff 子系統 - 卡牌反應式狀態效果機制
+# CardBuff 卡牌 Buff 系統
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**CardBuff 子系統是 GameModel\Entity 中負責卡牌反應式狀態管理的增益機制**，讓卡牌能夠根據戰鬥中的各種觸發條件產生額外的狀態修飾或效果增強。提供完整的 Buff 生命週期管理，支援疊加、時效控制與條件觸發等複雜增益邏輯。
+## 設計理念
 
-## 📊 CardBuff 系統架構設計
+CardBuff 是施加在**單張卡牌**上的動態修正器。與 PlayerBuff（作用於整個玩家）和 CharacterBuff（作用於角色）不同，CardBuff 精確到特定一張卡牌，適合實現「封印某張牌」、「這張牌威力 +3」等個體化效果。
 
-### Buff 實體管理設計
-**Buff 實體層**：管理單個 Buff 的狀態、等級與觸發邏輯
-**生命週期層**：控制 Buff 的持續時間與過期機制  
-**屬性修飾層**：處理 Buff 對卡牌屬性的修改與增強
-**管理協調層**：統籌卡牌上所有 Buff 的集合管理與更新
+三套 Buff 系統（Card/Character/Player）共享相同的設計範式，但各自針對不同的作用對象做特化。
 
-### 核心 Buff 實體
+## 結構設計
 
-#### CardBuff 核心實體
-**[CardBuffEntity.cs](Assets/Scripts/GameModel/Entity/CardBuff/CardBuffEntity.cs)** 戰鬥中單個卡牌增益的完整表示
-- **資料連結**：透過 `CardBuffDataID` 連接到 GameData 中的 Buff 定義
-- **身份標識**：每個 Buff 實例都有唯一的 `Identity` 進行追蹤
-- **等級管理**：支援 Buff 的疊加與等級變化機制
-- **施法者追蹤**：記錄 Buff 的施加來源（Caster）
-- **條件效果**：整合條件判斷與觸發時機的效果系統
-- **反應會話**：透過 `ReactionSessions` 支援複雜的觸發邏輯
+### CardBuffData（設計時模板）
 
-#### Buff 管理器
-**[CardBuffManager.cs](Assets/Scripts/GameModel/Entity/CardBuff/CardBuffManager.cs)** 統一管理卡牌上的所有 Buff
-- **集合管理**：維護卡牌上所有 Buff 實體的集合狀態
-- **Buff 操作**：提供 Buff 的添加、移除與查詢功能
-- **生命週期更新**：統一處理所有 Buff 的時間更新與過期檢查
-- **結果回饋**：返回詳細的 Buff 操作結果與狀態變化
+```
+CardBuffData
+├── ID                    # 唯一識別碼
+├── Sessions{}            # 反應會話（動態狀態追蹤）
+├── Effects{}             # CardTriggeredTiming → ConditionalCardBuffEffect[]
+├── PropertyDatas[]       # 屬性修正工廠列表
+└── LifeTimeData          # 生命週期策略工廠
+```
 
-## ⏰ 生命週期管理系統
+### CardBuffEntity（戰鬥時實體）
 
-### Buff 持續時間控制
-**[CardBuffLifeTimeEntity.cs](Assets/Scripts/GameModel/Entity/CardBuff/CardBuffLifeTimeEntity.cs)** 提供多樣化的 Buff 持續機制
+```
+CardBuffEntity
+├── Identity (Guid)       # 唯一實例身份
+├── CardBuffDataId        # 對應的 Data 模板 ID
+├── Level                 # 疊加層數
+├── Caster (Option)       # 施放者（可選）
+├── LifeTimeEntity        # 運行時生命週期
+├── PropertyEntity[]      # 運行時屬性修正
+└── ReactionSessionEntity{} # 運行時反應會話
+```
 
-#### 持續類型分類
-**永久 Buff**：`AlwaysLifeTimeCardBuffEntity` 永不過期的持續性增益
-**回合 Buff**：`TurnLifeTimeCardBuffEntity` 基於回合數的時效性 Buff
-**條件 Buff**：支援基於特定觸發條件的生命週期控制
+## 屬性修正
 
-### 生命週期更新機制
-- **過期檢查**：`IsExpired()` 檢查 Buff 是否已到期
-- **狀態更新**：`Update(TriggerContext)` 基於遊戲狀態更新生命週期
-- **Clone 支援**：完整的生命週期實體複製機制
+CardBuff 可以修改卡牌的屬性：
 
-## 🔧 Buff 屬性修飾系統
+| 屬性 | 效果 |
+|------|------|
+| `SealedCardBuffPropertyEntity` | 封印卡牌，使其無法被打出 |
+| `PowerCardBuffPropertyEntity` | 修改卡牌威力（使用 IIntegerValue 動態計算） |
 
-### 卡牌屬性修改
-**[CardBuffPropertyEntity.cs](Assets/Scripts/GameModel/Entity/CardBuff/CardBuffPropertyEntity.cs)** 管理 Buff 對卡牌屬性的修飾效果
+屬性值的計算是**上下文敏感的**——透過 `Eval(TriggerContext)` 動態求值，結果可能因遊戲狀態不同而改變。
 
-#### 屬性修飾分類
-**封印效果**：`SealedCardBuffPropertyEntity` 阻止卡牌的使用或觸發
-**威力增強**：`PowerCardBuffPropertyEntity` 修改卡牌的攻擊力數值
-**動態計算**：基於 `TriggerContext` 的屬性修飾動態評估
+## 生命週期策略
 
-### 關鍵字系統
-透過 `Keywords` 機制提供 Buff 效果的文字描述與識別標籤
+| 策略 | 行為 | 適用場景 |
+|------|------|----------|
+| `AlwaysLifeTime` | 永不過期 | 永久性卡牌修正 |
+| `TurnLifeTime` | N 回合後過期 | 「威力 +2 持續 3 回合」 |
+| `HandCardLifeTime` | 卡牌離開手牌時過期 | 「手牌中威力 +1」 |
 
-## 💡 反應式觸發機制
+HandCardLifeTime 是 CardBuff 獨有的策略，反映了卡牌在不同區域時 Buff 效果的語義差異。
 
-### 條件觸發設計
-CardBuff 與 Condition 系統深度整合，支援複雜的觸發條件判斷
+## 條件觸發效果
 
-### 時機控制系統
-透過 `CardTriggeredTiming` 精確控制 Buff 效果的觸發時機
+每個 Buff 效果都包裝在 `ConditionalCardBuffEffect` 中：
+- **條件列表**：ICardBuffCondition[]（所有條件都必須滿足）
+- **效果**：ICardBuffEffect（觸發時執行的效果）
 
-### 反應會話管理
-`ReactionSessions` 提供複雜的反應邏輯與持續效果管理
+效果按 `CardTriggeredTiming` 分組（與卡牌本身的觸發時機一致）。
 
-## 🔄 Buff 操作流程
+## 反應會話（Session）
 
-### Buff 添加流程
-1. **資料檢索**：根據 `buffId` 從 CardBuffLibrary 獲取定義
-2. **等級處理**：檢查是否已存在同類 Buff 並處理疊加邏輯
-3. **實體創建**：創建新的 CardBuffEntity 實例
-4. **生命週期初始化**：設定 Buff 的持續時間與過期條件
-5. **結果回饋**：返回詳細的添加結果與狀態變化
+CardBuff 可以擁有反應會話，追蹤動態狀態：
+- 記錄「本回合觸發了幾次」
+- 記錄「是否已被激活」
+- 根據遊戲事件更新計數器
 
-### Buff 更新機制
-- **批次更新**：CardBuffManager 統一處理所有 Buff 的生命週期更新
-- **過期清理**：自動移除已過期的 Buff 實體
-- **狀態同步**：確保 Buff 狀態與遊戲進程的同步性
+詳見：[Session 反應會話](Session.md)
+
+## CardBuffManager — 管理器
+
+每張 CardEntity 都擁有一個 CardBuffManager，負責：
+- **新增 Buff**：防止重複 ID
+- **移除 Buff**：按身份或 Data ID
+- **修改層數**：增減 Buff 的 Level
+- **更新**：每回合更新生命週期和 Session，移除已過期的 Buff
+
+## 與 PlayerBuff / CharacterBuff 的比較
+
+| 面向 | CardBuff | CharacterBuff | PlayerBuff |
+|------|----------|---------------|------------|
+| 作用對象 | 單張卡牌 | 單個角色 | 整個玩家 |
+| 典型效果 | 封印、威力修正 | 生命上限、能量上限 | 全域傷害加成 |
+| 觸發時機 | CardTriggeredTiming | GameTiming | GameTiming |
+| 獨有生命週期 | HandCardLifeTime | — | — |
+| 屬性修正 | 封印、威力 | 最大生命、最大能量 | 16 種全域數值修正 |
+
+## 相關文件
+
+- [Card 卡牌系統](Card.md) — CardBuff 的宿主
+- [Player 玩家系統](Player.md) — PlayerBuff 系統
+- [Character 角色系統](Character.md) — CharacterBuff 系統
+- [Session 反應會話](Session.md) — Buff 動態狀態追蹤
+- [Entity 實體系統](Entity.md) — 實體結構總覽

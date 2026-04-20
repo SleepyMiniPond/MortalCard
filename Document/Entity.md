@@ -1,124 +1,219 @@
-# Entity 系統 - GameModel 戰鬥實體架構
+# Entity 實體系統
 
-## 🎯 Entity 系統定位與架構價值
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Entity 系統是 GameModel 中負責戰鬥實體管理的核心層級**，將 GameData 的靜態定義與 Instance 的運行時狀態轉換為戰鬥中可操作的動態實體。此系統建立了完整的**陣營-單位-資源**三層架構，並提供統一的**多目標增益系統**，是整個戰鬥邏輯的核心基礎。
+## 設計理念
 
-## 📊 子系統總覽
+Entity 系統是三層資料架構（Data → Instance → Entity）的最終層，代表**戰鬥中活躍的可變狀態物件**。每個 Entity 都是一個「活的」遊戲元素，擁有唯一身份（Guid）、可變狀態、以及透過 Manager 子系統實現的複雜行為。
 
-- **[Player 子系統](Player.md)**： (多資源管理與性情機制)
-- **[Character 子系統](Character.md)**：(多單位狀態管理)  
-- **[Card 子系統](Card.md)**： (卡片實體管理與區域協調)
-- **[CardBuff 子系統](CardBuff.md)**： (卡片狀態管理與觸發邏輯)
-- **[Session 子系統](Session.md)**： (創新的機制設計與生命週期管理)
+核心設計原則：**Composition over Inheritance**。PlayerEntity 不是一個巨型類別，而是由 EnergyManager、PlayerCardManager、PlayerBuffManager、CharacterEntity 等子系統組合而成。
 
-## 🏗️ Entity 系統核心架構
+## 實體階層總覽
 
-### 三層實體架構設計
-
-#### 陣營層實體 - Player 系統
-**職責範圍**：管理陣營級別的戰略資源與狀態
-- **資源統籌**：手牌、牌庫、能量、性情等陣營共享資源
-- **戰略狀態**：影響整個陣營的持續性狀態與增益
-- **多單位協調**：統籌陣營下多個角色單位的資源分配
-
-#### 單位層實體 - Character 系統  
-**職責範圍**：管理個體戰鬥單位的狀態與行為
-- **個體狀態**：生命值、護甲、個體專屬的增益減益
-- **戰術行為**：單位層級的戰鬥行動與狀態反應
-- **多單位支援**：支援敵方多個單位同時存在的戰鬥邏輯
-
-#### 資源層實體 - Card 系統
-**職責範圍**：管理戰鬥中的卡牌資源與狀態
-- **卡牌狀態**：戰鬥內卡牌的動態屬性與臨時修改
-- **區域管理**：不同卡牌區域的集合管理與轉移邏輯
-- **效果載體**：作為效果觸發與目標選擇的重要載體
-
-### Player-Character 階層關係
-
-#### 階層設計原則
 ```
-Player (陣營) 
-├── Energy/Disposition (陣營資源)
-├── CardManager (卡牌資源統籌)
-├── PlayerBuff (陣營增益)
-└── Characters[] (角色單位集合)
-    ├── Character 1 (MainCharacter - 主要角色)
-    ├── Character 2 (敵方單位A)
-    └── Character N (敵方單位N)
+PlayerEntity（玩家實體）
+├── EnergyManager          # 能量管理
+├── PlayerBuffManager      # 玩家 Buff 管理
+│   └── PlayerBuffEntity[] # 各個 Buff 實體
+├── PlayerCardManager      # 卡牌區域管理
+│   ├── DeckEntity         # 牌組
+│   ├── HandCardEntity     # 手牌
+│   ├── GraveyardEntity    # 墓地
+│   ├── ExclusionZoneEntity # 排除區
+│   └── DisposeZoneEntity  # 消耗區
+└── CharacterEntity[]      # 角色集合
+    ├── HealthManager      # 血量/護甲管理
+    └── CharacterBuffManager
+        └── CharacterBuffEntity[]
+
+CardEntity（卡牌實體）
+├── CardBuffManager        # 卡牌 Buff 管理
+│   └── CardBuffEntity[]
+└── CardPropertyEntity[]   # 卡牌屬性集合
 ```
 
-#### 職責分工明確化
-**Player 專責領域**：
-- **戰略資源**：能量系統、手牌管理、牌庫與墓地
-- **陣營狀態**：性情機制、陣營級別的增益效果
-- **資源分配**：為角色單位的行動提供能量與卡牌支持
-- **勝負判定**：當所有角色單位死亡時，陣營失敗
+## PlayerEntity — 玩家實體
 
-**Character 專責領域**：
-- **個體狀態**：生命值、護甲、個體層級的狀態效果
-- **戰鬥行為**：受到攻擊、施放技能等單位行為
-- **個體增益**：只影響單個角色的增益減益效果
-- **存活管理**：個體的死亡狀態與復活邏輯
+抽象基礎類別，友軍（AllyEntity）與敵軍（EnemyEntity）共用核心架構，各自特化。
 
-#### 協作模式設計
-- **資源下發**：Player 向 Character 提供戰鬥所需的能量與卡牌
-- **狀態上報**：Character 向 Player 回報戰鬥結果與狀態變化
-- **統籌協調**：Player 統籌多個 Character 的協同作戰策略
+### 共通能力
+- 擁有一組角色（Characters）
+- 管理能量（EnergyManager）
+- 管理全域 Buff（PlayerBuffManager）
+- 管理所有卡牌區域（PlayerCardManager）
+- 判斷死亡（所有角色死亡時）
+- 統合更新（`Update()` 聚合所有子系統的變化，回傳 GeneralUpdateEvent）
 
-## 🛡️ 三重增益系統架構
+### AllyEntity — 友軍特化
+- **好感度系統**：`DispositionManager` 管理好感度值，影響回合抽牌與能量恢復
+- **Instance 連結**：保留 `OriginPlayerInstanceGuid` 供存檔還原
 
-### 多目標增益設計理念
-**不同作用目標的增益效果需要不同的管理策略與生命週期**，三重增益系統提供完整的目標覆蓋與精確的效果管理。
+### EnemyEntity — 敵軍特化
+- **AI 選牌**：`SelectedCardEntity` 追蹤 AI 選定的卡牌
+- **行為參數**：回合抽牌數、能量回復值、最大選牌數
 
-### PlayerBuff - 陣營增益系統
-**作用目標**：整個陣營（Player 實體）  
-**影響範圍**：陣營內所有資源與角色單位 
+### Dummy 模式
+`DummyPlayer` 提供空實作（Null Object Pattern），避免空值檢查散佈各處。
 
-**特色設計**：
-- **範圍影響**：一個 PlayerBuff 可以影響陣營內的所有實體
-- **資源導向**：主要影響能量、卡牌、性情等陣營資源
+## CharacterEntity — 角色實體
 
-### CharacterBuff - 角色增益系統
-**作用目標**：單個角色實體（Character 實體）  
-**影響範圍**：特定角色的屬性與狀態  
+代表一個戰鬥角色（英雄、盟友或敵人），是**血量與勝負判定**的核心單位。
 
-**特色設計**：
-- **精確目標**：只影響被施加的特定角色
-- **戰鬥導向**：主要影響生命、護甲、攻擊等戰鬥屬性
+### 組成
+- **HealthManager**：管理生命值（HP）與護甲值（Dp/Defense Points）
+- **CharacterBuffManager**：管理角色級別的 Buff
+- **Identity**：唯一 Guid
+- **IsDead**：HP ≤ 0 判定
 
-### CardBuff - 卡牌增益系統  
-**作用目標**：單張卡牌實體（Card 實體）  
-**影響範圍**：特定卡牌的屬性與效果
+### HealthManager — 雙層防禦設計
 
-**特色設計**：
-- **卡牌特化**：專門針對卡牌的屬性與效果進行修改
-- **效果導向**：主要影響卡牌的使用效果與觸發邏輯
+生命系統採用**護甲優先吸收**的設計：
 
-### 三重增益的協作模式
+| 傷害類型 | 行為 |
+|----------|------|
+| Normal / Additional | 先扣護甲，剩餘扣血 |
+| Penetrate / Effective | 無視護甲，直接扣血 |
+
+- `TakeDamage()` → 回傳 `TakeDamageResult`（實際扣血、護甲吸收、溢出值）
+- `GetHeal()` → 回復生命值（不超過上限）
+- `GetShield()` → 增加護甲值
+
+所有操作都回傳**結果物件**（含 Delta 值），供事件系統產生精確的數值動畫。
+
+## CardEntity — 卡牌實體
+
+代表戰鬥中的一張卡牌，是 Data → Instance → Entity 三層轉換的終點。
+
+### 核心設計
+
+- **身份**：唯一 Guid（`Identity`），跨區域追蹤
+- **資料委派**：效果/選取規則等靜態資訊委派給 CardData（透過 Library 查詢），不在 Entity 中複製
+- **變異支援**：`_mutationCardDataIds` 列表支援卡牌在戰鬥中「變身」為其他卡牌
+- **Buff 管理**：`CardBuffManager` 管理施加在這張卡上的 Buff
+- **屬性集合**：`CardPropertyEntity[]` 定義卡牌行為（Preserved、Consumable、Sealed 等）
+
+### 建構方式
+- `CreateFromInstance(CardInstance)`：從 Instance 層建構（正常流程）
+- `RuntimeCreateFromId(string)`：從 CardData ID 直接建構（動態創建卡牌）
+- `Clone()`：深度複製，可選擇性包含屬性和 Buff
+
+### CardPropertyEntity — 卡牌屬性
+
+每種屬性是一個獨立類別，實作 `ICardPropertyEntity`：
+
+| 屬性 | 效果 |
+|------|------|
+| `PreservedPropertyEntity` | 回合結束時保留在手牌 |
+| `ConsumablePropertyEntity` | 可重複使用 |
+| `DisposePropertyEntity` | 打出後移至消耗區 |
+| `AutoDisposePropertyEntity` | 自動消耗 |
+| `SealedPropertyEntity` | 被封印，無法打出 |
+| `RecyclePropertyEntity` | 進入墓地後可回收到手牌 |
+| `InitialPriorityPropertyEntity` | 初始抽牌優先 |
+
+## 卡牌區域系統（Zone Pattern）
+
+卡牌在戰鬥中存在於不同的「區域」，區域轉換是卡牌流動的核心機制。
+
 ```
-PlayerBuff (陣營增益)
-├── 影響 Character 的基礎屬性
-├── 影響 Card 的使用條件
-└── 提供跨實體的統一增益
+DeckEntity（牌組）
+  ↓ 抽牌
+HandCardEntity（手牌）
+  ↓ 打出 / 丟棄
+GraveyardEntity（墓地） ←→ 回收 Recycle 屬性的卡牌
+  ↓ 排除
+ExclusionZoneEntity（排除區）— 本場戰鬥移除
 
-CharacterBuff (角色增益)
-├── 與 PlayerBuff 疊加計算屬性
-└── 影響個體的戰鬥表現
-
-CardBuff (卡牌增益)
-├── 與 PlayerBuff 疊加計算效果
-└── 修改特定卡牌的行為邏輯
+DisposeZoneEntity（消耗區）— 永久移除
 ```
 
-## 🔄 Session 系統的特殊定位
+### CardCollectionZone — 基礎類別
+所有區域繼承同一基礎，提供統一的新增/移除/查詢介面。
 
-### 區域變數機制
-**[Session 系統](Session.md)** 在 Entity 架構中擔任**臨時狀態管理**的特殊角色
-- **生命週期管理**：不同於永久性的 Buff，Session 具有明確的生命週期
-- **條件計數**：實現「每N次就觸發」的複雜計數機制
-- **跨實體應用**：可以在 Player、Character、Card 之間靈活應用
+### 特殊行為
+- **DeckEntity**：`PopCardOrNone()` 從頂部抽牌；`EnqueueCardsThenShuffle()` 洗牌（Fisher-Yates）
+- **HandCardEntity**：`ClearHand()` 回合結束清理，Preserved 卡牌保留，其餘進入墓地
+- **GraveyardEntity**：`PopRecycleCards()` 過濾出 Recycle 屬性的卡牌回收
 
-### 與增益系統的差異
-- **Buff 系統**：持續性的屬性修改與狀態增益
-- **Session 系統**：臨時性的計數與條件觸發機制
+## Buff 實體系統（三套平行結構）
+
+CardBuff、CharacterBuff、PlayerBuff 三套 Buff 實體結構高度對稱：
+
+### 共通結構
+
+```
+BuffEntity
+├── Identity (Guid)        # 唯一身份
+├── BuffDataId             # 對應 Data 模板
+├── Level                  # 疊加層數（可增減）
+├── Caster (Option)        # 施放者（可選）
+├── LifeTimeEntity         # 生命週期策略
+├── PropertyEntity[]       # 屬性修正列表
+└── ReactionSessionEntity{} # 反應會話集合
+```
+
+### 生命週期策略（LifeTimeEntity）
+
+| 策略 | 行為 |
+|------|------|
+| AlwaysLifeTime | 永不過期 |
+| TurnLifeTime | 每回合結束計數 -1，歸零則過期 |
+| HandCardLifeTime | 卡牌離開手牌時過期（僅 CardBuff） |
+
+### BuffManager — 管理器
+
+每個 Manager 提供統一的操作介面：
+- `AddBuff()`：新增 Buff（禁止重複 ID）
+- `RemoveBuff()`：移除 Buff
+- `ModifyBuffLevel()`：修改層數
+- `Update()`：更新所有 Buff 的生命週期與 Session，移除已過期的 Buff
+
+## EnergyManager — 能量管理
+
+管理玩家的行動能量池。
+
+| 操作 | 類型 | 語義 |
+|------|------|------|
+| RecoverEnergy | RoundStartRecover | 回合開始恢復 |
+| ConsumeEnergy | PlayCardConsume | 打牌消耗 |
+| GainEnergy | GainEffect | 效果獲得 |
+| LoseEnergy | LoseEffect | 效果失去 |
+
+所有操作回傳帶 Delta 值的結果物件。
+
+## DispositionManager — 好感度管理
+
+友軍獨有的數值系統，代表與盟友的關係好壞：
+- `IncreaseDisposition()` / `DecreaseDisposition()`
+- 數值範圍 0 ~ MaxDisposition
+- 好感度影響回合能量恢復與抽牌數量
+
+## PlayerCardManager — 卡牌總管理
+
+協調所有卡牌區域的操作：
+- `TryPlayCard()`：從手牌取出卡牌進入打出狀態（回傳 IDisposable，結束時自動處理）
+- `ClearHandOnTurnEnd()`：回合結束清理手牌
+- `RecycleCardOnPlayEnd()`：回收墓地中有 Recycle 屬性的卡牌
+- `MoveCard()`：區域間轉移
+- `CreateNewCard()`：動態建立新卡牌
+- `GetCardOrNone()`：搜尋所有區域（鏈式 Option.Else）
+
+## Instance 層
+
+詳見：[Instance 實例層](Instance.md)
+
+- **CardInstance**：Record 類型，橋接 CardData 與 CardEntity
+- **AllyInstance**：Record 類型，持久化玩家狀態
+
+## 設計模式總結
+
+| 模式 | 應用 |
+|------|------|
+| **Composition** | PlayerEntity 由多個 Manager 組合 |
+| **Zone Pattern** | 卡牌在不同區域間流動 |
+| **Strategy** | 生命週期策略、屬性行為 |
+| **Null Object** | DummyCard、DummyCharacter、DummyPlayer |
+| **Factory** | Data.CreateEntity()、CreateFromInstance() |
+| **Result Object** | 所有狀態變更回傳 Delta 結果 |
+| **Option Pattern** | 安全的實體查詢與可選引用 |
+| **RAII** | TryPlayCard 回傳 IDisposable 管理卡牌生命週期 |

@@ -1,155 +1,204 @@
-# GameModel 系統 - MortalGame 核心遊戲邏輯架構
+# GameModel 核心遊戲邏輯層
 
-## 🎯 GameModel 系統定位與架構價值
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**GameModel 是 MortalGame 專案的核心遊戲邏輯層**，實現了完整的卡牌遊戲戰鬥系統架構。此系統採用**數據驅動設計**與**分層架構模式**，建立了從靜態配置到動態執行的完整資料流轉，並透過精密的**條件-動作-效果**協作機制實現複雜的遊戲邏輯。
+## 設計理念
 
-## 🏗️ GameModel 核心架構總覽
+GameModel 是整個遊戲的**大腦**，負責所有戰鬥規則的實現。它完全不知道 View 層的存在——所有狀態變更都透過產生 **不可變事件（IGameEvent）** 來通知外部世界。這個設計保證了邏輯層的純粹性與可測試性。
 
-### 六大子系統協作架構
+GameModel 的核心職責：
+1. **驅動遊戲迴圈**：回合制狀態機（開始→抽牌→行動→結算→循環）
+2. **管理遊戲實體**：Player、Character、Card 的完整生命週期
+3. **執行效果管線**：Action → Effect → Event 三階處理
+4. **維護上下文**：追蹤當前選取的目標與計算作用域
 
-#### 資料流轉層
-**[Instance 系統](Instance.md)** - 遊戲局級持久化物件管理  
-**[Entity 系統](Entity.md)** - 戰鬥實體動態狀態管理
+## 子系統總覽
 
-#### 邏輯執行層
-**[Effect 系統](Effect.md)** - 遊戲效果定義與執行機制  
-**[Action 系統](Action.md)** - 遊戲動作識別與追蹤機制
-
-#### 條件判定層
-**[Condition 系統](Condition.md)** - 多層條件判定組裝機制  
-**[Target 系統](Target.md)** - 目標指定與條件判斷機制
-
-## 📊 Data-Instance-Entity 三層資料架構
-
-### 資料流轉核心設計
-GameModel 建立了完整的三層資料流轉機制，確保從靜態配置到動態執行的無縫轉換：
-
-#### 資料層轉換流程
 ```
-GameData (靜態定義)
-    ↓ 遊戲開始時轉換
-Instance (持久狀態)
-    ↓ 戰鬥開始時實體化
-Entity (動態實體)
-    ↓ 戰鬥結束時回寫
-Instance (更新狀態)
-    ↓ 整局遊戲結束
-GameData (保持不變)
+GameModel/
+├── GameplayManager.cs       # 遊戲迴圈主驅動器
+├── GameContextManager.cs    # 上下文與作用域管理
+├── GameModel.cs             # 遊戲模型介面定義
+├── GameStatus.cs            # 遊戲狀態快照
+├── GameEvent.cs             # 事件型別定義（20+ 種）
+├── GameFormula.cs           # 數值計算公式中心
+├── GameHistory.cs           # 歷史記錄（預留功能）
+├── Action/                  # 動作系統
+├── Condition/               # 條件系統
+├── Effect/                  # 效果管線
+├── EnemyLogic/              # 敵人 AI 邏輯
+├── Entity/                  # 實體系統（最大子目錄）
+├── Instance/                # 實例層
+└── Target/                  # 目標系統
 ```
 
-### 各層級職責與生命週期
+## GameplayManager — 遊戲迴圈
 
-#### GameData 層 - 靜態資料定義
-**生命週期**：專案開發期間定義，執行期間不變  
-**職責範圍**：
-- **卡牌定義**：所有卡牌的基礎屬性、效果、觸發條件
-- **角色定義**：角色的基礎數值、技能、成長配置
-- **效果規則**：遊戲機制的規則定義與平衡數值
-- **編輯器配置**：透過 Odin Inspector 提供設計師友善的編輯介面
+GameplayManager 是整個戰鬥的心臟，實現了一個非同步的回合制狀態機。
 
-#### Instance 層 - 持久狀態管理
-**生命週期**：整局遊戲的開始到結束（跨多場戰鬥）  
-**職責範圍**：
-- **玩家進度**：玩家在整局遊戲中的成長與收集狀態
-- **卡牌收集**：玩家獲得的卡牌個體與強化狀態
-- **關係狀態**：角色好感度、劇情進度等持久性狀態
-- **配置保存**：牌組配置、設定偏好等跨戰鬥資訊
+### 戰鬥流程
 
-#### Entity 層 - 動態戰鬥實體
-**生命週期**：單場戰鬥的開始到結束  
-**職責範圍**：
-- **戰鬥狀態**：生命值、能量、護甲等即時戰鬥數值
-- **臨時效果**：Buff、Debuff、臨時屬性修改等戰鬥內狀態
-- **動態交互**：卡牌使用、目標選擇、效果觸發等即時互動
-- **狀態追蹤**：戰鬥過程中的所有狀態變化與事件記錄
-
-### 轉換機制設計原則
-
-#### Instance → Entity 轉換
-- **資料繼承**：Entity 繼承 Instance 的基礎數值作為戰鬥起始狀態
-- **臨時擴展**：Entity 增加戰鬥專用的臨時狀態與效果管理
-- **身份保持**：透過 GUID 維持 Instance 與 Entity 的對應關係
-
-#### Entity → Instance 回寫
-- **選擇性回寫**：只有需要跨戰鬥保持的狀態變化才會回寫到 Instance
-- **狀態過濾**：戰鬥內的臨時效果被過濾，不影響持久狀態
-- **進度更新**：根據戰鬥結果更新 Instance 的成長與收集狀態
-
-## 🔄 Action-Target-Condition-Effect 協作流程
-
-### 遊戲邏輯執行核心機制
-GameModel 的核心優勢在於**條件驅動的效果執行機制**，實現了高度靈活且可擴展的遊戲邏輯框架：
-
-#### 完整執行流程
 ```
-1. Action 觸發
-   ↓
-2. Target 確定目標
-   ↓  
-3. Condition 條件檢查
-   ↓
-4. Effect 效果執行
-   ↓
-5. Action 結果記錄
-   ↓
-6. 反應觸發循環
+GameStart（遊戲開始）
+  ├── 觸發 GameStart 時機 Buff
+  └── 進入回合迴圈
+      ↓
+TurnStart（回合開始）
+  ├── 觸發 TurnStart 時機 Buff
+  ├── 更新所有實體（Buff 生命週期、Session 重置）
+  └── 產生 RoundStartEvent
+      ↓
+DrawCard（抽牌階段）
+  ├── 好感度系統計算額外抽牌數
+  ├── 從牌組抽牌到手牌
+  └── 產生 DrawCardEvent
+      ↓
+EnemyPrepare（敵人準備）
+  ├── 敵人 AI 選牌（貪心策略）
+  └── 產生 EnemySelectCardEvent
+      ↓
+PlayerExecute（玩家行動）★ 核心互動環節
+  ├── 等待玩家從 UI 佇列輸入動作
+  ├── UseCardAction → 執行卡牌效果管線
+  ├── TurnSubmitAction → 結束玩家行動
+  └── 每次動作後觸發 Buff 反應
+      ↓
+EnemyExecute（敵人行動）
+  ├── 按序打出已選卡牌
+  └── 同樣經過完整效果管線
+      ↓
+TurnEnd（回合結束）
+  ├── 清理手牌（保留 Preserved 卡牌）
+  ├── 觸發 TurnEnd 時機 Buff
+  ├── 回收墓地中有 Recycle 屬性的卡牌
+  ├── 回復能量
+  └── 若有角色死亡 → GameEnd
 ```
 
-### 各系統協作機制詳解
+### 事件聚合機制
 
-#### Action 系統 - 動作識別與追蹤
-**協作角色**：**事件發起者與結果記錄者**
-- **意圖聲明**：每個動作執行前先透過 IntentAction 聲明意圖
-- **來源追蹤**：精確記錄動作的觸發來源（卡牌、角色、系統等）
-- **結果記錄**：透過 ResultAction 記錄動作執行的實際效果
-- **觸發脈絡**：為後續的條件判斷提供完整的觸發上下文
+GameplayManager 在整個回合中不斷累積事件到 `_gameEvents` 列表。外部透過 `PopAllEvents()` 批次取得所有待處理事件，然後交由 View 層逐一播放動畫。這種**批次推送**設計避免了事件丟失與順序錯亂。
 
-#### Target 系統 - 目標解析與數值計算
-**協作角色**：**目標確定與條件支援者**
-- **目標解析**：將抽象的目標描述轉換為具體的遊戲實體
-- **動態計算**：基於遊戲狀態進行即時的目標與數值計算
-- **選擇支援**：為玩家提供互動式的目標選擇介面
-- **條件數值**：為 Condition 系統提供數值比較的數據來源
+### 玩家輸入機制
 
-#### Condition 系統 - 條件判斷與邏輯組合
-**協作角色**：**邏輯閘門與觸發控制者**
-- **觸發判斷**：根據 Action 提供的觸發上下文判斷是否滿足觸發條件
-- **目標驗證**：利用 Target 系統的數值計算進行條件驗證
-- **邏輯組合**：支援 AND、OR、NOT 等複雜邏輯的條件組合
-- **效果控制**：決定哪些 Effect 在當前情況下應該被執行
+使用 `UniTaskAwaitableQueue` 實現非同步輸入等待。Presenter 將玩家操作（拖曳卡牌、點擊按鈕）轉為 `GameAction` 後送入佇列，GameplayManager 在 PlayerExecute 階段非同步等待與消費。
 
-#### Effect 系統 - 效果定義與執行
-**協作角色**：**邏輯執行者與狀態修改者**
-- **效果執行**：根據 Condition 的判斷結果執行相應的遊戲效果
-- **狀態修改**：直接修改 Entity 系統中的遊戲狀態
-- **結果生成**：產生標準化的效果執行結果供 Action 系統記錄
-- **連鎖觸發**：效果執行後可能觸發新的 Action，形成反應鏈
+## GameContextManager — 上下文管理
 
-## 🛡️ Entity 多層級實體管理
+### 設計動機
 
-### 戰鬥實體架構核心
-**[Entity 系統](Entity.md)** 在 GameModel 中承擔**戰鬥狀態管理**的核心角色：
+效果計算經常需要知道「當前是誰在觸發」、「目標是哪張卡」等上下文資訊。GameContextManager 使用**堆疊式作用域**來管理這些臨時狀態。
 
-#### 三層實體分工
-- **[Player 系統](Player.md)**：陣營級資源管理（能量、手牌、性情、PlayerBuff）
-- **[Character 系統](Character.md)**：單位級狀態管理（生命、護甲、CharacterBuff）  
-- **[Card 系統](Card.md)**：資源級實體管理（卡牌狀態、區域轉移、CardBuff）
+### 堆疊式作用域
 
-#### 特殊機制整合
-- **[Session 系統](Session.md)**：跨實體的臨時狀態與計數機制
-- **三重增益系統**：PlayerBuff/CharacterBuff/CardBuff 的目標特化設計
+```
+SetClone()    → 推入一個複製的上下文（開始新的計算作用域）
+SetSelected*() → 在當前作用域設定選取的 Player/Character/Card
+Pop()         → 彈出作用域（恢復上層狀態）
+```
 
-## 🌐 與其他系統的協作關係
+這個設計解決了巢狀效果計算的問題——例如「打出卡牌 A 觸發 Buff B 的效果，Buff B 又需要讀取卡牌 A 的目標」。每層計算都有自己的作用域，不會互相干擾。
 
-### 與 GameView 系統協作
-**資料來源**：GameModel 為 GameView 提供所有需要視覺化的遊戲狀態資料
+### 資料庫引用
 
-### 與 Presenter 系統協作  
-**邏輯核心**：GameModel 處理所有遊戲邏輯，Presenter 負責協調與轉換
+GameContextManager 同時持有所有 Library（CardLibrary、各 BuffLibrary、DispositionLibrary、LocalizeLibrary）的引用，作為全域資料存取的統一入口。
 
-### 與 UI 系統協作
-**狀態驅動**：GameModel 的狀態變化驅動 UI 的動態更新與顯示
+## GameFormula — 數值計算中心
 
-### 與 Scene 系統協作
-**生命週期管理**：Scene 管理 GameModel 實例的創建、使用與銷毀
+所有數值計算集中於此，確保修正邏輯的一致性：
+
+- **傷害計算**：`NormalDamagePoint()`、`PenetrateDamagePoint()`、`AdditionalDamagePoint()` — 各自套用不同的 Buff 加成邏輯
+- **治療計算**：`HealPoint()` — 套用治療相關 Buff 修正
+- **卡牌數值**：`CardPower()`、`CardCost()` — 計算卡牌在當前 Buff 影響下的實際數值
+
+設計原則：所有原始數值從 CardData 或 Effect 取得，修正值從 PlayerBuff 和 CardBuff 的 Property 系統讀取，最終結果在 Formula 中合成。
+
+## GameStatus — 狀態快照
+
+極簡的資料容器，持有：
+- 友軍（Ally）與敵軍（Enemy）的 PlayerEntity 引用
+- 當前回合數
+- 當前行動玩家（ReactiveProperty，供 View 訂閱）
+- 對手玩家的推導（基於當前玩家反轉）
+
+## 事件系統（GameEvent）
+
+所有遊戲事件都是 **不可變 Record 類型**，確保事件一旦產生就不會被修改。事件分為以下類別：
+
+### 遊戲流程事件
+- `AllySummonEvent` / `EnemySummonEvent` — 角色登場
+- `RoundStartEvent` — 回合開始
+- `PlayerExecuteStartEvent` / `PlayerExecuteEndEvent` — 行動階段標記
+
+### 卡牌操作事件
+- `DrawCardEvent` / `MoveCardEvent` / `AddCardEvent` — 卡牌移動
+- `UsedCardEvent` — 卡牌使用完畢
+- `DiscardHandCardEvent` — 手牌丟棄
+- `RecycleGraveyardToDeckEvent` / `RecycleGraveyardToHandCardEvent` — 卡牌回收
+- `EnemySelectCardEvent` / `EnemyUnselectedCardEvent` — 敵人選牌
+
+### 戰鬥數值事件
+- `DamageEvent` / `GetHealEvent` / `GetShieldEvent` — 血量變化
+- `GainEnergyEvent` / `LoseEnergyEvent` — 能量變化
+- `IncreaseDispositionEvent` / `DecreaseDispositionEvent` — 好感度變化
+
+### Buff 事件
+- `AddPlayerBuffEvent` / `RemovePlayerBuffEvent` / `ModifyPlayerBuffLevelEvent`
+- `AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent`
+
+### 通用事件
+- `GeneralUpdateEvent` — 批次更新事件，攜帶所有變化的實體資訊供 View 全面刷新
+
+### IAnimationNumberEvent
+
+標記介面，標示需要播放數字動畫的事件（如 DamageEvent 會在角色身上顯示傷害數字）。
+
+## GameHistory — 歷史記錄
+
+目前為最小實作，預留了回放/撤銷系統的架構空間：
+- `GameHistory` — 根容器
+- `TurnRecord` — 每回合的動作記錄
+- `ActionRecord` — 每次動作的記錄
+
+## 核心子系統引用
+
+| 子系統 | 文件 | 職責 |
+|--------|------|------|
+| [Action 動作系統](Action.md) | `Action/` | 定義動作型別階層與觸發上下文 |
+| [Condition 條件系統](Condition.md) | `Condition/` | 可組合的條件判斷邏輯 |
+| [Effect 效果管線](Effect.md) | `Effect/` | 效果解析、命令執行、事件產生 |
+| [Target 目標系統](Target.md) | `Target/` | 目標解析與選取規則 |
+| [Entity 實體系統](Entity.md) | `Entity/` | 所有戰鬥實體的運行時管理 |
+| [Instance 實例層](Instance.md) | `Instance/` | Data→Entity 的中介橋樑 |
+| [Session 反應會話](Session.md) | `Entity/Session/` | Buff 動態狀態追蹤 |
+
+## 敵人 AI 邏輯（EnemyLogic）
+
+### UseCardLogic — 卡牌選取策略
+
+採用**貪心演算法**：
+1. 計算已選卡牌的總費用
+2. 從手牌中篩選費用不超過剩餘能量的卡牌
+3. 選取費用最高的卡牌
+4. 重複直到無法再選
+
+### SelectTargetLogic — 目標選取策略
+
+根據 `TargetLogicTag` 分發：
+- `ToEnemy`：優先選擇敵方角色/卡牌
+- `ToAlly`：優先選擇己方
+- `ToRandom`：隨機選擇
+
+子目標選取使用隨機洗牌取前 N 張。
+
+## 設計模式總結
+
+| 模式 | 應用 |
+|------|------|
+| **狀態機** | GameplayManager 的回合流程控制 |
+| **事件溯源** | 所有狀態變更產生不可變事件 |
+| **觀察者/反應器** | Buff 系統在特定時機觸發反應 |
+| **堆疊式作用域** | GameContextManager 管理巢狀計算上下文 |
+| **非同步佇列** | 玩家輸入透過 UniTaskAwaitableQueue 傳遞 |
+| **貪心演算法** | 敵人 AI 的卡牌選取策略 |
+| **批次推送** | 事件聚合後一次性推送給 View |

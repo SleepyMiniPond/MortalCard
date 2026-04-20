@@ -1,47 +1,130 @@
-# Action 子系統 - 遊戲動作識別與追蹤機制
+# Action 動作系統
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Action 子系統是 GameModel 中負責動作識別與事件追蹤的核心機制**，提供統一的動作描述介面，讓其他系統能夠識別「什麼動作由誰觸發」，並據此決定是否觸發額外的反應行為。
+## 設計理念
 
-## 📊 動作系統架構設計
+動作系統是 GameModel 的**語義層**，負責定義「遊戲中發生了什麼」的精確描述。每一個遊戲事件（打牌、造成傷害、觸發 Buff）都被建模為一個結構化的 Action 物件，攜帶完整的來源、目標與語境資訊。
 
-### 動作抽象層級設計
-**動作介面層**：定義各種動作的共同契約與分類標準
-**來源標識層**：標記動作的發起者與觸發脈絡  
-**目標描述層**：定義動作影響的對象與範圍
-**結果記錄層**：記錄動作執行的實際效果與數值
+核心設計原則：**每個 Action 都是不可變的描述**，而非命令式的操作。這使得 Buff 反應系統可以在效果實際執行前「審視」即將發生的事情，並進行修正。
 
-### 核心動作分類
+## Action 階層體系
 
-#### 意圖動作 (Intent Actions)
-**[IntentAction.cs](Assets/Scripts/GameModel/Action/IntentAction.cs)** 定義動作執行前的意圖聲明
-- 涵蓋傷害、治療、護盾、能量調整等所有核心遊戲效果
-- 提供動作預告機制，支援反應式效果的觸發判斷
-- 標準化的 `BaseEffectIntentAction` 確保動作分類的一致性
+```
+IActionUnit（根介面：所有動作都有 Timing 與 Source）
+├── IActionTargetUnit（帶目標的動作）
+├── IEffectAction（型別化效果動作）
+│   ├── IEffectTargetAction（意圖階段 — 綁定目標前）
+│   └── IEffectResultAction（結果階段 — 執行完畢後）
+├── ITimingAction（遊戲時機動作，如回合開始）
+├── ILookAction（查詢動作，讀取不修改）
+├── IUpdateAction（更新動作，Session 值更新）
+└── ICreateAction（創建動作，新實體產生）
+```
 
-#### 結果動作 (Result Actions)  
-**[ResultTargetAction.cs](Assets/Scripts/GameModel/Action/ResultTargetAction.cs)** 記錄動作執行後的實際結果
-- 包含具體的數值結果與狀態變化
-- 提供完整的執行追蹤，支援連鎖反應的觸發
-- 透過 `BaseResultAction` 建立結果記錄的標準格式
+## 三層效果管線
 
-## 🔧 動作識別機制
+這是動作系統最精巧的設計——每個效果都經歷三個階段，每個階段都讓 Buff 反應系統有機會介入。
 
-### 來源追蹤系統
-**[ActionSource.cs](Assets/Scripts/GameModel/Action/ActionSource.cs)** 實現動作來源的精確標識
-- **卡牌來源**：`CardPlaySource` 記錄卡牌使用的完整脈絡
-- **系統來源**：`SystemSource` 標記系統觸發的自動動作
-- **觸發來源**：支援複雜的觸發鏈追蹤與來源關聯
+### 1. Intent（意圖宣告）
 
-### 目標識別系統
-**[ActionTarget.cs](Assets/Scripts/GameModel/Action/ActionTarget.cs)** 定義動作影響對象
-- **角色目標**：`CharacterTarget` 精確指向特定角色實體
-- **玩家目標**：`PlayerTarget` 標識玩家層級的影響
-- **系統目標**：`SystemTarget` 處理全域性的系統動作
+```
+DamageIntentAction
+HealIntentAction
+ShieldIntentAction
+GainEnergyIntentAction
+...
+```
 
-### 觸發脈絡系統
-**[TriggerSource.cs](Assets/Scripts/GameModel/Action/TriggerSource.cs)** 管理觸發事件的脈絡資訊
-- **觸發上下文**：`TriggerContext` 提供完整的觸發環境描述
-- **觸發來源**：支援卡牌、角色等不同觸發源的標識
-- **反應決策**：為效果系統提供觸發判斷的資料基礎
+**語義**：「我打算對某些目標造成 X 點傷害」
+**Buff 介入點**：全域修正（例如「所有傷害 +2」的 Buff 在此修改數值）
+
+### 2. TargetIntent（目標綁定）
+
+```
+DamageIntentTargetAction
+HealIntentTargetAction
+ShieldIntentTargetAction
+...
+```
+
+**語義**：「我打算對這個特定目標造成 X 點傷害」
+**Buff 介入點**：目標特化修正（例如「對該角色的傷害 +50%」）
+
+### 3. Result（結果確認）
+
+```
+DamageResultAction
+HealResultAction
+ShieldResultAction
+GainEnergyResultAction
+...
+```
+
+**語義**：「這個目標實際受到了 Y 點傷害」
+**Buff 介入點**：結果反應（例如「受到傷害時，回復 1 點護甲」）
+
+### 設計價值
+
+這三層管線的價值在於：
+- **修正鏈**：多個 Buff 可以在不同階段疊加修正
+- **條件精確化**：Buff 可以只對特定目標或特定結果做出反應
+- **因果追溯**：每個結果都能追溯到原始意圖
+
+## ActionSource — 動作來源
+
+每個 Action 都標記「是誰觸發的」，這對條件判斷至關重要。
+
+| Source 類型 | 語義 |
+|------------|------|
+| `SystemSource` | 系統自動觸發（回合開始、遊戲開始） |
+| `CardPlaySource` | 卡牌打出觸發（攜帶手牌位置、屬性修正） |
+| `CardPlayResultSource` | 卡牌打出結果（包裝 CardPlaySource + 效果結果） |
+| `PlayerBuffSource` | 玩家 Buff 觸發 |
+| `CardBuffSource` | 卡牌 Buff 觸發 |
+| `SystemExecuteStartSource` | 行動階段開始 |
+| `SystemExecuteEndSource` | 行動階段結束 |
+
+### CardPlaySource 特殊設計
+
+`CardPlaySource` 是最豐富的 Source 類型，攜帶：
+- 打出的卡牌引用
+- 手牌位置索引
+- `CardPlayAttributeEntity`：屬性修正容器（費用加成、威力加成、傷害修正等）
+
+這使得「根據卡牌位置」或「根據已累積的屬性修正」做條件判斷成為可能。
+
+## ActionTarget — 動作目標
+
+| Target 類型 | 語義 |
+|-------------|------|
+| `SystemTarget` | 無特定目標（系統事件） |
+| `PlayerTarget` | 玩家實體 |
+| `CharacterTarget` | 角色實體 |
+| `CardTarget` | 卡牌實體 |
+| `PlayerAndCardTarget` | 玩家與卡牌複合目標 |
+
+## TriggerContext — 觸發上下文
+
+```
+TriggerContext = (IGameplayModel Model, ITriggeredSource Triggered, IActionUnit Action)
+```
+
+TriggerContext 是貫穿整個效果管線的**不可變上下文物件**。透過 Record 的 `with` 語法，可以安全地複製並修改特定欄位，而不影響原始上下文。
+
+### ITriggeredSource 型別
+
+| 觸發來源 | 語義 |
+|----------|------|
+| `SystemTrigger` | 系統觸發（遊戲邏輯） |
+| `CardPlayTrigger` | 卡牌打出觸發 |
+| `CardTrigger` | 卡牌本身觸發（觸發效果） |
+| `PlayerBuffTrigger` | 玩家 Buff 觸發 |
+| `CardBuffTrigger` | 卡牌 Buff 觸發 |
+
+## 與其他系統的協作
+
+- **Effect 系統**：Action 定義「要做什麼」，Effect 系統負責「怎麼做」
+- **Condition 系統**：讀取 Action 的來源和目標來評估條件
+- **Buff 反應系統**：在 Action 的三個階段（Intent/TargetIntent/Result）介入修正
+- **GameContextManager**：提供 Action 計算所需的全域上下文

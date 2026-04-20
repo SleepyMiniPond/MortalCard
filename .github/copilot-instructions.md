@@ -19,12 +19,6 @@
    - 📝 筆記命名規範
    - ✅ 待辦追蹤系統
 
-**[Documentation_Guidelines.md](../Document/Documentation_Guidelines.md)** - 文檔撰寫指導原則
-   - 🎯 文檔定位與核心原則
-   - ✅ 應該包含的內容指引
-   - ❌ 應該避免的內容類型
-   - 📋 品質檢查清單與準確性標準
-
 **[Coding_Standards.md](../Document/Coding_Standards.md)** - 編程規範指南
    - 🛠️ 核心技術堆疊規範（UniTask、UniRx、Odin Inspector）
    - 🏗️ 架構設計原則與三層資料架構
@@ -36,6 +30,12 @@
    - 🔗 系統間協作與資料流向
    - 📊 技術特色與設計原則
    - 🎯 專案整體複雜度評估
+
+**[TODO.md](../Document/TODO.md)** - 專案待辦事項 🔴 每次工作前請檢查進度
+   - 🔴 高優先架構改善項目
+   - 🟡 中優先功能補完
+   - 🟣 新功能需求與設計思路
+   - 📊 執行順序建議
 
 ## 專案背景
 
@@ -57,8 +57,7 @@ MortalGame/
 │   ├── Scene/              # 場景管理
 │   └── LevelMap/           # 關卡地圖系統
 └── Document/               # AI 文件系統
-    ├── AI_WorkOutline.md   # 🔴 必讀
-    ├── AI_Notes_Index.md   # 🔴 必讀
+    ├── AI_WorkOutline.md   
     └── SystemArchitecture.md
 ```
 

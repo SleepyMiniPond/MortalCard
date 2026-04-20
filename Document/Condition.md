@@ -1,70 +1,121 @@
-# Condition 子系統 - 多層條件判定組裝機制
+# Condition 條件系統
 
-## 🎯 子系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Condition 子系統是 GameModel 中負責條件判定邏輯的組合式框架**，提供編輯器友善的條件組裝介面，讓設計師能夠在編輯器中方便地組合多層複雜的條件判定邏輯，支援靈活的觸發條件設計。
+## 設計理念
 
-## 📊 條件系統架構設計
+條件系統提供了一套**可組合的布林判斷框架**，廣泛用於 Buff 觸發條件、效果前置條件、Session 更新規則等場景。核心設計原則是：**所有條件都可以遞迴組合**，透過 All/Any/Inverse 邏輯運算子構建任意複雜的判斷邏輯。
 
-### 分層條件組裝設計
-**基礎條件層**：提供各種實體與數值的基礎判定邏輯
-**數值比較層**：實現數值條件的標準化比較操作  
-**邏輯組合層**：支援條件間的邏輯運算與複合判斷
-**編輯器表達層**：透過 Serializable 與 Odin Inspector 提供視覺化編輯
+## 條件階層體系
 
-### 核心條件架構
+```
+ICondition（根介面）
+├── 邏輯運算
+│   ├── ConstCondition（固定 true/false）
+│   ├── AllCondition（AND 組合）
+│   ├── AnyCondition（OR 組合）
+│   └── InverseCondition（NOT 反轉）
+│
+├── 值比較條件
+│   ├── IntegerCondition（數值比較 ==, >, <, >=, <=, !=）
+│   ├── CardCondition（卡牌屬性條件）
+│   ├── PlayerCondition（玩家屬性條件）
+│   ├── CharacterCondition（角色屬性條件）
+│   ├── PlayerBuffCondition（玩家 Buff 條件）
+│   ├── CardPlayCondition（卡牌打出上下文條件）
+│   ├── CardPlayResultCondition（效果結果條件）
+│   └── SessionValueCondition（Session 值條件）
+│
+└── 特殊條件
+    └── IsTriggeredOwnerTurnCondition（觸發者是否為當前行動方）
+```
 
-#### 條件基礎介面
-**[ModelCondition.cs](Assets/Scripts/GameModel/Condition/ModelCondition.cs)** 定義條件系統的核心架構
-- **統一評估介面**：`ICondition` 提供基於 `TriggerContext` 的條件評估
-- **分類專用介面**：`ICardBuffCondition`、`IPlayerBuffCondition` 等針對不同系統的專門介面
-- **邏輯組合條件**：`AllCondition` 等支援複雜條件組合的邏輯運算
+## 組合模式
 
-#### 數值條件判定
-不同資料類型的條件判定專門介面：
+條件系統的核心價值在於組合性。例如：
 
-**[IntegerValueCondition.cs](Assets/Scripts/GameModel/Condition/IntegerValueCondition.cs)** - 整數條件判定
-- 標準化比較：`IntegerCompare` 支援等於、大於、小於等所有算術比較操作
-- 動態數值支援：透過 `IIntegerValue` 實現基於遊戲狀態的條件判定
-- 枚舉驅動：使用 `ArithmeticConditionType` 確保條件類型的一致性
+```
+AllCondition（AND）
+├── PlayerCondition（玩家陣營 == Ally）
+├── AnyCondition（OR）
+│   ├── CardCondition（卡牌類型 == Attack）
+│   └── CardCondition（卡牌類型 == Defense）
+└── InverseCondition（NOT）
+    └── CharacterCondition（角色生命 > 50%）
+```
 
-**[BooleanValueCondition.cs](Assets/Scripts/GameModel/Condition/BooleanValueCondition.cs)** - 布林條件判定  
-- 真假判定：`IsTrueCondition`、`IsFalseCondition` 提供基礎布林邏輯
-- 等值比較：`IsEqualCondition` 支援布林值間的比較操作
+語義：「當友方玩家打出攻擊或防禦卡牌，且目標角色生命不超過 50% 時」。
 
-### 實體條件判定
+## 值比較條件詳解
 
-#### 遊戲實體條件
-針對不同遊戲實體的條件判定邏輯：
+### IntegerCondition
 
-**[CardValueCondition.cs](Assets/Scripts/GameModel/Condition/CardValueCondition.cs)** - 卡牌條件判定
-- 卡牌比較：`CardEqualCondition` 透過 Identity 進行精確的卡牌比較
-- 類型條件：`CardTypesCondition` 支援卡牌類型的條件判斷
+最基礎的數值比較，使用 `ArithmeticConditionType` 枚舉：
+- `Equal`, `NotEqual`, `Greater`, `Less`, `GreaterOrEqual`, `LessOrEqual`
 
-**[PlayerValueCondition.cs](Assets/Scripts/GameModel/Condition/PlayerValueCondition.cs)** - 玩家條件判定
-- 陣營關係：`PlayerFactionCondition` 判定玩家間的陣營關係（同陣營/敵對）
-- 關係比較：支援複雜的玩家關係判斷邏輯
+兩端數值都使用 `IIntegerValue` 介面，可以是常數、運算式或從實體屬性動態讀取。
 
-**[CharacterValueCondition.cs](Assets/Scripts/GameModel/Condition/CharacterValueCondition.cs)** - 角色條件判定
-提供角色實體的專門條件判斷機制
+### CardCondition / CardValueCondition
 
-#### 特殊事件條件
-**[CardPlayValueCondition.cs](Assets/Scripts/GameModel/Condition/CardPlayValueCondition.cs)** - 卡牌使用條件
-- 位置條件：`CardPlayPositionCondition` 判定卡牌在手牌中的位置（最新/最舊）
-- 使用脈絡：基於 `CardPlaySource` 的豐富使用情境條件
+解析一個目標卡牌（透過 `ITargetCardValue`），然後對卡牌屬性進行判斷：
+- `CardEqualCondition`：卡牌 ID 是否匹配
+- `CardTypesCondition`：卡牌類型是否在指定集合中
+- `CardPropertyCondition`：卡牌是否擁有特定屬性（Sealed、Preserved 等）
+- `CardCollectionCondition`：卡牌當前所在區域是否匹配
 
-## 🔧 編輯器組裝機制
+### PlayerCondition / PlayerValueCondition
 
-### 視覺化條件編輯
-所有條件類別使用 `[Serializable]` 與 `[HorizontalGroup]` 等 Odin Inspector 特性，提供直觀的條件組裝體驗
+解析一個目標玩家，然後判斷：
+- `FactionCondition`：玩家陣營
+- `EnergyCondition`：能量數值比較
+- `PlayerBuffCondition`：玩家是否擁有特定 Buff
 
-### 組合式邏輯設計
-透過介面繼承與組合，支援任意複雜度的條件邏輯組裝
+### CharacterCondition / CharacterValueCondition
 
-### 上下文驅動評估
-所有條件評估基於統一的 `TriggerContext`，確保條件判斷的準確性與一致性
+解析一個目標角色，判斷：
+- `FactionCondition`：角色所屬陣營
 
----
+### CardPlayCondition / CardPlayValueCondition
 
-**子系統複雜度**：⭐⭐⭐⭐ (複雜的條件組合邏輯與編輯器支援)  
-**維護重點**：條件評估準確性、組合邏輯完整性、編輯器使用體驗
+讀取卡牌打出上下文（CardPlaySource），判斷：
+- 打出的卡牌屬性
+- 手牌位置
+- 卡牌類型等
+
+### CardPlayResultCondition / CardPlayResultValueCondition
+
+讀取效果執行結果，判斷：
+- `DamageResultCondition`：傷害結果（總傷害值、是否穿透等）
+
+### SessionValueCondition
+
+讀取反應會話（ReactionSession）的當前值進行判斷，用於 Buff 觸發次數限制等機制。
+
+## 求值過程
+
+每個條件都接收 `TriggerContext` 作為參數：
+
+```
+TriggerContext 包含：
+├── Model（遊戲模型 — 讀取全域狀態）
+├── Triggered（觸發來源 — 誰觸發了這個判斷）
+└── Action（當前動作 — 正在發生什麼）
+```
+
+條件透過 TriggerContext 存取所有需要的資訊，保持純函式的特性（相同輸入相同輸出）。
+
+## 使用場景
+
+| 場景 | 範例 |
+|------|------|
+| Buff 觸發條件 | 「當友方角色受到傷害時」觸發 Buff 效果 |
+| 效果前置條件 | 「若手牌數 < 3，則抽 2 張牌」 |
+| Session 更新規則 | 「當任意卡牌被打出時，計數器 +1」 |
+| 卡牌效果條件 | 「若目標角色生命值 < 30%，傷害翻倍」 |
+
+## 與其他系統的關係
+
+- **Buff 系統**：每個 ConditionalBuffEffect 都包含 ICondition 陣列作為前置條件
+- **Session 系統**：ConditionUpdateRule 在更新前先檢查條件
+- **Action 系統**：條件經常讀取 Action 的 Source 和 Target 進行判斷
+- **Target 系統**：條件使用 ITargetValue 系列介面解析目標實體

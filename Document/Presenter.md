@@ -1,53 +1,172 @@
-# Presenter 系統 - 控制協調層架構總覽
+# Presenter 協調層
 
-## 🎯 系統定位與職責
+> 最後更新：2026-04-20 | 版本：v2.0
 
-**Presenter 是 MortalGame 的控制協調層**，負責連接 GameModel 業務邏輯與 GameView 視覺呈現，實現 MVP 架構模式中的關鍵協調角色。處理玩家輸入、遊戲流程控制與跨系統資料協調。
+## 設計理念
 
-## 📊 系統架構設計
+Presenter 是 MVP 架構中的**協調樞紐**，是唯一同時接觸 GameModel 和 GameView 的層級。它負責：
+1. 將玩家的 UI 操作轉譯為遊戲邏輯動作
+2. 將遊戲邏輯產生的事件分發給 View 渲染
+3. 建構戰鬥所需的所有依賴物件
+4. 管理整個戰鬥的生命週期
 
-### MVP 協調設計思路
-**輸入處理層**：接收並轉換玩家操作為遊戲指令
-**流程控制層**：管理遊戲狀態轉換與業務流程執行  
-**資料協調層**：在 Model 與 View 之間進行資料轉換與同步
+## 子系統總覽
 
-### 核心子系統職責
+```
+Presenter/
+├── Gameplay/
+│   ├── GameplayPresenter.cs     # 戰鬥主協調器
+│   ├── BattleBuilder.cs         # 依賴建構器
+│   ├── Context.cs               # 全域遊戲配置
+│   ├── GameInfoModel.cs         # GameViewModel 實作
+│   ├── GameStageSetting.cs      # 關卡配置 Record
+│   ├── ScriptableDataLoader.cs  # 資料載入器
+│   └── InterAction/
+│       ├── GameAction.cs        # Presenter→Model 的動作
+│       └── GameCommand.cs       # View→Presenter 的命令
+└── LevelMap/
+    ├── LevelMapPresenter.cs     # 關卡選擇協調器
+    └── LevelMapView.cs          # 關卡選擇視圖
+```
 
-#### [Gameplay](Assets/Scripts/Presenter/Gameplay) - 遊戲流程控制系統
-管理核心戰鬥流程，處理玩家操作輸入，協調戰鬥邏輯與視覺呈現的同步
+## GameplayPresenter — 戰鬥主協調器
 
-#### [LevelMap](Assets/Scripts/Presenter/LevelMap) - 關卡地圖控制系統
-控制地圖導航與關卡選擇，處理玩家在世界地圖中的移動與互動
+整個戰鬥場景的大腦，協調 Model 與 View 的互動。
 
-### 關鍵組件架構
+### 持有的依賴
 
-#### 遊戲流程管理
-- **GameplayPresenter**：核心戰鬥流程的統一控制點
-- **Context**：遊戲資料的集中管理與依賴注入容器
-- **BattleBuilder**：戰鬥場景的建構與初始化邏輯
+| 依賴 | 型別 | 用途 |
+|------|------|------|
+| GameplayView | IGameplayView | 視覺呈現入口 |
+| GameViewModel | IGameViewModel | 響應式狀態中心 |
+| GameplayManager | IGameplayManager | 遊戲邏輯引擎 |
+| UIPresenter | IUIPresenter | 面板事件處理 |
+| SubSelectionPresenter | — | 子選取流程處理 |
+| GameResultWin/LosePresenter | — | 勝負結果處理 |
 
-#### 玩家互動處理
-- **InterAction 子系統**：標準化的玩家指令處理與驗證機制
-- **IGameplayActionReceiver**：統一的玩家操作接收介面
+### Run — 主執行流程
 
-## 🔧 設計模式應用
+```
+Run()
+  1. 啟動 GameplayManager.StartBattle()（非同步遊戲迴圈）
+  2. 同時啟動：
+     a. _GameplayBattleActions()  ← 玩家動作處理迴圈
+     b. _uiPresenter.Run()        ← UI 事件監聽
+  3. 等待戰鬥結束
+  4. 取消所有非同步任務
+  5. 顯示勝/負結果面板
+  6. 回傳 GameplayResultCommand
+```
 
-### 建構者模式
-透過 [BattleBuilder](Assets/Scripts/Presenter/Gameplay/BattleBuilder.cs) 統一管理複雜的戰鬥場景初始化
+### 動作處理迴圈
 
-### 依賴注入容器
-[Context](Assets/Scripts/Presenter/Gameplay/Context.cs) 提供集中化的資料依賴管理
+```
+_GameplayBattleActions()
+  Loop:
+    1. 等待 GameplayManager 進入可接受動作狀態
+    2. 從 View 接收 GameCommand（UseCardCommand / TurnSubmitCommand）
+    3. _PostProcessAction() 轉譯為 GameAction
+       - UseCardCommand → 判斷是否需要子選取
+         → 需要：啟動 SubSelectionPresenter 取得目標
+         → 不需要：直接建立 UseCardAction
+       - TurnSubmitCommand → TurnSubmitAction
+    4. 將 GameAction 送入 GameplayManager 的佇列
+    5. 等待 GameplayManager 處理完成
+    6. 取得事件列表 → GameplayView.Render()
+```
 
-### 指令模式
-InterAction 系統實現標準化的玩家操作處理流程
+## 命令與動作
 
-## 🌐 系統間協作
+### GameCommand（View → Presenter）
 
-**與 GameModel 的連接**：將業務邏輯結果轉換為 View 可理解的資料格式
-**與 GameView 的協調**：處理視覺回饋與玩家輸入的雙向溝通
-**與資料層的整合**：透過 Context 與 ScriptableDataLoader 統一管理遊戲資料
+玩家在 UI 上的操作被封裝為命令：
+- `UseCardCommand`：點擊/拖曳卡牌（含可選的主目標）
+- `TurnSubmitCommand`：點擊送出按鈕
 
-## 🚀 擴展架構設計
+### GameAction（Presenter → Model）
 
-### 模組化設計
-各 Presenter 模組獨立運作，便於新增不同遊戲場景的控制邏輯
+Presenter 將命令轉譯為遊戲邏輯動作：
+- `UseCardAction`：打出卡牌（含主選取 + 子選取集合）
+  - `MainSelectionAction`：主目標（角色/卡牌/無）
+  - 子選取：`ExistCardSubSelectionAction`、`NewCardSubSelectionAction` 等
+- `TurnSubmitAction`：結束回合
+
+### 轉譯過程
+
+```
+UseCardCommand（卡牌 Guid + 可選主目標）
+  ↓
+檢查卡牌是否有子選取需求
+  ├── 有：啟動 SubSelectionPresenter → 取得選取結果
+  └── 無：直接建立
+  ↓
+UseCardAction（卡牌 Guid + 主選取 + 子選取字典）
+```
+
+## BattleBuilder — 依賴建構器
+
+使用 Builder Pattern 建構戰鬥所需的所有運行時物件：
+
+### ConstructGameContextManager()
+建立 GameContextManager 並初始化所有 Library：
+- CardLibrary、CardBuffLibrary
+- PlayerBuffLibrary、CharacterBuffLibrary
+- DispositionLibrary、LocalizeLibrary
+
+### ConstructBattle()
+建立 GameStageSetting（不可變的戰鬥配置）：
+- StageID、RandomSeed
+- AllyInstance、EnemyData
+
+## Context — 全域遊戲配置
+
+單例物件，持有從 ScriptableObject 載入的所有遊戲配置：
+- 卡牌/Buff 資料表（ID → Data 字典）
+- 好感度設定
+- 敵人定義集合
+- 玩家實例（AllyInstance）
+- 本地化字典
+
+## ScriptableDataLoader — 資料載入器
+
+序列化引用所有 ScriptableObject 資產，提供屬性存取：
+- 從 AllCardScriptable 取得所有卡牌資料
+- 從 ExcelDatas 解析好感度設定
+- 從 ExcelDatas 解析本地化字典
+
+## GameStageSetting — 關卡配置
+
+Record 類型的不可變戰鬥設定：
+- StageID：關卡識別碼
+- RandomSeed：隨機種子（確保可重現）
+- AllyInstance：友軍玩家快照
+- EnemyData：敵軍配置
+
+## LevelMap 子系統
+
+### LevelMapPresenter
+
+簡單的狀態機：
+- Walk（預設）→ Battle（選擇關卡）→ Leave（退出）
+- 回傳 `LevelMapCommand` 供 Main 遊戲迴圈使用
+
+### LevelMapView
+
+最小的視覺元件，提供關卡按鈕點擊回調。
+
+## 設計模式
+
+| 模式 | 應用 |
+|------|------|
+| **MVP** | Presenter 作為 Model 與 View 的唯一橋樑 |
+| **Builder** | BattleBuilder 建構複雜依賴 |
+| **Command** | GameCommand / GameAction 封裝互動意圖 |
+| **非同步事件迴圈** | UniTaskPresenter 驅動模態流程 |
+| **狀態機** | LevelMapPresenter 管理關卡選擇流程 |
+
+## 相關文件
+
+- [GameModel 核心邏輯](GameModel.md) — Presenter 驅動的邏輯引擎
+- [GameView 視覺呈現層](GameView.md) — Presenter 分發的渲染層
+- [Scene 場景管理](Scene.md) — 載入 Presenter 的容器
+- [SystemArchitecture 架構總覽](SystemArchitecture.md) — MVP 架構說明
