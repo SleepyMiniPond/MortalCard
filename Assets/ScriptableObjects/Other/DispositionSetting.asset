@@ -1,0 +1,125 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 531d1641b5b50344fa2d487cf8585085, type: 3}
+  m_Name: DispositionSetting
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: Datas
+      Entry: 7
+      Data: 0|DispositionData[], Assembly-CSharp
+    - Name: 
+      Entry: 12
+      Data: 5
+    - Name: 
+      Entry: 7
+      Data: 1|DispositionData, Assembly-CSharp
+    - Name: ID
+      Entry: 1
+      Data: Coward
+    - Name: Range
+      Entry: 3
+      Data: 2
+    - Name: RecoverEnergyPoint
+      Entry: 3
+      Data: 4
+    - Name: DrawCardCount
+      Entry: 3
+      Data: 7
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 7
+      Data: 2|DispositionData, Assembly-CSharp
+    - Name: ID
+      Entry: 1
+      Data: Cautious
+    - Name: Range
+      Entry: 3
+      Data: 2
+    - Name: RecoverEnergyPoint
+      Entry: 3
+      Data: 4
+    - Name: DrawCardCount
+      Entry: 3
+      Data: 6
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 7
+      Data: 3|DispositionData, Assembly-CSharp
+    - Name: ID
+      Entry: 1
+      Data: Moderate
+    - Name: Range
+      Entry: 3
+      Data: 3
+    - Name: RecoverEnergyPoint
+      Entry: 3
+      Data: 5
+    - Name: DrawCardCount
+      Entry: 3
+      Data: 5
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 7
+      Data: 4|DispositionData, Assembly-CSharp
+    - Name: ID
+      Entry: 1
+      Data: Brave
+    - Name: Range
+      Entry: 3
+      Data: 2
+    - Name: RecoverEnergyPoint
+      Entry: 3
+      Data: 6
+    - Name: DrawCardCount
+      Entry: 3
+      Data: 4
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 7
+      Data: 5|DispositionData, Assembly-CSharp
+    - Name: ID
+      Entry: 1
+      Data: Reckless
+    - Name: Range
+      Entry: 3
+      Data: 2
+    - Name: RecoverEnergyPoint
+      Entry: 3
+      Data: 7
+    - Name: DrawCardCount
+      Entry: 3
+      Data: 4
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 

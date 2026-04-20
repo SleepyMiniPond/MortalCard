@@ -1,0 +1,47 @@
+# Character 子系統 - 戰鬥單位實體管理機制
+
+## 🎯 子系統定位與職責
+
+**Character 子系統是 GameModel\Entity 中負責戰鬥單位實體管理的核心機制**，與 Player 系統形成明確分工：**Player 管理陣營層級的資源**（手牌、能量條等），**Character 管理單位層級的狀態**（血量、角色狀態等）。支援敵方多個單位同時在場上的戰鬥邏輯。
+
+## 📊 Character 系統架構設計
+
+### 核心 Character 實體
+
+#### 角色核心實體
+**[CharacterEntity.cs](Assets/Scripts/GameModel/Entity/Character/CharacterEntity.cs)** 戰鬥中單個角色單位的完整表示
+- **身份標識**：透過 `Identity` 與 `NameKey` 進行角色識別與本地化
+- **生命管理**：整合 `IHealthManager` 處理生命值、護甲等生存狀態
+- **狀態管理**：整合 `ICharacterBuffManager` 處理角色身上的所有增益效果
+- **狀態查詢**：提供 `CurrentHealth`、`MaxHealth`、`IsDead` 等即時狀態查詢
+- **參數建構**：透過 `CharacterParameter` 記錄進行標準化的角色創建
+
+#### 健康狀態管理
+**[HealthManager.cs](Assets/Scripts/GameModel/Entity/Character/HealthManager.cs)** 專門處理角色的生命與護甲系統
+- **生命值系統**：管理當前生命值（Hp）與最大生命值（MaxHp）
+- **護甲系統**：管理護甲值（Dp）與傷害吸收邏輯
+- **傷害處理**：不同傷害類型的精確處理邏輯
+  - **一般傷害**：優先扣除護甲，再影響生命值
+  - **穿透傷害**：直接影響生命值，無視護甲
+- **治療機制**：生命值恢復與溢出處理
+- **護盾機制**：護甲值增加與上限控制
+
+## 🛡️ CharacterBuff 增益系統
+
+### CharacterBuff 核心實體
+**[CharacterBuffEntity.cs](Assets/Scripts/GameModel/Entity/Character/CharacterBuff/CharacterBuffEntity.cs)** 角色身上的增益效果管理
+- **資料連結**：透過 `Id` 連接到 GameData 中的 CharacterBuff 定義
+- **等級疊加**：支援 Buff 的等級累積與強化機制
+- **施法者追蹤**：記錄 Buff 的施加來源，支援追溯邏輯
+- **反應會話**：透過 `ReactionSessions` 實現複雜的觸發與反應邏輯
+- **屬性修飾**：透過 `Properties` 對角色屬性進行動態修改
+
+### CharacterBuff 管理器
+**[CharacterBuffManager.cs](Assets/Scripts/GameModel/Entity/Character/CharacterBuff/CharacterBuffManager.cs)** 統一管理角色的所有增益效果
+- **Buff 操作**：提供 Buff 的添加、移除與狀態查詢功能
+- **生命週期管理**：統一處理所有 Buff 的時間更新與過期清理
+- **結果回饋**：詳細的 Buff 操作結果與狀態變化通知
+
+### CharacterBuff 生命週期
+**[CharacterBuffLifeTimeEntity.cs](Assets/Scripts/GameModel/Entity/Character/CharacterBuff/CharacterBuffLifeTimeEntity.cs)** 控制 Buff 的持續時間
+- **動態更新**：基於遊戲狀態的生命週期自動管理

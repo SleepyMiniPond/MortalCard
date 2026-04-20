@@ -1,0 +1,54 @@
+# Target 子系統 - 目標指定與條件判斷機制
+
+## 🎯 子系統定位與職責
+
+**Target 子系統是 GameModel 中負責目標指定與條件判斷的編輯器支援機制**，提供統一的目標選擇介面，讓設計師在編輯效果時能夠精確指定「誰是目標」、「如何選擇目標」，並支援複雜的條件判斷邏輯。
+
+## 📊 目標系統架構設計
+
+### 目標抽象層級設計
+**選擇介面層**：定義玩家在遊戲中的目標選擇行為  
+**目標評估層**：基於遊戲狀態動態計算目標對象
+**數值計算層**：支援條件判斷與數值計算的邏輯表達式
+**組合邏輯層**：允許複雜的目標選擇條件組合
+
+### 核心目標分類
+
+#### 互動目標選擇
+**[TargetSelectable.cs](Assets/Scripts/GameModel/Target/TargetSelectable.cs)** 定義玩家可選擇的目標類型
+- 角色選擇：`CharacterSelectable`、`CharacterAllySelectable` 等精確的選擇範圍
+- 選擇類型：透過 `SelectType` 枚舉標準化選擇行為  
+- 無目標：`NoneSelectable` 支援不需要選擇的效果設計
+
+#### 實體目標評估
+各種實體的目標計算介面，支援基於遊戲狀態的動態目標解析：
+
+**[TargetCardValue.cs](Assets/Scripts/GameModel/Target/TargetCardValue.cs)** - 卡牌目標系統
+- 當前選中卡牌：`SelectedCard` 獲取玩家選擇的卡牌
+- 正在使用卡牌：`PlayingCard` 指向觸發效果的卡牌
+- 支援複雜的卡牌檢索邏輯
+
+**[TargetCharacterValue.cs](Assets/Scripts/GameModel/Target/TargetCharacterValue.cs)** - 角色目標系統  
+- 主要角色：`MainCharacterOfPlayer` 獲取玩家的主角色
+- 角色關聯：透過 `ITargetPlayerValue` 建立角色與玩家的連接
+- 動態角色選擇支援
+
+**[TargetPlayerValue.cs](Assets/Scripts/GameModel/Target/TargetPlayerValue.cs)** - 玩家目標系統
+- 當前玩家：`CurrentPlayer` 指向目前行動的玩家
+- 玩家關聯：支援複雜的玩家關係判斷
+
+#### 增益目標系統
+**[TargetPlayerBuffValue.cs](Assets/Scripts/GameModel/Target/TargetPlayerBuffValue.cs)** 與 **[TargetCardBuffValue.cs](Assets/Scripts/GameModel/Target/TargetCardBuffValue.cs)** 提供 Buff 效果的精確目標指定
+
+## 🔧 條件判斷機制
+
+### 數值計算系統
+**[IntegerValue.cs](Assets/Scripts/GameModel/Target/IntegerValue.cs)** 實現複雜的數值計算邏輯
+- 常數值：`ConstInteger` 提供固定數值配置
+- 算術運算：`ArithmeticInteger` 支援加減乘除等運算組合
+- 動態數值：基於遊戲狀態的即時數值計算
+
+### 布林邏輯系統  
+**[BooleanValue.cs](Assets/Scripts/GameModel/Target/BooleanValue.cs)** 提供條件判斷的基礎邏輯
+- 固定值：`TrueValue`、`FalseValue` 提供基礎布林常數
+- 支援複雜條件邏輯的組合與評估

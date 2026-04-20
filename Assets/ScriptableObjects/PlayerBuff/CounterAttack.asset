@@ -1,0 +1,395 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8ac2a4fc9a196c14aae99eace03b0275, type: 3}
+  m_Name: CounterAttack
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes:
+    - Name: Data
+      Entry: 7
+      Data: 0|PlayerBuffData, Assembly-CSharp
+    - Name: ID
+      Entry: 1
+      Data: CounterAttack
+    - Name: MaxLevel
+      Entry: 3
+      Data: 99
+    - Name: Sessions
+      Entry: 7
+      Data: 1|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[IReactionSessionData,
+        Assembly-CSharp]], mscorlib
+    - Name: comparer
+      Entry: 7
+      Data: 2|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
+        mscorlib]], mscorlib
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: BuffEffects
+      Entry: 7
+      Data: 3|System.Collections.Generic.Dictionary`2[[GameTiming, Assembly-CSharp],[ConditionalPlayerBuffEffect[],
+        Assembly-CSharp]], mscorlib
+    - Name: comparer
+      Entry: 7
+      Data: 4|System.Collections.Generic.EnumEqualityComparer`1[[GameTiming, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 12
+      Data: 1
+    - Name: 
+      Entry: 7
+      Data: 
+    - Name: $k
+      Entry: 3
+      Data: 10
+    - Name: $v
+      Entry: 7
+      Data: 5|ConditionalPlayerBuffEffect[], Assembly-CSharp
+    - Name: 
+      Entry: 12
+      Data: 1
+    - Name: 
+      Entry: 7
+      Data: 6|ConditionalPlayerBuffEffect, Assembly-CSharp
+    - Name: Conditions
+      Entry: 7
+      Data: 7|System.Collections.Generic.List`1[[IPlayerBuffCondition, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 2
+    - Name: 
+      Entry: 7
+      Data: 8|PlayerCondition, Assembly-CSharp
+    - Name: Player
+      Entry: 7
+      Data: 9|CardOwner, Assembly-CSharp
+    - Name: Card
+      Entry: 7
+      Data: 10|PlayingCard, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Conditions
+      Entry: 7
+      Data: 11|System.Collections.Generic.List`1[[IPlayerValueCondition, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 1
+    - Name: 
+      Entry: 7
+      Data: 12|PlayerFactionCondition, Assembly-CSharp
+    - Name: ComparePlayer
+      Entry: 7
+      Data: 13|PlayerBuffContentPlayer, Assembly-CSharp
+    - Name: PlayerBuff
+      Entry: 7
+      Data: 14|TriggeredPlayerBuff, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Type
+      Entry: 3
+      Data: 0
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Faction
+      Entry: 3
+      Data: 1
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 7
+      Data: 15|CardPlayResultCondition, Assembly-CSharp
+    - Name: Conditions
+      Entry: 7
+      Data: 16|System.Collections.Generic.List`1[[ICardPlayResultValueCondition,
+        Assembly-CSharp]], mscorlib
+    - Name: 
+      Entry: 12
+      Data: 1
+    - Name: 
+      Entry: 7
+      Data: 17|CardPlayEffectResultCondition, Assembly-CSharp
+    - Name: Conditions
+      Entry: 7
+      Data: 18|System.Collections.Generic.List`1[[IEffectResultCondition, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 1
+    - Name: 
+      Entry: 7
+      Data: 19|DamageResultCondition, Assembly-CSharp
+    - Name: DamageConditions
+      Entry: 7
+      Data: 20|System.Collections.Generic.List`1[[IDamageResultCondition, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 2
+    - Name: 
+      Entry: 7
+      Data: 21|DamageResultCharacterTargetCondition, Assembly-CSharp
+    - Name: TargetCharacterConditions
+      Entry: 7
+      Data: 22|System.Collections.Generic.List`1[[ICharacterValueCondition, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 1
+    - Name: 
+      Entry: 7
+      Data: 23|CharacterFactionCondition, Assembly-CSharp
+    - Name: ComparePlayer
+      Entry: 7
+      Data: 24|PlayerBuffContentPlayer, Assembly-CSharp
+    - Name: PlayerBuff
+      Entry: 7
+      Data: 25|TriggeredPlayerBuff, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Type
+      Entry: 3
+      Data: 0
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Faction
+      Entry: 3
+      Data: 0
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 7
+      Data: 26|DamageResultPlayerTargetCondition, Assembly-CSharp
+    - Name: TargetPlayerConditions
+      Entry: 7
+      Data: 27|System.Collections.Generic.List`1[[IPlayerValueCondition, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 1
+    - Name: 
+      Entry: 7
+      Data: 28|PlayerFactionCondition, Assembly-CSharp
+    - Name: ComparePlayer
+      Entry: 7
+      Data: 29|PlayerBuffContentPlayer, Assembly-CSharp
+    - Name: PlayerBuff
+      Entry: 7
+      Data: 30|TriggeredPlayerBuff, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Type
+      Entry: 3
+      Data: 0
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Faction
+      Entry: 3
+      Data: 0
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: SetCondition
+      Entry: 3
+      Data: 1
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Effect
+      Entry: 7
+      Data: 31|EffectiveDamagePlayerBuffEffect, Assembly-CSharp
+    - Name: Targets
+      Entry: 7
+      Data: 32|SingleCharacterCollection, Assembly-CSharp
+    - Name: Target
+      Entry: 7
+      Data: 33|MainCharacterOfPlayer, Assembly-CSharp
+    - Name: Player
+      Entry: 7
+      Data: 34|OppositePlayer, Assembly-CSharp
+    - Name: Reference
+      Entry: 7
+      Data: 35|PlayerBuffContentPlayer, Assembly-CSharp
+    - Name: PlayerBuff
+      Entry: 7
+      Data: 36|TriggeredPlayerBuff, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Type
+      Entry: 3
+      Data: 0
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Value
+      Entry: 7
+      Data: 37|PlayerBuffIntegerProperty, Assembly-CSharp
+    - Name: PlayerBuff
+      Entry: 7
+      Data: 38|TriggeredPlayerBuff, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Property
+      Entry: 3
+      Data: 0
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: PropertyDatas
+      Entry: 7
+      Data: 39|System.Collections.Generic.List`1[[IPlayerBuffPropertyData, Assembly-CSharp]],
+        mscorlib
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: LifeTimeData
+      Entry: 7
+      Data: 40|AlwaysLifeTimePlayerBuffData, Assembly-CSharp
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 

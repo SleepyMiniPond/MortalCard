@@ -1,0 +1,69 @@
+# Card 子系統 - 戰鬥卡牌實體管理機制
+
+## 🎯 子系統定位與職責
+
+**Card 子系統是 GameModel\Entity 中負責戰鬥內卡牌實體管理的核心機制**，將 Instance 層的卡牌實例轉換為戰鬥中可操作的動態實體。管理卡牌在戰鬥中的狀態變化、區域轉移、屬性修改等所有與戰鬥相關的卡牌邏輯。
+
+## 📊 卡牌實體架構設計
+
+### 實體-區域分離設計
+**卡牌實體層**：管理單張卡牌的狀態、屬性與行為邏輯
+**區域管理層**：管理不同卡牌區域（牌庫、手牌、墓地等）的集合操作
+**屬性系統層**：處理戰鬥中卡牌的動態屬性變化
+**Buff 管理層**：處理卡牌上的臨時增益效果
+
+### 核心卡牌實體
+
+#### 卡牌核心實體
+**[CardEntity.cs](Assets/Scripts/GameModel/Entity/Card/CardEntity.cs)** 戰鬥中單張卡牌的完整表示
+- **身份管理**：透過 `Identity` 與 `OriginCardInstanceGuid` 建立與 Instance 層的連接
+- **資料連結**：透過 `CardDataId` 連接到 GameData 中的靜態定義
+- **動態屬性**：管理戰鬥中的費用、威力等可變屬性
+- **效果系統**：整合卡牌效果與觸發時機的完整邏輯
+
+#### 卡牌屬性實體  
+**[CardPropertyEntity.cs](Assets/Scripts/GameModel/Entity/Card/CardPropertyEntity.cs)** 管理卡牌的特殊屬性
+
+## 🗃️ 卡牌區域管理系統
+
+### 區域抽象架構
+**[CardCollectionZone.cs](Assets/Scripts/GameModel/Entity/Card/CardCollectionZone.cs)** 提供統一的卡牌區域管理介面
+- **類型標識**：透過 `CardCollectionType` 明確區分不同區域
+- **統一操作**：提供添加、移除、搜尋卡牌的標準介面
+- **集合管理**：維護各區域的卡牌集合狀態
+
+### 專門區域實體
+
+#### 牌庫管理
+**[DeckEntity.cs](Assets/Scripts/GameModel/Entity/Card/DeckEntity.cs)** 戰鬥中的牌庫管理
+- **抽牌機制**：`PopCard` 提供從牌庫頂抽取卡牌的邏輯
+- **洗牌功能**：`EnqueueCardsThenShuffle` 支援卡牌回收與洗牌
+- **順序管理**：維護牌庫中卡牌的排列順序
+
+#### 手牌管理
+**[HandCardEntity.cs](Assets/Scripts/GameModel/Entity/Card/HandCardEntity.cs)** 戰鬥中的手牌管理
+- **容量限制**：透過 `MaxCount` 管理手牌上限
+- **清理機制**：`ClearHand` 實現回合結束時的手牌處理
+- **保留邏輯**：自動識別並保留具有 Preserved 屬性的卡牌
+
+#### 墓地管理
+**[GraveyardEntity.cs](Assets/Scripts/GameModel/Entity/Card/GraveyardEntity.cs)** 戰鬥中的墓地管理
+- **全部回收**：`PopAllCards` 支援墓地所有卡牌的回收
+- **選擇回收**：`PopRecycleCards` 只回收具有 Recycle 屬性的卡牌
+- **過濾邏輯**：基於卡牌屬性的智能過濾與管理
+
+#### 特殊區域
+- **[DisposeZoneEntity.cs](Assets/Scripts/GameModel/Entity/Card/DisposeZoneEntity.cs)**：管理被棄置的卡牌
+- **[ExclusionZoneEntity.cs](Assets/Scripts/GameModel/Entity/Card/ExclusionZoneEntity.cs)**：管理被排除的卡牌
+
+## 🔧 與 Instance 系統的關係
+
+### 生命週期轉換
+- **戰鬥開始**：CardInstance → CardEntity 實體化轉換
+- **戰鬥進行**：CardEntity 管理所有戰鬥內的狀態變化
+- **戰鬥結束**：CardEntity → CardInstance 狀態回寫（如有需要）
+
+### 資料流向設計
+- **靜態資料**：透過 `CardDataId` 連接 GameData 定義
+- **實例資料**：透過 `OriginCardInstanceGuid` 追蹤來源 Instance
+- **動態資料**：戰鬥內的所有狀態變化與臨時效果

@@ -1,0 +1,210 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 8
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 585e4428be72b86419a6c1d36d2f645e, type: 3}
+  m_Name: ExcelDatas
+  m_EditorClassIdentifier: 
+  Constant:
+  - Id: version
+    Value: 1.0.1
+  Disposition:
+  - Id: Coward
+    Range: 2
+    RecoverEnergyPoint: 4
+    DrawCardCount: 7
+  - Id: Cautious
+    Range: 2
+    RecoverEnergyPoint: 4
+    DrawCardCount: 6
+  - Id: Moderate
+    Range: 3
+    RecoverEnergyPoint: 5
+    DrawCardCount: 5
+  - Id: Brave
+    Range: 2
+    RecoverEnergyPoint: 6
+    DrawCardCount: 4
+  - Id: Reckless
+    Range: 2
+    RecoverEnergyPoint: 7
+    DrawCardCount: 4
+  LocalizeCard:
+  - Id: Attack
+    Title: "\u653B\u64CA"
+    Info: "{:power}\u57FA\u790E\u50B7\u5BB3"
+  - Id: BuffPoison
+    Title: "\u4E0A\u6BD2"
+    Info: "\u8CE6\u4E88{:power}\u4E2D\u6BD2"
+  - Id: Defense
+    Title: "\u9632\u79A6"
+    Info: "\u7372\u5F97{:power}\u8B77\u76FE"
+  - Id: Heal
+    Title: "\u4F11\u606F"
+    Info: "\u6062\u5FA9{:power}\u8840\u91CF"
+  - Id: PenetrateAttack
+    Title: "\u7A7F\u900F"
+    Info: "{:power}\u7A7F\u900F\u50B7\u5BB3"
+  - Id: DrawCard
+    Title: "\u62BD\u5361"
+    Info: "\u62BD{:power}\u5F35\u5361"
+  - Id: CloneCard
+    Title: "\u8907\u88FD"
+    Info: "\u8907\u88FD{:power}\u5F35\u624B\u724C"
+  - Id: DiscardCard
+    Title: "\u4E1F\u5361"
+    Info: "\u4E1F1\u5361\u81F3\u5893\u5730"
+  - Id: ConsumeCard
+    Title: "\u6D88\u8017\u5361"
+    Info: "\u6D88\u80171\u5361\u81F3\u6230\u9B25\u7D50\u675F"
+  - Id: DisposeCard
+    Title: "\u79FB\u9664\u5361"
+    Info: "\u6C38\u4E45\u79FB\u96641\u5361\u4E14\u6230\u9B25\u5F8C\u4E0D\u6703\u6062\u5FA9"
+  - Id: BuffFullAttack
+    Title: "\u91CD\u64CA"
+    Info: "\u7372\u5F97{:power}\u91CD\u64CA"
+  - Id: BuffQuickAttack
+    Title: "\u8FC5\u64CA"
+    Info: "\u7372\u5F97{:power}\u8FC5\u64CA"
+  - Id: BuffComboAttack
+    Title: "\u9023\u64CA"
+    Info: "\u7372\u5F97{:power}\u9023\u64CA"
+  - Id: BuffFollowAttack
+    Title: "\u8FFD\u64CA"
+    Info: "\u7372\u5F97{:power}\u8FFD\u64CA"
+  LocalizeCardBuff:
+  - Id: QuickPower
+    Title: "\u8FC5\u64CA"
+    Info: "\u5C64\u6578{:level}\n\u63D0\u5347\u6700\u53F3\u5074\u5361\u724C\u7684\u6578\u503C"
+  - Id: SealedOneTurn
+    Title: "\u5C01\u5370"
+    Info: "\u7121\u6CD5\u6253\u51FA"
+  LocalizeKeyWord:
+  - Id: Attack
+    Title: "\u6345\u4EBA"
+    Info: 
+  - Id: Defense
+    Title: "\u5099\u63CD"
+    Info: 
+  - Id: Item
+    Title: "\u9053\u5177"
+    Info: 
+  - Id: Sneak
+    Title: "\u6697\u5668"
+    Info: 
+  - Id: Special
+    Title: "\u7D55\u62DB"
+    Info: 
+  - Id: Speech
+    Title: "\u5634\u653B"
+    Info: 
+  - Id: Submit
+    Title: "\u56DE\u5408\u7D50\u675F"
+    Info: 
+  - Id: Brave
+    Title: "\u6027\u60C5\uFF1A\u52C7\u6562"
+    Info: "\u6BCF\u56DE\u6062\u5FA93\n\u6BCF\u56DE\u62BD6\u5F35\u724C"
+  - Id: Cautious
+    Title: "\u6027\u60C5\uFF1A\u8B39\u614E"
+    Info: "\u6BCF\u56DE\u6062\u5FA93\n\u6BCF\u56DE\u62BD5\u5F35\u724C"
+  - Id: Coward
+    Title: "\u6027\u60C5\uFF1A\u61E6\u592B"
+    Info: "\u6BCF\u56DE\u6062\u5FA94\n\u6BCF\u56DE\u62BD5\u5F35\u724C"
+  - Id: Moderate
+    Title: "\u6027\u60C5\uFF1A\u4E2D\u5EB8"
+    Info: "\u6BCF\u56DE\u6062\u5FA94\n\u6BCF\u56DE\u62BD4\u5F35\u724C"
+  - Id: Reckless
+    Title: "\u6027\u60C5\uFF1A\u9B6F\u83BD"
+    Info: "\u6BCF\u56DE\u6062\u5FA95\n\u6BCF\u56DE\u62BD4\u5F35\u724C"
+  - Id: EffectTimes
+    Title: "\u91CD\u8907"
+    Info: "\u6253\u51FA\u5361\u724C\u6642\uFF0C\u91CD\u8907\u8A72\u5361\u724C\u6548\u679C"
+  - Id: RecycleTimes
+    Title: "\u56DE\u6536"
+    Info: "\u6253\u51FA\u5361\u724C\u5F8C\uFF0C\u5C07\u8A72\u5361\u724C\u76F4\u63A5\u62FF\u56DE\u624B\u4E0A"
+  - Id: Initialize
+    Title: "\u512A\u5148"
+    Info: "\u7B2C\u4E00\u56DE\u5408\u62BD\u724C\u6642\uFF0C\u6703\u512A\u5148\u62BD\u5230\u624B\u4E0A"
+  - Id: Preserved
+    Title: "\u4FDD\u7559"
+    Info: "\u56DE\u5408\u7D50\u675F\u6642\uFF0C\u4E0D\u6703\u81EA\u52D5\u88AB\u4E1F\u68C4\u5230\u68C4\u724C\u5340"
+  - Id: Sealed
+    Title: "\u5C01\u5370"
+    Info: "\u7121\u6CD5\u5728\u624B\u724C\u4E2D\u76F4\u63A5\u6253\u51FA"
+  - Id: Consumable
+    Title: "\u6D88\u8017"
+    Info: "\u6253\u51FA\u5361\u724C\u5F8C\u4E0D\u6703\u9032\u5230\u68C4\u724C\u5340\uFF0C\u9019\u5834\u6230\u9B25\u4E2D\u7121\u6CD5\u518D\u4F7F\u7528\u8A72\u5361\u724C"
+  - Id: Dispose
+    Title: "\u8017\u76E1"
+    Info: "\u6253\u51FA\u5361\u724C\u5F8C\u4E0D\u6703\u9032\u5230\u68C4\u724C\u5340\uFF0C\u9019\u5834\u6230\u9B25\u548C\u5F8C\u7E8C\u6230\u9B25\u7686\u7121\u6CD5\u518D\u4F7F\u7528\u8A72\u5361\u724C"
+  - Id: AutoDispose
+    Title: "\u8870\u7AED"
+    Info: "\u56DE\u5408\u7D50\u675F\u6642\uFF0C\u82E5\u5728\u624B\u724C\u4E2D\u6703\u88AB\u81EA\u52D5\u8017\u76E1"
+  - Id: Drawed
+    Title: "\u5165\u624B"
+    Info: "\u5F9E\u724C\u5806\u88AB\u62BD\u81F3\u624B\u724C\u4E2D"
+  - Id: EffectDrawed
+    Title: "\u9748\u611F"
+    Info: "\u9664\u4E86\u56DE\u5408\u958B\u59CB\u62BD\u724C\u4EE5\u5916\u7684\u6642\u6A5F\uFF0C\u7531\u6548\u679C\u89F8\u767C\u5F9E\u724C\u5806\u88AB\u62BD\u81F3\u624B\u724C\u4E2D"
+  - Id: Played
+    Title: "\u6253\u51FA"
+    Info: "\u5F9E\u624B\u724C\u4E2D\u8017\u8CBB\u6C23\u529B\u4E3B\u52D5\u6253\u51FA"
+  - Id: EffectPlayed
+    Title: "\u6FC0\u767C"
+    Info: "\u7531\u5176\u4ED6\u6548\u679C\u89F8\u767C\u800C\u767C\u52D5\u5361\u7247"
+  - Id: Discarded
+    Title: "\u4E1F\u68C4"
+    Info: "\u5F9E\u624B\u724C\u4E2D\u88AB\u4E1F\u68C4\u81F3\u68C4\u724C\u5340"
+  - Id: EffectDiscarded
+    Title: "\u5EE2\u68C4"
+    Info: "\u7531\u5176\u4ED6\u6548\u679C\u89F8\u767C\u800C\u4E1F\u68C4\u81F3\u68C4\u724C\u5340"
+  LocalizePlayerBuff:
+  - Id: ComboAttack
+    Title: "\u9023\u64CA"
+    Info: "\u5C64\u6578 : {:level}\n\u672C\u56DE\u5408\u6345\u4EBA/\u7D55\u62DB\u7684\u50B7\u5BB3\u589E\u52A0
+      {:level}+\u9023\u64CA\u6578{:combo}"
+  - Id: FollowAttack
+    Title: "\u8FFD\u64CA"
+    Info: "\u5C64\u6578 : {:level}\n\u6253\u51FA\u5634\u653B/\u6697\u5668/\u7D55\u62DB\u9020\u6210\u50B7\u5BB3\u5F8C\uFF0C\u5411\u6307\u5B9A\u55AE\u4F4D\u9020\u6210\u8FFD\u52A0\u50B7\u5BB3
+      {:level}"
+  - Id: FullAttack
+    Title: "\u91CD\u64CA"
+    Info: "\u5C64\u6578 : {:level}\n\u8017\u76E1\u6C23\u529B\u7684\u653B\u64CA\u589E\u52A0
+      {:level}"
+  - Id: Poison
+    Title: "\u4E2D\u6BD2"
+    Info: "\u5C64\u6578 : {:level}\n\u81EA\u8EAB\u884C\u52D5\u7D50\u675F\u6642\u53D7\u5230\u50B7\u5BB3
+      {:level}"
+  - Id: QuickAttack
+    Title: "\u8FC5\u64CA"
+    Info: "\u5C64\u6578 : {:level}\n\u6253\u51FA\u6700\u53F3\u5074\u7684\u6345\u4EBA/\u6697\u5668/\u7D55\u62DB\u5F8C\uFF0C\u6700\u53F3\u5074\u624B\u724C\u7684\u6578\u503C\u63D0\u5347
+      {:level}"
+  LocalizePlayer:
+  - Id: player
+    Title: "\u8D99\u6D3B"
+    Info: "\u8D99\u6D3B"
+  - Id: e01
+    Title: "\u8DEF\u4EBA\u4FE0"
+    Info: "\u8DEF\u4EBA\u4FE0"
+  LocalizeUI:
+  - Id: Deck
+    Info: '{0}'
+  - Id: Tomb
+    Info: '{0}'
+  - Id: TurnSubmit
+    Info: "\u7D50\u675F"
+  - Id: Turn
+    Info: "\u56DE\u5408"
+  - Id: Confirm
+    Info: "\u78BA\u8A8D"
+  - Id: Visible
+    Info: "\u6AA2\u8996"
+  - Id: SelectionDescription
+    Info: "\u9078\u64C7 {0} / {1}  \u5F35\u5361\u7247"
