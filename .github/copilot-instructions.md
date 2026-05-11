@@ -70,6 +70,22 @@ MortalGame/
 
 **重要提醒**：這個 AI 文件系統是關鍵專案資產。每次貢獻都要維護其品質與完整性。兩個必讀檔案包含避免錯誤並確保高品質輸出的重要背景。
 
-**系統版本**：v1.3
-**最後更新**：2026-01-20
+---
+
+## 🔄 Unity Script 修改後的強制流程
+
+**每當修改了 `Assets/Scripts/` 底下的任何 `.cs` 檔案，必須在回應結束前執行以下步驟：**
+
+1. 若有**新建** `.cs` 檔案，先呼叫 `mcp_mcp-unity_execute_menu_item`（menuPath: `"Assets/Refresh"`）強制 Unity AssetDatabase 完成掃描與 import
+2. 呼叫 `mcp_mcp-unity_recompile_scripts` 觸發 Unity 重新編譯
+3. 若編譯有 **error**：立即修正所有錯誤，再次 recompile 直到 0 error 為止
+4. 若編譯有 **warning**：回報給使用者，但不強制修正
+5. 編譯成功（0 error）後才算完成該次修改任務
+
+**禁止在有 compile error 的狀態下結束對話。**
+
+---
+
+**系統版本**：v1.4
+**最後更新**：2026-05-09
 **維護狀態**：🟢 活躍
