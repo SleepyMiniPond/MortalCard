@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-04-21  
+> 最後更新：2026-05-11  
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
 ---
@@ -14,7 +14,9 @@
   - 方案 B：Strategy Dictionary（`Dictionary<Type, IEffectResolver>`）做中間層，保持 data class 純淨
   - 方案 C：Visitor Pattern 分離資料與行為但仍集中註冊
 - **影響檔案**：`EffectDataResolver.cs`、`EffectCommandExecutor.cs`、`CardEffect.cs`、`EffectCommand.cs`
-- **狀態**：⬜ 未開始
+- **狀態**：✅ 已完成（2026-05-11）
+  - 方案 B 實施：`Resolvers/` 目錄（ICardEffectResolver × 13 + IPlayerBuffEffectResolver × 5）、`Handlers/` 目錄（IEffectCommandHandler × 11）
+  - 新增效果只需加 Resolver/Handler class 並在 registry 新增一行，不需動 Resolver/Executor 本體
 
 ---
 
@@ -74,6 +76,32 @@
   - 影響層面廣：目標解析（`ITargetCharacterCollectionValue`）、勝負判定、EnemyLogic、View 排版
 - **狀態**：⬜ 未開始
 
+### T-014：Preview / Simulation 預演管線
+- **需求**：支援長按手牌或 hover 時預覽效果，例如預估傷害、預計命中目標、預期抽牌/生成結果；長期也可支援 AI 預演與除錯用途
+- **設計思路**：
+  - 保留既有 `Effect -> Command -> Result` 三段式架構，但正式區分三種用途：`Preview`、`Simulation`、`Execution`
+  - `Preview`：只跑 Resolver，產出可供 UI 顯示的 Command/Preview 資訊，不真的修改遊戲狀態
+  - `Simulation`：在隔離的模擬上下文中執行 Command，取得接近真實結果的 SimulatedResult，但不污染正式戰鬥狀態
+  - `Execution`：維持現行正式套用流程，真正更新 Entity、Session、Event
+  - 第一階段可先做 command-based preview（目標高亮、預估數值）；第二階段再補完整 simulation sandbox
+- **依賴/關聯**：
+  - 與 T-001 高度相關，因為 preview / simulation 需要更乾淨的 dispatch 邊界
+  - 若未來要做 AI 預演、連鎖效果預覽、複雜 UI 提示，會與 T-003（Effect Queue）互相影響
+- **狀態**：⬜ 未開始
+
+### T-015：CardInfo 氾濫 — 重複製造與事件冗餘
+- **問題**：`CardInfo.Create()` 每次都執行 `GameFormula` 計算 + Buff 枚舉 + LINQ 合併，並非輕量操作，但目前存在多個重複製造的路徑：
+  1. **Buff 事件與 GeneralUpdateEvent 雙重更新同一張卡**：`EffectCommandExecutor` 在執行 `AddCardBuffEffectCommand` / `RemoveCardBuffEffectCommand` / `ModifyCardBuffLevelEffectCommand` 時，同時發出 `AddCardBuffEvent(card.ToInfo())` 和 `GeneralUpdateEvent(card.ToInfo())`（透過 `UpdateReactorSessionAction` → `PlayerEntity.Update()` 產生），View 側兩者都流向 `_gameViewModel.UpdateCardInfo()`，同一張卡被重複更新
+  2. **CardManagerInfo 內無謂計算 PlayingCard**：`DrawCardEvent`、`CreateCardEvent`、`UsedCardEvent`、`PlayerExecuteStartEvent` 等事件都攜帶 `CardManagerInfo`，其中包含 `PlayingCard.ToInfo()`，但 PlayingCard 在這些事件的當下實際上並未改變
+  3. **CardBuff 事件攜帶完整 CardInfo 但不必要**：`AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent` 的目的只是通知某張卡的 Buff 列表有變，卻帶了包含 Cost/Power 計算的完整 CardInfo
+- **方向**：
+  - **核心原則**：命名事件只描述「發生了什麼」，不負責搬運完整資料快照；由 View 收到 Identity 後自行從 `GameInfoModel.ObservableCardInfo()` pull 最新值
+  - `AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent` 改為只攜帶 `Faction` + `Guid Identity`，不帶 `CardInfo`
+  - 評估 `CardManagerInfo` 的 `PlayingCard` 欄位是否真的需要 CardInfo，或改為 `Option<Guid>`
+  - 釐清 `GeneralUpdateEvent` 和 CardBuff specific event 在 View 側的職責分工，避免同一更新走兩條路
+- **影響檔案**：`GameEvent.cs`、`EffectCommandExecutor.cs`、`GameplayView.cs`、`GameInfoModel.cs`
+- **狀態**：⬜ 未開始
+
 ---
 
 ## 建議執行順序
@@ -84,11 +112,12 @@ T-001（消除 Switch 派發）
 T-002（接通 Buff 管線）  +  T-010（卡片變身）
   ↓                            ↓
 T-003（Effect Queue）     T-011（多步驟選取）
-  ↓                            ↓
-T-013（敵人動態增減）     T-012（卡片合成）
+  ↓             ↓              ↓
+T-014（預演管線） T-013（敵人動態增減） T-012（卡片合成）
 ```
 
 - T-001 是基礎設施改善，先做會讓後續所有功能的開發更輕鬆
 - T-010 和 T-011 互相獨立，可以平行開發
 - T-012 依賴 T-010 + T-011 的基礎
 - T-013 相對獨立但影響面廣，建議架構穩定後再動
+- T-014 屬於中長期能力建設，先做輕量 preview 即可，完整 simulation 可等 T-001 / T-003 方向穩定後再投入
