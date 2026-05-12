@@ -524,10 +524,65 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
 
         foreach (var character in _gameStatus.Ally.Characters)
         {
+            using var characterContext = _contextMgr.SetSelectedCharacter(character.Some());
+            foreach (var buff in character.BuffManager.Buffs)
+            {
+                var buffTrigger = new CharacterBuffTrigger(buff);
+                var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
+                var conditionalEffectsOpt = _contextMgr.CharacterBuffLibrary.GetBuffEffects(buff.CharacterBuffDataId, timing);
+                conditionalEffectsOpt.MatchSome(conditionalEffects =>
+                {
+                    foreach (var conditionalEffect in conditionalEffects)
+                    {
+                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                        {
+                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
+                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
+
+                            var resolvedCommand = EffectDataResolver.ResolveCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            triggerEvents.AddRange(applyEvts.Events);
+
+                            var nextTriggerSource = new CharacterBuffSource(buff);
+                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
+                        }
+                    }
+                });
+            }
         }
 
-        foreach (var card in _gameStatus.Ally.CardManager.HandCard.Cards)
+        var allyAllCards = _gameStatus.Ally.CardManager.Deck.Cards
+            .Concat(_gameStatus.Ally.CardManager.HandCard.Cards)
+            .Concat(_gameStatus.Ally.CardManager.Graveyard.Cards)
+            .Concat(_gameStatus.Ally.CardManager.ExclusionZone.Cards)
+            .Concat(_gameStatus.Ally.CardManager.DisposeZone.Cards);
+        foreach (var card in allyAllCards)
         {
+            using var cardContext = _contextMgr.SetSelectedCard(card.Some());
+            foreach (var buff in card.BuffManager.Buffs)
+            {
+                var cardBuffTrigger = new CardBuffTrigger(buff);
+                var buffTriggerContext = new TriggerContext(this, cardBuffTrigger, timingAction);
+                var conditionalEffectsOpt = _contextMgr.CardBuffLibrary.GetBuffEffects(buff.CardBuffDataID, timing);
+                conditionalEffectsOpt.MatchSome(conditionalEffects =>
+                {
+                    foreach (var conditionalEffect in conditionalEffects)
+                    {
+                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                        {
+                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
+                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
+
+                            var resolvedCommand = EffectDataResolver.ResolveCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            triggerEvents.AddRange(applyEvts.Events);
+
+                            var nextTriggerSource = new CardBuffSource(buff);
+                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
+                        }
+                    }
+                });
+            }
         }
 
         foreach (var buff in _gameStatus.Enemy.BuffManager.Buffs)
@@ -560,10 +615,65 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
 
         foreach (var character in _gameStatus.Enemy.Characters)
         {
+            using var characterContext = _contextMgr.SetSelectedCharacter(character.Some());
+            foreach (var buff in character.BuffManager.Buffs)
+            {
+                var buffTrigger = new CharacterBuffTrigger(buff);
+                var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
+                var conditionalEffectsOpt = _contextMgr.CharacterBuffLibrary.GetBuffEffects(buff.CharacterBuffDataId, timing);
+                conditionalEffectsOpt.MatchSome(conditionalEffects =>
+                {
+                    foreach (var conditionalEffect in conditionalEffects)
+                    {
+                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                        {
+                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
+                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
+
+                            var resolvedCommand = EffectDataResolver.ResolveCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            triggerEvents.AddRange(applyEvts.Events);
+
+                            var nextTriggerSource = new CharacterBuffSource(buff);
+                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
+                        }
+                    }
+                });
+            }
         }
 
-        foreach (var card in _gameStatus.Enemy.CardManager.HandCard.Cards)
+        var enemyAllCards = _gameStatus.Enemy.CardManager.Deck.Cards
+            .Concat(_gameStatus.Enemy.CardManager.HandCard.Cards)
+            .Concat(_gameStatus.Enemy.CardManager.Graveyard.Cards)
+            .Concat(_gameStatus.Enemy.CardManager.ExclusionZone.Cards)
+            .Concat(_gameStatus.Enemy.CardManager.DisposeZone.Cards);
+        foreach (var card in enemyAllCards)
         {
+            using var cardContext = _contextMgr.SetSelectedCard(card.Some());
+            foreach (var buff in card.BuffManager.Buffs)
+            {
+                var cardBuffTrigger = new CardBuffTrigger(buff);
+                var buffTriggerContext = new TriggerContext(this, cardBuffTrigger, timingAction);
+                var conditionalEffectsOpt = _contextMgr.CardBuffLibrary.GetBuffEffects(buff.CardBuffDataID, timing);
+                conditionalEffectsOpt.MatchSome(conditionalEffects =>
+                {
+                    foreach (var conditionalEffect in conditionalEffects)
+                    {
+                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                        {
+                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
+                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
+
+                            var resolvedCommand = EffectDataResolver.ResolveCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            triggerEvents.AddRange(applyEvts.Events);
+
+                            var nextTriggerSource = new CardBuffSource(buff);
+                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
+                        }
+                    }
+                });
+            }
         }
 
         return triggerEvents;

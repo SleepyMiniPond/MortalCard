@@ -45,6 +45,17 @@ public static class EffectDataResolver
         [typeof(RemoveCardBuffPlayerBuffEffect)]                      = new RemoveCardBuffPlayerBuffEffectResolver(),
         [typeof(CardPlayEffectAttributeAdditionPlayerBuffEffect)]     = new CardPlayEffectAttributeAdditionPlayerBuffEffectResolver(),
     };
+
+    private static readonly Dictionary<Type, ICharacterBuffEffectResolver> _characterBuffResolverRegistry = new()
+    {
+        [typeof(EffectiveDamageCharacterBuffEffect)] = new DamageCharacterBuffEffectResolver(),
+    };
+
+    private static readonly Dictionary<Type, ICardBuffEffectResolver> _cardBuffResolverRegistry = new()
+    {
+        // 待 CardBuff 效果類型定義後填入
+        // 例：[typeof(DamageCardBuffEffect)] = new DamageCardBuffEffectResolver(),
+    };
     #endregion
 
     #region CardEffect
@@ -69,6 +80,32 @@ public static class EffectDataResolver
             return resolver.Resolve(context, buffEffect);
 
         Debug.LogWarning($"[EffectDataResolver] 未知的 IPlayerBuffEffect 類型：{buffEffect.GetType().Name}，回傳空 CommandSet");
+        return new EffectCommandSet(Array.Empty<IEffectCommand>());
+    }
+    #endregion
+
+    #region CharacterBuffEffect
+    public static EffectCommandSet ResolveCharacterBuffEffect(
+        TriggerContext context,
+        ICharacterBuffEffect buffEffect)
+    {
+        if (_characterBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
+            return resolver.Resolve(context, buffEffect);
+
+        Debug.LogWarning($"[EffectDataResolver] 未知的 ICharacterBuffEffect 類型：{buffEffect.GetType().Name}，回傳空 CommandSet");
+        return new EffectCommandSet(Array.Empty<IEffectCommand>());
+    }
+    #endregion
+
+    #region CardBuffEffect
+    public static EffectCommandSet ResolveCardBuffEffect(
+        TriggerContext context,
+        ICardBuffEffect buffEffect)
+    {
+        if (_cardBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
+            return resolver.Resolve(context, buffEffect);
+
+        Debug.LogWarning($"[EffectDataResolver] 未知的 ICardBuffEffect 類型：{buffEffect.GetType().Name}，回傳空 CommandSet");
         return new EffectCommandSet(Array.Empty<IEffectCommand>());
     }
     #endregion

@@ -34,3 +34,4 @@ public record CardPlayResultSource(
 public record PlayerBuffSource(IPlayerBuffEntity Buff) : IActionSource;
 
 public record CardBuffSource(ICardBuffEntity Buff) : IActionSource;
+public record CharacterBuffSource(ICharacterBuffEntity Buff) : IActionSource;
