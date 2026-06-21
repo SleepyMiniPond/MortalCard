@@ -27,7 +27,8 @@
 - **方向**：參照 PlayerBuff 的觸發邏輯，為 CardBuff 和 CharacterBuff 補上 `ConditionalEffect` 的解析與執行
 - **注意**：CardBuff scope 較小（只影響單張牌），TriggerContext 需正確攜帶該 Card 作為 Source
 - **影響檔案**：`GameplayManager.cs`（`_TriggerTiming` 方法）
-- **狀態**：⬜ 未開始
+- **狀態**：✅ 已完成（2026-05-15）
+  - CharacterBuff 與 CardBuff 的觸發邏輯已完整實作，結構與 PlayerBuff 一致
 
 ### T-003：評估 Effect Queue 機制
 - **問題**：目前效果是 `List<ICardEffect>` 線性展開成 `EffectCommandSet` 一次性執行，無法支援效果鏈（效果 A 結果影響效果 B）、效果中觸發新效果、效果取消/替代
