@@ -58,6 +58,26 @@ public static class EffectDataResolver
     };
     #endregion
 
+    public static bool HasCardEffectResolver(Type effectType)
+    {
+        return _resolverRegistry.ContainsKey(effectType);
+    }
+
+    public static bool HasPlayerBuffEffectResolver(Type effectType)
+    {
+        return _playerBuffResolverRegistry.ContainsKey(effectType);
+    }
+
+    public static bool HasCharacterBuffEffectResolver(Type effectType)
+    {
+        return _characterBuffResolverRegistry.ContainsKey(effectType);
+    }
+
+    public static bool HasCardBuffEffectResolver(Type effectType)
+    {
+        return _cardBuffResolverRegistry.ContainsKey(effectType);
+    }
+
     #region CardEffect
     public static EffectCommandSet ResolveCardEffect(
         TriggerContext context,

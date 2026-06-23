@@ -35,6 +35,11 @@ public static class EffectCommandExecutor
     };
     #endregion
 
+    public static bool HasEffectCommandHandler(Type commandType)
+    {
+        return _handlerRegistry.ContainsKey(commandType);
+    }
+
     public static EffectResult ApplyEffectCommands(
         TriggerContext context,
         EffectCommandSet effectCommandSet)

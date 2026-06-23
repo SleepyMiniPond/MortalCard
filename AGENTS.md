@@ -72,6 +72,22 @@ MortalGame/
 
 ---
 
+## 📝 AI 草稿與記憶規則
+
+- 製作中的臨時設計、分析草稿、短期筆記請放在 `.agents/working/`
+- `.agents/working/` 不屬於正式專案文件，禁止混入 `Document/`
+- `.agents/working/` 內容不需要永久留存，也不應納入 git
+- 長期協作偏好與 AI 工作記憶請記錄在 `.agents/memory.md`
+
+## 🧭 Git 工作偏好
+
+- 除非使用者明確要求，禁止主動 `git add`、stage 或 commit
+- 使用者會一邊檢查 change，一邊自行把看完的內容加入 stage
+- 若發現檔案已 staged，不要自動 unstage；視為使用者已檢查或正在整理
+- 完成工作時只回報變更內容、驗證結果與目前 git 狀態
+
+---
+
 ## 🔄 Unity Script 修改後的強制流程
 
 **每當修改了 `Assets/Scripts/` 底下的任何 `.cs` 檔案，必須在回應結束前執行以下步驟：**

@@ -73,3 +73,6 @@ crashlytics-build.properties
 
 # Local VS Code MCP config (contains machine-specific paths)
 .vscode/mcp.json
+
+# AI working drafts, not project documentation
+/.agents/working/
