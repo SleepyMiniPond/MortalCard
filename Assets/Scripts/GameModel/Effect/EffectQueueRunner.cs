@@ -9,6 +9,21 @@ public sealed class EffectQueueRunner
         _items.Enqueue(new CardEffectQueueItem(context, effect));
     }
 
+    public void EnqueuePlayerBuffEffect(TriggerContext context, IPlayerBuffEffect effect)
+    {
+        _items.Enqueue(new PlayerBuffEffectQueueItem(context, effect));
+    }
+
+    public void EnqueueCharacterBuffEffect(TriggerContext context, ICharacterBuffEffect effect)
+    {
+        _items.Enqueue(new CharacterBuffEffectQueueItem(context, effect));
+    }
+
+    public void EnqueueCardBuffEffect(TriggerContext context, ICardBuffEffect effect)
+    {
+        _items.Enqueue(new CardBuffEffectQueueItem(context, effect));
+    }
+
     public EffectResult RunToCompletion()
     {
         var actions = new List<BaseResultAction>();
@@ -37,6 +52,39 @@ public sealed record CardEffectQueueItem(
     public override EffectResult Execute()
     {
         var commands = EffectDataResolver.ResolveCardEffect(Context, Effect);
+        return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+    }
+}
+
+public sealed record PlayerBuffEffectQueueItem(
+    TriggerContext Context,
+    IPlayerBuffEffect Effect) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute()
+    {
+        var commands = EffectDataResolver.ResolvePlayerBuffEffect(Context, Effect);
+        return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+    }
+}
+
+public sealed record CharacterBuffEffectQueueItem(
+    TriggerContext Context,
+    ICharacterBuffEffect Effect) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute()
+    {
+        var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
+        return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+    }
+}
+
+public sealed record CardBuffEffectQueueItem(
+    TriggerContext Context,
+    ICardBuffEffect Effect) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute()
+    {
+        var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
         return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
     }
 }

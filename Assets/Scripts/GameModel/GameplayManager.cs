@@ -520,8 +520,9 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
                         var updateTimingResult = UpdateReactorSessionAction(updateTimingAction);
                         triggerEvents.AddRange(updateTimingResult);
 
-                        var resolvedCommand = EffectDataResolver.ResolvePlayerBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                        var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                        var effectQueueRunner = new EffectQueueRunner();
+                        effectQueueRunner.EnqueuePlayerBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                        var applyEvts = effectQueueRunner.RunToCompletion();
                         triggerEvents.AddRange(applyEvts.Events);
 
                         var nextTriggerSource = new PlayerBuffSource(buff);
@@ -549,8 +550,9 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
                             var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
                             triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
 
-                            var resolvedCommand = EffectDataResolver.ResolveCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            var effectQueueRunner = new EffectQueueRunner();
+                            effectQueueRunner.EnqueueCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = effectQueueRunner.RunToCompletion();
                             triggerEvents.AddRange(applyEvts.Events);
 
                             var nextTriggerSource = new CharacterBuffSource(buff);
@@ -583,8 +585,9 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
                             var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
                             triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
 
-                            var resolvedCommand = EffectDataResolver.ResolveCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            var effectQueueRunner = new EffectQueueRunner();
+                            effectQueueRunner.EnqueueCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = effectQueueRunner.RunToCompletion();
                             triggerEvents.AddRange(applyEvts.Events);
 
                             var nextTriggerSource = new CardBuffSource(buff);
@@ -611,8 +614,9 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
                         var updateTimingResult = UpdateReactorSessionAction(updateTimingAction);
                         triggerEvents.AddRange(updateTimingResult);
 
-                        var resolvedCommand = EffectDataResolver.ResolvePlayerBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                        var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                        var effectQueueRunner = new EffectQueueRunner();
+                        effectQueueRunner.EnqueuePlayerBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                        var applyEvts = effectQueueRunner.RunToCompletion();
                         triggerEvents.AddRange(applyEvts.Events);
 
                         var nextTriggerSource = new PlayerBuffSource(buff);
@@ -640,8 +644,9 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
                             var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
                             triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
 
-                            var resolvedCommand = EffectDataResolver.ResolveCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            var effectQueueRunner = new EffectQueueRunner();
+                            effectQueueRunner.EnqueueCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = effectQueueRunner.RunToCompletion();
                             triggerEvents.AddRange(applyEvts.Events);
 
                             var nextTriggerSource = new CharacterBuffSource(buff);
@@ -674,8 +679,9 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
                             var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
                             triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
 
-                            var resolvedCommand = EffectDataResolver.ResolveCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = EffectCommandExecutor.ApplyEffectCommands(buffTriggerContext, resolvedCommand);
+                            var effectQueueRunner = new EffectQueueRunner();
+                            effectQueueRunner.EnqueueCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
+                            var applyEvts = effectQueueRunner.RunToCompletion();
                             triggerEvents.AddRange(applyEvts.Events);
 
                             var nextTriggerSource = new CardBuffSource(buff);
