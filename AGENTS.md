@@ -92,8 +92,8 @@ MortalGame/
 
 **每當修改了 `Assets/Scripts/` 底下的任何 `.cs` 檔案，必須在回應結束前執行以下步驟：**
 
-1. 若有**新建** `.cs` 檔案，先呼叫 `mcp_mcp-unity_execute_menu_item`（menuPath: `"Assets/Refresh"`）強制 Unity AssetDatabase 完成掃描與 import
-2. 呼叫 `mcp_mcp-unity_recompile_scripts` 觸發 Unity 重新編譯
+1. 若有**新建** `.cs` 檔案，先使用目前可用的 Unity 工具刷新 AssetDatabase，確保 Unity 完成掃描與 import
+2. 使用目前可用的 Unity 編譯工具觸發 Unity 重新編譯
 3. 若編譯有 **error**：立即修正所有錯誤，再次 recompile 直到 0 error 為止
 4. 若編譯有 **warning**：回報給使用者，但不強制修正
 5. 編譯成功（0 error）後才算完成該次修改任務
