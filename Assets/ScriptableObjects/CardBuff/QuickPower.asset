@@ -23,14 +23,14 @@ MonoBehaviour:
     SerializationNodes:
     - Name: Data
       Entry: 7
-      Data: 0|CardBuffData, Assembly-CSharp
+      Data: 0|CardBuffData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: QuickPower
     - Name: Sessions
       Entry: 7
       Data: 1|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[IReactionSessionData,
-        Assembly-CSharp]], mscorlib
+        MortalGame.Runtime]], mscorlib
     - Name: comparer
       Entry: 7
       Data: 2|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
@@ -49,12 +49,38 @@ MonoBehaviour:
       Data: 
     - Name: Effects
       Entry: 7
-      Data: 3|System.Collections.Generic.Dictionary`2[[CardTriggeredTiming, Assembly-CSharp],[ConditionalCardBuffEffect[],
-        Assembly-CSharp]], mscorlib
+      Data: 3|System.Collections.Generic.Dictionary`2[[CardTriggeredTiming, MortalGame.Runtime],[ConditionalCardBuffEffect[],
+        MortalGame.Runtime]], mscorlib
     - Name: comparer
       Entry: 7
       Data: 4|System.Collections.Generic.EnumEqualityComparer`1[[CardTriggeredTiming,
-        Assembly-CSharp]], mscorlib
+        MortalGame.Runtime]], mscorlib
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: BuffEffects
+      Entry: 7
+      Data: 5|System.Collections.Generic.Dictionary`2[[GameTiming, MortalGame.Runtime],[ConditionalCardBuffEffect[],
+        MortalGame.Runtime]], mscorlib
+    - Name: comparer
+      Entry: 7
+      Data: 6|System.Collections.Generic.EnumEqualityComparer`1[[GameTiming, MortalGame.Runtime]],
+        mscorlib
     - Name: 
       Entry: 12
       Data: 0
@@ -75,20 +101,20 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 5|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[ICardBuffPropertyData,
-        Assembly-CSharp]], Unity.Plastic.Antlr3.Runtime
+      Data: 7|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[ICardBuffPropertyData,
+        MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 6|PowerCardBuffPropertyData, Assembly-CSharp
+      Data: 8|PowerCardBuffPropertyData, MortalGame.Runtime
     - Name: Value
       Entry: 7
-      Data: 7|CardBuffIntegerProperty, Assembly-CSharp
+      Data: 9|CardBuffIntegerProperty, MortalGame.Runtime
     - Name: CardBuff
       Entry: 7
-      Data: 8|TriggeredCardBuff, Assembly-CSharp
+      Data: 10|TriggeredCardBuff, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -109,7 +135,7 @@ MonoBehaviour:
       Data: 
     - Name: LifeTimeData
       Entry: 7
-      Data: 9|HandCardLifeTimeCardBuffData, Assembly-CSharp
+      Data: 11|HandCardLifeTimeCardBuffData, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

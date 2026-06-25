@@ -9,8 +9,11 @@
   ],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Optional.dll",
+    "Optional.Collections.dll"
+  ],
   "autoReferenced": false,
   "defineConstraints": [
     "UNITY_INCLUDE_TESTS"

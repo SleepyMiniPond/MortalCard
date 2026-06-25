@@ -77,6 +77,15 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
         _gameHistory = new GameHistory(this);
     }
 
+    internal GameplayManager(
+        GameStageSetting gameStageSetting,
+        GameContextManager contextManager,
+        GameStatus initialStatus)
+        : this(gameStageSetting, contextManager)
+    {
+        _gameStatus = initialStatus;
+    }
+
     public async UniTask<Option<BattleResult>> StartBattle()
     {
         _gameEvents = new List<IGameEvent>();
