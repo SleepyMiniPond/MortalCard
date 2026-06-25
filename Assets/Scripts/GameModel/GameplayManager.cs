@@ -442,14 +442,15 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
                             1 : Math.Max(1, usedCard.GetCardProperty(cardPlayTriggerContext, CardProperty.EffectRepeat));
                         for (int i = 0; i < repeatTimes; i++)
                         {
+                            var effectQueueRunner = new EffectQueueRunner();
                             foreach (var effect in usedCard.Effects)
                             {
-                                var effectCommands = EffectDataResolver.ResolveCardEffect(cardPlayTriggerContext, effect);
-                                var effectResult = EffectCommandExecutor.ApplyEffectCommands(cardPlayTriggerContext, effectCommands);
-
-                                useCardEvents.AddRange(effectResult.Events);
-                                effectActionResults.AddRange(effectResult.Actions);
+                                effectQueueRunner.EnqueueCardEffect(cardPlayTriggerContext, effect);
                             }
+
+                            var effectResult = effectQueueRunner.RunToCompletion();
+                            useCardEvents.AddRange(effectResult.Events);
+                            effectActionResults.AddRange(effectResult.Actions);
                         }
 
                         cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
