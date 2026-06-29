@@ -499,38 +499,24 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
         return _TriggerTiming(timing, actionSource);
     }
 
+    internal IGameContextManager EffectQueueContextManager => _contextMgr;
+
     // TODO: collect reactionEffects created from reactionSessions
     private IEnumerable<IGameEvent> _TriggerTiming(GameTiming timing, IActionSource actionSource)
     {
-        var triggerEvents = new List<IGameEvent>();
+        var effectQueueRunner = new EffectQueueRunner();
+        effectQueueRunner.Enqueue(new TriggerTimingQueueItem(this, timing, actionSource));
+        return effectQueueRunner.RunToCompletion().Events;
+    }
+
+    internal IReadOnlyList<EffectQueueItem> CreateTriggerTimingQueueItems(GameTiming timing, IActionSource actionSource)
+    {
+        var items = new List<EffectQueueItem>();
         var timingAction = new UpdateTimingAction(timing, actionSource);
 
         foreach (var buff in _gameStatus.Ally.BuffManager.Buffs)
         {
-            var buffTrigger = new PlayerBuffTrigger(buff);
-            var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
-            var conditionalEffectsOpt = _contextMgr.PlayerBuffLibrary.GetBuffEffects(buff.PlayerBuffDataId, timing);
-            conditionalEffectsOpt.MatchSome(conditionalEffects =>
-            {
-                foreach (var conditionalEffect in conditionalEffects)
-                {
-                    if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                    {
-                        var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
-                        var updateTimingResult = UpdateReactorSessionAction(updateTimingAction);
-                        triggerEvents.AddRange(updateTimingResult);
-
-                        var effectQueueRunner = new EffectQueueRunner();
-                        effectQueueRunner.EnqueuePlayerBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                        var applyEvts = effectQueueRunner.RunToCompletion();
-                        triggerEvents.AddRange(applyEvts.Events);
-
-                        var nextTriggerSource = new PlayerBuffSource(buff);
-                        var triggerEndEvents = _TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource);
-                        triggerEvents.AddRange(triggerEndEvents);
-                    }
-                }
-            });
+            _AddPlayerBuffQueueItems(items, buff, timing, timingAction);
         }
 
         foreach (var character in _gameStatus.Ally.Characters)
@@ -538,93 +524,22 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
             using var characterContext = _contextMgr.SetSelectedCharacter(character.Some());
             foreach (var buff in character.BuffManager.Buffs)
             {
-                var buffTrigger = new CharacterBuffTrigger(buff);
-                var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
-                var conditionalEffectsOpt = _contextMgr.CharacterBuffLibrary.GetBuffEffects(buff.CharacterBuffDataId, timing);
-                conditionalEffectsOpt.MatchSome(conditionalEffects =>
-                {
-                    foreach (var conditionalEffect in conditionalEffects)
-                    {
-                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                        {
-                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
-                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
-
-                            var effectQueueRunner = new EffectQueueRunner();
-                            effectQueueRunner.EnqueueCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = effectQueueRunner.RunToCompletion();
-                            triggerEvents.AddRange(applyEvts.Events);
-
-                            var nextTriggerSource = new CharacterBuffSource(buff);
-                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
-                        }
-                    }
-                });
+                _AddCharacterBuffQueueItems(items, character, buff, timing, timingAction);
             }
         }
 
-        var allyAllCards = _gameStatus.Ally.CardManager.Deck.Cards
-            .Concat(_gameStatus.Ally.CardManager.HandCard.Cards)
-            .Concat(_gameStatus.Ally.CardManager.Graveyard.Cards)
-            .Concat(_gameStatus.Ally.CardManager.ExclusionZone.Cards)
-            .Concat(_gameStatus.Ally.CardManager.DisposeZone.Cards);
-        foreach (var card in allyAllCards)
+        foreach (var card in _GetAllCards(_gameStatus.Ally))
         {
             using var cardContext = _contextMgr.SetSelectedCard(card.Some());
             foreach (var buff in card.BuffManager.Buffs)
             {
-                var cardBuffTrigger = new CardBuffTrigger(buff);
-                var buffTriggerContext = new TriggerContext(this, cardBuffTrigger, timingAction);
-                var conditionalEffectsOpt = _contextMgr.CardBuffLibrary.GetBuffEffects(buff.CardBuffDataID, timing);
-                conditionalEffectsOpt.MatchSome(conditionalEffects =>
-                {
-                    foreach (var conditionalEffect in conditionalEffects)
-                    {
-                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                        {
-                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
-                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
-
-                            var effectQueueRunner = new EffectQueueRunner();
-                            effectQueueRunner.EnqueueCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = effectQueueRunner.RunToCompletion();
-                            triggerEvents.AddRange(applyEvts.Events);
-
-                            var nextTriggerSource = new CardBuffSource(buff);
-                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
-                        }
-                    }
-                });
+                _AddCardBuffQueueItems(items, card, buff, timing, timingAction);
             }
         }
 
         foreach (var buff in _gameStatus.Enemy.BuffManager.Buffs)
         {
-            var buffTrigger = new PlayerBuffTrigger(buff);
-            var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
-            var conditionalEffectsOpt = _contextMgr.PlayerBuffLibrary.GetBuffEffects(buff.PlayerBuffDataId, timing);
-
-            conditionalEffectsOpt.MatchSome(conditionalEffects =>
-            {
-                foreach (var conditionalEffect in conditionalEffects)
-                {
-                    if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                    {
-                        var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
-                        var updateTimingResult = UpdateReactorSessionAction(updateTimingAction);
-                        triggerEvents.AddRange(updateTimingResult);
-
-                        var effectQueueRunner = new EffectQueueRunner();
-                        effectQueueRunner.EnqueuePlayerBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                        var applyEvts = effectQueueRunner.RunToCompletion();
-                        triggerEvents.AddRange(applyEvts.Events);
-
-                        var nextTriggerSource = new PlayerBuffSource(buff);
-                        var triggerEndEvents = _TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource);
-                        triggerEvents.AddRange(triggerEndEvents);
-                    }
-                }
-            });
+            _AddPlayerBuffQueueItems(items, buff, timing, timingAction);
         }
 
         foreach (var character in _gameStatus.Enemy.Characters)
@@ -632,67 +547,108 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
             using var characterContext = _contextMgr.SetSelectedCharacter(character.Some());
             foreach (var buff in character.BuffManager.Buffs)
             {
-                var buffTrigger = new CharacterBuffTrigger(buff);
-                var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
-                var conditionalEffectsOpt = _contextMgr.CharacterBuffLibrary.GetBuffEffects(buff.CharacterBuffDataId, timing);
-                conditionalEffectsOpt.MatchSome(conditionalEffects =>
-                {
-                    foreach (var conditionalEffect in conditionalEffects)
-                    {
-                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                        {
-                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
-                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
-
-                            var effectQueueRunner = new EffectQueueRunner();
-                            effectQueueRunner.EnqueueCharacterBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = effectQueueRunner.RunToCompletion();
-                            triggerEvents.AddRange(applyEvts.Events);
-
-                            var nextTriggerSource = new CharacterBuffSource(buff);
-                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
-                        }
-                    }
-                });
+                _AddCharacterBuffQueueItems(items, character, buff, timing, timingAction);
             }
         }
 
-        var enemyAllCards = _gameStatus.Enemy.CardManager.Deck.Cards
-            .Concat(_gameStatus.Enemy.CardManager.HandCard.Cards)
-            .Concat(_gameStatus.Enemy.CardManager.Graveyard.Cards)
-            .Concat(_gameStatus.Enemy.CardManager.ExclusionZone.Cards)
-            .Concat(_gameStatus.Enemy.CardManager.DisposeZone.Cards);
-        foreach (var card in enemyAllCards)
+        foreach (var card in _GetAllCards(_gameStatus.Enemy))
         {
             using var cardContext = _contextMgr.SetSelectedCard(card.Some());
             foreach (var buff in card.BuffManager.Buffs)
             {
-                var cardBuffTrigger = new CardBuffTrigger(buff);
-                var buffTriggerContext = new TriggerContext(this, cardBuffTrigger, timingAction);
-                var conditionalEffectsOpt = _contextMgr.CardBuffLibrary.GetBuffEffects(buff.CardBuffDataID, timing);
-                conditionalEffectsOpt.MatchSome(conditionalEffects =>
-                {
-                    foreach (var conditionalEffect in conditionalEffects)
-                    {
-                        if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                        {
-                            var updateTimingAction = new UpdateTimingAction(GameTiming.TriggerBuffStart, buffTriggerContext.Action.Source);
-                            triggerEvents.AddRange(UpdateReactorSessionAction(updateTimingAction));
-
-                            var effectQueueRunner = new EffectQueueRunner();
-                            effectQueueRunner.EnqueueCardBuffEffect(buffTriggerContext, conditionalEffect.Effect);
-                            var applyEvts = effectQueueRunner.RunToCompletion();
-                            triggerEvents.AddRange(applyEvts.Events);
-
-                            var nextTriggerSource = new CardBuffSource(buff);
-                            triggerEvents.AddRange(_TriggerTiming(GameTiming.TriggerBuffEnd, nextTriggerSource));
-                        }
-                    }
-                });
+                _AddCardBuffQueueItems(items, card, buff, timing, timingAction);
             }
         }
 
-        return triggerEvents;
+        return items;
+    }
+
+    private void _AddPlayerBuffQueueItems(
+        List<EffectQueueItem> items,
+        IPlayerBuffEntity buff,
+        GameTiming timing,
+        UpdateTimingAction timingAction)
+    {
+        var buffTrigger = new PlayerBuffTrigger(buff);
+        var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
+        var conditionalEffectsOpt = _contextMgr.PlayerBuffLibrary.GetBuffEffects(buff.PlayerBuffDataId, timing);
+        conditionalEffectsOpt.MatchSome(conditionalEffects =>
+        {
+            foreach (var conditionalEffect in conditionalEffects)
+            {
+                if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                {
+                    items.Add(new TriggeredPlayerBuffEffectQueueItem(
+                        this,
+                        buffTriggerContext,
+                        conditionalEffect.Effect,
+                        new PlayerBuffSource(buff)));
+                }
+            }
+        });
+    }
+
+    private void _AddCharacterBuffQueueItems(
+        List<EffectQueueItem> items,
+        ICharacterEntity selectedCharacter,
+        ICharacterBuffEntity buff,
+        GameTiming timing,
+        UpdateTimingAction timingAction)
+    {
+        var buffTrigger = new CharacterBuffTrigger(buff);
+        var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
+        var conditionalEffectsOpt = _contextMgr.CharacterBuffLibrary.GetBuffEffects(buff.CharacterBuffDataId, timing);
+        conditionalEffectsOpt.MatchSome(conditionalEffects =>
+        {
+            foreach (var conditionalEffect in conditionalEffects)
+            {
+                if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                {
+                    items.Add(new TriggeredCharacterBuffEffectQueueItem(
+                        this,
+                        selectedCharacter,
+                        buffTriggerContext,
+                        conditionalEffect.Effect,
+                        new CharacterBuffSource(buff)));
+                }
+            }
+        });
+    }
+
+    private void _AddCardBuffQueueItems(
+        List<EffectQueueItem> items,
+        ICardEntity selectedCard,
+        ICardBuffEntity buff,
+        GameTiming timing,
+        UpdateTimingAction timingAction)
+    {
+        var cardBuffTrigger = new CardBuffTrigger(buff);
+        var buffTriggerContext = new TriggerContext(this, cardBuffTrigger, timingAction);
+        var conditionalEffectsOpt = _contextMgr.CardBuffLibrary.GetBuffEffects(buff.CardBuffDataID, timing);
+        conditionalEffectsOpt.MatchSome(conditionalEffects =>
+        {
+            foreach (var conditionalEffect in conditionalEffects)
+            {
+                if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                {
+                    items.Add(new TriggeredCardBuffEffectQueueItem(
+                        this,
+                        selectedCard,
+                        buffTriggerContext,
+                        conditionalEffect.Effect,
+                        new CardBuffSource(buff)));
+                }
+            }
+        });
+    }
+
+    private static IEnumerable<ICardEntity> _GetAllCards(IPlayerEntity player)
+    {
+        return player.CardManager.Deck.Cards
+            .Concat(player.CardManager.HandCard.Cards)
+            .Concat(player.CardManager.Graveyard.Cards)
+            .Concat(player.CardManager.ExclusionZone.Cards)
+            .Concat(player.CardManager.DisposeZone.Cards);
     }
 
     private void _CheckGameEnd()

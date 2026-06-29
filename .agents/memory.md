@@ -22,3 +22,10 @@
 - 專案已加入 asmdef 基礎：`MortalGame.Runtime`、`MortalGame.Editor`、EditMode Tests、PlayMode Tests。
 - asmdef 後的建議下一步是先補核心 EditMode 測試基礎，而不是急著切更多程序集。
 - 第一批測試應優先保護 Effect Resolver / Command Handler registry，以及後續 T-003、T-015 會碰到的核心契約。
+
+## Unity 驗證偏好
+
+- 本專案需要 Unity 驗證、AssetDatabase refresh、編譯檢查或 EditMode/PlayMode 測試時，優先使用 Unity MCP，連到使用者已開啟的 Unity Editor。
+- 若原生 MCP tool 沒有直接暴露，改用 `unity-mcp-cli run-tool ...` 呼叫 MCP，例如 `unity-mcp-cli run-tool tests-run --input-file <json>`。
+- 不要優先使用 Unity `-batchmode` 開第二個 Editor；本專案常態會有 Unity Editor 開著，batchmode 容易被 project lock 擋住。
+- 只有在 MCP 不可用、使用者明確同意、或需要驗證 MCP 本身不可用時，才把 batchmode 當 fallback，且必須清楚回報原因。

@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using NUnit.Framework;
 
@@ -121,5 +122,85 @@ public class EffectQueueRunnerTests
 
         Assert.That(result.Actions, Is.Empty);
         Assert.That(result.Events, Is.Empty);
+    }
+
+    [Test]
+    public void RunToCompletion_WhenItemEnqueuesAnotherItem_ProcessesEnqueuedItemBeforeReturning()
+    {
+        var runner = new EffectQueueRunner();
+
+        runner.Enqueue(new ChainedQueueItem(null, 1, 2));
+        var result = runner.RunToCompletion();
+
+        Assert.That(result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id).ToArray(), Is.EqualTo(new[] { 1, 2 }));
+    }
+
+    [Test]
+    public void RunToCompletion_WhenItemEnqueuesImmediateItem_ProcessesItBeforeQueuedTail()
+    {
+        var runner = new EffectQueueRunner();
+
+        runner.Enqueue(new ImmediateQueueItem(null));
+        runner.Enqueue(new StaticQueueItem(null, 3));
+        var result = runner.RunToCompletion();
+
+        Assert.That(result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id).ToArray(), Is.EqualTo(new[] { 1, 2, 3 }));
+    }
+
+    [Test]
+    public void RunToCompletion_WhenQueueExceedsMaxProcessedItemCount_HaltsSafely()
+    {
+        var runner = new EffectQueueRunner(maxProcessedItemCount: 3);
+
+        runner.Enqueue(new SelfEnqueueingQueueItem(null));
+        var result = runner.RunToCompletion();
+
+        Assert.IsTrue(runner.IsHalted);
+        Assert.That(runner.PendingItemCount, Is.EqualTo(1));
+        Assert.That(result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id).ToArray(), Is.EqualTo(new[] { 1, 2, 3 }));
+    }
+}
+
+public sealed record TestQueueEvent(int Id) : IGameEvent;
+
+public sealed record ChainedQueueItem(
+    TriggerContext Context,
+    int CurrentId,
+    int NextId) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute(IEffectQueueContext queue)
+    {
+        if (NextId > 0)
+        {
+            queue.Enqueue(new ChainedQueueItem(Context, NextId, 0));
+        }
+
+        return new EffectResult(Array.Empty<BaseResultAction>(), new IGameEvent[] { new TestQueueEvent(CurrentId) });
+    }
+}
+
+public sealed record SelfEnqueueingQueueItem(TriggerContext Context) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute(IEffectQueueContext queue)
+    {
+        queue.Enqueue(new SelfEnqueueingQueueItem(Context));
+        return new EffectResult(Array.Empty<BaseResultAction>(), new IGameEvent[] { new TestQueueEvent(queue.ProcessedItemCount) });
+    }
+}
+
+public sealed record ImmediateQueueItem(TriggerContext Context) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute(IEffectQueueContext queue)
+    {
+        queue.EnqueueImmediate(new StaticQueueItem(Context, 2));
+        return new EffectResult(Array.Empty<BaseResultAction>(), new IGameEvent[] { new TestQueueEvent(1) });
+    }
+}
+
+public sealed record StaticQueueItem(TriggerContext Context, int Id) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute(IEffectQueueContext queue)
+    {
+        return new EffectResult(Array.Empty<BaseResultAction>(), new IGameEvent[] { new TestQueueEvent(Id) });
     }
 }

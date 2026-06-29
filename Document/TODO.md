@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-05-11  
+> 最後更新：2026-06-29  
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
 ---
@@ -34,7 +34,23 @@
 - **問題**：目前效果是 `List<ICardEffect>` 線性展開成 `EffectCommandSet` 一次性執行，無法支援效果鏈（效果 A 結果影響效果 B）、效果中觸發新效果、效果取消/替代
 - **方向**：引入 Effect Queue，讓效果執行中可以往佇列塞新效果；`GameContextManager` 的 stack-based scoping 已有雛形
 - **前置**：先完成 T-001（消除 switch 派發後更容易引入 Queue）
-- **狀態**：⬜ 未開始
+- **完成內容**：
+  - 新增 `EffectQueueRunner` 與 `EffectQueueItem`，將 CardEffect、PlayerBuffEffect、CharacterBuffEffect、CardBuffEffect 納入統一佇列執行流程
+  - `EffectQueueItem.Execute()` 改為接收 `IEffectQueueContext`，允許效果執行期間插入後續效果
+  - 新增 `EnqueueImmediate()`，用於保留原本遞迴觸發的深度優先順序，例如 buff 效果結束後立即處理對應的 `TriggerBuffEnd`
+  - 新增最大處理數保護，超過上限時安全停駐並保留尚未執行的 pending queue，避免無限連鎖造成死循環
+  - `_TriggerTiming()` 改為透過 `TriggerTimingQueueItem` 進入 Effect Queue，`TriggerBuffEnd` 這類遞迴 timing 也以 queue item 表示
+  - 將 Buff timing 專屬 queue item 拆出至 `BuffTimingQueueItems.cs`，讓 `EffectQueueRunner` 保持通用佇列基礎設施，`GameplayManager` 保留 timing 掃描與組裝責任
+  - 擴充 `EffectQueueRunnerTests`，覆蓋佇列順序、立即插入與 max count 安全停駐
+- **驗證結果**：
+  - `dotnet build MortalGame.EditModeTests.csproj`：0 error，2 warnings（既有 `GameplayManager.OneTurnStart` / `OnTurnEnd` 未使用）
+  - Unity MCP `assets-refresh`：成功
+  - Unity MCP `tests-run` EditMode：63 passed / 0 failed / 0 skipped
+  - 測試中仍有 `NoOpCardBuffEffect` 未知 resolver warning，屬於既有測試用空效果案例
+- **後續注意**：
+  - 目前完成的是執行期 Effect Queue 的第一版架構；「效果取消 / 替代」尚未實作，建議等實際卡牌需求或 Preview / Simulation 管線明確後再擴充
+  - 後續新增會連鎖觸發的效果時，應優先補 EditMode 測試確認 queue 順序與 selected context 邊界
+- **狀態**：✅ 已完成（2026-06-29）
 
 ### T-004：建立核心 EditMode 測試與測試資料建構器
 - **問題**：核心 GameModel 與 Buff Timing 缺少自動化回歸保護，後續 T-003 Effect Queue、Buff 連鎖控制、Preview / Simulation 等工作容易在重構時產生行為回歸
@@ -179,9 +195,11 @@ T-002（接通 Buff 管線）  +  T-010（卡片變身）
   ↓                            ↓
 T-004（EditMode 測試基礎，已完成）
   ↓
-T-005（生命週期） + T-006（決定性亂數） + T-008（資料驗證）
+T-003（Effect Queue，已完成）
   ↓
-T-003（Effect Queue）     T-011（多步驟選取）
+T-008（資料驗證） + T-006（決定性亂數） + T-005（生命週期）
+  ↓
+T-011（多步驟選取）
   ↓             ↓              ↓
 T-007（asmdef / 命名空間整理，分階段穿插）
   ↓
@@ -189,8 +207,11 @@ T-014（預演管線） T-013（敵人動態增減） T-012（卡片合成）
 ```
 
 - T-001 是基礎設施改善，先做會讓後續所有功能的開發更輕鬆
-- T-004 已完成，提供 Buff Timing 與 GameContext scope 的測試保護；後續 T-003 應沿用既有測試 builder 擴充案例
-- T-005、T-006、T-008 是進入 T-003 前的安全網：分別處理非同步生命週期、可重現亂數、資料與 registry 驗證
+- T-004 已完成，提供 Buff Timing 與 GameContext scope 的測試保護；T-003 已沿用既有測試 builder 擴充 queue 行為案例
+- T-003 已完成第一版 Effect Queue，後續若要支援效果取消 / 替代，應等具體卡牌需求或 Preview / Simulation 管線明確後再擴充
+- T-008 建議作為下一個優先項，先補上資料與 registry 驗證，降低後續新增效果、Buff 與卡牌資料時的 runtime 風險
+- T-006 可接在 T-008 後處理，讓後續測試、重播、AI simulation 與問題重現具備決定性基礎
+- T-005 仍重要，但較偏場景生命週期與非同步穩定性；若目前沒有切場景或 `.Forget()` 相關 bug，可排在 T-008 / T-006 之後
 - T-007 不一定要一次完成，建議配合後續重構分批整理，避免大規模命名空間與 asmdef 搬遷造成噪音
 - T-010 和 T-011 互相獨立，可以平行開發
 - T-012 依賴 T-010 + T-011 的基礎
