@@ -12,7 +12,8 @@
   "overrideReferences": true,
   "precompiledReferences": [
     "Optional.dll",
-    "Optional.Collections.dll"
+    "Optional.Collections.dll",
+    "Sirenix.Serialization.dll"
   ],
   "autoReferenced": false,
   "defineConstraints": [

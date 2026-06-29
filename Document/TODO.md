@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-06-29  
+> 最後更新：2026-06-30  
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
 ---
@@ -108,16 +108,36 @@
 ### T-008：建立 ScriptableObject 資料驗證與 Resolver / Handler 註冊檢查
 - **問題**：Effect、Buff、CardData 等 ScriptableObject 資料與 Resolver / Handler registry 的缺漏，可能要到實際遊戲流程才爆錯，缺少提早檢查機制
 - **方向**：建立 EditMode 測試或 Editor validation，檢查資料引用、效果解析器與命令處理器註冊是否完整
-- **設計思路**：
-  - 檢查每個 `ICardEffect` / `IPlayerBuffEffect` / 其他效果資料是否有對應 resolver
-  - 檢查每個 `IEffectCommand` 是否有對應 handler
-  - 檢查卡牌、Buff、角色、敵人等資料引用的 ID 是否存在於對應 library
-  - 將常見資料錯誤整理成可讀的錯誤訊息，方便設計資料調整時定位問題
-  - 優先以 EditMode 測試保護 registry 完整性，再視需求補 Editor 選單驗證工具
+- **完成內容**：
+  - 新增 `ScriptableObjectDataValidationTests`，以 EditMode 測試持續掃描 `Assets/ScriptableObjects` 下的實際資料資產
+  - 以反射檢查所有具體 `IEffectCommand` 型別皆有 `IEffectCommandHandler` 註冊，避免新增 command 時漏接 handler
+  - 檢查 Card / PlayerBuff / CharacterBuff / CardBuff 資料中實際使用到的 Effect 是否有對應 resolver
+  - 檢查常見跨 library ID 引用：`AddPlayerBuffEffect.BuffId`、`RemovePlayerBuffEffect.BuffId`、`CreateCardEffect.CardDataIds`、`AddCardBuffData.CardBuffId`、`RemoveCardBuffEffect.BuffId`、Deck 卡牌引用與 Player/Enemy Deck 引用
+  - 調整 `MortalGame.EditModeTests.asmdef`，補上 `Sirenix.Serialization.dll`，讓 EditMode 測試 assembly 能正確讀取 Odin `SerializedScriptableObject`
+- **驗證結果**：
+  - Unity MCP `assets-refresh`：成功，0 compile error
+  - Unity MCP `tests-run` EditMode：67 passed / 0 failed / 0 skipped
+  - `dotnet build MortalGame.EditModeTests.csproj`：0 warning / 0 error
+- **後續注意**：
+  - 目前先以 EditMode 測試作為持續保證；若後續設計資料調整頻繁，再抽出共用 `GameDataValidator` 並補 Unity Editor menu（例如 `MortalGame/Validate Game Data`）
+  - 可再擴充 localize key、MainTarget/SubSelection 完整性、LifeTimeData 空值與 AllCard/AllBuff 集合覆蓋率檢查
 - **影響檔案**：Resolver / Handler registry、ScriptableObject 資料載入與 library、EditMode Tests
-- **狀態**：⬜ 未開始
+- **狀態**：✅ 已完成第一階段（2026-06-30）
 
 ---
+
+## 🟣 後續架構討論：TriggerTiming / ReactorSession 時機一致化
+
+### T-016：重構 TriggerTiming 與 UpdateReactorSessionAction 的時機模型
+- **問題**：目前 `UpdateReactorSessionAction` 分散在 GameplayManager 主流程、EffectCommandHandler、Triggered*BuffEffectQueueItem，導致 timing session 更新順序不一致；特別是 `TriggerBuffEnd` 目前可能只觸發 Buff queue，未穩定更新 ReactionSession。
+- **結論草案**：採用明確的 Before / After timing hook，例如 `BeforeTurnEnd` / `AfterTurnEnd`、`BeforePlayCardEnd` / `AfterPlayCardEnd`，並建立統一 `RunTiming(GameTiming timing, IActionSource source)` pipeline，讓每個 timing pulse 固定先更新 ReactionSession，再執行對應 Buff trigger queue。
+- **設計筆記**：`.agents/working/2026-06-30-trigger-timing-reactor-session-design.md`
+- **實作建議**：
+  - 先補 EditMode 測試鎖定 WholeTurn / PlayCard session 在 Before / After timing 的讀取與清理行為。
+  - 擴充 `GameTiming`，逐步淘汰模糊的 `TurnEnd`、`PlayCardEnd`、`TriggerBuffStart`、`TriggerBuffEnd`。
+  - 將 GameplayManager 中屬於 timing pulse 的 session update 收斂到 `RunTiming`。
+  - 保留 EffectCommandHandler 對 result action 的 `UpdateReactorSessionAction`，避免 result 類事件失去記憶更新。
+- **狀態**：待規劃 / 待實作
 
 ## 🟣 新功能 — 卡牌系統擴展
 
@@ -197,7 +217,7 @@ T-004（EditMode 測試基礎，已完成）
   ↓
 T-003（Effect Queue，已完成）
   ↓
-T-008（資料驗證） + T-006（決定性亂數） + T-005（生命週期）
+T-008（資料驗證，已完成第一階段） + T-006（決定性亂數） + T-005（生命週期）
   ↓
 T-011（多步驟選取）
   ↓             ↓              ↓
@@ -209,8 +229,8 @@ T-014（預演管線） T-013（敵人動態增減） T-012（卡片合成）
 - T-001 是基礎設施改善，先做會讓後續所有功能的開發更輕鬆
 - T-004 已完成，提供 Buff Timing 與 GameContext scope 的測試保護；T-003 已沿用既有測試 builder 擴充 queue 行為案例
 - T-003 已完成第一版 Effect Queue，後續若要支援效果取消 / 替代，應等具體卡牌需求或 Preview / Simulation 管線明確後再擴充
-- T-008 建議作為下一個優先項，先補上資料與 registry 驗證，降低後續新增效果、Buff 與卡牌資料時的 runtime 風險
-- T-006 可接在 T-008 後處理，讓後續測試、重播、AI simulation 與問題重現具備決定性基礎
+- T-008 已完成第一階段，以 EditMode 測試持續保護資料與 registry 驗證；Editor menu 可等設計資料調整頻繁時再補
+- T-006 建議作為下一個優先項，讓後續測試、重播、AI simulation 與問題重現具備決定性基礎
 - T-005 仍重要，但較偏場景生命週期與非同步穩定性；若目前沒有切場景或 `.Forget()` 相關 bug，可排在 T-008 / T-006 之後
 - T-007 不一定要一次完成，建議配合後續重構分批整理，避免大規模命名空間與 asmdef 搬遷造成噪音
 - T-010 和 T-011 互相獨立，可以平行開發
