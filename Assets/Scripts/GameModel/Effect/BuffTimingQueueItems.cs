@@ -23,7 +23,7 @@ internal sealed record TriggeredPlayerBuffEffectQueueItem(
     GameplayManager Manager,
     TriggerContext Context,
     IPlayerBuffEffect Effect,
-    IActionSource TriggerBuffEndSource) : EffectQueueItem(Context)
+    IActionSource TriggerBuffSource) : EffectQueueItem(Context)
 {
     public override EffectResult Execute(IEffectQueueContext queue)
     {
@@ -35,7 +35,7 @@ internal sealed record TriggeredPlayerBuffEffectQueueItem(
         var effectResult = EffectCommandExecutor.ApplyEffectCommands(Context, commands);
         events.AddRange(effectResult.Events);
 
-        queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffEndSource));
+        queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffSource));
         return new EffectResult(effectResult.Actions, events);
     }
 }
@@ -45,7 +45,7 @@ internal sealed record TriggeredCharacterBuffEffectQueueItem(
     ICharacterEntity SelectedCharacter,
     TriggerContext Context,
     ICharacterBuffEffect Effect,
-    IActionSource TriggerBuffEndSource) : EffectQueueItem(Context)
+    IActionSource TriggerBuffSource) : EffectQueueItem(Context)
 {
     public override EffectResult Execute(IEffectQueueContext queue)
     {
@@ -58,7 +58,7 @@ internal sealed record TriggeredCharacterBuffEffectQueueItem(
         var effectResult = EffectCommandExecutor.ApplyEffectCommands(Context, commands);
         events.AddRange(effectResult.Events);
 
-        queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffEndSource));
+        queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffSource));
         return new EffectResult(effectResult.Actions, events);
     }
 }
@@ -68,7 +68,7 @@ internal sealed record TriggeredCardBuffEffectQueueItem(
     ICardEntity SelectedCard,
     TriggerContext Context,
     ICardBuffEffect Effect,
-    IActionSource TriggerBuffEndSource) : EffectQueueItem(Context)
+    IActionSource TriggerBuffSource) : EffectQueueItem(Context)
 {
     public override EffectResult Execute(IEffectQueueContext queue)
     {
@@ -81,7 +81,7 @@ internal sealed record TriggeredCardBuffEffectQueueItem(
         var effectResult = EffectCommandExecutor.ApplyEffectCommands(Context, commands);
         events.AddRange(effectResult.Events);
 
-        queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffEndSource));
+        queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffSource));
         return new EffectResult(effectResult.Actions, events);
     }
 }

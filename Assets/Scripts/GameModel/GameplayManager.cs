@@ -511,144 +511,107 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
 
     internal IReadOnlyList<EffectQueueItem> CreateTriggerTimingQueueItems(GameTiming timing, IActionSource actionSource)
     {
-        var items = new List<EffectQueueItem>();
         var timingAction = new UpdateTimingAction(timing, actionSource);
 
-        foreach (var buff in _gameStatus.Ally.BuffManager.Buffs)
+        return PlayerQueueItems(_gameStatus.Ally)
+            .Concat(PlayerQueueItems(_gameStatus.Enemy))
+            .ToArray();
+
+        IEnumerable<EffectQueueItem> PlayerQueueItems(IPlayerEntity player)
         {
-            _AddPlayerBuffQueueItems(items, buff, timing, timingAction);
+            return PlayerBuffQueueItems(player)
+                .Concat(CharacterBuffQueueItems(player))
+                .Concat(CardBuffQueueItems(player));
         }
 
-        foreach (var character in _gameStatus.Ally.Characters)
+        IEnumerable<EffectQueueItem> PlayerBuffQueueItems(IPlayerEntity player)
         {
-            using var characterContext = _contextMgr.SetSelectedCharacter(character.Some());
-            foreach (var buff in character.BuffManager.Buffs)
-            {
-                _AddCharacterBuffQueueItems(items, character, buff, timing, timingAction);
-            }
+            return player.BuffManager.Buffs
+                .SelectMany(buff => AddPlayerBuffQueueItems(buff, timing, timingAction));
         }
 
-        foreach (var card in _GetAllCards(_gameStatus.Ally))
+        IEnumerable<EffectQueueItem> CharacterBuffQueueItems(IPlayerEntity player)
         {
-            using var cardContext = _contextMgr.SetSelectedCard(card.Some());
-            foreach (var buff in card.BuffManager.Buffs)
-            {
-                _AddCardBuffQueueItems(items, card, buff, timing, timingAction);
-            }
+            return player.Characters
+                .SelectMany(character => character.BuffManager.Buffs
+                    .SelectMany(buff => AddCharacterBuffQueueItems(character, buff, timing, timingAction)));
         }
 
-        foreach (var buff in _gameStatus.Enemy.BuffManager.Buffs)
+        IEnumerable<EffectQueueItem> CardBuffQueueItems(IPlayerEntity player)
         {
-            _AddPlayerBuffQueueItems(items, buff, timing, timingAction);
+            return player.CardManager.AllCards()
+                .SelectMany(card => card.BuffManager.Buffs
+                    .SelectMany(buff => AddCardBuffQueueItems(card, buff, timing, timingAction)));
         }
 
-        foreach (var character in _gameStatus.Enemy.Characters)
+        IEnumerable<EffectQueueItem> AddPlayerBuffQueueItems(
+            IPlayerBuffEntity buff,
+            GameTiming timing,
+            UpdateTimingAction timingAction)
         {
-            using var characterContext = _contextMgr.SetSelectedCharacter(character.Some());
-            foreach (var buff in character.BuffManager.Buffs)
-            {
-                _AddCharacterBuffQueueItems(items, character, buff, timing, timingAction);
-            }
+            var buffTrigger = new PlayerBuffTrigger(buff);
+            var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
+            var conditionalEffectsOpt = _contextMgr.PlayerBuffLibrary.GetBuffEffects(buff.PlayerBuffDataId, timing);
+            return conditionalEffectsOpt
+                .Map(conditionalEffects => conditionalEffects
+                    .Where(conditionalEffect => conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                    .Select(conditionalEffect => 
+                        new TriggeredPlayerBuffEffectQueueItem(
+                            this,
+                            buffTriggerContext,
+                            conditionalEffect.Effect,
+                            new PlayerBuffSource(buff)) as EffectQueueItem)
+                    .ToArray())
+                .ValueOr(Array.Empty<EffectQueueItem>());
         }
 
-        foreach (var card in _GetAllCards(_gameStatus.Enemy))
+        IEnumerable<EffectQueueItem> AddCharacterBuffQueueItems(
+            ICharacterEntity selectedCharacter,
+            ICharacterBuffEntity buff,
+            GameTiming timing,
+            UpdateTimingAction timingAction)
         {
-            using var cardContext = _contextMgr.SetSelectedCard(card.Some());
-            foreach (var buff in card.BuffManager.Buffs)
-            {
-                _AddCardBuffQueueItems(items, card, buff, timing, timingAction);
-            }
+            using var characterContext = _contextMgr.SetSelectedCharacter(selectedCharacter.Some());
+            var buffTrigger = new CharacterBuffTrigger(buff);
+            var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
+            var conditionalEffectsOpt = _contextMgr.CharacterBuffLibrary.GetBuffEffects(buff.CharacterBuffDataId, timing);
+            return conditionalEffectsOpt
+                .Map(conditionalEffects => conditionalEffects
+                    .Where(conditionalEffect => conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                    .Select(conditionalEffect =>
+                        new TriggeredCharacterBuffEffectQueueItem(
+                            this,
+                            selectedCharacter,
+                            buffTriggerContext,
+                            conditionalEffect.Effect,
+                            new CharacterBuffSource(buff)) as EffectQueueItem)
+                    .ToArray())
+                .ValueOr(Array.Empty<EffectQueueItem>());
         }
 
-        return items;
-    }
-
-    private void _AddPlayerBuffQueueItems(
-        List<EffectQueueItem> items,
-        IPlayerBuffEntity buff,
-        GameTiming timing,
-        UpdateTimingAction timingAction)
-    {
-        var buffTrigger = new PlayerBuffTrigger(buff);
-        var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
-        var conditionalEffectsOpt = _contextMgr.PlayerBuffLibrary.GetBuffEffects(buff.PlayerBuffDataId, timing);
-        conditionalEffectsOpt.MatchSome(conditionalEffects =>
+        IEnumerable<EffectQueueItem> AddCardBuffQueueItems(
+            ICardEntity selectedCard,
+            ICardBuffEntity buff,
+            GameTiming timing,
+            UpdateTimingAction timingAction)
         {
-            foreach (var conditionalEffect in conditionalEffects)
-            {
-                if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                {
-                    items.Add(new TriggeredPlayerBuffEffectQueueItem(
-                        this,
-                        buffTriggerContext,
-                        conditionalEffect.Effect,
-                        new PlayerBuffSource(buff)));
-                }
-            }
-        });
-    }
-
-    private void _AddCharacterBuffQueueItems(
-        List<EffectQueueItem> items,
-        ICharacterEntity selectedCharacter,
-        ICharacterBuffEntity buff,
-        GameTiming timing,
-        UpdateTimingAction timingAction)
-    {
-        var buffTrigger = new CharacterBuffTrigger(buff);
-        var buffTriggerContext = new TriggerContext(this, buffTrigger, timingAction);
-        var conditionalEffectsOpt = _contextMgr.CharacterBuffLibrary.GetBuffEffects(buff.CharacterBuffDataId, timing);
-        conditionalEffectsOpt.MatchSome(conditionalEffects =>
-        {
-            foreach (var conditionalEffect in conditionalEffects)
-            {
-                if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                {
-                    items.Add(new TriggeredCharacterBuffEffectQueueItem(
-                        this,
-                        selectedCharacter,
-                        buffTriggerContext,
-                        conditionalEffect.Effect,
-                        new CharacterBuffSource(buff)));
-                }
-            }
-        });
-    }
-
-    private void _AddCardBuffQueueItems(
-        List<EffectQueueItem> items,
-        ICardEntity selectedCard,
-        ICardBuffEntity buff,
-        GameTiming timing,
-        UpdateTimingAction timingAction)
-    {
-        var cardBuffTrigger = new CardBuffTrigger(buff);
-        var buffTriggerContext = new TriggerContext(this, cardBuffTrigger, timingAction);
-        var conditionalEffectsOpt = _contextMgr.CardBuffLibrary.GetBuffEffects(buff.CardBuffDataID, timing);
-        conditionalEffectsOpt.MatchSome(conditionalEffects =>
-        {
-            foreach (var conditionalEffect in conditionalEffects)
-            {
-                if (conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
-                {
-                    items.Add(new TriggeredCardBuffEffectQueueItem(
-                        this,
-                        selectedCard,
-                        buffTriggerContext,
-                        conditionalEffect.Effect,
-                        new CardBuffSource(buff)));
-                }
-            }
-        });
-    }
-
-    private static IEnumerable<ICardEntity> _GetAllCards(IPlayerEntity player)
-    {
-        return player.CardManager.Deck.Cards
-            .Concat(player.CardManager.HandCard.Cards)
-            .Concat(player.CardManager.Graveyard.Cards)
-            .Concat(player.CardManager.ExclusionZone.Cards)
-            .Concat(player.CardManager.DisposeZone.Cards);
+            using var cardContext = _contextMgr.SetSelectedCard(selectedCard.Some());
+            var cardBuffTrigger = new CardBuffTrigger(buff);
+            var buffTriggerContext = new TriggerContext(this, cardBuffTrigger, timingAction);
+            var conditionalEffectsOpt = _contextMgr.CardBuffLibrary.GetBuffEffects(buff.CardBuffDataID, timing);
+            return conditionalEffectsOpt
+                .Map(conditionalEffects => conditionalEffects
+                    .Where(conditionalEffect => conditionalEffect.Conditions.All(c => c.Eval(buffTriggerContext)))
+                    .Select(conditionalEffect =>
+                        new TriggeredCardBuffEffectQueueItem(
+                            this,
+                            selectedCard,
+                            buffTriggerContext,
+                            conditionalEffect.Effect,
+                            new CardBuffSource(buff)) as EffectQueueItem)
+                    .ToArray())
+                .ValueOr(Array.Empty<EffectQueueItem>());
+        }
     }
 
     private void _CheckGameEnd()

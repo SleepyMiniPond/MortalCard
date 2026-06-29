@@ -126,6 +126,68 @@ public class BuffTimingPipelineTests
     }
 
     [Test]
+    public void CreateTriggerTimingQueueItems_WhenAllBuffTypesMatchTiming_ReturnsQueueItemsForEachBuffType()
+    {
+        var playerBuffData = BuffTestBuilder.CreatePlayerBuffData(
+            BuffTestBuilder.PlayerBuffId,
+            GameTiming.TurnEnd,
+            new ConditionalPlayerBuffEffect
+            {
+                Conditions = { new ConstCondition { Value = true } },
+                Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                {
+                    Type = EffectAttributeAdditionType.PowerAddition,
+                    Value = new ConstInteger { Value = 1 }
+                }
+            });
+        var characterBuffData = BuffTestBuilder.CreateCharacterBuffData(
+            BuffTestBuilder.CharacterBuffId,
+            GameTiming.TurnEnd,
+            new ConditionalCharacterBuffEffect
+            {
+                Conditions = new ICharacterBuffCondition[] { new ConstCondition { Value = true } },
+                Effect = new EffectiveDamageCharacterBuffEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ConstInteger { Value = 1 }
+                }
+            });
+        var cardBuffData = BuffTestBuilder.CreateCardBuffData(
+            BuffTestBuilder.CardBuffId,
+            GameTiming.TurnEnd,
+            new ConditionalCardBuffEffect
+            {
+                Conditions = { new ConstCondition { Value = true } },
+                Effect = new NoOpCardBuffEffect()
+            });
+        var built = new GameplayManagerTestBuilder()
+            .WithCard(CardTestBuilder.CreateCardData())
+            .WithPlayerBuff(playerBuffData)
+            .WithCharacterBuff(characterBuffData)
+            .WithCardBuff(cardBuffData)
+            .Build();
+        built.Ally.BuffManager.AddBuff(BuffTestBuilder.CreatePlayerBuff());
+        built.Ally.MainCharacter.BuffManager.AddBuff(BuffTestBuilder.CreateCharacterBuff());
+        var context = new TriggerContext(
+            built.Manager,
+            new PlayerTrigger(built.Ally),
+            new UpdateTimingAction(GameTiming.TurnEnd, SystemSource.Instance));
+        var card = CardTestBuilder.CreateCardWithBuff(
+            context,
+            built.ContextManager.CardBuffLibrary,
+            built.ContextManager.CardLibrary);
+        built.Ally.CardManager.HandCard.AddCard(card);
+
+        var items = built.Manager.CreateTriggerTimingQueueItems(GameTiming.TurnEnd, SystemSource.Instance);
+
+        Assert.That(items.Count, Is.EqualTo(3));
+        Assert.That(items, Has.Exactly(1).TypeOf<TriggeredPlayerBuffEffectQueueItem>());
+        Assert.That(items, Has.Exactly(1).TypeOf<TriggeredCharacterBuffEffectQueueItem>());
+        Assert.That(items, Has.Exactly(1).TypeOf<TriggeredCardBuffEffectQueueItem>());
+        Assert.AreEqual(GameContext.EMPTY, built.ContextManager.Context);
+    }
+
+    [Test]
     public void TriggerTiming_WhenBuffTriggers_ThenTriggerBuffEndTimingIsProcessed()
     {
         var firstBuffData = BuffTestBuilder.CreatePlayerBuffData(

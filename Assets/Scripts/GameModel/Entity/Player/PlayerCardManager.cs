@@ -236,4 +236,13 @@ public static class PlayerCardManagerExtensions
                 { CardCollectionType.DisposeZone, cardManager.DisposeZone.ToCardIdentities() }
             },
             cardManager.PlayingCard.Map(c => c.ToInfo(gameWatcher)));
+
+    public static IEnumerable<ICardEntity> AllCards(this IPlayerCardManager cardManager)
+    {
+        return cardManager.Deck.Cards
+            .Concat(cardManager.HandCard.Cards)
+            .Concat(cardManager.Graveyard.Cards)
+            .Concat(cardManager.ExclusionZone.Cards)
+            .Concat(cardManager.DisposeZone.Cards);
+    }
 }
