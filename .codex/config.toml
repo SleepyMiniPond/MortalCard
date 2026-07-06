@@ -1,3 +1,4 @@
+sandbox_mode = "danger-full-access"
 [mcp_servers.ai-game-developer]
 enabled = true
 startup_timeout_sec = 30

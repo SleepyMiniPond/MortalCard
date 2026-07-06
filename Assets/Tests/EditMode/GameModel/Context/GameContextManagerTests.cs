@@ -17,6 +17,22 @@ public class GameContextManagerTests
     }
 
     [Test]
+    public void NewManager_WithSameRandomSeed_ProducesSameRandomSequence()
+    {
+        var first = GameContextTestBuilder.CreateContextManager(randomSeed: 12345);
+        var second = GameContextTestBuilder.CreateContextManager(randomSeed: 12345);
+
+        var firstValues = Enumerable.Range(0, 5)
+            .Select(_ => first.GameRandom.Range(0, 100))
+            .ToArray();
+        var secondValues = Enumerable.Range(0, 5)
+            .Select(_ => second.GameRandom.Range(0, 100))
+            .ToArray();
+
+        Assert.That(firstValues, Is.EqualTo(secondValues));
+    }
+
+    [Test]
     public void SelectedPlayerScope_PushesAndRestoresPreviousContext()
     {
         var manager = GameContextTestBuilder.CreateContextManager();

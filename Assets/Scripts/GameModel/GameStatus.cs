@@ -42,7 +42,6 @@ public class GameStatus
                     ? (IPlayerEntity)Enemy 
                     : (IPlayerEntity)Ally))
             .ToReactiveProperty();
-    public UnityEngine.Random.State RandomState => UnityEngine.Random.state;
 
     public GameStatus()
     {

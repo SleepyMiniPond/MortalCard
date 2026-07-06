@@ -43,7 +43,8 @@ public static class GameContextTestBuilder
         PlayerBuffLibrary playerBuffLibrary = null,
         CharacterBuffLibrary characterBuffLibrary = null,
         DispositionLibrary dispositionLibrary = null,
-        LocalizeLibrary localizeLibrary = null)
+        LocalizeLibrary localizeLibrary = null,
+        int randomSeed = 1)
     {
         return new GameContextManager(
             cardLibrary ?? CreateCardLibrary(),
@@ -51,6 +52,7 @@ public static class GameContextTestBuilder
             playerBuffLibrary ?? CreatePlayerBuffLibrary(),
             characterBuffLibrary ?? CreateCharacterBuffLibrary(),
             dispositionLibrary ?? CreateDispositionLibrary(),
-            localizeLibrary ?? CreateLocalizeLibrary());
+            localizeLibrary ?? CreateLocalizeLibrary(),
+            new GameRandom(randomSeed));
     }
 }

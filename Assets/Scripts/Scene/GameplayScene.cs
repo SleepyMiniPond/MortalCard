@@ -14,8 +14,8 @@ public class GameplayScene : MonoBehaviour
     {
         var battleBuilder = new BattleBuidler(context);
 
-        var gameContextManager = battleBuilder.ConstructGameContextManager();
         var gameStageSetting = battleBuilder.ConstructBattle();
+        var gameContextManager = battleBuilder.ConstructGameContextManager(gameStageSetting.RandomSeed);
         var gameplayPresenter = new GameplayPresenter(
             _gameplayView,
             _gameResultWinPanel,

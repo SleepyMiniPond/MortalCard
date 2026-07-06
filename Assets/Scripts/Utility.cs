@@ -71,16 +71,10 @@ public static class Utility
         }
     } 
     
-    public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source)
+    public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source, IGameRandom random)
     {
         var buffer = source.ToList();
-        for (int i = buffer.Count - 1; i > 0; i--)
-        {
-            int j = UnityEngine.Random.Range(0, i + 1);
-            T temp = buffer[i];
-            buffer[i] = buffer[j];
-            buffer[j] = temp;
-        }
+        random.ShuffleInPlace(buffer);
 
         foreach (T item in buffer)
         {

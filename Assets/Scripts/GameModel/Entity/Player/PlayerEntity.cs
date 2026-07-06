@@ -105,7 +105,7 @@ public class AllyEntity : PlayerEntity
         _characters = characterParams
             .Select(param => CharacterEntity.Create(param))
             .ToList();
-        _cardManager = new PlayerCardManager(handCardMaxCount);
+        _cardManager = new PlayerCardManager(handCardMaxCount, gameContext.GameRandom);
         DispositionManager = new DispositionManager(currentDisposition, maxDisposition);
     }
 }
@@ -135,7 +135,7 @@ public class EnemyEntity : PlayerEntity
         _characters = characterParams
             .Select(param => CharacterEntity.Create(param))
             .ToList();
-        _cardManager = new PlayerCardManager(handCardMaxCount);
+        _cardManager = new PlayerCardManager(handCardMaxCount, gameContext.GameRandom);
         SelectedCards = new SelectedCardEntity(selectedCardMaxCount, new List<ICardEntity>());
         TurnStartDrawCardCount = turnStartDrawCardCount;
         EnergyRecoverPoint = energyRecoverPoint;

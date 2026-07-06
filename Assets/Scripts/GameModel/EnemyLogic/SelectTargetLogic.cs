@@ -61,7 +61,9 @@ public static class SelectTargetLogic
                 {
                     case ExistCardSelectionInfo existCardGroup:
                         subSelectionActions[kvp.Key] =
-                            RandomSelectExistCardSubSelection(existCardGroup);
+                            RandomSelectExistCardSubSelection(
+                                existCardGroup,
+                                gameplayWatcher.ContextManager.GameRandom);
                         break;
                     case NewCardSelectionInfo:
                         subSelectionActions[kvp.Key] = new NewCardSubSelectionAction();
@@ -159,7 +161,9 @@ public static class SelectTargetLogic
             .ValueOr(new SelectMainTargetResult(false, TargetType.None, Guid.Empty));
     }
 
-    private static ExistCardSubSelectionAction RandomSelectExistCardSubSelection(ExistCardSelectionInfo existCardGroup)
+    private static ExistCardSubSelectionAction RandomSelectExistCardSubSelection(
+        ExistCardSelectionInfo existCardGroup,
+        IGameRandom gameRandom)
     {
         var selectCount = Math.Min(
             existCardGroup.Count,
@@ -167,7 +171,7 @@ public static class SelectTargetLogic
 
         var selectedCards = existCardGroup.CardInfos
             .Select(cardInfo => cardInfo.Identity)
-            .Shuffle()
+            .Shuffle(gameRandom)
             .Take(selectCount)
             .ToList();
 

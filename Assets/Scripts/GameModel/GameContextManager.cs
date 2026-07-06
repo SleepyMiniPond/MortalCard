@@ -10,6 +10,7 @@ public interface IGameContextManager : IDisposable
     CharacterBuffLibrary CharacterBuffLibrary { get; }
     DispositionLibrary DispositionLibrary { get; }
     LocalizeLibrary LocalizeLibrary { get; }
+    IGameRandom GameRandom { get; }
 
     GameContext Context { get; }
 
@@ -27,6 +28,7 @@ public class GameContextManager : IGameContextManager
     private readonly CharacterBuffLibrary _characterBuffLibrary;
     private readonly DispositionLibrary _dispositionLibrary;
     private readonly LocalizeLibrary _localizeLibrary;
+    private IGameRandom _gameRandom;
 
     public CardLibrary CardLibrary => _cardLibrary;
     public CardBuffLibrary CardBuffLibrary => _cardBuffLibrary;
@@ -34,6 +36,7 @@ public class GameContextManager : IGameContextManager
     public CharacterBuffLibrary CharacterBuffLibrary => _characterBuffLibrary;
     public DispositionLibrary DispositionLibrary => _dispositionLibrary;
     public LocalizeLibrary LocalizeLibrary => _localizeLibrary;
+    public IGameRandom GameRandom => _gameRandom;
 
     private Stack<GameContext> _contextStack = new Stack<GameContext>();
     public GameContext Context => _contextStack.Peek();
@@ -44,7 +47,8 @@ public class GameContextManager : IGameContextManager
         PlayerBuffLibrary playerBuffLibrary,
         CharacterBuffLibrary characterBuffLibrary,
         DispositionLibrary dispositionLibrary,
-        LocalizeLibrary localizeLibrary)
+        LocalizeLibrary localizeLibrary,
+        IGameRandom gameRandom)
     {
         _cardLibrary = cardLibrary;
         _cardBuffLibrary = cardBuffLibrary;
@@ -52,6 +56,7 @@ public class GameContextManager : IGameContextManager
         _characterBuffLibrary = characterBuffLibrary;
         _dispositionLibrary = dispositionLibrary;
         _localizeLibrary = localizeLibrary;
+        _gameRandom = gameRandom;
         _contextStack.Push(GameContext.EMPTY);
     }
 

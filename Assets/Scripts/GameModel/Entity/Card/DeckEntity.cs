@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Optional.Collections;
-using UnityEngine;
 
 public interface IDeckEntity : ICardColletionZone
 {
@@ -12,9 +11,13 @@ public interface IDeckEntity : ICardColletionZone
     void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards);
 }
 public class DeckEntity : CardColletionZone, IDeckEntity
-{    
-    public DeckEntity() : base(CardCollectionType.Deck)
-    { }
+{
+    private readonly IGameRandom _random;
+
+    public DeckEntity(IGameRandom random) : base(CardCollectionType.Deck)
+    {
+        _random = random;
+    }
 
     public Option<ICardEntity> PopCardOrNone()
     {
@@ -26,13 +29,6 @@ public class DeckEntity : CardColletionZone, IDeckEntity
     public void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards)
     {
         _cards.AddRange(cards);
-        
-        for (int i = 0; i < _cards.Count; i++)
-        {
-            var temp = _cards[i];
-            var randomIndex = UnityEngine.Random.Range(0, _cards.Count);
-            _cards[i] = _cards[randomIndex];
-            _cards[randomIndex] = temp;
-        }
+        _random.ShuffleInPlace(_cards);
     }
 }

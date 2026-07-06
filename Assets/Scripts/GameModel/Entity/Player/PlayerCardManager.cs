@@ -47,9 +47,10 @@ public class PlayerCardManager : IPlayerCardManager, IDisposable
     public Option<ICardEntity> PlayingCard { get; private set; }
 
     public PlayerCardManager(
-        int handCardMaxCount)
+        int handCardMaxCount,
+        IGameRandom gameRandom)
     {
-        Deck = new DeckEntity();
+        Deck = new DeckEntity(gameRandom);
         HandCard = new HandCardEntity(handCardMaxCount);
         Graveyard = new GraveyardEntity();
         ExclusionZone = new ExclusionZoneEntity();

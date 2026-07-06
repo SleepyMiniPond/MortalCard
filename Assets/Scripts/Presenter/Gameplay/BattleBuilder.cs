@@ -12,7 +12,7 @@ public class BattleBuidler
         _context = context;
     }
 
-    public GameContextManager ConstructGameContextManager()
+    public GameContextManager ConstructGameContextManager(int randomSeed)
     {
         var cardLibrary = new CardLibrary(_context.CardTable);
         var cardBuffLibrary = new CardBuffLibrary(_context.CardBuffTable);
@@ -27,7 +27,8 @@ public class BattleBuidler
             playerBuffLibrary,
             characterBuffLibrary,
             dispositionLibrary,
-            localizeLibrary);
+            localizeLibrary,
+            new GameRandom(randomSeed));
     }
 
     public GameStageSetting ConstructBattle()
