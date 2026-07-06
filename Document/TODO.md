@@ -92,7 +92,18 @@
   - 將洗牌、抽牌順序、敵方隨機決策等戰鬥內隨機來源改由服務提供
   - 增加 EditMode 測試：相同 seed 產生相同結果，不同 seed 可產生不同結果
 - **影響檔案**：`GameStageSetting`、戰鬥建立流程、卡牌抽洗流程、敵方邏輯中使用亂數的位置
-- **狀態**：⬜ 未開始
+- **狀態**：✅ 已完成（2026-07-07）
+- **完成摘要**：
+  - 新增 `IGameRandom` / `GameRandom`，以 `System.Random` 提供戰鬥專用、可注入的決定性亂數
+  - `GameContextManager` 必須由外部注入唯一 `IGameRandom`，移除 `gameRandom = null`、`SetGameRandom()` 與 fallback 建構路徑
+  - `BattleBuilder` / `GameplayScene` 改由 `GameStageSetting.RandomSeed` 建立戰鬥 context random
+  - `DeckEntity`、`PlayerCardManager`、`PlayerEntity` 改為強制傳入 `IGameRandom`，移除無參數或自動產生 random 的相容性入口
+  - `Utility.Shuffle()` 僅保留 `Shuffle(IGameRandom random)`，`SelectTargetLogic` 的隨機 sub-selection 已改用 battle random
+  - 移除 `GameStatus.RandomState` 對 `UnityEngine.Random.state` 的舊式全域亂數暴露
+- **驗證結果**：
+  - Unity AssetDatabase refresh：0 compile error
+  - Unity EditMode tests：73 passed / 0 failed / 0 skipped
+  - `dotnet build MortalGame.EditModeTests.csproj`：0 error
 
 ### T-007：定義模組命名空間與 asmdef 遷移順序
 - **問題**：專案已開始導入 Runtime / Editor / Tests 的 asmdef 基礎，但大量類別仍缺少穩定命名空間與清楚模組邊界；若直接硬切 GameData / GameModel 可能引發程序集循環
@@ -217,7 +228,7 @@ T-004（EditMode 測試基礎，已完成）
   ↓
 T-003（Effect Queue，已完成）
   ↓
-T-008（資料驗證，已完成第一階段） + T-006（決定性亂數） + T-005（生命週期）
+T-008（資料驗證，已完成第一階段） + T-006（決定性亂數，已完成） + T-005（生命週期）
   ↓
 T-011（多步驟選取）
   ↓             ↓              ↓
@@ -230,9 +241,9 @@ T-014（預演管線） T-013（敵人動態增減） T-012（卡片合成）
 - T-004 已完成，提供 Buff Timing 與 GameContext scope 的測試保護；T-003 已沿用既有測試 builder 擴充 queue 行為案例
 - T-003 已完成第一版 Effect Queue，後續若要支援效果取消 / 替代，應等具體卡牌需求或 Preview / Simulation 管線明確後再擴充
 - T-008 已完成第一階段，以 EditMode 測試持續保護資料與 registry 驗證；Editor menu 可等設計資料調整頻繁時再補
-- T-006 建議作為下一個優先項，讓後續測試、重播、AI simulation 與問題重現具備決定性基礎
-- T-005 仍重要，但較偏場景生命週期與非同步穩定性；若目前沒有切場景或 `.Forget()` 相關 bug，可排在 T-008 / T-006 之後
-- T-007 不一定要一次完成，建議配合後續重構分批整理，避免大規模命名空間與 asmdef 搬遷造成噪音
+- T-006 已完成決定性亂數基礎，後續重播、AI simulation 與問題重現可沿用 `IGameRandom`
+- T-007 建議作為下一個優先項，先盤點 Runtime / Editor / Tests assembly 與命名空間邊界，再分階段整理，避免大規模搬遷造成噪音
+- T-005 仍重要，但較偏場景生命週期與非同步穩定性；若目前沒有切場景或 `.Forget()` 相關 bug，可排在 T-007 之後
 - T-010 和 T-011 互相獨立，可以平行開發
 - T-012 依賴 T-010 + T-011 的基礎
 - T-013 相對獨立但影響面廣，建議架構穩定後再動
