@@ -1,6 +1,7 @@
 using System;
 using Optional;
 using UnityEngine;
+using MortalGame.GameModel;
 
 public interface IGameCommand { }
 public record UseCardCommand(

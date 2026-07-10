@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using MortalGame.GameModel;
 
 public record MainSelectionInfo(
     SelectType SelectType,

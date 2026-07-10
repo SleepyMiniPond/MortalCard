@@ -1,5 +1,6 @@
 using Sirenix.OdinInspector;
 using UnityEngine;
+using MortalGame.UI;
 
 public class FocusCardDetailView : MonoBehaviour
 {

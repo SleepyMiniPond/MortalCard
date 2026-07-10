@@ -4,6 +4,9 @@ using System.Collections.Immutable;
 using System.Linq;
 using UnityEngine;
 
+namespace MortalGame.GameModel
+{
+
 public record CardInfo(
     Guid Identity,
     string CardDataID,
@@ -137,5 +140,7 @@ public static class CardCollectionInfoUtility
     {
         return cards.Select(c => c.ToInfo(gameWatcher)).ToImmutableArray();
     }
+}
+
 }
 

@@ -7,6 +7,9 @@ using UnityEngine;
 using UniRx;
 using Sirenix.Utilities;
 using Optional.Collections;
+using MortalGame.UI;
+using MortalGame.GameView;
+using MortalGame.GameModel;
 
 
 public class AllyHandCardView : MonoBehaviour

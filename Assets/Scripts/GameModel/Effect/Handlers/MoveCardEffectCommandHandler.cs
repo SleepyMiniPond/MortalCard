@@ -1,4 +1,5 @@
 using System.Linq;
+using MortalGame.GameModel;
 
 public class MoveCardEffectCommandHandler : IEffectCommandHandler
 {

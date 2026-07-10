@@ -5,6 +5,8 @@ using TMPro;
 using UnityEngine;
 using UniRx;
 using UnityEngine.UI;
+using MortalGame.GameView;
+using MortalGame.GameModel;
 
 public class EnemySelectedCardView : MonoBehaviour
 {

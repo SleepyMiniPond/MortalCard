@@ -5,6 +5,8 @@ using Cysharp.Threading.Tasks;
 using Sirenix.OdinInspector;
 using Unity.VisualScripting;
 using UnityEngine;
+using MortalGame.GameView;
+using MortalGame.GameModel;
 
 public interface IGameplayView : IAllCardDetailPanelView, IInteractionButtonView
 {

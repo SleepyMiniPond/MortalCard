@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using TMPro;
+using MortalGame.UI;
 using UnityEngine;
 
 public class CardBuffInfoView : MonoBehaviour, IRecyclable

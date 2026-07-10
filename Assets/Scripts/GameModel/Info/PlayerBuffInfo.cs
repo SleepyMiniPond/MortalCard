@@ -1,11 +1,9 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using TMPro;
-using UniRx;
-using UniRx.Triggers;
-using UnityEngine;
-using UnityEngine.UI;
+
+namespace MortalGame.GameModel
+{
 
 public class PlayerBuffInfo
 {
@@ -30,4 +28,5 @@ public class PlayerBuffInfo
         template.Add(KEY_LEVEL, Level.ToString());
         return template;
     }
+}
 }

@@ -4,6 +4,7 @@ using System.Linq;
 using Optional.Collections;
 using UniRx;
 using UnityEngine;
+using MortalGame.GameModel;
 
 public record SelectMainTargetResult(
     bool IsValid,

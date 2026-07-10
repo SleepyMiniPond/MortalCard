@@ -3,6 +3,9 @@ using Sirenix.OdinInspector;
 using TMPro;
 using UnityEngine;
 
+namespace MortalGame.UI
+{
+
 public class IntTextColorSwitch : IntValueSwitch
 {
     [SerializeField]
@@ -21,4 +24,5 @@ public class IntTextColorSwitch : IntValueSwitch
             _text.color = _colorMapping.GetColor(value);
         }        
     }
+}
 }

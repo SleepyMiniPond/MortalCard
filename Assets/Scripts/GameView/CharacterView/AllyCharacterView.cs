@@ -5,6 +5,7 @@ using Cysharp.Threading.Tasks;
 using DG.Tweening;
 using JetBrains.Annotations;
 using UnityEngine;
+using MortalGame.GameView;
 
 public class AllyCharacterView : BaseCharacterView, ISelectableView
 {

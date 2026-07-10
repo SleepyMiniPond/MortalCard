@@ -4,6 +4,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Optional;
 using UnityEngine;
+using MortalGame.GameModel;
 
 
 public interface IPlayerCardManager

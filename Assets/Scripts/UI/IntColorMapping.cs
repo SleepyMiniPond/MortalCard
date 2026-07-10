@@ -3,6 +3,9 @@ using System.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+namespace MortalGame.UI
+{
+
 public class IntColorMapping : SerializedMonoBehaviour
 {
     [SerializeField]
@@ -41,4 +44,5 @@ public class IntColorMapping : SerializedMonoBehaviour
             return ColorUtility.ToHtmlStringRGBA(Color.white);
         }
     }
+}
 }

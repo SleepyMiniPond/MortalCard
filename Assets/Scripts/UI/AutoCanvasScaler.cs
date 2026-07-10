@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.UI
+{
+
 public class AutoCanvasScaler : MonoBehaviour
 {
     [SerializeField]
@@ -12,4 +15,5 @@ public class AutoCanvasScaler : MonoBehaviour
         float referenceRatio = _canvasScaler.referenceResolution.x / _canvasScaler.referenceResolution.y;
         _canvasScaler.matchWidthOrHeight = screenRatio > referenceRatio ? 1 : 0;
     }
+}
 }

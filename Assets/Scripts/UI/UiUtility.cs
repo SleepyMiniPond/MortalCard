@@ -6,6 +6,9 @@ using UniRx;
 using UnityEngine.EventSystems;
 using UniRx.Triggers;
 
+namespace MortalGame.UI
+{
+
 public static class CanvasUtility
 {
     public static Rect GetRectOnCanvas(this Canvas canvas, RectTransform targetRect, RectTransform parentRect)
@@ -46,6 +49,7 @@ public static class CanvasUtility
         // 組合成 Rect
         return new Rect(minX, minY, maxX - minX, maxY - minY);
     }
+}
 }
 
 public static class StringHelper

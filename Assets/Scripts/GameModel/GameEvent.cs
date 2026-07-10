@@ -6,6 +6,7 @@ using Optional;
 using Sirenix.Serialization.Utilities;
 using Sirenix.Utilities;
 using UnityEngine;
+using MortalGame.GameModel;
 
 public interface IGameEvent
 {

@@ -2,6 +2,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using System.Collections.Generic;
 
+namespace MortalGame.UI
+{
+
 [RequireComponent(typeof(CanvasRenderer))]
 public class CustomLineRenderer : Graphic
 {
@@ -328,4 +331,5 @@ public class CustomLineRenderer : Graphic
 
         SetVerticesDirty();
     }
+}
 }

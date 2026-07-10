@@ -4,6 +4,7 @@ using System.Linq;
 using Optional;
 using Unity.VisualScripting;
 using UnityEngine;
+using MortalGame.GameModel;
 
 public interface IPlayerEntity
 {

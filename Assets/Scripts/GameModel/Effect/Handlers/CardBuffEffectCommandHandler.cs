@@ -1,5 +1,6 @@
 using System;
 using System.Linq;
+using MortalGame.GameModel;
 
 public class CardBuffEffectCommandHandler : IEffectCommandHandler
 {

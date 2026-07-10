@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using Optional;
 using UnityEngine;
+using MortalGame.GameModel;
 
 public interface IGameAction { }
 

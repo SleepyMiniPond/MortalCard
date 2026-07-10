@@ -1,11 +1,8 @@
-using System;
 using UnityEngine;
+using MortalGame.GameModel;
 
-public interface ISelectionTarget
+namespace MortalGame.GameView
 {
-    TargetType TargetType { get; }
-    Guid TargetIdentity { get; }
-}
 
 public interface ISelectableView : ISelectionTarget
 {
@@ -13,4 +10,5 @@ public interface ISelectableView : ISelectionTarget
 
     void OnSelect();
     void OnDeselect();
+}
 }

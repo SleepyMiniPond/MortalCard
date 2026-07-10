@@ -5,6 +5,7 @@ using System.Collections.Immutable;
 using System.Linq;
 using Cysharp.Threading.Tasks;
 using Optional;
+using MortalGame.GameModel;
 
 public interface IGameEventWatcher : IGameplayModel
 {

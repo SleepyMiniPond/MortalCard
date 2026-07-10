@@ -3,7 +3,10 @@ using TMPro;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
+using MortalGame.UI;
 using UnityEngine.UI;
+using MortalGame.GameView;
+using MortalGame.GameModel;
 
 public interface IAiCardView : IRecyclable, ISelectableView
 {

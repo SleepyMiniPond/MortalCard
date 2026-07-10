@@ -8,6 +8,9 @@ using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 using UnityEngine.UI;
+using MortalGame.UI;
+using MortalGame.GameView;
+using MortalGame.GameModel;
 
 public interface IDragableCardView
 {

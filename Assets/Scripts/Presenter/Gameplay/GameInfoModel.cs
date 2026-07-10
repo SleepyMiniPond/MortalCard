@@ -6,6 +6,7 @@ using Optional;
 using Optional.Collections;
 using UniRx;
 using UnityEngine;
+using MortalGame.GameModel;
 
 public interface IGameViewModel
 {

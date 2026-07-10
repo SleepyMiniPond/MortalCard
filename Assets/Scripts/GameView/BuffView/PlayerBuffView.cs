@@ -3,7 +3,9 @@ using TMPro;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
+using MortalGame.UI;
 using UnityEngine.UI;
+using MortalGame.GameModel;
 
 public class PlayerBuffView : MonoBehaviour, IRecyclable
 {
