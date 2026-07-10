@@ -3,6 +3,9 @@ using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.Presenter
+{
+
 public interface ILevelMapView
 {
     IDisposable RegisterActions(
@@ -22,4 +25,6 @@ public class LevelMapView : MonoBehaviour, ILevelMapView
             .AddTo(disposable);
         return disposable;
     }
+}
+
 }

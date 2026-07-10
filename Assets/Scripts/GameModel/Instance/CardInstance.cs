@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using UniRx;
+
+namespace MortalGame.GameModel
+{
 
 public record CardInstance(
     // static data
@@ -18,4 +22,6 @@ public record CardInstance(
             AdditionPropertyDatas: Array.Empty<ICardPropertyData>()
         );
     }
+}
+
 }

@@ -1,6 +1,10 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using MortalGame.GameData;
+
+namespace MortalGame.Presenter
+{
 
 public class ScriptableDataLoader : MonoBehaviour
 { 
@@ -84,4 +88,6 @@ public class ScriptableDataLoader : MonoBehaviour
         Dictionary<string, LocalizeInfoData> ParseTable(List<LocalizeExcelData> datas)
             => datas.ToDictionary(d => d.Id, d => new LocalizeInfoData(d.Info));
     }
+}
+
 }

@@ -1,5 +1,10 @@
 using Optional;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface A{ int x => 2; }
 
@@ -116,3 +121,5 @@ public record ModifyCardBuffLevelResultAction(
     IActionTarget Target,
     ModifyCardBuffLevelResult ModifyResult,
     EffectType EffectType = EffectType.ModifyCardBuffLevel) : BaseResultAction(Source, Target, EffectType);
+
+}

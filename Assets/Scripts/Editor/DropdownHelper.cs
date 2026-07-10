@@ -6,6 +6,7 @@ using System.Linq;
 using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEngine;
+using MortalGame.GameData;
 
 namespace MortalGame.Editor
 {

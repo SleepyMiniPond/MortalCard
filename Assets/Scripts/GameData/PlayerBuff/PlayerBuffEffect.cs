@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+namespace MortalGame.GameData
+{
 
 [Serializable]
 public class ConditionalPlayerBuffEffect
@@ -62,6 +66,8 @@ public class RemoveCardBuffPlayerBuffEffect : IPlayerBuffEffect
 
     [ValueDropdown("@DropdownHelper.CardBuffNames")]
     [HorizontalGroup("2")]
-    public string BuffId;
+public string BuffId;
+}
+
 }
 

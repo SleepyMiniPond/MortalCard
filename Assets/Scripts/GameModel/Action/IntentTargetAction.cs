@@ -1,5 +1,9 @@
 using Optional;
+using MortalGame.GameData;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public abstract record BaseIntentTargetAction(
     IActionSource Source,
@@ -96,3 +100,5 @@ public record RemoveCardBuffIntentTargetAction(
     IActionSource Source,
     IActionTarget Target,
     EffectType EffectType = EffectType.RemoveCardBuff) : BaseIntentTargetAction(Source, Target, EffectType);
+
+}

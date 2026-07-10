@@ -1,10 +1,14 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using OneOf;
 using Optional;
 using Rayark.Mast;
 using UniRx;
+
+namespace MortalGame.GameModel
+{
 
 public enum GameState
 {
@@ -106,3 +110,5 @@ public record GameplayLoseResult(
 
 public record LevelMapCommand(
     LevelMapReactionType ReactionType);
+
+}

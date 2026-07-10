@@ -1,4 +1,9 @@
 using System.Collections.Generic;
+using MortalGame.GameModel;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public class CardPlayEffectAttributeAdditionPlayerBuffEffectResolver : IPlayerBuffEffectResolver
 {
@@ -16,4 +21,6 @@ public class CardPlayEffectAttributeAdditionPlayerBuffEffectResolver : IPlayerBu
 
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

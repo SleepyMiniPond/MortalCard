@@ -1,6 +1,11 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
+
+namespace MortalGame.GameModel
+{
 
 public class DisposeCardEffectResolver : ICardEffectResolver
 {
@@ -39,4 +44,6 @@ public class DisposeCardEffectResolver : ICardEffectResolver
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

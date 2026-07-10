@@ -4,6 +4,9 @@ using Rayark.Mast;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
+namespace MortalGame.Scene
+{
+
 public class SceneLoadManager
 {
     public const string MenuSceneName = "Menu";
@@ -46,4 +49,6 @@ public class SceneLoadManager
 
         return loadingScene;
     }
+}
+
 }

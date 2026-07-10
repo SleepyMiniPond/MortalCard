@@ -1,8 +1,13 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Sirenix.Utilities;
+
+namespace MortalGame.GameModel
+{
 
 public class CloneCardEffectResolver : ICardEffectResolver
 {
@@ -42,7 +47,10 @@ public class CloneCardEffectResolver : ICardEffectResolver
                         addCardBuffData.Level.Eval(targetTriggerContext),
                         cloneCardCaster,
                         targetTriggerContext,
-                        context.Model.ContextManager.CardBuffLibrary))
+                        context.Model.ContextManager.CardBuffLibrary,
+                        context.Model.ContextManager.CardBuffPropertyEntityFactory,
+                        context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
+                        context.Model.ContextManager.ReactionSessionEntityFactory))
                     .ForEach(cardBuff => cloneCard.BuffManager.AddBuff(cardBuff));
 
                 effectCommands.Add(new CloneCardEffectCommand(
@@ -54,4 +62,6 @@ public class CloneCardEffectResolver : ICardEffectResolver
         });
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

@@ -1,4 +1,10 @@
 using System.Linq;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public class DamageEffectCommandHandler : IEffectCommandHandler
 {
@@ -15,4 +21,6 @@ public class DamageEffectCommandHandler : IEffectCommandHandler
         var damageEvent = new DamageEvent(c.Target.Faction(context.Model), c.Target, damageResult);
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(damageEvent));
     }
+}
+
 }

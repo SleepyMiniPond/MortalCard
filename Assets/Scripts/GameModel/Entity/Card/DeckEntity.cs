@@ -1,9 +1,14 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Optional.Collections;
+
+namespace MortalGame.GameModel
+{
 
 public interface IDeckEntity : ICardColletionZone
 {
@@ -31,4 +36,6 @@ public class DeckEntity : CardColletionZone, IDeckEntity
         _cards.AddRange(cards);
         _random.ShuffleInPlace(_cards);
     }
+}
+
 }

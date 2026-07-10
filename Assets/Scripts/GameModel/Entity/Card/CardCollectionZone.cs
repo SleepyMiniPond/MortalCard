@@ -1,8 +1,12 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Optional.Collections;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardColletionZone
 {
@@ -53,4 +57,6 @@ public class DummyCardCollectionZone : CardColletionZone
     public DummyCardCollectionZone() : base(CardCollectionType.None)
     {
     }
+}
+
 }

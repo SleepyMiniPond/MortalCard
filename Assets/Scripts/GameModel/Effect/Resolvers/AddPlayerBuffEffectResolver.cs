@@ -1,7 +1,12 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
+using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public class AddPlayerBuffEffectResolver : ICardEffectResolver
 {
@@ -45,17 +50,20 @@ public class AddPlayerBuffEffectResolver : ICardEffectResolver
                     level,
                     caster,
                     buffLibrary.GetBuffProperties(addBuffEffect.BuffId)
-                        .Select(p => p.CreateEntity(triggerContext)),
-                    buffLibrary.GetBuffLifeTime(addBuffEffect.BuffId)
-                        .CreateEntity(triggerContext),
+                        .Select(context.Model.ContextManager.PlayerBuffPropertyEntityFactory.Create),
+                    context.Model.ContextManager.PlayerBuffLifeTimeEntityFactory.Create(
+                        buffLibrary.GetBuffLifeTime(addBuffEffect.BuffId),
+                        triggerContext),
                     buffLibrary.GetBuffSessions(addBuffEffect.BuffId)
                         .ToDictionary(
                             kvp => kvp.Key,
-                            kvp => kvp.Value.CreateEntity(triggerContext)));
+                            kvp => context.Model.ContextManager.ReactionSessionEntityFactory.Create(kvp.Value)));
 
                 effectCommands.Add(new AddPlayerBuffEffectCommand(target, resultBuff));
             }
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

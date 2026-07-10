@@ -1,8 +1,12 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
 using UnityEngine;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IGameplayModel
 {
@@ -41,4 +45,6 @@ public class ClonedGameplayModel : IGameplayModel
     {
         return _baseModel.TriggerTiming(timing, actionSource);
     }
+}
+
 }

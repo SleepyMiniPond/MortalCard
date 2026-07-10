@@ -6,6 +6,9 @@ using Unity.VisualScripting;
 using UnityEngine;
 using MortalGame.GameModel;
 
+namespace MortalGame.GameModel
+{
+
 public interface ICharacterBuffEntity
 {
     string CharacterBuffDataId { get; }
@@ -106,4 +109,6 @@ public static class CharacterBuffEntityExtensions
             return (gameplayWatcher.GameStatus.Enemy as IPlayerEntity).Some();
         return Option.None<IPlayerEntity>();
     }
+}
+
 }

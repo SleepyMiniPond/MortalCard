@@ -1,6 +1,12 @@
 using System;
+using MortalGame.Presenter;
 using System.Collections.Generic;
 using Optional;
+using MortalGame.GameData;
+using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IGameContextManager : IDisposable
 {
@@ -11,6 +17,14 @@ public interface IGameContextManager : IDisposable
     DispositionLibrary DispositionLibrary { get; }
     LocalizeLibrary LocalizeLibrary { get; }
     IGameRandom GameRandom { get; }
+    ICardPropertyEntityFactory CardPropertyEntityFactory { get; }
+    ICardBuffPropertyEntityFactory CardBuffPropertyEntityFactory { get; }
+    ICardBuffLifeTimeEntityFactory CardBuffLifeTimeEntityFactory { get; }
+    IReactionSessionEntityFactory ReactionSessionEntityFactory { get; }
+    IPlayerBuffPropertyEntityFactory PlayerBuffPropertyEntityFactory { get; }
+    IPlayerBuffLifeTimeEntityFactory PlayerBuffLifeTimeEntityFactory { get; }
+    ICharacterBuffPropertyEntityFactory CharacterBuffPropertyEntityFactory { get; }
+    ICharacterBuffLifeTimeEntityFactory CharacterBuffLifeTimeEntityFactory { get; }
 
     GameContext Context { get; }
 
@@ -29,6 +43,14 @@ public class GameContextManager : IGameContextManager
     private readonly DispositionLibrary _dispositionLibrary;
     private readonly LocalizeLibrary _localizeLibrary;
     private IGameRandom _gameRandom;
+    private readonly ICardPropertyEntityFactory _cardPropertyEntityFactory;
+    private readonly ICardBuffPropertyEntityFactory _cardBuffPropertyEntityFactory;
+    private readonly ICardBuffLifeTimeEntityFactory _cardBuffLifeTimeEntityFactory;
+    private readonly IReactionSessionEntityFactory _reactionSessionEntityFactory;
+    private readonly IPlayerBuffPropertyEntityFactory _playerBuffPropertyEntityFactory;
+    private readonly IPlayerBuffLifeTimeEntityFactory _playerBuffLifeTimeEntityFactory;
+    private readonly ICharacterBuffPropertyEntityFactory _characterBuffPropertyEntityFactory;
+    private readonly ICharacterBuffLifeTimeEntityFactory _characterBuffLifeTimeEntityFactory;
 
     public CardLibrary CardLibrary => _cardLibrary;
     public CardBuffLibrary CardBuffLibrary => _cardBuffLibrary;
@@ -37,6 +59,14 @@ public class GameContextManager : IGameContextManager
     public DispositionLibrary DispositionLibrary => _dispositionLibrary;
     public LocalizeLibrary LocalizeLibrary => _localizeLibrary;
     public IGameRandom GameRandom => _gameRandom;
+    public ICardPropertyEntityFactory CardPropertyEntityFactory => _cardPropertyEntityFactory;
+    public ICardBuffPropertyEntityFactory CardBuffPropertyEntityFactory => _cardBuffPropertyEntityFactory;
+    public ICardBuffLifeTimeEntityFactory CardBuffLifeTimeEntityFactory => _cardBuffLifeTimeEntityFactory;
+    public IReactionSessionEntityFactory ReactionSessionEntityFactory => _reactionSessionEntityFactory;
+    public IPlayerBuffPropertyEntityFactory PlayerBuffPropertyEntityFactory => _playerBuffPropertyEntityFactory;
+    public IPlayerBuffLifeTimeEntityFactory PlayerBuffLifeTimeEntityFactory => _playerBuffLifeTimeEntityFactory;
+    public ICharacterBuffPropertyEntityFactory CharacterBuffPropertyEntityFactory => _characterBuffPropertyEntityFactory;
+    public ICharacterBuffLifeTimeEntityFactory CharacterBuffLifeTimeEntityFactory => _characterBuffLifeTimeEntityFactory;
 
     private Stack<GameContext> _contextStack = new Stack<GameContext>();
     public GameContext Context => _contextStack.Peek();
@@ -48,7 +78,15 @@ public class GameContextManager : IGameContextManager
         CharacterBuffLibrary characterBuffLibrary,
         DispositionLibrary dispositionLibrary,
         LocalizeLibrary localizeLibrary,
-        IGameRandom gameRandom)
+        IGameRandom gameRandom,
+        ICardPropertyEntityFactory cardPropertyEntityFactory,
+        ICardBuffPropertyEntityFactory cardBuffPropertyEntityFactory,
+        ICardBuffLifeTimeEntityFactory cardBuffLifeTimeEntityFactory,
+        IReactionSessionEntityFactory reactionSessionEntityFactory,
+        IPlayerBuffPropertyEntityFactory playerBuffPropertyEntityFactory,
+        IPlayerBuffLifeTimeEntityFactory playerBuffLifeTimeEntityFactory,
+        ICharacterBuffPropertyEntityFactory characterBuffPropertyEntityFactory,
+        ICharacterBuffLifeTimeEntityFactory characterBuffLifeTimeEntityFactory)
     {
         _cardLibrary = cardLibrary;
         _cardBuffLibrary = cardBuffLibrary;
@@ -57,6 +95,14 @@ public class GameContextManager : IGameContextManager
         _dispositionLibrary = dispositionLibrary;
         _localizeLibrary = localizeLibrary;
         _gameRandom = gameRandom;
+        _cardPropertyEntityFactory = cardPropertyEntityFactory;
+        _cardBuffPropertyEntityFactory = cardBuffPropertyEntityFactory;
+        _cardBuffLifeTimeEntityFactory = cardBuffLifeTimeEntityFactory;
+        _reactionSessionEntityFactory = reactionSessionEntityFactory;
+        _playerBuffPropertyEntityFactory = playerBuffPropertyEntityFactory;
+        _playerBuffLifeTimeEntityFactory = playerBuffLifeTimeEntityFactory;
+        _characterBuffPropertyEntityFactory = characterBuffPropertyEntityFactory;
+        _characterBuffLifeTimeEntityFactory = characterBuffLifeTimeEntityFactory;
         _contextStack.Push(GameContext.EMPTY);
     }
 
@@ -111,4 +157,6 @@ public record GameContext(
     Guid SelectedCard)
 { 
     public static GameContext EMPTY => new(Guid.Empty, Guid.Empty, Guid.Empty);
+}
+
 }

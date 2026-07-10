@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using Optional;
 using UnityEngine;
 
+namespace MortalGame.GameModel
+{
+
 public interface ITargetPlayerBuffValue
 {
     Option<IPlayerBuffEntity> Eval(TriggerContext triggerContext);
@@ -27,4 +30,6 @@ public class TriggeredPlayerBuff : ITargetPlayerBuffValue
             _ => Option.None<IPlayerBuffEntity>()
         };
     }
+}
+
 }

@@ -1,5 +1,10 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
+
+namespace MortalGame.GameModel
+{
 
 public class PlayerBuffEffectCommandHandler : IEffectCommandHandler
 {
@@ -45,4 +50,6 @@ public class PlayerBuffEffectCommandHandler : IEffectCommandHandler
             c.Target.BuffManager.Buffs.First(b => b.PlayerBuffDataId == c.BuffId).ToInfo(context.Model));
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(buffEvent));
     }
+}
+
 }

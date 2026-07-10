@@ -5,6 +5,9 @@ using Optional;
 using Optional.Collections;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public class CharacterBuffLibrary
 {
     private readonly Dictionary<string, CharacterBuffData> _buffs;
@@ -59,4 +62,5 @@ public class CharacterBuffLibrary
 
         return _buffs[buffId].PropertyDatas.ToArray();
     }
+}
 }

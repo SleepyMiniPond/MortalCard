@@ -4,6 +4,11 @@ using System.Linq;
 using Optional;
 using Unity.VisualScripting;
 using UnityEngine;
+using MortalGame.GameData;
+using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardBuffEntity
 {
@@ -76,15 +81,18 @@ public class CardBuffEntity : ICardBuffEntity
         int level,
         Option<IPlayerEntity> caster,
         TriggerContext triggerContext,
-        CardBuffLibrary cardBuffLibrary)
+        CardBuffLibrary cardBuffLibrary,
+        ICardBuffPropertyEntityFactory cardBuffPropertyEntityFactory,
+        ICardBuffLifeTimeEntityFactory cardBuffLifeTimeEntityFactory,
+        IReactionSessionEntityFactory reactionSessionEntityFactory)
     {
         var buffData = cardBuffLibrary.GetCardBuffData(cardBuffDataID);
         var properties = buffData.PropertyDatas
-            .Select(p => p.CreateEntity(triggerContext));
-        var lifeTime = buffData.LifeTimeData.CreateEntity(triggerContext);
+            .Select(cardBuffPropertyEntityFactory.Create);
+        var lifeTime = cardBuffLifeTimeEntityFactory.Create(buffData.LifeTimeData, triggerContext);
         var reactionSessions = buffData.Sessions.ToDictionary(
             kvp => kvp.Key,
-            kvp => kvp.Value.CreateEntity(triggerContext)
+            kvp => reactionSessionEntityFactory.Create(kvp.Value)
         );
 
         return new CardBuffEntity(
@@ -137,4 +145,6 @@ public static class CardBuffEntityExtensions
             return (gameplayWatcher.GameStatus.Enemy as IPlayerEntity).Some();
         return Option.None<IPlayerEntity>();
     }
+}
+
 }

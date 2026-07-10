@@ -1,5 +1,11 @@
 using System;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
+
+namespace MortalGame.GameModel
+{
 
 public interface IEffectQueueContext
 {
@@ -129,4 +135,6 @@ public sealed record CardBuffEffectQueueItem(
         var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
         return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
     }
+}
+
 }

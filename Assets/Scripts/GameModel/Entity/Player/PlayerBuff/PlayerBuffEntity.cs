@@ -6,6 +6,9 @@ using Unity.VisualScripting;
 using UnityEngine;
 using MortalGame.GameModel;
 
+namespace MortalGame.GameModel
+{
+
 public interface IPlayerBuffEntity
 {
     string PlayerBuffDataId { get; }
@@ -129,4 +132,6 @@ public static class PlayerBuffEntityExtensions
         }
         return Option.None<int>();
     }
+}
+
 }

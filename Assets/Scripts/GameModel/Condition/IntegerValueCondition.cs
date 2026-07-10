@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameData;
 using Optional;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IIntegerValueCondition
 {
@@ -30,4 +34,6 @@ public class IntegerCompare : IIntegerValueCondition
             _ => false
         };
     }
+}
+
 }

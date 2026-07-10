@@ -1,9 +1,13 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IPlayerValueCondition
 {
@@ -81,4 +85,6 @@ public class EnergyIntegerCondition : IPlayerEnergyCondition
             _                       => false
         };
     }
+}
+
 }

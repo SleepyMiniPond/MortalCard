@@ -1,6 +1,9 @@
 using System;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
 using System.Linq;
 using NUnit.Framework;
+using MortalGame.GameData;
 
 namespace MortalGame.Tests
 {

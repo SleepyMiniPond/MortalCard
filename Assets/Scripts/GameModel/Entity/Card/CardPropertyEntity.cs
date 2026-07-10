@@ -1,7 +1,11 @@
 using System.Collections;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardPropertyEntity
 {
@@ -81,4 +85,6 @@ public class RecyclePropertyEntity : ICardPropertyEntity
     public RecyclePropertyEntity() { }
     public int Eval(TriggerContext triggerContext) => 0;
     public ICardPropertyEntity Clone() => new RecyclePropertyEntity();
+}
+
 }

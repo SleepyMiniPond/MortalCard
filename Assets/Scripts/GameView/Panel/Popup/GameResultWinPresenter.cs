@@ -1,4 +1,5 @@
 using Cysharp.Threading.Tasks;
+using MortalGame.GameModel;
 using UnityEngine;
 
 namespace MortalGame.GameView

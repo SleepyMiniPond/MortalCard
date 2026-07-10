@@ -1,6 +1,9 @@
 using System;
 using System.Collections.Generic;
 
+namespace MortalGame.GameModel
+{
+
 public interface IGameRandom
 {
     int Range(int minInclusive, int maxExclusive);
@@ -29,4 +32,6 @@ public class GameRandom : IGameRandom
             (items[i], items[randomIndex]) = (items[randomIndex], items[i]);
         }
     }
+}
+
 }

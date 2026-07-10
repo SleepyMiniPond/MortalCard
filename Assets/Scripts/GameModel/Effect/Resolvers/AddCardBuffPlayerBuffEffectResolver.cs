@@ -1,6 +1,11 @@
 using System.Collections.Generic;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
 using Optional;
+
+namespace MortalGame.GameModel
+{
 
 public class AddCardBuffPlayerBuffEffectResolver : IPlayerBuffEffectResolver
 {
@@ -42,7 +47,10 @@ public class AddCardBuffPlayerBuffEffectResolver : IPlayerBuffEffectResolver
                         addLevel,
                         caster,
                         targetTriggerContext,
-                        context.Model.ContextManager.CardBuffLibrary);
+                        context.Model.ContextManager.CardBuffLibrary,
+                        context.Model.ContextManager.CardBuffPropertyEntityFactory,
+                        context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
+                        context.Model.ContextManager.ReactionSessionEntityFactory);
 
                     effectCommands.Add(new AddCardBuffEffectCommand(card, newCardBuff));
                 }
@@ -50,4 +58,6 @@ public class AddCardBuffPlayerBuffEffectResolver : IPlayerBuffEffectResolver
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

@@ -1,8 +1,13 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Sirenix.Utilities;
+
+namespace MortalGame.GameModel
+{
 
 public class CreateCardEffectResolver : ICardEffectResolver
 {
@@ -24,7 +29,10 @@ public class CreateCardEffectResolver : ICardEffectResolver
                 var targetIntent = new CreateCardIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                var newCard = CardEntity.RuntimeCreateFromId(cardDataId, context.Model.ContextManager.CardLibrary);
+                var newCard = CardEntity.RuntimeCreateFromId(
+                    cardDataId,
+                    context.Model.ContextManager.CardLibrary,
+                    context.Model.ContextManager.CardPropertyEntityFactory);
                 var createCardCaster = triggerContext.Action switch
                 {
                     CardPlaySource cardSource => cardSource.Card.Owner(triggerContext.Model),
@@ -37,7 +45,10 @@ public class CreateCardEffectResolver : ICardEffectResolver
                         addCardBuffData.Level.Eval(targetTriggerContext),
                         createCardCaster,
                         targetTriggerContext,
-                        context.Model.ContextManager.CardBuffLibrary))
+                        context.Model.ContextManager.CardBuffLibrary,
+                        context.Model.ContextManager.CardBuffPropertyEntityFactory,
+                        context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
+                        context.Model.ContextManager.ReactionSessionEntityFactory))
                     .ForEach(cardBuff => newCard.BuffManager.AddBuff(cardBuff));
 
                 effectCommands.Add(new CreateCardEffectCommand(
@@ -48,4 +59,6 @@ public class CreateCardEffectResolver : ICardEffectResolver
         });
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

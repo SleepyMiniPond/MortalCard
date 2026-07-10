@@ -1,4 +1,5 @@
 using System;
+using MortalGame.GameData;
 using TMPro;
 using UniRx;
 using UniRx.Triggers;

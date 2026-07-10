@@ -1,4 +1,5 @@
 using System;
+using MortalGame.GameData;
 using UnityEngine;
 using MortalGame.GameView;
 

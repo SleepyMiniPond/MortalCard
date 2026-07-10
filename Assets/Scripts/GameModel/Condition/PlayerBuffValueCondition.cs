@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
 
+namespace MortalGame.GameModel
+{
+
 public interface IPlayerBuffValueCondition
 {
     bool Eval(TriggerContext triggerContext, IPlayerBuffEntity playerBuff);
@@ -22,4 +25,6 @@ public class PlayerBuffSessionCondition : IPlayerBuffValueCondition
         return playerBuff.ReactionSessions.TryGetValue(SessionKey, out var session) &&
             Conditions.All(condition => condition.Eval(triggerContext, session));
     }
+}
+
 }

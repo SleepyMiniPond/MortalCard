@@ -1,18 +1,14 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
-using UnityEngine;
-using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IGameAction { }
 
-public record TurnSubmitAction(Faction Faction) : IGameAction
-{
-    public static TurnSubmitAction Create(TurnSubmitCommand command)
-    {
-        return new TurnSubmitAction(command.Faction);
-    }
-}
+public record TurnSubmitAction(Faction Faction) : IGameAction;
 
 public record UseCardAction(
     Guid CardIndentity,
@@ -34,3 +30,5 @@ public record ExistCardSubSelectionAction(
 public record NewCardSubSelectionAction() : ISubSelectionAction;
 public record NewPartialCardSubSelectionAction() : ISubSelectionAction;
 public record NewEffectSubSelectionAction() : ISubSelectionAction;
+
+}

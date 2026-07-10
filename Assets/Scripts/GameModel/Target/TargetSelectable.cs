@@ -1,7 +1,11 @@
 
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
+
+namespace MortalGame.GameModel
+{
 
 public interface IMainTargetSelectable
 { 
@@ -90,3 +94,5 @@ public record NewEffectSelectionGroup() : ISubSelectionGroup
     string ISubSelectionGroup.Id => Id;
 }
 
+
+}

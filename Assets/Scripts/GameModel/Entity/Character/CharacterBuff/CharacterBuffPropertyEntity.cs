@@ -1,5 +1,10 @@
 using Rayark.Mast;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICharacterBuffPropertyEntity
 {
@@ -22,4 +27,6 @@ public class MaxEnergyPropertyCharacterBuffEntity : ICharacterBuffPropertyEntity
 
     public MaxEnergyPropertyCharacterBuffEntity() { }
     public int Eval(IGameplayModel gameWatcher, ITriggeredSource triggerSource) => 0;
+}
+
 }

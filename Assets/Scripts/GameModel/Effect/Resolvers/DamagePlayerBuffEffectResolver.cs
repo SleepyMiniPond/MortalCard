@@ -1,5 +1,10 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
+
+namespace MortalGame.GameModel
+{
 
 public class DamagePlayerBuffEffectResolver : IPlayerBuffEffectResolver
 {
@@ -36,4 +41,6 @@ public class DamagePlayerBuffEffectResolver : IPlayerBuffEffectResolver
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

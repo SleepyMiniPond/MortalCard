@@ -1,4 +1,7 @@
 using System;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
 using NUnit.Framework;
 

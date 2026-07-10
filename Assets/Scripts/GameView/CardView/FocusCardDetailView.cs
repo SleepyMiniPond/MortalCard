@@ -1,4 +1,6 @@
 using Sirenix.OdinInspector;
+using MortalGame.Presenter;
+using MortalGame.GameData;
 using UnityEngine;
 using MortalGame.UI;
 

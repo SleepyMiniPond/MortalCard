@@ -1,6 +1,11 @@
 using Cysharp.Threading.Tasks;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
 using UnityEngine;
 using UnityEngine.UI;
+
+namespace MortalGame.Scene
+{
 
 public class LevelMapScene : MonoBehaviour
 {
@@ -15,4 +20,6 @@ public class LevelMapScene : MonoBehaviour
         var levelMapCommand = await presenter.Run();
         return levelMapCommand;
     }
+}
+
 }

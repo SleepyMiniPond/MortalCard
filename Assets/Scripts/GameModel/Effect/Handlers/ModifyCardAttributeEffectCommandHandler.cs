@@ -1,5 +1,9 @@
 using System;
+using MortalGame.GameModel;
 using System.Linq;
+
+namespace MortalGame.GameModel
+{
 
 public class ModifyCardAttributeEffectCommandHandler : IEffectCommandHandler
 {
@@ -12,4 +16,6 @@ public class ModifyCardAttributeEffectCommandHandler : IEffectCommandHandler
         }
         return new CommandApplyResult(Array.Empty<BaseResultAction>(), Enumerable.Empty<IGameEvent>());
     }
+}
+
 }

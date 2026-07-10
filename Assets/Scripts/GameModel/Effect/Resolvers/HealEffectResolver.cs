@@ -1,5 +1,10 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
+
+namespace MortalGame.GameModel
+{
 
 public class HealEffectResolver : ICardEffectResolver
 {
@@ -25,4 +30,6 @@ public class HealEffectResolver : ICardEffectResolver
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

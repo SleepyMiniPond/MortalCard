@@ -1,6 +1,11 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional.Collections;
+
+namespace MortalGame.GameModel
+{
 
 public class RemovePlayerBuffEffectResolver : ICardEffectResolver
 {
@@ -26,4 +31,6 @@ public class RemovePlayerBuffEffectResolver : ICardEffectResolver
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

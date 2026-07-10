@@ -1,4 +1,9 @@
 using System.Collections.Generic;
+using MortalGame.GameModel;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public class DamageCharacterBuffEffectResolver : ICharacterBuffEffectResolver
 {
@@ -22,4 +27,6 @@ public class DamageCharacterBuffEffectResolver : ICharacterBuffEffectResolver
 
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

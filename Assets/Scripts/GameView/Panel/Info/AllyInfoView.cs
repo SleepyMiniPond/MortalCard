@@ -1,7 +1,10 @@
 using TMPro;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
+using MortalGame.GameData;
 
 namespace MortalGame.GameView
 {

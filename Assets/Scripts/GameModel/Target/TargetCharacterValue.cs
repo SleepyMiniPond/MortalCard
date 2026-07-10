@@ -1,10 +1,14 @@
 using System;
+using MortalGame.Presenter;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Sirenix.OdinInspector;
 using UniRx;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ITargetCharacterValue
 {
@@ -62,4 +66,6 @@ public class SingleCharacterCollection : ITargetCharacterCollectionValue
     {
         return Target.Eval(triggerContext).ToEnumerable().ToList();
     }
+}
+
 }

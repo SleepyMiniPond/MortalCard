@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
 
+namespace MortalGame.GameModel
+{
+
 public interface IReactionSessionValueCondition
 {
     bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity);
@@ -48,4 +51,6 @@ public class ReactionSessionValueIntegerCondition : IReactionSessionValueConditi
                 value => Conditions.All(condition => condition.Eval(triggerContext, value)),
                 () => false);
     }
+}
+
 }

@@ -1,5 +1,9 @@
 using System.Collections.Generic;
+using MortalGame.GameData;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public class DrawCardEffectCommandHandler : IEffectCommandHandler
 {
@@ -47,4 +51,6 @@ public class DrawCardEffectCommandHandler : IEffectCommandHandler
         }
         return new CommandApplyResult(resultActions, events);
     }
+}
+
 }

@@ -1,5 +1,10 @@
 using System.Linq;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardBuffLifeTimeEntity
 {
@@ -87,4 +92,6 @@ public class HandCardLifeTimeCardBuffEntity : ICardBuffLifeTimeEntity
     }
 
     public ICardBuffLifeTimeEntity Clone() => new HandCardLifeTimeCardBuffEntity();
+}
+
 }

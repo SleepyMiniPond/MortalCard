@@ -1,4 +1,8 @@
 using UnityEngine;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public interface IPlayerBuffLifeTimeEntity
 {
@@ -43,4 +47,6 @@ public class TurnLifeTimePlayerBuffEntity : IPlayerBuffLifeTimeEntity
         }
         return false;
     }
+}
+
 }

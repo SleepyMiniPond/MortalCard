@@ -1,6 +1,10 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
+
+namespace MortalGame.GameData
+{
 
 public interface ICardEffect
 {
@@ -150,4 +154,6 @@ public class RemoveCardBuffEffect : ICardEffect
     public ITargetCardCollectionValue TargetCards;
     [ValueDropdown("@DropdownHelper.CardBuffNames")]
     public string BuffId;
+}
+
 }

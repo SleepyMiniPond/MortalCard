@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Diagnostics;
 using Optional;
+
+namespace MortalGame.GameModel
+{
 
 
 public interface IReactionSessionEntity
@@ -102,4 +106,6 @@ public class ReactionSessionEntity : IReactionSessionEntity
             lifeTime: _lifeTime
         );
     }
+}
+
 }

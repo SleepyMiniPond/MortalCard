@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
+
+namespace MortalGame.GameModel
+{
 
 public interface IHandCardEntity : ICardColletionZone
 {
@@ -29,3 +33,4 @@ public class HandCardEntity : CardColletionZone, IHandCardEntity
     }
 }
 
+}

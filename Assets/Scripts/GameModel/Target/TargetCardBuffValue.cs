@@ -2,6 +2,9 @@ using System;
 using Optional;
 using UnityEngine;
 
+namespace MortalGame.GameModel
+{
+
 public interface ITargetCardBuffValue
 {
     Option<ICardBuffEntity> Eval(TriggerContext triggerContext);
@@ -27,4 +30,6 @@ public class TriggeredCardBuff : ITargetCardBuffValue
             _ => Option.None<ICardBuffEntity>()
         };
     }
+}
+
 }

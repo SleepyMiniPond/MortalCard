@@ -1,4 +1,6 @@
 using System;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
 using System.Linq;
 using System.Reflection;
 using NUnit.Framework;

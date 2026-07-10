@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+namespace MortalGame.GameData
+{
 
 public class CardBuffData
 {
@@ -38,4 +42,6 @@ public class AddCardBuffData
     public string CardBuffId;
 
     public IIntegerValue Level;
+}
+
 }

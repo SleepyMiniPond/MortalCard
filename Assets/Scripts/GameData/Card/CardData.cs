@@ -1,8 +1,12 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+namespace MortalGame.GameData
+{
 
 public class CardData
 {
@@ -60,4 +64,6 @@ public class MainTargetSelectLogic
 {
     public IMainTargetSelectable MainSelectable = new NoneSelectable();
     public TargetLogicTag LogicTag = TargetLogicTag.None;
+}
+
 }

@@ -1,6 +1,10 @@
 using System;
+using MortalGame.GameData;
 using System.Linq;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public class CardBuffEffectCommandHandler : IEffectCommandHandler
 {
@@ -44,4 +48,6 @@ public class CardBuffEffectCommandHandler : IEffectCommandHandler
         var cardBuffEvent = new ModifyCardBuffLevelEvent(c.Target.Faction(context.Model), c.Target.ToInfo(context.Model));
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cardBuffEvent));
     }
+}
+
 }

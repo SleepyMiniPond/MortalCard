@@ -1,5 +1,10 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
+
+namespace MortalGame.GameModel
+{
 
 public class DecreaseDispositionEffectResolver : ICardEffectResolver
 {
@@ -27,4 +32,6 @@ public class DecreaseDispositionEffectResolver : ICardEffectResolver
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

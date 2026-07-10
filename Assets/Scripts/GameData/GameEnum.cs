@@ -1,5 +1,8 @@
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public enum ArithmeticType
 {
     None = 0,
@@ -206,4 +209,6 @@ public enum EffectAttributeRatioType
     AdditionalDamageRatio,
     HealRatio,
     ShieldRatio,
+}
+
 }

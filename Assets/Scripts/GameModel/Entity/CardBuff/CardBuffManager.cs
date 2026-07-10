@@ -1,8 +1,12 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardBuffManager
 {
@@ -79,4 +83,6 @@ public class CardBuffManager : ICardBuffManager
         }
         return isUpdated;
     }    
+}
+
 }

@@ -1,7 +1,12 @@
 using System.Collections;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IActionUnit
 {
@@ -69,3 +74,5 @@ public record CardPlayResultAction(CardPlayResultSource CardPlayResultSource) : 
     public GameTiming Timing => GameTiming.PlayCardEnd;
     public IActionSource Source => CardPlayResultSource;
 };
+
+}

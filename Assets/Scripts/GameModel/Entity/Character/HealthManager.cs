@@ -1,5 +1,10 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IHealthManager
 {
@@ -123,4 +128,6 @@ public class HealthManager : IHealthManager
 
         return deltaHp;
     }
+}
+
 }

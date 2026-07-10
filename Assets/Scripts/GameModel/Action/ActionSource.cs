@@ -1,5 +1,9 @@
 using System.Collections.Generic;
+using MortalGame.GameModel;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IActionSource
 { 
@@ -35,3 +39,5 @@ public record PlayerBuffSource(IPlayerBuffEntity Buff) : IActionSource;
 
 public record CardBuffSource(ICardBuffEntity Buff) : IActionSource;
 public record CharacterBuffSource(ICharacterBuffEntity Buff) : IActionSource;
+
+}

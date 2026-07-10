@@ -1,5 +1,9 @@
 using System.Linq;
+using MortalGame.GameData;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public class MoveCardEffectCommandHandler : IEffectCommandHandler
 {
@@ -19,4 +23,6 @@ public class MoveCardEffectCommandHandler : IEffectCommandHandler
             c.Target.CardManager.ToInfo(context.Model));
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(moveCardEvent));
     }
+}
+
 }

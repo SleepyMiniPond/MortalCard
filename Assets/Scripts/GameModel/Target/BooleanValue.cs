@@ -1,5 +1,8 @@
 using System;
 
+namespace MortalGame.GameModel
+{
+
 public interface IBooleanValue
 {
     bool Eval(TriggerContext triggerContext);
@@ -21,4 +24,6 @@ public class FalseValue : IBooleanValue
     {
         return false;
     }
+}
+
 }

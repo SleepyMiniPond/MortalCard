@@ -1,4 +1,10 @@
 using System.Linq;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public class HealEffectCommandHandler : IEffectCommandHandler
 {
@@ -14,4 +20,6 @@ public class HealEffectCommandHandler : IEffectCommandHandler
         var healEvent = new GetHealEvent(c.Target.Faction(context.Model), c.Target, healResult);
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(healEvent));
     }
+}
+
 }

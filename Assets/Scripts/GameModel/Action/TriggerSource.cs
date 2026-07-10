@@ -1,5 +1,9 @@
 using Unity.VisualScripting;
+using MortalGame.GameModel;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public record TriggerContext(
     IGameplayModel Model,
@@ -68,4 +72,6 @@ public class PlayerTrigger : ITriggeredSource
     {
         Player = player;
     }
+}
+
 }

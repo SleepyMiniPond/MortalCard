@@ -1,6 +1,10 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public static class GameFormula
 {
@@ -124,4 +128,6 @@ public static class GameFormula
         }
         return 0f;
     }
+}
+
 }

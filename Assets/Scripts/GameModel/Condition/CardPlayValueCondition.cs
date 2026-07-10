@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardPlayValueCondition
 {
@@ -42,4 +46,6 @@ public class CardPlayCardCondition : ICardPlayValueCondition
     {
         return Conditions.All(c => c.Eval(triggerContext, cardPlay.Card));
     }
+}
+
 }

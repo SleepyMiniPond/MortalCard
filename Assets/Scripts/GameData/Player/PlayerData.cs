@@ -2,6 +2,9 @@ using System;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public class PlayerData
 {
     [BoxGroup("Identification")]
@@ -25,5 +28,7 @@ public class PlayerData
 
 
     [TitleGroup("Localization")]
-    public string NameKey;
+public string NameKey;
+}
+
 }

@@ -1,6 +1,10 @@
 using System;
+using MortalGame.GameData;
 using System.Linq;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public class CreateCloneCardEffectCommandHandler : IEffectCommandHandler
 {
@@ -40,4 +44,6 @@ public class CreateCloneCardEffectCommandHandler : IEffectCommandHandler
             c.Target.CardManager.ToInfo(context.Model));
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cloneCardEvent));
     }
+}
+
 }

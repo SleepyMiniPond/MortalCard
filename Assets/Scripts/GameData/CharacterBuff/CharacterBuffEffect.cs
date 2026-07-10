@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+namespace MortalGame.GameData
+{
 
 [Serializable]
 public class ConditionalCharacterBuffEffect
@@ -19,4 +23,6 @@ public class EffectiveDamageCharacterBuffEffect : ICharacterBuffEffect
 {
     public ITargetCharacterCollectionValue Targets;
     public IIntegerValue Value;
+}
+
 }

@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 [ExcelAsset(ExcelName = "MortalGames", AssetPath = "ScriptableObjects")]
 public class ExcelDatas : ScriptableObject
 {
@@ -45,4 +48,5 @@ public class LocalizeExcelData
 {
 	public string Id;
 	public string Info;
+}
 }

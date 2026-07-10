@@ -1,5 +1,10 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
+
+namespace MortalGame.GameModel
+{
 
 public class EnergyEffectCommandHandler : IEffectCommandHandler
 {
@@ -30,4 +35,6 @@ public class EnergyEffectCommandHandler : IEffectCommandHandler
         var energyEvent = new LoseEnergyEvent(c.Target.Faction, c.Target.EnergyManager.ToInfo(), result);
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(energyEvent));
     }
+}
+
 }

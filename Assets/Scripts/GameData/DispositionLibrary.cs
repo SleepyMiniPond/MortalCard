@@ -9,6 +9,9 @@ public record DispositionData(
     int DrawCardCount
 );
 
+namespace MortalGame.GameData
+{
+
 public class DispositionLibrary
 {
     // key: upper bound 
@@ -55,4 +58,5 @@ public class DispositionLibrary
 
         return _dispositions.Values.Last();
     }
+}
 }

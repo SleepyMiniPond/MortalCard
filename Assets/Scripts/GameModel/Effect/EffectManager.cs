@@ -1,5 +1,10 @@
 using System.Collections.Generic;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
+
+namespace MortalGame.GameModel
+{
 
 public static class EffectManager
 {
@@ -18,7 +23,8 @@ public static class EffectManager
             var context = new TriggerContext(model, new PlayerTrigger(player), action);
             var newCard = CardEntity.CreateFromInstance(
                 cardInstance,
-                model.ContextManager.CardLibrary);    
+                model.ContextManager.CardLibrary,
+                model.ContextManager.CardPropertyEntityFactory);    
             var createCardCommand = new EffectCommandSet(
                 new CreateCardEffectCommand(player, newCard, CardCollectionType.Deck).WrapAsEnumerable().ToArray());
 
@@ -59,4 +65,6 @@ public static class EffectManager
 
         return new EffectResult(resultActions, drawCardEvents);
     }
+}
+
 }

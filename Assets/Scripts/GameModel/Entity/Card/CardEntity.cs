@@ -5,6 +5,11 @@ using System.Diagnostics;
 using System.Linq;
 using Optional;
 using Unity.VisualScripting;
+using MortalGame.GameData;
+using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardEntity
 {
@@ -95,27 +100,33 @@ public class CardEntity : ICardEntity
         _cardLibrary = cardLibrary;
     }
 
-    public static ICardEntity CreateFromInstance(CardInstance cardInstance, CardLibrary cardLibrary)
+    public static ICardEntity CreateFromInstance(
+        CardInstance cardInstance,
+        CardLibrary cardLibrary,
+        ICardPropertyEntityFactory cardPropertyEntityFactory)
     {
         return new CardEntity(
             indentity: Guid.NewGuid(),
             originCardInstanceGuid: cardInstance.InstanceGuid.Some(),
             cardDataId: cardInstance.CardDataId,
             properties: cardLibrary.GetCardData(cardInstance.CardDataId).PropertyDatas
-                .Select(p => p.CreateEntity())
-                .Concat(cardInstance.AdditionPropertyDatas.Select(p => p.CreateEntity())),
+                .Select(cardPropertyEntityFactory.Create)
+                .Concat(cardInstance.AdditionPropertyDatas.Select(cardPropertyEntityFactory.Create)),
             buffs: Array.Empty<ICardBuffEntity>(),
             cardLibrary: cardLibrary
         );
     }
 
-    public static ICardEntity RuntimeCreateFromId(string cardDataId, CardLibrary cardLibrary)
+    public static ICardEntity RuntimeCreateFromId(
+        string cardDataId,
+        CardLibrary cardLibrary,
+        ICardPropertyEntityFactory cardPropertyEntityFactory)
     {
         return new CardEntity(
             indentity: Guid.NewGuid(),
             originCardInstanceGuid: Option.None<Guid>(),
             cardDataId: cardDataId,
-            properties: cardLibrary.GetCardData(cardDataId).PropertyDatas.Select(p => p.CreateEntity()),
+            properties: cardLibrary.GetCardData(cardDataId).PropertyDatas.Select(cardPropertyEntityFactory.Create),
             buffs: Array.Empty<ICardBuffEntity>(),
             cardLibrary: cardLibrary
         );
@@ -209,4 +220,6 @@ public static class CardEntityExtensions
 
         return value;
     }
+}
+
 }

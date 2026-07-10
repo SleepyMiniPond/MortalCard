@@ -1,7 +1,11 @@
 using System.Linq;
+using MortalGame.GameModel;
 using Optional;
 using Optional.Collections;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public static class UseCardLogic
 {
@@ -63,4 +67,6 @@ public static class UseCardLogic
         useCardAction = null;
         return false;
     }
+}
+
 }

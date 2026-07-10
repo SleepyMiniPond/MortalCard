@@ -1,6 +1,12 @@
 using System;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
+
+namespace MortalGame.GameModel
+{
 
 internal sealed record TriggerTimingQueueItem(
     GameplayManager Manager,
@@ -84,4 +90,6 @@ internal sealed record TriggeredCardBuffEffectQueueItem(
         queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffSource));
         return new EffectResult(effectResult.Actions, events);
     }
+}
+
 }

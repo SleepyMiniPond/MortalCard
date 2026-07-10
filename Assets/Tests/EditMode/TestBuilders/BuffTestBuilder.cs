@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using MortalGame.GameData;
+using MortalGame.GameModel;
 
 namespace MortalGame.Tests
 {
@@ -50,7 +52,10 @@ namespace MortalGame.Tests
                 (object)1,
                 PlayerCasterOption(caster),
                 context,
-                cardBuffLibrary
+                cardBuffLibrary,
+                context.Model.ContextManager.CardBuffPropertyEntityFactory,
+                context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
+                context.Model.ContextManager.ReactionSessionEntityFactory
                 });
         }
 

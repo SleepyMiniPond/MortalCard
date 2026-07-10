@@ -1,6 +1,11 @@
 using System.Collections.Generic;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardBuffPropertyEntity
 {
@@ -41,4 +46,6 @@ public class PowerCardBuffPropertyEntity : ICardBuffPropertyEntity
     }
 
     public ICardBuffPropertyEntity Clone() => new PowerCardBuffPropertyEntity(_value);
+}
+
 }

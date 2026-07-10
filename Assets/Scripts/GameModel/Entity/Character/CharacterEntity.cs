@@ -1,8 +1,13 @@
 using System;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
 using Optional;
 using Optional.Collections;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICharacterEntity
 {
@@ -95,4 +100,6 @@ public static class CharacterEntityExtensions
     {
         return character.Owner(model).ValueOr(DummyPlayer.Instance).Faction;
     }
+}
+
 }

@@ -1,4 +1,6 @@
 using System.Collections;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -6,6 +8,9 @@ using Optional;
 using Rayark.Mast;
 using UnityEngine;
 using MortalGame.GameView;
+
+namespace MortalGame.Presenter
+{
 
 public interface IGameplayActionReciever
 {
@@ -134,4 +139,6 @@ public class GameplayPresenter : IGameplayActionReciever
                 throw new System.NotImplementedException($"Unhandled game command type: {gameCommand.GetType()}");
         }
     }
+}
+
 }

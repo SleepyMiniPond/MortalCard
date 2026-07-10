@@ -1,9 +1,12 @@
 using TMPro;
+using MortalGame.Presenter;
 using UniRx;
 using UniRx.Triggers;
 using UnityEngine;
 using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
+using MortalGame.GameData;
+using MortalGame.GameModel;
 
 namespace MortalGame.GameView
 {

@@ -1,4 +1,10 @@
 using System.Linq;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public class ShieldEffectCommandHandler : IEffectCommandHandler
 {
@@ -14,4 +20,6 @@ public class ShieldEffectCommandHandler : IEffectCommandHandler
         var shieldEvent = new GetShieldEvent(c.Target.Faction(context.Model), c.Target, shieldResult);
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(shieldEvent));
     }
+}
+
 }

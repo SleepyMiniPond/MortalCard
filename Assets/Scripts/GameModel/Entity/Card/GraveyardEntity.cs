@@ -1,6 +1,10 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
+
+namespace MortalGame.GameModel
+{
 
 public interface IGraveyardEntity : ICardColletionZone
 {
@@ -26,4 +30,6 @@ public class GraveyardEntity : CardColletionZone, IGraveyardEntity
         _cards = _cards.Except(recycleCards).ToList();
         return recycleCards;
     }
+}
+
 }

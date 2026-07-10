@@ -4,9 +4,11 @@ using System.Linq;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public interface IReactionSessionData
 {
-    IReactionSessionEntity CreateEntity(TriggerContext triggerContext);
 }
 
 
@@ -27,14 +29,8 @@ public class SessionBoolean : IReactionSessionData
 
     [ShowInInspector]
     [TableList]
-    public List<TimingRule> UpdateRules = new ();
-    
-    public IReactionSessionEntity CreateEntity(TriggerContext triggerContext)
-    {
-        return new ReactionSessionEntity(
-            new SessionBooleanEntity(InitialValue, UpdateRules),
-            LifeTime);
-    }
+public List<TimingRule> UpdateRules = new ();
+
 }
 
 [Serializable]
@@ -56,10 +52,6 @@ public class SessionInteger : IReactionSessionData
     [TableList]
     public List<TimingRule> UpdateRules = new ();
 
-    public IReactionSessionEntity CreateEntity(TriggerContext triggerContext)
-    {
-        return new ReactionSessionEntity(
-            new SessionIntegerEntity(InitialValue, UpdateRules),
-            LifeTime);
-    }
+}
+
 }

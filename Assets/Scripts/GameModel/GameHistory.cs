@@ -3,6 +3,9 @@ using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 
+namespace MortalGame.GameModel
+{
+
 public class GameHistory
 {
     private List<TurnRecord> _turnRecords = new();
@@ -21,5 +24,7 @@ public class TurnRecord
 
 public class ActionRecord
 {
+
+}
 
 }

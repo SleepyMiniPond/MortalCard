@@ -1,6 +1,11 @@
 using System.Collections.Generic;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using System.Linq;
 using Optional.Collections;
+
+namespace MortalGame.GameModel
+{
 
 public class RemoveCardBuffPlayerBuffEffectResolver : IPlayerBuffEffectResolver
 {
@@ -24,4 +29,6 @@ public class RemoveCardBuffPlayerBuffEffectResolver : IPlayerBuffEffectResolver
         }
         return new EffectCommandSet(effectCommands);
     }
+}
+
 }

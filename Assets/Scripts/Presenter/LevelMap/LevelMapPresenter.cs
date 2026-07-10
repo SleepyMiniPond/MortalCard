@@ -1,5 +1,9 @@
 using Cysharp.Threading.Tasks;
+using MortalGame.GameModel;
 using UnityEngine;
+
+namespace MortalGame.Presenter
+{
 
 public interface ILevelMapPresenter
 {
@@ -44,4 +48,6 @@ public class LevelMapPresenter : ILevelMapPresenter
     {
         // Handle level click logic here
     }
+}
+
 }

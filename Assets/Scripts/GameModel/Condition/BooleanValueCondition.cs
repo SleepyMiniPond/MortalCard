@@ -1,6 +1,9 @@
 using System;
 using UnityEngine;
 
+namespace MortalGame.GameModel
+{
+
 public interface IBooleanValueCondition
 {
     bool Eval(TriggerContext triggerContext, bool value);
@@ -33,4 +36,6 @@ public class IsEqualCondition : IBooleanValueCondition
     {
         return value == Boolean.Eval(triggerContext);
     }
+}
+
 }

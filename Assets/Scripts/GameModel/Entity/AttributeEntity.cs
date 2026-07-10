@@ -1,6 +1,10 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IEffectAttribute
 {
@@ -48,4 +52,6 @@ public class CardPlayAttributeEntity : IEffectAttribute
 
         _floatValues[attribute] += value;
     }
+}
+
 }

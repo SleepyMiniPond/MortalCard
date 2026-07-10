@@ -1,4 +1,9 @@
 using UnityEngine;
+using MortalGame.GameModel;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public interface IEnergyManager
 {
@@ -93,4 +98,6 @@ public class EnergyManager : IEnergyManager
 
         return deltaEnergy;
     }
+}
+
 }

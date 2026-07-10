@@ -1,4 +1,5 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -6,6 +7,9 @@ using System.Linq;
 using Cysharp.Threading.Tasks;
 using Optional;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IGameEventWatcher : IGameplayModel
 {
@@ -626,4 +630,6 @@ public class GameplayManager : IGameplayModel, IGameEventWatcher
             throw new GameEndException(true);
         }
     }
+}
+
 }

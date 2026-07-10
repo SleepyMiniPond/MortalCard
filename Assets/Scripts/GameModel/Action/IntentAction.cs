@@ -1,4 +1,8 @@
 using UnityEngine;
+using MortalGame.GameData;
+
+namespace MortalGame.GameModel
+{
 
 public abstract record BaseEffectIntentAction(
     IActionSource Source,
@@ -34,3 +38,5 @@ public record AddCardBuffIntentAction(IActionSource Source) : BaseEffectIntentAc
 public record RemoveCardBuffIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.RemoveCardBuff);
 
 public record CardPlayEffectAttributeIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.CardPlayEffectAttribute);
+
+}

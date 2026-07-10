@@ -1,9 +1,13 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Sirenix.OdinInspector;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardValueCondition
 {
@@ -38,4 +42,6 @@ public class CardTypesCondition : ICardValueCondition
     {
         return Condition.Eval(CardTypes, type => type == card.Type);
     }
+}
+
 }

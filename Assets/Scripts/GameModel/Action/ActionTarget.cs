@@ -1,4 +1,8 @@
 using UnityEngine;
+using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IActionTarget
 {
@@ -52,4 +56,6 @@ public class PlayerAndCardTarget : IActionTarget
         Player = player;
         Card = card;
     }
+}
+
 }

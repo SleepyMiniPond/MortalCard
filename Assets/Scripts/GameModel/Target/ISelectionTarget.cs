@@ -1,4 +1,5 @@
 using System;
+using MortalGame.GameData;
 
 namespace MortalGame.GameModel
 {

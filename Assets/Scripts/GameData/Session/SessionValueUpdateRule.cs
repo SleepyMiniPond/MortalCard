@@ -1,7 +1,10 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 
+namespace MortalGame.GameData
+{
 
 [Serializable]
 public class ConditionUpdateRule<T>
@@ -26,8 +29,8 @@ public class ConditionBooleanUpdateRule : ConditionUpdateRule<IBooleanValue>
     }
     
     [PropertyOrder(2)]
-    public UpdateType Operation = UpdateType.Overwrite;
- }
+public UpdateType Operation = UpdateType.Overwrite;
+}
  [Serializable]
 public class ConditionIntegerUpdateRule : ConditionUpdateRule<IIntegerValue>
 {
@@ -39,4 +42,6 @@ public class ConditionIntegerUpdateRule : ConditionUpdateRule<IIntegerValue>
 
     [PropertyOrder(2)]
     public UpdateType Operation = UpdateType.Overwrite;
+}
+
 }

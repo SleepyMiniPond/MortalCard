@@ -1,10 +1,14 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Optional.Collections;
 using Sirenix.Utilities;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public record EffectCommandSet(
     IReadOnlyCollection<IEffectCommand> Commands);
@@ -129,4 +133,6 @@ public static class EffectDataResolver
         return new EffectCommandSet(Array.Empty<IEffectCommand>());
     }
     #endregion
+}
+
 }

@@ -1,10 +1,14 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Unity.VisualScripting;
 using UnityEngine;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IPlayerEntity
 {
@@ -223,4 +227,6 @@ public static class PlayerEntityExtensions
                 (status.Enemy as IPlayerEntity).Some() :
                 Option.None<IPlayerEntity>();
     }
+}
+
 }

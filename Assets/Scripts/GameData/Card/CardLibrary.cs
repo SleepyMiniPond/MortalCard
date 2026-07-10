@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public class CardLibrary
 {
     private readonly Dictionary<string, CardData> _cards;
@@ -20,4 +23,5 @@ public class CardLibrary
 
         return _cards[cardId];
     }
+}
 }

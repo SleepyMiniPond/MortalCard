@@ -1,7 +1,11 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Sirenix.OdinInspector;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICardPlayResultValueCondition
 {
@@ -131,4 +135,6 @@ public class DamageResultCharacterTargetCondition : IDamageResultCondition
             _ => false
         };
     }
+}
+
 }

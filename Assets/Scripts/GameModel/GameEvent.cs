@@ -1,4 +1,5 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -7,6 +8,9 @@ using Sirenix.Serialization.Utilities;
 using Sirenix.Utilities;
 using UnityEngine;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IGameEvent
 {
@@ -128,4 +132,6 @@ public record GeneralUpdateEvent(
         : this(Array.Empty<PlayerBuffInfo>(),
             Array.Empty<CharacterBuffInfo>(),
             new List<CardInfo> { cardInfo }) {}
+}
+
 }

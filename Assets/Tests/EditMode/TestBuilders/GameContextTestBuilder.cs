@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using MortalGame.GameData;
+using MortalGame.GameModel;
 
 namespace MortalGame.Tests
 {
@@ -56,7 +58,15 @@ namespace MortalGame.Tests
                 characterBuffLibrary ?? CreateCharacterBuffLibrary(),
                 dispositionLibrary ?? CreateDispositionLibrary(),
                 localizeLibrary ?? CreateLocalizeLibrary(),
-                new GameRandom(randomSeed));
+                new GameRandom(randomSeed),
+                CardPropertyEntityFactory.CreateDefault(),
+                CardBuffPropertyEntityFactory.CreateDefault(),
+                CardBuffLifeTimeEntityFactory.CreateDefault(),
+                ReactionSessionEntityFactory.CreateDefault(),
+                PlayerBuffPropertyEntityFactory.CreateDefault(),
+                PlayerBuffLifeTimeEntityFactory.CreateDefault(),
+                CharacterBuffPropertyEntityFactory.CreateDefault(),
+                CharacterBuffLifeTimeEntityFactory.CreateDefault());
         }
     }
 }

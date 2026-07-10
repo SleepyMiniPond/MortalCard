@@ -1,6 +1,8 @@
 using System;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
 
 public enum CardType
 {
@@ -79,4 +81,6 @@ public enum TargetLogicTag
     ToEnemy,
     ToAlly,
     ToRandom,
+}
+
 }

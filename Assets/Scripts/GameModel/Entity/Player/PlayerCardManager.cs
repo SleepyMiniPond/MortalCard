@@ -1,10 +1,14 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using Optional;
 using UnityEngine;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 
 public interface IPlayerCardManager
@@ -247,4 +251,6 @@ public static class PlayerCardManagerExtensions
             .Concat(cardManager.ExclusionZone.Cards)
             .Concat(cardManager.DisposeZone.Cards);
     }
+}
+
 }

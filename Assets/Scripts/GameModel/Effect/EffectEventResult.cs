@@ -1,6 +1,10 @@
 using System.Collections.Generic;
+using MortalGame.GameData;
 using Optional;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IEffectResult
 {
@@ -79,3 +83,5 @@ public record CloneCardResult(
     ICardEntity OriginCard,
     ICardEntity Card,
     CardCollectionType Zone) : IEffectResult;
+
+}

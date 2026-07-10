@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public class PlayerBuffData
 {
     [TitleGroup("BasicData")]
@@ -27,4 +30,6 @@ public class PlayerBuffData
 
     [BoxGroup("LifeTime")]
     public IPlayerBuffLifeTimeData LifeTimeData;
+}
+
 }

@@ -1,8 +1,11 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
 
 [Serializable]
 public class ConditionalCardBuffEffect
@@ -14,4 +17,6 @@ public class ConditionalCardBuffEffect
     [Space(20)]
     [HorizontalGroup("2")]
     public ICardBuffEffect Effect;
+}
+
 }

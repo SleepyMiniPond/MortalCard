@@ -1,5 +1,9 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
+
+namespace MortalGame.GameModel
+{
 
 public record EffectResult(
     IReadOnlyCollection<BaseResultAction> Actions,
@@ -59,4 +63,6 @@ public static class EffectCommandExecutor
 
         return new EffectResult(actionList, eventList);
     }
+}
+
 }

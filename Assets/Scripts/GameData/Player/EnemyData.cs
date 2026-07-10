@@ -2,6 +2,9 @@ using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public class EnemyData
 {
     [BoxGroup("EnemyOnly")]
@@ -15,5 +18,7 @@ public class EnemyData
     [BoxGroup("EnemyOnly")]
     public int EnergyRecoverPoint;
 
-    public PlayerData PlayerData;
+public PlayerData PlayerData;
+}
+
 }

@@ -1,8 +1,12 @@
 using System;
+using MortalGame.GameData;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
+
+namespace MortalGame.GameModel
+{
 
 public interface ISessionValueEntity
 {
@@ -112,4 +116,6 @@ public class SessionIntegerEntity : ISessionValueEntity
         }
         return isChanged;
     }
+}
+
 }

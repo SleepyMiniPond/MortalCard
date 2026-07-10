@@ -1,5 +1,10 @@
 using Rayark.Mast;
+using MortalGame.GameModel;
+using MortalGame.GameData;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IPlayerBuffPropertyEntity
 {
@@ -90,4 +95,6 @@ public class MaxEnergyPlayerBuffPropertyEntity : IPlayerBuffIntegerPropertyEntit
     }
     public int Eval(TriggerContext triggerContext)
         => _value.Eval(triggerContext with { Action = new PlayerBuffPropertyLookAction(this) });
+}
+
 }

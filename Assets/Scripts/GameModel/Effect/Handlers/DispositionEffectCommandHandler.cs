@@ -1,5 +1,9 @@
 using System;
+using MortalGame.GameModel;
 using System.Linq;
+
+namespace MortalGame.GameModel
+{
 
 public class DispositionEffectCommandHandler : IEffectCommandHandler
 {
@@ -30,4 +34,6 @@ public class DispositionEffectCommandHandler : IEffectCommandHandler
         var dispositionEvent = new DecreaseDispositionEvent(c.Target.DispositionManager.ToInfo(), result.DeltaDisposition);
         return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(dispositionEvent));
     }
+}
+
 }

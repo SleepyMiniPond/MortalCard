@@ -1,4 +1,5 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -7,6 +8,9 @@ using Optional.Collections;
 using UniRx;
 using UnityEngine;
 using MortalGame.GameModel;
+
+namespace MortalGame.Presenter
+{
 
 public interface IGameViewModel
 {
@@ -187,4 +191,6 @@ public class GameViewModel : IGameViewModel
     }
 
     public IReadOnlyReactiveProperty<DispositionInfo> ObservableDispositionInfo { get { return _dispositionInfo; } }
+}
+
 }

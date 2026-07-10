@@ -1,4 +1,8 @@
 using UnityEngine;
+using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public interface IDispositionManager
 {
@@ -72,4 +76,6 @@ public static class DispositionUtility
             dispositionManager.CurrentDisposition,
             dispositionManager.MaxDisposition);
     }
+}
+
 }

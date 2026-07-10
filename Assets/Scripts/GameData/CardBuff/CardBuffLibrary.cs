@@ -4,6 +4,9 @@ using Optional;
 using Optional.Collections;
 using UnityEngine;
 
+namespace MortalGame.GameData
+{
+
 public class CardBuffLibrary
 {
     private readonly Dictionary<string, CardBuffData> _buffs;
@@ -36,4 +39,5 @@ public class CardBuffLibrary
             ? effects.SomeNotNull()
             : Option.None<ConditionalCardBuffEffect[]>();
     }
+}
 }

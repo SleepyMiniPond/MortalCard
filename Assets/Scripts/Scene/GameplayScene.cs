@@ -1,6 +1,11 @@
 using Cysharp.Threading.Tasks;
+using MortalGame.Presenter;
+using MortalGame.GameModel;
 using UnityEngine;
 using MortalGame.GameView;
+
+namespace MortalGame.Scene
+{
 
 public class GameplayScene : MonoBehaviour
 {
@@ -30,3 +35,5 @@ public class GameplayScene : MonoBehaviour
     }
 }
 
+
+}

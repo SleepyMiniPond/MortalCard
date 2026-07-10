@@ -2,6 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
+namespace MortalGame.GameModel
+{
+
 public interface ISelectedCardEntity
 {
     int MaxCount { get; }
@@ -56,3 +59,5 @@ public class SelectedCardEntity : ISelectedCardEntity
     }
 }
 
+
+}

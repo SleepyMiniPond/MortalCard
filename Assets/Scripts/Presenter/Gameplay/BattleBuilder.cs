@@ -2,6 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine.TextCore.Text;
+using MortalGame.GameData;
+using MortalGame.GameModel;
+
+namespace MortalGame.Presenter
+{
 
 public class BattleBuidler
 {
@@ -28,7 +33,15 @@ public class BattleBuidler
             characterBuffLibrary,
             dispositionLibrary,
             localizeLibrary,
-            new GameRandom(randomSeed));
+            new GameRandom(randomSeed),
+            CardPropertyEntityFactory.CreateDefault(),
+            CardBuffPropertyEntityFactory.CreateDefault(),
+            CardBuffLifeTimeEntityFactory.CreateDefault(),
+            ReactionSessionEntityFactory.CreateDefault(),
+            PlayerBuffPropertyEntityFactory.CreateDefault(),
+            PlayerBuffLifeTimeEntityFactory.CreateDefault(),
+            CharacterBuffPropertyEntityFactory.CreateDefault(),
+            CharacterBuffLifeTimeEntityFactory.CreateDefault());
     }
 
     public GameStageSetting ConstructBattle()
@@ -41,3 +54,5 @@ public class BattleBuidler
     }
 }
 
+
+}

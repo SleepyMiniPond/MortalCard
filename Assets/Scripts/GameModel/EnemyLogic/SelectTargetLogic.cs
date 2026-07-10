@@ -1,10 +1,14 @@
 using System;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional.Collections;
 using UniRx;
 using UnityEngine;
 using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public record SelectMainTargetResult(
     bool IsValid,
@@ -178,4 +182,6 @@ public static class SelectTargetLogic
 
         return new ExistCardSubSelectionAction(selectedCards);
     }
+}
+
 }

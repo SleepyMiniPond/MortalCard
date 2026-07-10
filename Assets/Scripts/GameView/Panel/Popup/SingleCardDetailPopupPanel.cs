@@ -1,4 +1,6 @@
 using Cysharp.Threading.Tasks;
+using MortalGame.Presenter;
+using MortalGame.GameData;
 using UniRx;
 using UnityEngine;
 using MortalGame.GameView;

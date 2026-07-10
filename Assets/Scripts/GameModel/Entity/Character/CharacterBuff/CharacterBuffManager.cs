@@ -1,8 +1,12 @@
 using System;
+using MortalGame.GameModel;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface ICharacterBuffManager
 {
@@ -86,4 +90,6 @@ public class CharacterBuffManager : ICharacterBuffManager
             }
         }
     }
+}
+
 }

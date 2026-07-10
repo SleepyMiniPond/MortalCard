@@ -1,4 +1,6 @@
 using System.Collections.Generic;
+using MortalGame.GameData;
+using MortalGame.GameModel;
 
 namespace MortalGame.Tests
 {
@@ -24,7 +26,10 @@ namespace MortalGame.Tests
 
         public static ICardEntity CreateCard(CardLibrary cardLibrary, string cardId = CardId)
         {
-            return CardEntity.RuntimeCreateFromId(cardId, cardLibrary);
+            return CardEntity.RuntimeCreateFromId(
+                cardId,
+                cardLibrary,
+                CardPropertyEntityFactory.CreateDefault());
         }
 
         public static ICardEntity CreateCardWithBuff(

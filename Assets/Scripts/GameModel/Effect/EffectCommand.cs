@@ -1,7 +1,11 @@
 using System.Collections;
+using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
 using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public interface IEffectCommand
 { }
@@ -77,3 +81,5 @@ public record ModifyCardBuffLevelEffectCommand(
 public record ModifyCardAttributeEffectCommand(
     EffectAttributeAdditionType AdditionType,
     int AdditionValue) : IEffectCommand;
+
+}

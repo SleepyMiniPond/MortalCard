@@ -1,4 +1,6 @@
 using TMPro;
+using MortalGame.Presenter;
+using MortalGame.GameData;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
