@@ -4,6 +4,9 @@ using UnityEngine;
 using MortalGame.GameView;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class SingleCardDetailPopupPanel : MonoBehaviour
 {
     [SerializeField]
@@ -60,4 +63,5 @@ public class SingleCardDetailPopupPanel : MonoBehaviour
             _cardKeywordHint.HideHint();
         }
     }
+}
 }

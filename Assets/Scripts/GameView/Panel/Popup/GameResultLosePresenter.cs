@@ -2,6 +2,9 @@ using Cysharp.Threading.Tasks;
 using UniRx;
 using UnityEngine;
 
+namespace MortalGame.GameView
+{
+
 public interface IGameResultLosePresenter
 {
     UniTask<GameplayLoseResult> Run();
@@ -52,4 +55,5 @@ public class GameResultLosePresenter : IGameResultLosePresenter
 
         return new GameplayLoseResult(reactionType);
     }
+}
 }

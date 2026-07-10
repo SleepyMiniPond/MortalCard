@@ -11,6 +11,9 @@ using MortalGame.GameView;
 
 
 
+namespace MortalGame.GameView
+{
+
 public interface ICardSelectionPanel
 {
     public record Property(
@@ -187,4 +190,5 @@ public class CardSelectionPanel : MonoBehaviour, ICardSelectionPanel
         _OnConfirm = null;
         _OnVisibleToggle = null;
     }
+}
 }

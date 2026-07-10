@@ -8,6 +8,9 @@ using UnityEngine;
 using MortalGame.GameView;
 using MortalGame.GameModel;
 
+namespace MortalGame.GameView
+{
+
 public interface IGameplayView : IAllCardDetailPanelView, IInteractionButtonView
 {
     void Init(
@@ -470,4 +473,5 @@ public class GameplayView : MonoBehaviour, IGameplayView
                 break;
         }
     }
+}
 }

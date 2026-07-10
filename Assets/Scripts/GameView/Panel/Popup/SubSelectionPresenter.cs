@@ -9,6 +9,9 @@ using MortalGame.GameModel;
 using MortalGame.GameView;
 
 
+namespace MortalGame.GameView
+{
+
 public interface ISubSelectionPresenter
 {
     public record CloseEvent : IUniTaskPresenter.Event;
@@ -163,4 +166,5 @@ public class SubSelectionPresenter : ISubSelectionPresenter
             );
         }
     }
+}
 }

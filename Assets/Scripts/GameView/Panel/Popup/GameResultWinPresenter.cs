@@ -1,6 +1,9 @@
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 
+namespace MortalGame.GameView
+{
+
 public interface IGameResultWinPresenter
 {
     UniTask<GameplayWinResult> Run();
@@ -25,4 +28,5 @@ public class GameResultWinPresenter : IGameResultWinPresenter
 
         return new GameplayWinResult();
     }
+}
 }

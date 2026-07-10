@@ -1,5 +1,8 @@
 using UnityEngine;
 
+namespace MortalGame.GameView
+{
+
 public interface IGameResultWinPanel
 {
 }
@@ -16,4 +19,5 @@ public class GameResultWinPanel : MonoBehaviour, IGameResultWinPanel
     {
         _panel.SetActive(false);
     }
+}
 }

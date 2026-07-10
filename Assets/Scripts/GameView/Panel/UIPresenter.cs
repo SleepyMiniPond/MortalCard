@@ -8,6 +8,9 @@ using UniRx;
 using MortalGame.GameView;
 using UnityEngine;
 
+namespace MortalGame.GameView
+{
+
 public interface IUIPresenter
 {
     public record DeckEvent() : IUniTaskPresenter.Event;
@@ -80,4 +83,5 @@ public class UIPresenter : IUIPresenter
             .AddTo(disposables);
         return disposables;
     }
+}
 }

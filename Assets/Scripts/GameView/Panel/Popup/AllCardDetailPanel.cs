@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using MortalGame.GameView;
 
+namespace MortalGame.GameView
+{
+
 public interface IAllCardDetailPanel
 {
     public record Property(
@@ -87,4 +90,5 @@ public class AllCardDetailPanel : MonoBehaviour, IAllCardDetailPanel
         }
         _cardViews.Clear();
     }
+}
 }

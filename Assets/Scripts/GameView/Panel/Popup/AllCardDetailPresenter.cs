@@ -8,6 +8,9 @@ using UniRx;
 using MortalGame.GameModel;
 using MortalGame.GameView;
 
+namespace MortalGame.GameView
+{
+
 public interface IAllCardDetailPresenter
 {
     public record CloseEvent() : IUniTaskPresenter.Event;
@@ -48,6 +51,7 @@ public record CardDetailProperty(
                             Utility.Dictionary<string, string>.EMPTY))
                     .ToArray()));
     }
+}
 }
 
 public class AllCardDetailPresenter : IAllCardDetailPresenter

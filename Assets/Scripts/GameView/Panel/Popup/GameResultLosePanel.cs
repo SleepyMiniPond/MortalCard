@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public interface IGameResultLosePanel
 {
     void Open();
@@ -32,4 +35,5 @@ public class GameResultLosePanel : MonoBehaviour, IGameResultLosePanel
         _panel.SetActive(false);
     }
 
+}
 }

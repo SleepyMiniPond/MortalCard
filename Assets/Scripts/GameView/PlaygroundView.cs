@@ -2,6 +2,9 @@ using System;
 using UnityEngine;
 using MortalGame.GameView;
 
+namespace MortalGame.GameView
+{
+
 public class PlaygroundView : MonoBehaviour, ISelectableView
 {
     public RectTransform RectTransform => transform.GetComponent<RectTransform>();
@@ -14,4 +17,5 @@ public class PlaygroundView : MonoBehaviour, ISelectableView
     public void OnDeselect()
     {
     }
+}
 }

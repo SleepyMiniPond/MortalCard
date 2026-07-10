@@ -6,6 +6,9 @@ using Optional;
 using UniRx;
 using UnityEngine;
 
+namespace MortalGame.GameView
+{
+
 public interface IUniTaskPresenter
 {
     public abstract record Event();
@@ -82,4 +85,5 @@ public class UniTaskPresenter : IUniTaskPresenter
             _currentTask = Option.Some(task);
         }
     }
+}
 }
