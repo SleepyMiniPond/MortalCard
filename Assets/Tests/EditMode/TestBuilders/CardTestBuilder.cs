@@ -1,39 +1,43 @@
 using System.Collections.Generic;
 
-public static class CardTestBuilder
+namespace MortalGame.Tests
 {
-    public const string CardId = "test-card";
 
-    public static CardData CreateCardData(string cardId = CardId)
+    public static class CardTestBuilder
     {
-        return new CardData
+        public const string CardId = "test-card";
+
+        public static CardData CreateCardData(string cardId = CardId)
         {
-            ID = cardId,
-            Rarity = CardRarity.Common,
-            Type = CardType.Attack,
-            Cost = 0,
-            Power = 0,
-            Themes = new CardTheme[0],
-            Effects = new List<ICardEffect>(),
-            PropertyDatas = new List<ICardPropertyData>()
-        };
-    }
+            return new CardData
+            {
+                ID = cardId,
+                Rarity = CardRarity.Common,
+                Type = CardType.Attack,
+                Cost = 0,
+                Power = 0,
+                Themes = new CardTheme[0],
+                Effects = new List<ICardEffect>(),
+                PropertyDatas = new List<ICardPropertyData>()
+            };
+        }
 
-    public static ICardEntity CreateCard(CardLibrary cardLibrary, string cardId = CardId)
-    {
-        return CardEntity.RuntimeCreateFromId(cardId, cardLibrary);
-    }
+        public static ICardEntity CreateCard(CardLibrary cardLibrary, string cardId = CardId)
+        {
+            return CardEntity.RuntimeCreateFromId(cardId, cardLibrary);
+        }
 
-    public static ICardEntity CreateCardWithBuff(
-        TriggerContext context,
-        CardBuffLibrary cardBuffLibrary,
-        CardLibrary cardLibrary,
-        string cardId = CardId,
-        string buffId = BuffTestBuilder.CardBuffId)
-    {
-        var card = CreateCard(cardLibrary, cardId);
-        var buff = BuffTestBuilder.CreateCardBuff(context, cardBuffLibrary, buffId);
-        card.BuffManager.AddBuff(buff);
-        return card;
+        public static ICardEntity CreateCardWithBuff(
+            TriggerContext context,
+            CardBuffLibrary cardBuffLibrary,
+            CardLibrary cardLibrary,
+            string cardId = CardId,
+            string buffId = BuffTestBuilder.CardBuffId)
+        {
+            var card = CreateCard(cardLibrary, cardId);
+            var buff = BuffTestBuilder.CreateCardBuff(context, cardBuffLibrary, buffId);
+            card.BuffManager.AddBuff(buff);
+            return card;
+        }
     }
 }

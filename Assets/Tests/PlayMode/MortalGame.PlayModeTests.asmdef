@@ -1,6 +1,6 @@
 {
   "name": "MortalGame.PlayModeTests",
-  "rootNamespace": "",
+  "rootNamespace": "MortalGame.Tests",
   "references": [
     "MortalGame.Runtime"
   ],

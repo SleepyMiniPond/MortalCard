@@ -1,13 +1,17 @@
 using NUnit.Framework;
 
-public class EditModeTestAssemblySmokeTests
+namespace MortalGame.Tests
 {
-    [Test]
-    public void EditModeTestAssembly_CanReferenceRuntimeTypes()
-    {
-        var commandSet = new EffectCommandSet(System.Array.Empty<IEffectCommand>());
 
-        Assert.IsNotNull(commandSet);
-        Assert.IsEmpty(commandSet.Commands);
+    public class EditModeTestAssemblySmokeTests
+    {
+        [Test]
+        public void EditModeTestAssembly_CanReferenceRuntimeTypes()
+        {
+            var commandSet = new EffectCommandSet(System.Array.Empty<IEffectCommand>());
+
+            Assert.IsNotNull(commandSet);
+            Assert.IsEmpty(commandSet.Commands);
+        }
     }
 }

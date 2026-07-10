@@ -105,16 +105,16 @@
   - Unity EditMode tests：73 passed / 0 failed / 0 skipped
   - `dotnet build MortalGame.EditModeTests.csproj`：0 error
 
-### T-007：定義模組命名空間與 asmdef 遷移順序
-- **問題**：專案已開始導入 Runtime / Editor / Tests 的 asmdef 基礎，但大量類別仍缺少穩定命名空間與清楚模組邊界；若直接硬切 GameData / GameModel 可能引發程序集循環
-- **方向**：先定義命名空間與 asmdef 遷移順序，採漸進式整理 Runtime、Editor、Tests 邊界，避免一次性大搬家
+### T-007：完成模組命名空間、依賴反轉與 asmdef 遷移
+- **問題**：專案已開始導入 Runtime / Editor / Tests 的 asmdef 基礎，但大量類別仍缺少穩定命名空間與清楚模組邊界；GameData 的 `CreateEntity()` 與 GameModel 形成雙向依賴，若直接硬切會引發程序集循環
+- **方向**：採漸進式整理命名空間、Runtime / Editor / Tests 邊界，並將 Entity 建立責任由 GameData 移至 GameModel Factory / Builder 或等價單向設計；完成依賴反轉後，實際拆分 Runtime 子 assembly
 - **設計思路**：
   - 先確認 Runtime、Editor、EditMode Tests、PlayMode Tests 的引用方向與允許依賴
   - 為核心區域規劃命名空間，例如 GameModel、GameData、GameView、Presenter、Scene
-  - 暫緩硬切 GameData / GameModel assembly，先處理 Data 建立 Entity 造成的反向依賴
+  - 先處理 Data 建立 Entity 造成的反向依賴，再拆分 GameData / GameModel assembly
   - 建立小批次遷移準則：每次只移動一個清楚邊界，並以 EditMode 測試與 Unity compile 驗證
 - **影響檔案**：各 `.asmdef`、Runtime / Editor / Tests 目錄下的 C# 命名空間與引用
-- **狀態**：⬜ 未開始
+- **狀態**：🔄 進行中（2026-07-10）
 
 ### T-008：建立 ScriptableObject 資料驗證與 Resolver / Handler 註冊檢查
 - **問題**：Effect、Buff、CardData 等 ScriptableObject 資料與 Resolver / Handler registry 的缺漏，可能要到實際遊戲流程才爆錯，缺少提早檢查機制

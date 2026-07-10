@@ -3,126 +3,130 @@ using System.Linq;
 using System.Reflection;
 using NUnit.Framework;
 
-public class GameContextManagerTests
+namespace MortalGame.Tests
 {
-    [Test]
-    public void NewManager_ContextIsEmpty()
+
+    public class GameContextManagerTests
     {
-        var manager = GameContextTestBuilder.CreateContextManager();
-
-        Assert.AreEqual(GameContext.EMPTY, manager.Context);
-        Assert.AreEqual(Guid.Empty, manager.Context.SelectedPlayer);
-        Assert.AreEqual(Guid.Empty, manager.Context.SelectedCharacter);
-        Assert.AreEqual(Guid.Empty, manager.Context.SelectedCard);
-    }
-
-    [Test]
-    public void NewManager_WithSameRandomSeed_ProducesSameRandomSequence()
-    {
-        var first = GameContextTestBuilder.CreateContextManager(randomSeed: 12345);
-        var second = GameContextTestBuilder.CreateContextManager(randomSeed: 12345);
-
-        var firstValues = Enumerable.Range(0, 5)
-            .Select(_ => first.GameRandom.Range(0, 100))
-            .ToArray();
-        var secondValues = Enumerable.Range(0, 5)
-            .Select(_ => second.GameRandom.Range(0, 100))
-            .ToArray();
-
-        Assert.That(firstValues, Is.EqualTo(secondValues));
-    }
-
-    [Test]
-    public void SelectedPlayerScope_PushesAndRestoresPreviousContext()
-    {
-        var manager = GameContextTestBuilder.CreateContextManager();
-        var player = new AllyEntity(
-            Guid.NewGuid(),
-            new[] { new CharacterParameter { NameKey = "ally", CurrentHealth = 10, MaxHealth = 10 } },
-            currentEnergy: 0,
-            maxEnergy: 3,
-            handCardMaxCount: 5,
-            currentDisposition: 0,
-            maxDisposition: 10,
-            gameContext: manager);
-
-        using (SetSelectedPlayer(manager, player))
+        [Test]
+        public void NewManager_ContextIsEmpty()
         {
-            Assert.AreEqual(player.Identity, manager.Context.SelectedPlayer);
+            var manager = GameContextTestBuilder.CreateContextManager();
+
+            Assert.AreEqual(GameContext.EMPTY, manager.Context);
+            Assert.AreEqual(Guid.Empty, manager.Context.SelectedPlayer);
+            Assert.AreEqual(Guid.Empty, manager.Context.SelectedCharacter);
+            Assert.AreEqual(Guid.Empty, manager.Context.SelectedCard);
         }
 
-        Assert.AreEqual(GameContext.EMPTY, manager.Context);
-    }
-
-    [Test]
-    public void NestedSelectedScopes_RestoreOneLevelAtATime()
-    {
-        var manager = GameContextTestBuilder.CreateContextManager();
-        var player = new AllyEntity(
-            Guid.NewGuid(),
-            new[] { new CharacterParameter { NameKey = "ally", CurrentHealth = 10, MaxHealth = 10 } },
-            currentEnergy: 0,
-            maxEnergy: 3,
-            handCardMaxCount: 5,
-            currentDisposition: 0,
-            maxDisposition: 10,
-            gameContext: manager);
-        var character = player.MainCharacter;
-
-        using (SetSelectedPlayer(manager, player))
+        [Test]
+        public void NewManager_WithSameRandomSeed_ProducesSameRandomSequence()
         {
-            using (SetSelectedCharacter(manager, character))
+            var first = GameContextTestBuilder.CreateContextManager(randomSeed: 12345);
+            var second = GameContextTestBuilder.CreateContextManager(randomSeed: 12345);
+
+            var firstValues = Enumerable.Range(0, 5)
+                .Select(_ => first.GameRandom.Range(0, 100))
+                .ToArray();
+            var secondValues = Enumerable.Range(0, 5)
+                .Select(_ => second.GameRandom.Range(0, 100))
+                .ToArray();
+
+            Assert.That(firstValues, Is.EqualTo(secondValues));
+        }
+
+        [Test]
+        public void SelectedPlayerScope_PushesAndRestoresPreviousContext()
+        {
+            var manager = GameContextTestBuilder.CreateContextManager();
+            var player = new AllyEntity(
+                Guid.NewGuid(),
+                new[] { new CharacterParameter { NameKey = "ally", CurrentHealth = 10, MaxHealth = 10 } },
+                currentEnergy: 0,
+                maxEnergy: 3,
+                handCardMaxCount: 5,
+                currentDisposition: 0,
+                maxDisposition: 10,
+                gameContext: manager);
+
+            using (SetSelectedPlayer(manager, player))
             {
                 Assert.AreEqual(player.Identity, manager.Context.SelectedPlayer);
-                Assert.AreEqual(character.Identity, manager.Context.SelectedCharacter);
             }
 
-            Assert.AreEqual(player.Identity, manager.Context.SelectedPlayer);
-            Assert.AreEqual(Guid.Empty, manager.Context.SelectedCharacter);
-        }
-
-        Assert.AreEqual(GameContext.EMPTY, manager.Context);
-    }
-
-    [Test]
-    public void NoneSelection_PushesCloneAndRestoresPreviousContext()
-    {
-        var manager = GameContextTestBuilder.CreateContextManager();
-
-        using (SetSelectedCardToNone(manager))
-        {
             Assert.AreEqual(GameContext.EMPTY, manager.Context);
         }
 
-        Assert.AreEqual(GameContext.EMPTY, manager.Context);
-    }
+        [Test]
+        public void NestedSelectedScopes_RestoreOneLevelAtATime()
+        {
+            var manager = GameContextTestBuilder.CreateContextManager();
+            var player = new AllyEntity(
+                Guid.NewGuid(),
+                new[] { new CharacterParameter { NameKey = "ally", CurrentHealth = 10, MaxHealth = 10 } },
+                currentEnergy: 0,
+                maxEnergy: 3,
+                handCardMaxCount: 5,
+                currentDisposition: 0,
+                maxDisposition: 10,
+                gameContext: manager);
+            var character = player.MainCharacter;
 
-    private static IDisposable SetSelectedPlayer(GameContextManager manager, IPlayerEntity player)
-    {
-        return (IDisposable)GetContextMethod(nameof(GameContextManager.SetSelectedPlayer), typeof(IPlayerEntity))
-            .Invoke(manager, new[] { OptionTestValue.Some(typeof(IPlayerEntity), player) });
-    }
+            using (SetSelectedPlayer(manager, player))
+            {
+                using (SetSelectedCharacter(manager, character))
+                {
+                    Assert.AreEqual(player.Identity, manager.Context.SelectedPlayer);
+                    Assert.AreEqual(character.Identity, manager.Context.SelectedCharacter);
+                }
 
-    private static IDisposable SetSelectedCharacter(GameContextManager manager, ICharacterEntity character)
-    {
-        return (IDisposable)GetContextMethod(nameof(GameContextManager.SetSelectedCharacter), typeof(ICharacterEntity))
-            .Invoke(manager, new[] { OptionTestValue.Some(typeof(ICharacterEntity), character) });
-    }
+                Assert.AreEqual(player.Identity, manager.Context.SelectedPlayer);
+                Assert.AreEqual(Guid.Empty, manager.Context.SelectedCharacter);
+            }
 
-    private static IDisposable SetSelectedCardToNone(GameContextManager manager)
-    {
-        return (IDisposable)GetContextMethod(nameof(GameContextManager.SetSelectedCard), typeof(ICardEntity))
-            .Invoke(manager, new[] { OptionTestValue.None(typeof(ICardEntity)) });
-    }
+            Assert.AreEqual(GameContext.EMPTY, manager.Context);
+        }
 
-    private static MethodInfo GetContextMethod(string name, Type valueType)
-    {
-        var parameterType = OptionTestValue.OptionOf(valueType);
-        return typeof(GameContextManager)
-            .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-            .Single(method =>
-                method.Name == name &&
-                method.GetParameters().Length == 1 &&
-                method.GetParameters()[0].ParameterType == parameterType);
+        [Test]
+        public void NoneSelection_PushesCloneAndRestoresPreviousContext()
+        {
+            var manager = GameContextTestBuilder.CreateContextManager();
+
+            using (SetSelectedCardToNone(manager))
+            {
+                Assert.AreEqual(GameContext.EMPTY, manager.Context);
+            }
+
+            Assert.AreEqual(GameContext.EMPTY, manager.Context);
+        }
+
+        private static IDisposable SetSelectedPlayer(GameContextManager manager, IPlayerEntity player)
+        {
+            return (IDisposable)GetContextMethod(nameof(GameContextManager.SetSelectedPlayer), typeof(IPlayerEntity))
+                .Invoke(manager, new[] { OptionTestValue.Some(typeof(IPlayerEntity), player) });
+        }
+
+        private static IDisposable SetSelectedCharacter(GameContextManager manager, ICharacterEntity character)
+        {
+            return (IDisposable)GetContextMethod(nameof(GameContextManager.SetSelectedCharacter), typeof(ICharacterEntity))
+                .Invoke(manager, new[] { OptionTestValue.Some(typeof(ICharacterEntity), character) });
+        }
+
+        private static IDisposable SetSelectedCardToNone(GameContextManager manager)
+        {
+            return (IDisposable)GetContextMethod(nameof(GameContextManager.SetSelectedCard), typeof(ICardEntity))
+                .Invoke(manager, new[] { OptionTestValue.None(typeof(ICardEntity)) });
+        }
+
+        private static MethodInfo GetContextMethod(string name, Type valueType)
+        {
+            var parameterType = OptionTestValue.OptionOf(valueType);
+            return typeof(GameContextManager)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .Single(method =>
+                    method.Name == name &&
+                    method.GetParameters().Length == 1 &&
+                    method.GetParameters()[0].ParameterType == parameterType);
+        }
     }
 }

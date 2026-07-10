@@ -7,6 +7,9 @@ using Sirenix.OdinInspector;
 using UnityEditor;
 using UnityEngine;
 
+namespace MortalGame.Editor
+{
+
 public static class DropdownHelper
 {
     const string BuffFolderPath = "Assets/ScriptableObjects/PlayerBuff";
@@ -70,4 +73,5 @@ public static class DropdownHelper
             return options;
         }
     }
+}
 }

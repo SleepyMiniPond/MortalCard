@@ -1,6 +1,6 @@
 {
   "name": "MortalGame.Runtime",
-  "rootNamespace": "",
+  "rootNamespace": "MortalGame",
   "references": [
     "UniRx",
     "UniTask",
