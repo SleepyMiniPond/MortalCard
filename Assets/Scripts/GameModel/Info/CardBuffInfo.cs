@@ -1,7 +1,8 @@
 using System;
 using System.Collections.Generic;
-using Sirenix.Serialization.Utilities;
-using UnityEngine;
+
+namespace MortalGame.GameModel
+{
 
 public class CardBuffInfo
 {    
@@ -24,4 +25,5 @@ public class CardBuffInfo
             { KEY_LEVEL, Level.ToString() },
         };
     }
+}
 }

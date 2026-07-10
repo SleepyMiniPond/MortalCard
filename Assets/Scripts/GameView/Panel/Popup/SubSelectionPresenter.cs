@@ -6,6 +6,7 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using UniRx;
 using MortalGame.GameModel;
+using MortalGame.GameView;
 
 
 public interface ISubSelectionPresenter

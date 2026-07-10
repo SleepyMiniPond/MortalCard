@@ -3,6 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class HealthBarView : MonoBehaviour
 {
     [SerializeField]
@@ -27,4 +30,5 @@ public class HealthBarView : MonoBehaviour
         _shieldObjects.ForEach(obj => obj.SetActive(dp > 0));
         _dpText.text = dp.ToString();
     }
+}
 }

@@ -2,6 +2,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class EnemyInfoView : MonoBehaviour
 {
     [SerializeField]
@@ -64,4 +67,5 @@ public class EnemyInfoView : MonoBehaviour
     {
         _buffCollectionView.RemoveBuff(removeBuffEvent.Buff);
     }
+}
 }

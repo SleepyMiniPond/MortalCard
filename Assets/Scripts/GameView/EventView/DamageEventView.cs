@@ -3,6 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Playables;
 
+namespace MortalGame.GameView
+{
+
 public class DamageEventView : MonoBehaviour, IRecyclable, IAnimationNumberEventView
 {
     [SerializeField]
@@ -26,4 +29,5 @@ public class DamageEventView : MonoBehaviour, IRecyclable, IAnimationNumberEvent
         await _playableDirector.PlayAsync();
         gameObject.SetActive(false);
     }
+}
 }

@@ -2,6 +2,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class EnergyBarView : MonoBehaviour
 {
     [SerializeField]
@@ -17,4 +20,5 @@ public class EnergyBarView : MonoBehaviour
         _energyText.text = energy.ToString();
         _maxEnergyText.text = maxEnergy.ToString();
     }
+}
 }

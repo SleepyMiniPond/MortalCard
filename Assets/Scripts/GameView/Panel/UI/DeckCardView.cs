@@ -3,6 +3,9 @@ using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class DeckCardView : MonoBehaviour
 {
     [SerializeField]
@@ -23,4 +26,5 @@ public class DeckCardView : MonoBehaviour
             .Subscribe(deckInfo => _deckCountText.text = deckInfo.Count.ToString())
             .AddTo(_disposables);
     }
+}
 }

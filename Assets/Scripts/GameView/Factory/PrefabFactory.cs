@@ -1,6 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+namespace MortalGame.GameView
+{
+
 public interface IRecyclable
 {
     void Reset();
@@ -31,4 +34,5 @@ public class PrefabFactory<T> : MonoBehaviour where T : MonoBehaviour, IRecyclab
         view.transform.SetParent(_recycleRoot, false);
         _pool.Push(view);
     }
+}
 }

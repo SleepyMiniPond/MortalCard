@@ -12,6 +12,9 @@ using MortalGame.GameView;
 using MortalGame.GameModel;
 
 
+namespace MortalGame.GameView
+{
+
 public class AllyHandCardView : MonoBehaviour
 {
     [BoxGroup("Card View")]
@@ -414,4 +417,5 @@ public class AllyHandCardView : MonoBehaviour
         );
     }
     #endregion
+}
 }

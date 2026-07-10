@@ -3,6 +3,9 @@ using System.Collections.Generic;
 using UnityEngine;
 using MortalGame.GameView;
 
+namespace MortalGame.GameView
+{
+
 public class EnemyCharacterView : BaseCharacterView, ISelectableView
 {
     [SerializeField]
@@ -34,4 +37,5 @@ public class EnemyCharacterView : BaseCharacterView, ISelectableView
     public void OnDeselect()
     {
     }
+}
 }

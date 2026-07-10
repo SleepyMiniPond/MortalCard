@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
-using MortalGame.GameModel;
+
+namespace MortalGame.GameModel
+{
 
 public record MainSelectionInfo(
     SelectType SelectType,
@@ -84,4 +86,5 @@ public static class SelectionInfoUtility
                 return false;
         }
     }
+}
 }

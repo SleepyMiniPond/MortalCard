@@ -2,6 +2,9 @@ using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class SubmitView : MonoBehaviour
 {
     [SerializeField]
@@ -14,4 +17,5 @@ public class SubmitView : MonoBehaviour
                 reciever.RecieveEvent(new TurnSubmitCommand(Faction.Ally)))
             .AddTo(this);
     }
+}
 }

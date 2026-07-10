@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
+using MortalGame.GameView;
 
 public interface IAllCardDetailPanel
 {

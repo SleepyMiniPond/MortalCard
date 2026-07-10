@@ -1,6 +1,9 @@
 using TMPro;
 using UnityEngine;
 
+namespace MortalGame.GameView
+{
+
 public class TopBarInfoView : MonoBehaviour
 {
     [SerializeField]
@@ -10,4 +13,5 @@ public class TopBarInfoView : MonoBehaviour
     {
         _TurnText.text = currentTurn.ToString();
     }
+}
 }

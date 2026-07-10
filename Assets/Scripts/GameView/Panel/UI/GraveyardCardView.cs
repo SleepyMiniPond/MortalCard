@@ -3,6 +3,9 @@ using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class GraveyardCardView : MonoBehaviour
 {
     [SerializeField]
@@ -23,4 +26,5 @@ public class GraveyardCardView : MonoBehaviour
             .Subscribe(graveyardInfo => _graveyardCountText.text = graveyardInfo.Count.ToString())
             .AddTo(_disposables);
     }
+}
 }

@@ -3,7 +3,11 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using MortalGame.UI;
+using MortalGame.GameView;
 
+
+namespace MortalGame.GameView
+{
 
 public class CardPropertyHint : MonoBehaviour
 {
@@ -70,4 +74,5 @@ public class CardPropertyHint : MonoBehaviour
         _propertyViews.Clear();
         _content.gameObject.SetActive(false);
     }
+}
 }

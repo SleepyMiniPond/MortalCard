@@ -6,6 +6,10 @@ using DG.Tweening;
 using JetBrains.Annotations;
 using Sirenix.OdinInspector;
 using UnityEngine;
+using MortalGame.GameView;
+
+namespace MortalGame.GameView
+{
 
 public abstract class BaseCharacterView : MonoBehaviour
 {
@@ -135,4 +139,5 @@ public abstract class BaseCharacterView : MonoBehaviour
                 break;
         }        
     }
+}
 }

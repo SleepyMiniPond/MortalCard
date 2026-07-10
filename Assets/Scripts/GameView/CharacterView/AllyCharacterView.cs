@@ -7,6 +7,9 @@ using JetBrains.Annotations;
 using UnityEngine;
 using MortalGame.GameView;
 
+namespace MortalGame.GameView
+{
+
 public class AllyCharacterView : BaseCharacterView, ISelectableView
 {
     [SerializeField]
@@ -39,4 +42,5 @@ public class AllyCharacterView : BaseCharacterView, ISelectableView
     public void OnDeselect()
     {
     }
+}
 }

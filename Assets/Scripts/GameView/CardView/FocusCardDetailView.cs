@@ -2,6 +2,9 @@ using Sirenix.OdinInspector;
 using UnityEngine;
 using MortalGame.UI;
 
+namespace MortalGame.GameView
+{
+
 public class FocusCardDetailView : MonoBehaviour
 {
     [SerializeField]
@@ -48,4 +51,5 @@ public class FocusCardDetailView : MonoBehaviour
 
         _panel.SetActive(false);
     }
+}
 }

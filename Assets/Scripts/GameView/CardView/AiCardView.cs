@@ -8,6 +8,9 @@ using UnityEngine.UI;
 using MortalGame.GameView;
 using MortalGame.GameModel;
 
+namespace MortalGame.GameView
+{
+
 public interface IAiCardView : IRecyclable, ISelectableView
 {
     void SetCardInfo(CardInfo cardInfo, LocalizeLibrary localizeLibrary);
@@ -64,4 +67,5 @@ public class AiCardView : MonoBehaviour, IAiCardView
     public void OnDeselect()
     {
     }
+}
 }

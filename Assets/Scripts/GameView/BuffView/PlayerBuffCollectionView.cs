@@ -2,6 +2,10 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using MortalGame.GameModel;
+using MortalGame.GameView;
+
+namespace MortalGame.GameView
+{
 
 public class PlayerBuffCollectionView : MonoBehaviour
 {
@@ -47,4 +51,5 @@ public class PlayerBuffCollectionView : MonoBehaviour
             _buffViewFactory.RecyclePrefab(buffView);
         }
     }
+}
 }

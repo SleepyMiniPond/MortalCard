@@ -5,6 +5,9 @@ using UnityEngine;
 using UnityEngine.SocialPlatforms;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class DispositionView : MonoBehaviour
 {
     [SerializeField]
@@ -53,4 +56,5 @@ public class DispositionView : MonoBehaviour
         var localizeInfo = _localizeLibrary.Get(LocalizeTitleInfoType.KeyWord, dispositionId);
         _dispositionText.text = localizeInfo.Title;
     }
+}
 }

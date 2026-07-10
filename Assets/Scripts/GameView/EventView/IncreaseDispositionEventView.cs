@@ -3,6 +3,9 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.Playables;
 
+namespace MortalGame.GameView
+{
+
 public class IncreaseDispositionEventView: MonoBehaviour, IRecyclable, IAnimationNumberEventView
 {
     [SerializeField]
@@ -26,4 +29,5 @@ public class IncreaseDispositionEventView: MonoBehaviour, IRecyclable, IAnimatio
         await _playableDirector.PlayAsync();
         gameObject.SetActive(false);
     }
+}
 }

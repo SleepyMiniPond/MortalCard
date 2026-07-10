@@ -3,6 +3,9 @@ using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
+namespace MortalGame.GameView
+{
+
 public class AllyInfoView : MonoBehaviour
 {
     [SerializeField]
@@ -70,4 +73,5 @@ public class AllyInfoView : MonoBehaviour
     {
         _buffCollectionView.RemoveBuff(removeBuffEvent.Buff);
     }
+}
 }

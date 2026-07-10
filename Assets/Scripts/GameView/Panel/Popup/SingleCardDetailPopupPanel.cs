@@ -1,6 +1,7 @@
 using Cysharp.Threading.Tasks;
 using UniRx;
 using UnityEngine;
+using MortalGame.GameView;
 using UnityEngine.UI;
 
 public class SingleCardDetailPopupPanel : MonoBehaviour

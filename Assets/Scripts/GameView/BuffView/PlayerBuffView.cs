@@ -6,6 +6,10 @@ using UnityEngine;
 using MortalGame.UI;
 using UnityEngine.UI;
 using MortalGame.GameModel;
+using MortalGame.GameView;
+
+namespace MortalGame.GameView
+{
 
 public class PlayerBuffView : MonoBehaviour, IRecyclable
 {
@@ -81,4 +85,5 @@ public class PlayerBuffView : MonoBehaviour, IRecyclable
         // Disposed object can't be reused by same instance.
         _disposables = new CompositeDisposable();
     }
+}
 }

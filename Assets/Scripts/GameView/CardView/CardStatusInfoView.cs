@@ -1,7 +1,11 @@
 using System.Collections.Generic;
 using TMPro;
 using MortalGame.UI;
+using MortalGame.GameView;
 using UnityEngine;
+
+namespace MortalGame.GameView
+{
 
 public class CardBuffInfoView : MonoBehaviour, IRecyclable
 {
@@ -23,4 +27,5 @@ public class CardBuffInfoView : MonoBehaviour, IRecyclable
     public void Reset()
     {
     }
+}
 }

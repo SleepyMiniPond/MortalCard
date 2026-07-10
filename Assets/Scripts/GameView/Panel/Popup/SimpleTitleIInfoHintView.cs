@@ -3,6 +3,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using MortalGame.UI;
 
+namespace MortalGame.GameView
+{
+
 public class SimpleTitleInfoHintView : MonoBehaviour
 {    
     [SerializeField]
@@ -58,4 +61,5 @@ public class SimpleTitleInfoHintView : MonoBehaviour
         _titleText.text = string.Empty;
         _infoText.text = string.Empty;
     }
+}
 }

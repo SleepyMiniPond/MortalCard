@@ -1,5 +1,9 @@
 using TMPro;
 using UnityEngine;
+using MortalGame.GameView;
+
+namespace MortalGame.GameView
+{
 
 public class GameKeyWordInfoView : MonoBehaviour, IRecyclable
 {
@@ -18,4 +22,5 @@ public class GameKeyWordInfoView : MonoBehaviour, IRecyclable
     public void Reset()
     {
     }
+}
 }

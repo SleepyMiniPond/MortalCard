@@ -8,6 +8,9 @@ using UnityEngine.UI;
 using MortalGame.GameView;
 using MortalGame.GameModel;
 
+namespace MortalGame.GameView
+{
+
 public class EnemySelectedCardView : MonoBehaviour
 {
     [SerializeField]
@@ -146,4 +149,5 @@ public class EnemySelectedCardView : MonoBehaviour
             cardView.SetPositionAndRotation( new Vector3(x, 0, 0), Quaternion.identity );
         }
     }
+}
 }

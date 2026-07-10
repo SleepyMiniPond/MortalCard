@@ -2,6 +2,9 @@ using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.Playables;
 
+namespace MortalGame.GameView
+{
+
 public static class PlayableDirectorExtensions
 {
     public static UniTask PlayAsync(this PlayableDirector self)
@@ -9,4 +12,5 @@ public static class PlayableDirectorExtensions
         self.Play();
         return UniTask.WaitWhile(() => self.state == PlayState.Playing);
     }
+}
 }

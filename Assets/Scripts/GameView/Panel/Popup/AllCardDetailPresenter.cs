@@ -6,6 +6,7 @@ using Cysharp.Threading.Tasks;
 using Optional;
 using UniRx;
 using MortalGame.GameModel;
+using MortalGame.GameView;
 
 public interface IAllCardDetailPresenter
 {

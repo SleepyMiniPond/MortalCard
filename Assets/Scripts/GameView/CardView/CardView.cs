@@ -12,6 +12,9 @@ using MortalGame.UI;
 using MortalGame.GameView;
 using MortalGame.GameModel;
 
+namespace MortalGame.GameView
+{
+
 public interface IDragableCardView
 {
     public enum DradTargetStatus
@@ -314,4 +317,5 @@ public class CardView : MonoBehaviour, ICardView
                 .OnComplete(() => _currentMoveTween.Kill());
         }
     }
+}
 }
