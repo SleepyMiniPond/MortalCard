@@ -21,15 +21,14 @@ namespace MortalGame.GameView
         public void Init(IGameplayModel statusWatcher)
         {
             _statusWatcher = statusWatcher;
-            _timmer = 0;
         }
 
-        public void SummonAlly(AllySummonEvent allySummonEvent)
+        public ICharacterAnimationLifetime SummonAlly(AllySummonEvent allySummonEvent)
         {
             Debug.Log($"Summon Ally: {allySummonEvent.Player.MainCharacter.NameKey}");
             _playerIdentity = allySummonEvent.Player.MainCharacter.Identity;
 
-            _Run().Forget();
+            return _StartAnimationWorker();
         }
 
         public void OnSelect()

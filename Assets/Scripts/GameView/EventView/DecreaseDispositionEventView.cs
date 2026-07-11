@@ -1,18 +1,14 @@
-using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Playables;
 
 namespace MortalGame.GameView
 {
 
-    public class DecreaseDispositionEventView : MonoBehaviour, IRecyclable, IAnimationNumberEventView
+    public class DecreaseDispositionEventView : BaseAnimationEventView
     {
         [SerializeField]
         private TextMeshProUGUI _text;
-        [SerializeField]
-        private PlayableDirector _playableDirector;
 
         public void SetEventInfo(DecreaseDispositionEvent decreaseDispositionEvent, Transform parent)
         {
@@ -20,15 +16,5 @@ namespace MortalGame.GameView
             _text.text = decreaseDispositionEvent.DeltaDisposition.ToString();
         }
 
-        public void Reset()
-        {
-        }
-
-        public async UniTask PlayAnimation()
-        {
-            gameObject.SetActive(true);
-            await _playableDirector.PlayAsync();
-            gameObject.SetActive(false);
-        }
     }
 }

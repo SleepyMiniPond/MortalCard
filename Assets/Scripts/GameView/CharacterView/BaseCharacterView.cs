@@ -1,7 +1,5 @@
 using MortalGame.GameModel;
-using System.Collections.Generic;
-using System.Threading;
-using Cysharp.Threading.Tasks;
+using Optional;
 using Sirenix.OdinInspector;
 using UnityEngine;
 namespace MortalGame.GameView
@@ -37,103 +35,40 @@ namespace MortalGame.GameView
         [SerializeField]
         protected float _minTimeInterval;
 
-        protected float _timmer = 0;
-        protected Queue<IAnimationNumberEvent> _animationEventBuffer;
+        protected Option<ICharacterAnimationLifetime> _animationLifetime =
+            Option.None<ICharacterAnimationLifetime>();
         protected IGameplayModel _statusWatcher;
 
         public void UpdateHealth(IAnimationNumberEvent healthEvent)
         {
-            _animationEventBuffer.Enqueue(healthEvent);
+            _animationLifetime.MatchSome(lifetime => lifetime.Enqueue(healthEvent));
         }
         public void UpdateEnergy(IAnimationNumberEvent energyEvent)
         {
-            _animationEventBuffer.Enqueue(energyEvent);
+            _animationLifetime.MatchSome(lifetime => lifetime.Enqueue(energyEvent));
         }
         public void UpdateDisposition(IAnimationNumberEvent dispositionEvent)
         {
-            _animationEventBuffer.Enqueue(dispositionEvent);
+            _animationLifetime.MatchSome(lifetime => lifetime.Enqueue(dispositionEvent));
         }
 
-        protected async UniTaskVoid _Run(CancellationToken cancellationToken = default)
+        protected ICharacterAnimationLifetime _StartAnimationWorker()
         {
-            _animationEventBuffer = new Queue<IAnimationNumberEvent>();
-            while (!cancellationToken.IsCancellationRequested)
-            {
-                _timmer += Time.deltaTime;
-                if (_timmer >= _minTimeInterval)
-                {
-                    _timmer -= _minTimeInterval;
-                    if (_animationEventBuffer.TryDequeue(out var animationEvent))
-                    {
-                        _PlayHealthEventAnimation(animationEvent).Forget();
-                    }
-                }
-
-                await UniTask.NextFrame();
-            }
-            _animationEventBuffer.Clear();
-        }
-
-        protected async UniTaskVoid _PlayHealthEventAnimation(IAnimationNumberEvent animationEvent)
-        {
-            switch (animationEvent)
-            {
-                case DamageEvent takeDamageEvent:
-                    var damageEventView = _damageEventViewFactory.CreatePrefab();
-                    damageEventView.SetEventInfo(takeDamageEvent, _eventViewParent);
-
-                    await damageEventView.PlayAnimation();
-                    _damageEventViewFactory.RecyclePrefab(damageEventView);
-                    break;
-
-                case GetHealEvent getHealEvent:
-                    var healEventView = _healEventViewFactory.CreatePrefab();
-                    healEventView.SetEventInfo(getHealEvent, _eventViewParent);
-
-                    await healEventView.PlayAnimation();
-                    _healEventViewFactory.RecyclePrefab(healEventView);
-                    break;
-
-                case GetShieldEvent getShieldEvent:
-                    var shieldEventView = _shieldEventViewFactory.CreatePrefab();
-                    shieldEventView.SetEventInfo(getShieldEvent, _eventViewParent);
-
-                    await shieldEventView.PlayAnimation();
-                    _shieldEventViewFactory.RecyclePrefab(shieldEventView);
-                    break;
-
-                case GainEnergyEvent gainEnergyEvent:
-                    var gainEnergyEventView = _gainEnergyEventViewFactory.CreatePrefab();
-                    gainEnergyEventView.SetEventInfo(gainEnergyEvent, _eventViewParent);
-
-                    await gainEnergyEventView.PlayAnimation();
-                    _gainEnergyEventViewFactory.RecyclePrefab(gainEnergyEventView);
-                    break;
-
-                case LoseEnergyEvent loseEnergyEvent:
-                    var loseEnergyEventView = _loseEnergyEventViewFactory.CreatePrefab();
-                    loseEnergyEventView.SetEventInfo(loseEnergyEvent, _eventViewParent);
-
-                    await loseEnergyEventView.PlayAnimation();
-                    _loseEnergyEventViewFactory.RecyclePrefab(loseEnergyEventView);
-                    break;
-
-                case IncreaseDispositionEvent increaseDispositionEvent:
-                    var increaseDispositionEventView = _increaseDispositionEventViewFactory.CreatePrefab();
-                    increaseDispositionEventView.SetEventInfo(increaseDispositionEvent, _eventViewParent);
-
-                    await increaseDispositionEventView.PlayAnimation();
-                    _increaseDispositionEventViewFactory.RecyclePrefab(increaseDispositionEventView);
-                    break;
-
-                case DecreaseDispositionEvent decreaseDispositionEvent:
-                    var decreaseDispositionEventView = _decreaseDispositionEventViewFactory.CreatePrefab();
-                    decreaseDispositionEventView.SetEventInfo(decreaseDispositionEvent, _eventViewParent);
-
-                    await decreaseDispositionEventView.PlayAnimation();
-                    _decreaseDispositionEventViewFactory.RecyclePrefab(decreaseDispositionEventView);
-                    break;
-            }
+            ICharacterEventAnimationPlayer animationPlayer =
+                new CharacterEventAnimationPlayer(
+                    _damageEventViewFactory,
+                    _healEventViewFactory,
+                    _shieldEventViewFactory,
+                    _gainEnergyEventViewFactory,
+                    _loseEnergyEventViewFactory,
+                    _increaseDispositionEventViewFactory,
+                    _decreaseDispositionEventViewFactory,
+                    _eventViewParent);
+            var worker = new CharacterAnimationWorker(
+                animationPlayer.Play,
+                _minTimeInterval);
+            _animationLifetime = Option.Some<ICharacterAnimationLifetime>(worker);
+            return worker;
         }
     }
 }

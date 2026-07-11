@@ -20,7 +20,9 @@ namespace MortalGame.Presenter
         public record SelectCardEvent(CardInfo CardInfo, ICardView CardView) : IUniTaskPresenter.Event;
         public record LongTouchCardEvent(CardInfo CardInfo, ICardView CardView) : IUniTaskPresenter.Event;
 
-        UniTask<IReadOnlyDictionary<string, ISubSelectionAction>> RunSubSelection(SubSelectionInfo subSelectionInfoOpt);
+    UniTask<IReadOnlyDictionary<string, ISubSelectionAction>> RunSubSelection(
+        SubSelectionInfo subSelectionInfoOpt,
+        CancellationToken cancellationToken);
     }
 
     public class SubSelectionPresenter : ISubSelectionPresenter
@@ -43,7 +45,9 @@ namespace MortalGame.Presenter
             _uniTaskPresenter = new UniTaskPresenter();
         }
 
-        public async UniTask<IReadOnlyDictionary<string, ISubSelectionAction>> RunSubSelection(SubSelectionInfo subSelectionInfo)
+        public async UniTask<IReadOnlyDictionary<string, ISubSelectionAction>> RunSubSelection(
+            SubSelectionInfo subSelectionInfo,
+            CancellationToken cancellationToken)
         {
             var subSelectionActions = new Dictionary<string, ISubSelectionAction>();
 
@@ -52,7 +56,9 @@ namespace MortalGame.Presenter
                 switch (kvp.Value)
                 {
                     case ExistCardSelectionInfo existCardSelection:
-                        var subSelectionAction = await _RunExistCardSelection(existCardSelection);
+                    var subSelectionAction = await _RunExistCardSelection(
+                        existCardSelection,
+                        cancellationToken);
                         subSelectionActions[kvp.Key] = subSelectionAction;
                         break;
                 }
@@ -61,7 +67,9 @@ namespace MortalGame.Presenter
             return subSelectionActions;
         }
 
-        private async UniTask<ExistCardSubSelectionAction> _RunExistCardSelection(ExistCardSelectionInfo existCardSelection)
+        private async UniTask<ExistCardSubSelectionAction> _RunExistCardSelection(
+            ExistCardSelectionInfo existCardSelection,
+            CancellationToken cancellationToken)
         {
             var isClose = false;
             var isVisible = true;
@@ -70,13 +78,18 @@ namespace MortalGame.Presenter
 
             _cardSelectionPanel.Open(CreateProperty());
 
+        try
+        {
             await _uniTaskPresenter.Run(
                 disposables,
                 () => !isClose,
-                CancellationToken.None,
+                cancellationToken,
                 EventHandler);
-
+        }
+        finally
+        {
             _cardSelectionPanel.Close();
+        }
 
             return new ExistCardSubSelectionAction(selectedCardIds);
 
@@ -119,8 +132,10 @@ namespace MortalGame.Presenter
                         break;
 
                     case ISubSelectionPresenter.LongTouchCardEvent longTouchCardEvent:
-                        return _singleCardDetailPopupPanel
-                            .Run(CardDetailProperty.Create(longTouchCardEvent.CardInfo))
+                    return _singleCardDetailPopupPanel
+                        .Run(
+                            CardDetailProperty.Create(longTouchCardEvent.CardInfo),
+                            cancellationToken)
                             .ContinueWith<IUniTaskPresenter.Event>(
                                 () => new IUniTaskPresenter.None());
                 }

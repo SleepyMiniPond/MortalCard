@@ -4,6 +4,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using Optional;
 namespace MortalGame.GameModel
@@ -25,7 +26,7 @@ namespace MortalGame.GameModel
             _queue.Enqueue(task);
         }
 
-        public async UniTask<T> Dequeue()
+        public async UniTask<T> Dequeue(CancellationToken cancellationToken)
         {
             while (true)
             {
@@ -34,7 +35,7 @@ namespace MortalGame.GameModel
                     return result;
                 }
 
-                await UniTask.Yield();
+                await UniTask.NextFrame(cancellationToken);
             }
         }
 
@@ -89,13 +90,14 @@ namespace MortalGame.GameModel
             _gameStatus = initialStatus;
         }
 
-        public async UniTask<Option<BattleResult>> StartBattle()
+        public async UniTask<Option<BattleResult>> StartBattle(
+            CancellationToken cancellationToken)
         {
             _gameEvents = new List<IGameEvent>();
             _gameActions = new UniTaskAwaitableQueue<IGameAction>();
             _battleResult = Option.None<BattleResult>();
 
-            await _Run();
+            await _Run(cancellationToken);
 
             return _battleResult;
         }
@@ -123,7 +125,7 @@ namespace MortalGame.GameModel
                 });
         }
 
-        private async UniTask _Run()
+        private async UniTask _Run(CancellationToken cancellationToken)
         {
             _GameStart();
 
@@ -137,7 +139,7 @@ namespace MortalGame.GameModel
 
                     _EnemyPrepare();
 
-                    await _PlayerExecute();
+                    await _PlayerExecute(cancellationToken);
 
                     _EnemyExecute();
 
@@ -275,7 +277,7 @@ namespace MortalGame.GameModel
             _CheckGameEnd();
         }
 
-        public async UniTask _PlayerExecute()
+        public async UniTask _PlayerExecute(CancellationToken cancellationToken)
         {
             using var allyStatus = _gameStatus.SetCurrentPlayer(_gameStatus.Ally);
 
@@ -288,7 +290,7 @@ namespace MortalGame.GameModel
             var isExecuting = true;
             while (isExecuting)
             {
-                var action = await _gameActions.Dequeue();
+                var action = await _gameActions.Dequeue(cancellationToken);
 
                 switch (action)
                 {

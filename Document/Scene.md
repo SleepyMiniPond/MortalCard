@@ -1,6 +1,6 @@
 # Scene 場景管理
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-07-12 | 版本：v2.1
 
 ## 設計理念
 
@@ -23,6 +23,10 @@ Main.StartGame()
 ```
 
 Main 使用 `UniTask` 非同步執行整個流程，每個場景回傳一個結果物件決定下一步。
+
+### 場景取消邊界
+
+`Main` 以自身的 Unity 銷毀 Token 作為主迴圈根生命週期，並將 Token 傳入 SceneLoadManager 與各 Scene `Run()`。每個 Scene 再連結自身的銷毀 Token，使場景載入、等待輸入與 Presenter 流程能在 Main 結束或 Scene 卸載時共同取消。下層 linked scope 的主動取消不會反向取消 Main。
 
 ## 場景列表
 
@@ -55,6 +59,7 @@ Main 使用 `UniTask` 非同步執行整個流程，每個場景回傳一個結�
 提供非同步的場景載入工具：
 - 使用 `SceneManager.LoadSceneAsync()` 進行非同步載入
 - 以 `UniTask` 包裝 Unity 的非同步操作
+- 接收上層 `CancellationToken`，讓載入途中仍受主迴圈生命週期控制
 - 確保場景轉換的平順
 
 ## 設計特點

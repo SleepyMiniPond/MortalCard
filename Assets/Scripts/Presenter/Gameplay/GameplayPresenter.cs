@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using MortalGame.GameModel;
 using MortalGame.GameData;
@@ -23,7 +24,7 @@ namespace MortalGame.Presenter
         private IGameResultLosePresenter _gameResultLosePresenter;
         private IGameResultWinPresenter _gameResultWinPresenter;
 
-        private readonly Queue<UniTask> _pendingActionTasks = new Queue<UniTask>();
+        private readonly Queue<IGameCommand> _pendingGameCommands = new Queue<IGameCommand>();
 
         public IEnumerable<ISelectableView> SelectableViews => _gameplayView.SelectableViews;
         public ISelectableView BasicSelectableView => _gameplayView.BasicSelectableView;
@@ -47,62 +48,107 @@ namespace MortalGame.Presenter
             _subSelectionPresenter = new SubSelectionPresenter(_gameInfoModel, gameContextManager.LocalizeLibrary, _gameplayView.SinglePopupPanel, _gameplayView.CardSelectionPanel);
         }
 
-        public async UniTask<GameplayResultCommand> Run()
+        public async UniTask<GameplayResultCommand> Run(CancellationToken cancellationToken)
         {
-            var cts = new CancellationTokenSource();
+            try
+            {
+                return await _Run(cancellationToken);
+            }
+            finally
+            {
+                await _gameplayView.DisposeCharacterViews();
+            }
+        }
 
-            _GameplayBattleActions(cts).Forget();
-            _uiPresenter.Run(cts.Token).Forget();
+        private async UniTask<GameplayResultCommand> _Run(CancellationToken cancellationToken)
+        {
+            using var battleCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-            var battleResult = await _gameplayManager.StartBattle();
+            var battleResult = Option.None<BattleResult>();
+            var battleTask = RunBattle().Preserve();
+            var gameplayEventTask = _GameplayBattleActions(battleCancellation.Token).Preserve();
+            var uiTask = _uiPresenter.Run(battleCancellation.Token).Preserve();
+            try
+            {
+                var completedTaskIndex = await UniTask.WhenAny(
+                    battleTask,
+                    gameplayEventTask,
+                    uiTask);
 
-            cts.Cancel();
+                if (completedTaskIndex != 0)
+                {
+                    var completedLoop = completedTaskIndex == 1 ? gameplayEventTask : uiTask;
+                    await completedLoop;
+                    throw new InvalidOperationException($"completedTask[{completedTaskIndex}] ended before the battle completed.");
+                }
+
+                await battleTask;
+            }
+            finally
+            {
+                battleCancellation.Cancel();
+                await UniTask.WhenAll(
+                    battleTask.SuppressCancellationThrow(),
+                    gameplayEventTask.SuppressCancellationThrow(),
+                    uiTask.SuppressCancellationThrow());
+            }
+
             _gameplayView.DisableAllInteraction();
 
             if (battleResult.Map(result => result.IsAllyWin).ValueOr(false))
             {
-                var winResult = await _gameResultWinPresenter.Run();
+                var winResult = await _gameResultWinPresenter.Run(cancellationToken);
                 return new GameplayResultCommand(winResult);
             }
             else
             {
-                var loseResult = await _gameResultLosePresenter.Run();
+                var loseResult = await _gameResultLosePresenter.Run(cancellationToken);
                 return new GameplayResultCommand(loseResult);
+            }
+
+            async UniTask RunBattle()
+            {
+                battleResult = await _gameplayManager.StartBattle(battleCancellation.Token);
             }
         }
 
         public void RecieveEvent(IGameCommand gameCommand)
         {
             Debug.Log($"-- GameplayPresenter.RecieveEvent:[{gameCommand}] --");
-            _pendingActionTasks.Enqueue(_ProcessGameAction(gameCommand));
+            _pendingGameCommands.Enqueue(gameCommand);
         }
 
-        private async UniTask<BattleResult> _GameplayBattleActions(CancellationTokenSource cts)
+        private async UniTask _GameplayBattleActions(CancellationToken cancellationToken)
         {
-            while (true)
+            while (!cancellationToken.IsCancellationRequested)
             {
-                while (_pendingActionTasks.Count > 0)
+                while (_pendingGameCommands.Count > 0)
                 {
-                    var actionTask = _pendingActionTasks.Dequeue();
-                    await actionTask;
+                    cancellationToken.ThrowIfCancellationRequested();
+                    var gameCommand = _pendingGameCommands.Dequeue();
+                    await _ProcessGameAction(gameCommand, cancellationToken);
                 }
 
-                await UniTask.Yield();
+                await UniTask.NextFrame(cancellationToken);
 
                 var events = _gameplayManager.PopAllEvents();
                 _gameplayView.Render(events, this);
             }
         }
 
-        private async UniTask _ProcessGameAction(IGameCommand gameCommand)
+        private async UniTask _ProcessGameAction(
+            IGameCommand gameCommand,
+            CancellationToken cancellationToken)
         {
             _gameplayView.DisableAllHandCards();
-            var postProcessAction = await _PostProcessAction(gameCommand);
+            var postProcessAction = await _PostProcessAction(gameCommand, cancellationToken);
 
             postProcessAction.MatchSome(action => _gameplayManager.EnqueueAction(action));
         }
 
-        private async UniTask<Option<IGameAction>> _PostProcessAction(IGameCommand gameCommand)
+        private async UniTask<Option<IGameAction>> _PostProcessAction(
+            IGameCommand gameCommand,
+            CancellationToken cancellationToken)
         {
             switch (gameCommand)
             {
@@ -113,7 +159,9 @@ namespace MortalGame.Presenter
                     var subSelectionOpt = _gameplayManager.QueryCardSubSelectionInfos(useCardCommand.CardIndentity);
                     if (subSelectionOpt.TryGetValue(out var subSelectionInfo))
                     {
-                        var subSelectionActions = await _subSelectionPresenter.RunSubSelection(subSelectionInfo);
+                        var subSelectionActions = await _subSelectionPresenter.RunSubSelection(
+                            subSelectionInfo,
+                            cancellationToken);
 
                         var action = new UseCardAction(
                             useCardCommand.CardIndentity,

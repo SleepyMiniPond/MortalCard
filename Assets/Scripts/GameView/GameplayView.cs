@@ -8,6 +8,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using MortalGame.GameData;
 using MortalGame.GameModel;
+using Optional;
 
 namespace MortalGame.GameView
 {
@@ -23,6 +24,7 @@ namespace MortalGame.GameView
         void Render(IReadOnlyCollection<IGameEvent> events, IGameplayActionReciever reciever);
         void DisableAllHandCards();
         void DisableAllInteraction();
+        UniTask DisposeCharacterViews();
 
         IEnumerable<ISelectableView> SelectableViews { get; }
         ISelectableView BasicSelectableView { get; }
@@ -114,6 +116,11 @@ namespace MortalGame.GameView
         EnemySelectedCardView IInteractionButtonView.EnemySelectedCardView => _enemySelectedCardView;
 
         private IGameViewModel _gameViewModel;
+        private Option<ICharacterAnimationLifetime> _allyCharacterLifetime =
+            Option.None<ICharacterAnimationLifetime>();
+        private Option<ICharacterAnimationLifetime> _enemyCharacterLifetime =
+            Option.None<ICharacterAnimationLifetime>();
+        private readonly List<UniTask> _retiredCharacterWorkers = new();
 
         public IEnumerable<ISelectableView> SelectableViews
         {
@@ -238,6 +245,29 @@ namespace MortalGame.GameView
             // TODO: disable other interaction
         }
 
+        public async UniTask DisposeCharacterViews()
+        {
+            var completions = _retiredCharacterWorkers.ToList();
+            _retiredCharacterWorkers.Clear();
+
+            DisposeAndCollect(_allyCharacterLifetime);
+            DisposeAndCollect(_enemyCharacterLifetime);
+            _allyCharacterLifetime = Option.None<ICharacterAnimationLifetime>();
+            _enemyCharacterLifetime = Option.None<ICharacterAnimationLifetime>();
+
+            await UniTask.WhenAll(
+                completions.Select(task => task.SuppressCancellationThrow()));
+
+            void DisposeAndCollect(Option<ICharacterAnimationLifetime> lifetimeOpt)
+            {
+                lifetimeOpt.MatchSome(lifetime =>
+                {
+                    lifetime.Dispose();
+                    completions.Add(lifetime.Completion);
+                });
+            }
+        }
+
         private void _UpdateGeneralInfo(GeneralUpdateEvent updateEvent)
         {
             foreach (var playerBuffInfo in updateEvent.PlayerBuffInfos)
@@ -256,11 +286,22 @@ namespace MortalGame.GameView
 
         private void _AllySummonEvent(AllySummonEvent allySummonEvent)
         {
-            _allyCharacterView.SummonAlly(allySummonEvent);
+            _Retire(_allyCharacterLifetime);
+            _allyCharacterLifetime = _allyCharacterView.SummonAlly(allySummonEvent).Some();
         }
         private void _EnemySummonEvent(EnemySummonEvent enemySummonEvent)
         {
-            _enemyCharacterView.SummonEnemy(enemySummonEvent);
+            _Retire(_enemyCharacterLifetime);
+            _enemyCharacterLifetime = _enemyCharacterView.SummonEnemy(enemySummonEvent).Some();
+        }
+
+        private void _Retire(Option<ICharacterAnimationLifetime> lifetimeOpt)
+        {
+            lifetimeOpt.MatchSome(lifetime =>
+            {
+                lifetime.Dispose();
+                _retiredCharacterWorkers.Add(lifetime.Completion);
+            });
         }
         private void _UpdateRoundAndPlayer(RoundStartEvent roundStartEvent)
         {

@@ -81,7 +81,23 @@
   - 對戰鬥結束、切場景、重新開始、離開戰鬥等路徑建立取消測試或最小驗證
   - 明確區分「背景 fire-and-forget」與「必須被場景生命週期管理」的非同步工作
 - **影響檔案**：`GameplayPresenter.cs`、Scene 相關 `Run()` 流程、可能包含 UI command / action loop
-- **狀態**：⬜ 未開始
+- **完成內容**：
+  - 建立 `Main → SceneLoadManager → Scene → Presenter → UI / Model` 的 CancellationToken 傳遞鏈；各 Scene 連結自身銷毀 Token，場景載入與長時間等待皆可取消
+  - `GameplayManager.StartBattle()`、玩家 Action 等待與相關長時間流程改為強制接收 Token，不保留可省略的 default token
+  - GameplayPresenter 保存並監督 Battle、Gameplay Event、UI 三條並行工作；Battle 正常完成後取消其餘工作並等待完全收斂，輔助 loop 提前完成或失敗則向上回報
+  - 玩家 pending queue 改存 `IGameCommand`，由單一 Gameplay Event loop Dequeue 後依序啟動處理，避免 UniTask 在入列時提前執行
+  - UI、SubSelection、卡片詳情 Popup 與勝負面板完整傳遞 Token，並以 `finally` 保證關閉面板與釋放 UniRx 訂閱
+  - 新增 `CharacterAnimationWorker`，以 `Dispose + Completion` 管理角色動畫事件佇列、進行中動畫與取消收斂，不再使用無主 `.Forget()`
+  - 新增 `ICharacterEventAnimationPlayer` / `CharacterEventAnimationPlayer` 分離動畫排程與事件呈現；新增 `BaseAnimationEventView` 統一 PlayableDirector 的取消、停止與隱藏生命週期
+  - GameplayView 管理 Ally / Enemy Character Worker；替換或戰鬥結束時 Dispose 並等待 Completion。多角色集合遷移已記錄於 T-013
+- **驗證結果**：
+  - Unity AssetDatabase refresh：成功，0 compile error
+  - Unity EditMode Tests：111 tests，狀態 Passed，0 failed（新增 4 項生命週期測試）
+  - `dotnet build MortalGame.Scene.csproj`：0 warning / 0 error
+  - `dotnet build MortalGame.EditModeTests.csproj`：0 warning / 0 error
+  - 七個 EventView Prefab 的 PlayableDirector 序列化引用保持有效
+- **已知限制**：勝利結果面板目前沒有正常關閉按鈕或完成事件，仍會等待 Scene 取消；屬既有功能缺口，不在 T-005 內擅自定義互動
+- **狀態**：✅ 已完成（2026-07-12）
 
 ### T-006：導入戰鬥專用決定性亂數服務
 - **問題**：`GameStageSetting.RandomSeed` 已存在，但洗牌、抽取與其他隨機行為仍可能直接使用 `UnityEngine.Random`，導致相同 seed 無法重現同一場戰鬥
@@ -202,6 +218,8 @@
   - 新增敵人：運行時建立 CharacterEntity 插入集合，View 層需動態生成 CharacterView
   - 敵人逃跑：標記角色離場（非死亡），移出戰鬥計算，View 層播放離場動畫
   - 影響層面廣：目標解析（`ITargetCharacterCollectionValue`）、勝負判定、EnemyLogic、View 排版
+  - T-005 目前依照「單一 Ally／單一 Enemy CharacterView」架構，分別以 `SerialDisposable` 管理最新角色的動畫生命週期；實作多角色時，必須改為以角色 Identity 管理 `CharacterView + IDisposable` 的動態集合
+  - 多角色 Summon 不可讓多條動畫 loop 共用同一個 CharacterView；應由 CharacterView Factory／物件池建立獨立 View，角色移除時按 Identity Dispose scope 並回收 View，戰鬥結束時再統一清理所有剩餘角色
 - **狀態**：⬜ 未開始
 
 ### T-014：Preview / Simulation 預演管線

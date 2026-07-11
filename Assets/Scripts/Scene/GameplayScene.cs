@@ -1,3 +1,4 @@
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MortalGame.Presenter;
 using MortalGame.GameModel;
@@ -16,8 +17,13 @@ namespace MortalGame.Scene
         [SerializeField]
         private GameResultLosePanel _gameResultLosePanel;
 
-        public async UniTask<GameplayResultCommand> Run(Context context)
+        public async UniTask<GameplayResultCommand> Run(
+            Context context,
+            CancellationToken cancellationToken)
         {
+            using var sceneCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                this.GetCancellationTokenOnDestroy());
             var battleBuilder = new BattleBuidler(context);
 
             var gameStageSetting = battleBuilder.ConstructBattle();
@@ -29,7 +35,7 @@ namespace MortalGame.Scene
                 gameStageSetting,
                 gameContextManager);
 
-            var result = await gameplayPresenter.Run();
+            var result = await gameplayPresenter.Run(sceneCancellation.Token);
 
             return result;
         }

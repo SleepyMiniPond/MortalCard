@@ -1,6 +1,6 @@
 # EventView 事件視圖
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-07-12 | 版本：v2.1
 
 ## 設計理念
 
@@ -10,16 +10,19 @@ EventView 系統負責戰鬥中的**數字動畫特效**——當角色受到傷
 
 每個 EventView 都遵循相同的設計模式：
 - 實作 `IAnimationNumberEventView`（非同步動畫契約）
-- 繼承 `MonoBehaviour` + `IRecyclable`
+- 繼承 `BaseAnimationEventView`，統一實作 `IRecyclable` 與動畫契約
 - 使用 `PlayableDirector` 驅動 Timeline 動畫
+- 接收 `CancellationToken`，取消時停止 Director 並隱藏 GameObject
 
 ### 生命週期
 
 ```
 SetEventInfo(Event, Parent)  → 從事件資料設定顯示文字
-PlayAnimation()              → 啟用 GameObject → 播放 Timeline → 完成後停用
+PlayAnimation(Token)         → 啟用 GameObject → 播放 Timeline → 完成或取消後停止並停用
 Reset()                      → 清理狀態，準備被物件池回收
 ```
+
+`BaseAnimationEventView` 以 `finally` 保證 Director 與 GameObject 狀態復原；CharacterEventAnimationPlayer 另以外層 `finally` 保證 Prefab 回收。兩層分別負責 EventView 自身狀態與 Factory 所有權。
 
 ## 事件類型
 
@@ -33,9 +36,9 @@ Reset()                      → 清理狀態，準備被物件池回收
 | IncreaseDispositionEventView | IncreaseDispositionEvent | 好感度增加 |
 | DecreaseDispositionEventView | DecreaseDispositionEvent | 好感度減少 |
 
-## IHealthEventView
+## IAnimationNumberEventView
 
-標記介面，用於識別與血量變化相關的事件視圖（Damage、Heal、Shield）。
+定義可取消的數字動畫播放契約。不同事件視圖只需負責將事件資料轉成顯示內容，共用播放生命週期由 BaseAnimationEventView 統一處理。
 
 ## 與其他系統的關係
 

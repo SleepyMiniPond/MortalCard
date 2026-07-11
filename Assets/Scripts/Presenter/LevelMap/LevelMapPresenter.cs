@@ -1,3 +1,4 @@
+using System.Threading;
 using MortalGame.Presentation.Abstractions;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
@@ -8,7 +9,7 @@ namespace MortalGame.Presenter
 
     public interface ILevelMapPresenter
     {
-        UniTask<LevelMapCommand> Run();
+        UniTask<LevelMapCommand> Run(CancellationToken cancellationToken);
     }
 
     public class LevelMapPresenter : ILevelMapPresenter
@@ -20,7 +21,7 @@ namespace MortalGame.Presenter
             _levelMapView = levelMapView;
         }
 
-        public async UniTask<LevelMapCommand> Run()
+        public async UniTask<LevelMapCommand> Run(CancellationToken cancellationToken)
         {
             var levelStatus = LevelMapStatus.Walk;
             var reactionType = LevelMapReactionType.Restart;
@@ -32,12 +33,18 @@ namespace MortalGame.Presenter
                     reactionType = LevelMapReactionType.StartGamePlay;
                 });
 
+            try
+            {
             while (!IsLevelMapQuit())
             {
-                await UniTask.NextFrame();
+                await UniTask.NextFrame(cancellationToken);
+            }
+            }
+            finally
+            {
+                disposable.Dispose();
             }
 
-            disposable.Dispose();
             return new LevelMapCommand(reactionType);
 
             bool IsLevelMapQuit()

@@ -1,3 +1,4 @@
+using System.Threading;
 using MortalGame.Presentation.Abstractions;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
@@ -10,7 +11,7 @@ namespace MortalGame.Presenter
 
     public interface IGameResultLosePresenter
     {
-        UniTask<GameplayLoseResult> Run();
+        UniTask<GameplayLoseResult> Run(CancellationToken cancellationToken);
     }
 
     public class GameResultLosePresenter : IGameResultLosePresenter
@@ -22,7 +23,7 @@ namespace MortalGame.Presenter
             _losePanel = losePanel;
         }
 
-        public async UniTask<GameplayLoseResult> Run()
+        public async UniTask<GameplayLoseResult> Run(CancellationToken cancellationToken)
         {
             var reactionType = LoseReactionType.Quit;
             var isClose = false;
@@ -51,13 +52,18 @@ namespace MortalGame.Presenter
                 .AddTo(disposables);
 
             _losePanel.Open();
-            while (!isClose)
+            try
             {
-                await UniTask.NextFrame();
+                while (!isClose)
+                {
+                    await UniTask.NextFrame(cancellationToken);
+                }
             }
-
-            _losePanel.Close();
-            disposables.Dispose();
+            finally
+            {
+                _losePanel.Close();
+                disposables.Dispose();
+            }
 
             return new GameplayLoseResult(reactionType);
         }

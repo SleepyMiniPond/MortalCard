@@ -1,3 +1,4 @@
+using System.Threading;
 using MortalGame.Presentation.Abstractions;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
@@ -9,7 +10,7 @@ namespace MortalGame.Presenter
 
     public interface IGameResultWinPresenter
     {
-        UniTask<GameplayWinResult> Run();
+        UniTask<GameplayWinResult> Run(CancellationToken cancellationToken);
     }
 
     public class GameResultWinPresenter : IGameResultWinPresenter
@@ -21,12 +22,20 @@ namespace MortalGame.Presenter
             _winPanel = winPanel;
         }
 
-        public async UniTask<GameplayWinResult> Run()
+        public async UniTask<GameplayWinResult> Run(CancellationToken cancellationToken)
         {
             var isClose = false;
-            while (!isClose)
+            _winPanel.Open();
+            try
             {
-                await UniTask.NextFrame();
+                while (!isClose)
+                {
+                    await UniTask.NextFrame(cancellationToken);
+                }
+            }
+            finally
+            {
+                _winPanel.Close();
             }
 
             return new GameplayWinResult();

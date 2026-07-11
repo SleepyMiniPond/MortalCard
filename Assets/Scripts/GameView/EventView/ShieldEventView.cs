@@ -1,18 +1,14 @@
-using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Playables;
 
 namespace MortalGame.GameView
 {
 
-    public class ShieldEventView : MonoBehaviour, IRecyclable, IAnimationNumberEventView
+    public class ShieldEventView : BaseAnimationEventView
     {
         [SerializeField]
         private TextMeshProUGUI _text;
-        [SerializeField]
-        private PlayableDirector _playableDirector;
 
         public void SetEventInfo(GetShieldEvent getShieldEvent, Transform parent)
         {
@@ -20,15 +16,5 @@ namespace MortalGame.GameView
             _text.text = getShieldEvent.GetShieldResult.ShieldPoint.ToString();
         }
 
-        public void Reset()
-        {
-        }
-
-        public async UniTask PlayAnimation()
-        {
-            gameObject.SetActive(true);
-            await _playableDirector.PlayAsync();
-            gameObject.SetActive(false);
-        }
     }
 }

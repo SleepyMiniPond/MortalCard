@@ -1,3 +1,4 @@
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using MortalGame.Presentation.Abstractions;
 using MortalGame.GameData;
@@ -33,7 +34,9 @@ namespace MortalGame.GameView
             _cardView.Initialize(_gameViewModel, _localizeLibrary);
         }
 
-        public async UniTask Run(CardDetailProperty property)
+        public async UniTask Run(
+            CardDetailProperty property,
+            CancellationToken cancellationToken)
         {
             _cardView.Render(property.CardProperty);
 
@@ -53,15 +56,19 @@ namespace MortalGame.GameView
                 _cardBuffHint.ShowHint(property.CardBuffHint, _cardView.RectTransform);
                 _cardKeywordHint.ShowHint(property.CardKeywordHint, _cardView.RectTransform);
 
-                while (!isClose)
+                try
                 {
-                    await UniTask.NextFrame();
+                    while (!isClose)
+                    {
+                        await UniTask.NextFrame(cancellationToken);
+                    }
                 }
-
-                _panel.SetActive(false);
-
-                _cardBuffHint.HideHint();
-                _cardKeywordHint.HideHint();
+                finally
+                {
+                    _panel.SetActive(false);
+                    _cardBuffHint.HideHint();
+                    _cardKeywordHint.HideHint();
+                }
             }
         }
     }

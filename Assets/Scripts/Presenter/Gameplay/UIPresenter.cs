@@ -18,7 +18,7 @@ namespace MortalGame.Presenter
         public record DeckEvent() : IUniTaskPresenter.Event;
         public record GraveyardEvent() : IUniTaskPresenter.Event;
         public record EnemySelectedEvent() : IUniTaskPresenter.Event;
-        UniTaskVoid Run(CancellationToken cancellationToken);
+        UniTask Run(CancellationToken cancellationToken);
     }
 
     public class UIPresenter : IUIPresenter
@@ -45,7 +45,7 @@ namespace MortalGame.Presenter
             _uniTaskPresenter = new UniTaskPresenter();
         }
 
-        public async UniTaskVoid Run(CancellationToken cancellationToken)
+        public async UniTask Run(CancellationToken cancellationToken)
         {
             await _uniTaskPresenter.Run(
                 _SetupSubscriptions(),
@@ -58,13 +58,13 @@ namespace MortalGame.Presenter
                 switch (evt)
                 {
                     case IUIPresenter.DeckEvent:
-                        await _allCardDetailPresenter.Run(Faction.Ally, CardCollectionType.Deck, CancellationToken.None);
+                        await _allCardDetailPresenter.Run(Faction.Ally, CardCollectionType.Deck, cancellationToken);
                         return new IUniTaskPresenter.None();
                     case IUIPresenter.GraveyardEvent:
-                        await _allCardDetailPresenter.Run(Faction.Ally, CardCollectionType.Graveyard, CancellationToken.None);
+                        await _allCardDetailPresenter.Run(Faction.Ally, CardCollectionType.Graveyard, cancellationToken);
                         return new IUniTaskPresenter.None();
                     case IUIPresenter.EnemySelectedEvent:
-                        await _allCardDetailPresenter.Run(Faction.Enemy, CardCollectionType.Deck, CancellationToken.None);
+                        await _allCardDetailPresenter.Run(Faction.Enemy, CardCollectionType.Deck, cancellationToken);
                         return new IUniTaskPresenter.None();
                 }
                 return new IUniTaskPresenter.None();

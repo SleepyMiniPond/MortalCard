@@ -1,18 +1,14 @@
-using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Playables;
 
 namespace MortalGame.GameView
 {
 
-    public class GainEnergyEventView : MonoBehaviour, IRecyclable, IAnimationNumberEventView
+    public class GainEnergyEventView : BaseAnimationEventView
     {
         [SerializeField]
         private TextMeshProUGUI _text;
-        [SerializeField]
-        private PlayableDirector _playableDirector;
 
         public void SetEventInfo(GainEnergyEvent gainEnergyEvent, Transform parent)
         {
@@ -20,15 +16,5 @@ namespace MortalGame.GameView
             _text.text = gainEnergyEvent.GainEnergyResult.DeltaEp.ToString();
         }
 
-        public void Reset()
-        {
-        }
-
-        public async UniTask PlayAnimation()
-        {
-            gameObject.SetActive(true);
-            await _playableDirector.PlayAsync();
-            gameObject.SetActive(false);
-        }
     }
 }

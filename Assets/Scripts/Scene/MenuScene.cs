@@ -1,3 +1,4 @@
+using System.Threading;
 using Cysharp.Threading.Tasks;
 using UnityEngine;
 using UnityEngine.UI;
@@ -10,9 +11,15 @@ namespace MortalGame.Scene
         // Get the reference to the CanvasScaler component attached to the Canvas
         [SerializeField] private CanvasScaler _canvasScaler;
 
-        public async UniTask Run()
+        public async UniTask Run(CancellationToken cancellationToken)
         {
-            await UniTask.WaitUntil(() => Input.GetMouseButtonDown(0));
+            using var sceneCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken,
+                this.GetCancellationTokenOnDestroy());
+
+            await UniTask.WaitUntil(
+                () => Input.GetMouseButtonDown(0),
+                cancellationToken: sceneCancellation.Token);
         }
     }
 

@@ -42,22 +42,26 @@ namespace MortalGame.Presenter
             {
                 _currentTask = firstTask.SomeNotNull();
 
-                while (conditionFunc() && !cancellationToken.IsCancellationRequested)
+            while (conditionFunc())
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                if (_TryPopOutNextTask(out var task))
                 {
-                    if (_TryPopOutNextTask(out var task))
-                    {
                         var evt = await task;
                         if (evt is IUniTaskPresenter.Halt)
                         {
                             break;
                         }
-                    }
-                    else
-                    {
-                        await UniTask.NextFrame();
-                    }
+                }
+                else
+                {
+                    await UniTask.NextFrame(cancellationToken);
                 }
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
+        }
         }
 
         private bool _TryPopOutNextTask(out UniTask<IUniTaskPresenter.Event> task)

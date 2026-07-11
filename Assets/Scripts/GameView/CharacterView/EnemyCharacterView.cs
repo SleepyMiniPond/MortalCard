@@ -22,15 +22,14 @@ namespace MortalGame.GameView
         public void Init(IGameplayModel statusWatcher)
         {
             _statusWatcher = statusWatcher;
-            _timmer = 0;
         }
 
-        public void SummonEnemy(EnemySummonEvent enemySummonEvent)
+        public ICharacterAnimationLifetime SummonEnemy(EnemySummonEvent enemySummonEvent)
         {
             Debug.Log($"Summon Enemy: {enemySummonEvent.Enemy.MainCharacter.NameKey}");
             _playerIdentity = enemySummonEvent.Enemy.MainCharacter.Identity;
 
-            _Run().Forget();
+            return _StartAnimationWorker();
         }
 
         public void OnSelect()

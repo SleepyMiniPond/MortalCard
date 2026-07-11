@@ -5,6 +5,8 @@ namespace MortalGame.GameView
 
     public interface IGameResultWinPanel
     {
+        void Open();
+        void Close();
     }
 
     public class GameResultWinPanel : MonoBehaviour, IGameResultWinPanel

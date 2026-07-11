@@ -1,12 +1,10 @@
 using System;
+using System.Threading;
 using MortalGame.Presenter;
 using MortalGame.GameModel;
-using System.Threading.Tasks;
-using Cysharp.Threading.Tasks;
-using Rayark.Mast;
-using UnityEngine;
 using MortalGame.Scene;
-using UnityEngine.SceneManagement;
+using Cysharp.Threading.Tasks;
+using UnityEngine;
 
 public class Main : MonoBehaviour
 {
@@ -26,21 +24,30 @@ public class Main : MonoBehaviour
         _context = new Context(
             _scriptableDataLoader);
 
-        await _Gameloop();
+        var cancellationToken = this.GetCancellationTokenOnDestroy();
+        try
+        {
+            await _Gameloop(cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+        }
     }
 
-    private async UniTask _Gameloop()
+    private async UniTask _Gameloop(CancellationToken cancellationToken)
     {
         while (true)
         {
-            var menuScene = await _sceneLoadManager.LoadMenuScene();
-            await menuScene.Run();
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var menuScene = await _sceneLoadManager.LoadMenuScene(cancellationToken);
+            await menuScene.Run(cancellationToken);
 
             var restart = false;
             do
             {
-                var levelMapScene = await _sceneLoadManager.LoadLevelMapScene();
-                var levelMapCommand = await levelMapScene.Run();
+                var levelMapScene = await _sceneLoadManager.LoadLevelMapScene(cancellationToken);
+                var levelMapCommand = await levelMapScene.Run(cancellationToken);
 
                 switch (levelMapCommand.ReactionType)
                 {
@@ -57,8 +64,8 @@ public class Main : MonoBehaviour
                         var retry = false;
                         do
                         {
-                            var gameplayScene = await _sceneLoadManager.LoadGameplayScene();
-                            var gameplayResult = await gameplayScene.Run(_context);
+                            var gameplayScene = await _sceneLoadManager.LoadGameplayScene(cancellationToken);
+                            var gameplayResult = await gameplayScene.Run(_context, cancellationToken);
 
                             if (gameplayResult.Result is GameplayLoseResult loseResult)
                             {

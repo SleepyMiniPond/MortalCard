@@ -1,6 +1,6 @@
 # Presenter 協調層
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-07-12 | 版本：v2.1
 
 ## 設計理念
 
@@ -48,23 +48,28 @@ Presenter/
 
 ```
 Run()
-  1. 啟動 GameplayManager.StartBattle()（非同步遊戲迴圈）
-  2. 同時啟動：
-     a. _GameplayBattleActions()  ← 玩家動作處理迴圈
-     b. _uiPresenter.Run()        ← UI 事件監聽
-  3. 等待戰鬥結束
-  4. 取消所有非同步任務
+  1. 建立連結 Scene Token 的戰鬥 scope
+  2. 同時啟動並保存：
+     a. GameplayManager.StartBattle()  ← 戰鬥主流程
+     b. Gameplay Event loop            ← 玩家命令與事件渲染
+     c. UIPresenter.Run()               ← UI 面板事件流程
+  3. 監督三者，只有戰鬥主流程可以正常先完成
+  4. 戰鬥結束後取消其餘工作，並等待三者完全收斂
   5. 顯示勝/負結果面板
-  6. 回傳 GameplayResultCommand
+  6. 回傳 GameplayResultCommand，最後等待 Character 動畫 Worker 清理完成
 ```
+
+必要的並行工作不使用 `.Forget()`。GameplayPresenter 透過 `WhenAny` 監督提前完成與例外，再於 `finally` 取消 scope 並以 `WhenAll` 等待清理。Scene 外部取消會沿呼叫鏈向上傳遞；Presenter 主動結束戰鬥 scope 所造成的預期取消則在收尾階段消化。
 
 ### 動作處理迴圈
 
 ```
 _GameplayBattleActions()
   Loop:
-    1. 等待 GameplayManager 進入可接受動作狀態
-    2. 從 View 接收 GameCommand（UseCardCommand / TurnSubmitCommand）
+    1. 從命令佇列取出 GameCommand（UseCardCommand / TurnSubmitCommand）
+       - RecieveEvent() 只負責入列，不提前啟動非同步處理
+       - 單一 loop 依序執行命令
+    2. 等待 GameplayManager 進入可接受動作狀態
     3. _PostProcessAction() 轉譯為 GameAction
        - UseCardCommand → 判斷是否需要子選取
          → 需要：啟動 SubSelectionPresenter 取得目標
@@ -74,6 +79,8 @@ _GameplayBattleActions()
     5. 等待 GameplayManager 處理完成
     6. 取得事件列表 → GameplayView.Render()
 ```
+
+UI、子選取、卡片詳情 Popup 與勝負面板皆接收同一生命週期 Token，並以 `finally` 保證關閉面板與釋放 UniRx 訂閱。下層不吞掉取消例外，避免被上層誤判為 loop 無故正常結束。
 
 ## 命令與動作
 

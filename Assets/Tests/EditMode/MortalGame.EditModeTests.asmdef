@@ -2,7 +2,11 @@
   "name": "MortalGame.EditModeTests",
   "rootNamespace": "MortalGame.Tests",
   "references": [
-    "MortalGame.Runtime"
+    "MortalGame.Runtime",
+    "MortalGame.GameView",
+    "MortalGame.Presenter",
+    "UniRx",
+    "UniTask"
   ],
   "includePlatforms": [
     "Editor"
