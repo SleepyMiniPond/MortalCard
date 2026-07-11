@@ -24,7 +24,7 @@ MonoBehaviour:
     SerializationNodes:
     - Name: Ally
       Entry: 7
-      Data: 0|AllyData, Assembly-CSharp
+      Data: 0|MortalGame.GameData.AllyData, MortalGame.Runtime
     - Name: GameMode
       Entry: 6
       Data: 
@@ -33,7 +33,7 @@ MonoBehaviour:
       Data: 5
     - Name: PlayerData
       Entry: 7
-      Data: 1|PlayerData, Assembly-CSharp
+      Data: 1|MortalGame.GameData.PlayerData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: Player

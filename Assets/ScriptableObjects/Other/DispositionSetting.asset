@@ -23,13 +23,13 @@ MonoBehaviour:
     SerializationNodes:
     - Name: Datas
       Entry: 7
-      Data: 0|DispositionData[], Assembly-CSharp
+      Data: 0|DispositionData[], MortalGame.Runtime
     - Name: 
       Entry: 12
       Data: 5
     - Name: 
       Entry: 7
-      Data: 1|DispositionData, Assembly-CSharp
+      Data: 1|DispositionData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: Coward
@@ -47,7 +47,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 2|DispositionData, Assembly-CSharp
+      Data: 2|DispositionData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: Cautious
@@ -65,7 +65,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 3|DispositionData, Assembly-CSharp
+      Data: 3|DispositionData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: Moderate
@@ -83,7 +83,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 4|DispositionData, Assembly-CSharp
+      Data: 4|DispositionData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: Brave
@@ -101,7 +101,7 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 5|DispositionData, Assembly-CSharp
+      Data: 5|DispositionData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: Reckless

@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes:
     - Name: Data
       Entry: 7
-      Data: 0|PlayerBuffData, Assembly-CSharp
+      Data: 0|MortalGame.GameData.PlayerBuffData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: CounterAttack
@@ -32,8 +32,7 @@ MonoBehaviour:
       Data: 99
     - Name: Sessions
       Entry: 7
-      Data: 1|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[IReactionSessionData,
-        Assembly-CSharp]], mscorlib
+      Data: 1|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[MortalGame.GameData.IReactionSessionData, MortalGame.Runtime]], mscorlib
     - Name: comparer
       Entry: 7
       Data: 2|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
@@ -52,11 +51,10 @@ MonoBehaviour:
       Data: 
     - Name: BuffEffects
       Entry: 7
-      Data: 3|System.Collections.Generic.Dictionary`2[[GameTiming, Assembly-CSharp],[ConditionalPlayerBuffEffect[],
-        Assembly-CSharp]], mscorlib
+      Data: 3|System.Collections.Generic.Dictionary`2[[MortalGame.GameData.GameTiming, MortalGame.Runtime],[MortalGame.GameData.ConditionalPlayerBuffEffect[], MortalGame.Runtime]], mscorlib
     - Name: comparer
       Entry: 7
-      Data: 4|System.Collections.Generic.EnumEqualityComparer`1[[GameTiming, Assembly-CSharp]],
+      Data: 4|System.Collections.Generic.EnumEqualityComparer`1[[MortalGame.GameData.GameTiming, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
@@ -78,29 +76,29 @@ MonoBehaviour:
       Data: 10
     - Name: $v
       Entry: 7
-      Data: 5|ConditionalPlayerBuffEffect[], Assembly-CSharp
+      Data: 5|MortalGame.GameData.ConditionalPlayerBuffEffect[], MortalGame.Runtime
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 6|ConditionalPlayerBuffEffect, Assembly-CSharp
+      Data: 6|MortalGame.GameData.ConditionalPlayerBuffEffect, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 7|System.Collections.Generic.List`1[[IPlayerBuffCondition, Assembly-CSharp]],
+      Data: 7|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerBuffCondition, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 2
     - Name: 
       Entry: 7
-      Data: 8|PlayerCondition, Assembly-CSharp
+      Data: 8|MortalGame.GameModel.PlayerCondition, MortalGame.Runtime
     - Name: Player
       Entry: 7
-      Data: 9|CardOwner, Assembly-CSharp
+      Data: 9|MortalGame.GameModel.CardOwner, MortalGame.Runtime
     - Name: Card
       Entry: 7
-      Data: 10|PlayingCard, Assembly-CSharp
+      Data: 10|MortalGame.GameModel.PlayingCard, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -109,20 +107,20 @@ MonoBehaviour:
       Data: 
     - Name: Conditions
       Entry: 7
-      Data: 11|System.Collections.Generic.List`1[[IPlayerValueCondition, Assembly-CSharp]],
+      Data: 11|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerValueCondition, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 12|PlayerFactionCondition, Assembly-CSharp
+      Data: 12|MortalGame.GameModel.PlayerFactionCondition, MortalGame.Runtime
     - Name: ComparePlayer
       Entry: 7
-      Data: 13|PlayerBuffContentPlayer, Assembly-CSharp
+      Data: 13|MortalGame.GameModel.PlayerBuffContentPlayer, MortalGame.Runtime
     - Name: PlayerBuff
       Entry: 7
-      Data: 14|TriggeredPlayerBuff, Assembly-CSharp
+      Data: 14|MortalGame.GameModel.TriggeredPlayerBuff, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -149,53 +147,52 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 15|CardPlayResultCondition, Assembly-CSharp
+      Data: 15|MortalGame.GameModel.CardPlayResultCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 16|System.Collections.Generic.List`1[[ICardPlayResultValueCondition,
-        Assembly-CSharp]], mscorlib
+      Data: 16|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardPlayResultValueCondition, MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 17|CardPlayEffectResultCondition, Assembly-CSharp
+      Data: 17|MortalGame.GameModel.CardPlayEffectResultCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 18|System.Collections.Generic.List`1[[IEffectResultCondition, Assembly-CSharp]],
+      Data: 18|System.Collections.Generic.List`1[[MortalGame.GameModel.IEffectResultCondition, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 19|DamageResultCondition, Assembly-CSharp
+      Data: 19|MortalGame.GameModel.DamageResultCondition, MortalGame.Runtime
     - Name: DamageConditions
       Entry: 7
-      Data: 20|System.Collections.Generic.List`1[[IDamageResultCondition, Assembly-CSharp]],
+      Data: 20|System.Collections.Generic.List`1[[MortalGame.GameModel.IDamageResultCondition, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 2
     - Name: 
       Entry: 7
-      Data: 21|DamageResultCharacterTargetCondition, Assembly-CSharp
+      Data: 21|MortalGame.GameModel.DamageResultCharacterTargetCondition, MortalGame.Runtime
     - Name: TargetCharacterConditions
       Entry: 7
-      Data: 22|System.Collections.Generic.List`1[[ICharacterValueCondition, Assembly-CSharp]],
+      Data: 22|System.Collections.Generic.List`1[[MortalGame.GameModel.ICharacterValueCondition, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 23|CharacterFactionCondition, Assembly-CSharp
+      Data: 23|MortalGame.GameModel.CharacterFactionCondition, MortalGame.Runtime
     - Name: ComparePlayer
       Entry: 7
-      Data: 24|PlayerBuffContentPlayer, Assembly-CSharp
+      Data: 24|MortalGame.GameModel.PlayerBuffContentPlayer, MortalGame.Runtime
     - Name: PlayerBuff
       Entry: 7
-      Data: 25|TriggeredPlayerBuff, Assembly-CSharp
+      Data: 25|MortalGame.GameModel.TriggeredPlayerBuff, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -222,23 +219,23 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 26|DamageResultPlayerTargetCondition, Assembly-CSharp
+      Data: 26|MortalGame.GameModel.DamageResultPlayerTargetCondition, MortalGame.Runtime
     - Name: TargetPlayerConditions
       Entry: 7
-      Data: 27|System.Collections.Generic.List`1[[IPlayerValueCondition, Assembly-CSharp]],
+      Data: 27|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerValueCondition, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 28|PlayerFactionCondition, Assembly-CSharp
+      Data: 28|MortalGame.GameModel.PlayerFactionCondition, MortalGame.Runtime
     - Name: ComparePlayer
       Entry: 7
-      Data: 29|PlayerBuffContentPlayer, Assembly-CSharp
+      Data: 29|MortalGame.GameModel.PlayerBuffContentPlayer, MortalGame.Runtime
     - Name: PlayerBuff
       Entry: 7
-      Data: 30|TriggeredPlayerBuff, Assembly-CSharp
+      Data: 30|MortalGame.GameModel.TriggeredPlayerBuff, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -301,22 +298,22 @@ MonoBehaviour:
       Data: 
     - Name: Effect
       Entry: 7
-      Data: 31|EffectiveDamagePlayerBuffEffect, Assembly-CSharp
+      Data: 31|MortalGame.GameData.EffectiveDamagePlayerBuffEffect, MortalGame.Runtime
     - Name: Targets
       Entry: 7
-      Data: 32|SingleCharacterCollection, Assembly-CSharp
+      Data: 32|MortalGame.GameModel.SingleCharacterCollection, MortalGame.Runtime
     - Name: Target
       Entry: 7
-      Data: 33|MainCharacterOfPlayer, Assembly-CSharp
+      Data: 33|MortalGame.GameModel.MainCharacterOfPlayer, MortalGame.Runtime
     - Name: Player
       Entry: 7
-      Data: 34|OppositePlayer, Assembly-CSharp
+      Data: 34|MortalGame.GameModel.OppositePlayer, MortalGame.Runtime
     - Name: Reference
       Entry: 7
-      Data: 35|PlayerBuffContentPlayer, Assembly-CSharp
+      Data: 35|MortalGame.GameModel.PlayerBuffContentPlayer, MortalGame.Runtime
     - Name: PlayerBuff
       Entry: 7
-      Data: 36|TriggeredPlayerBuff, Assembly-CSharp
+      Data: 36|MortalGame.GameModel.TriggeredPlayerBuff, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -337,10 +334,10 @@ MonoBehaviour:
       Data: 
     - Name: Value
       Entry: 7
-      Data: 37|PlayerBuffIntegerProperty, Assembly-CSharp
+      Data: 37|MortalGame.GameModel.PlayerBuffIntegerProperty, MortalGame.Runtime
     - Name: PlayerBuff
       Entry: 7
-      Data: 38|TriggeredPlayerBuff, Assembly-CSharp
+      Data: 38|MortalGame.GameModel.TriggeredPlayerBuff, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -373,7 +370,7 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 39|System.Collections.Generic.List`1[[IPlayerBuffPropertyData, Assembly-CSharp]],
+      Data: 39|System.Collections.Generic.List`1[[MortalGame.GameData.IPlayerBuffPropertyData, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
@@ -386,7 +383,7 @@ MonoBehaviour:
       Data: 
     - Name: LifeTimeData
       Entry: 7
-      Data: 40|AlwaysLifeTimePlayerBuffData, Assembly-CSharp
+      Data: 40|MortalGame.GameData.AlwaysLifeTimePlayerBuffData, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

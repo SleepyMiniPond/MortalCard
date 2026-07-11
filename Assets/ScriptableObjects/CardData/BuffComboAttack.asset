@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes:
     - Name: Data
       Entry: 7
-      Data: 0|CardData, Assembly-CSharp
+      Data: 0|MortalGame.GameData.CardData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: BuffComboAttack
@@ -35,7 +35,7 @@ MonoBehaviour:
       Data: 1
     - Name: Themes
       Entry: 7
-      Data: 1|CardTheme[], Assembly-CSharp
+      Data: 1|MortalGame.GameData.CardTheme[], MortalGame.Runtime
     - Name: 
       Entry: 12
       Data: 0
@@ -53,10 +53,10 @@ MonoBehaviour:
       Data: 1
     - Name: MainSelect
       Entry: 7
-      Data: 2|MainTargetSelectLogic, Assembly-CSharp
+      Data: 2|MortalGame.GameData.MainTargetSelectLogic, MortalGame.Runtime
     - Name: MainSelectable
       Entry: 7
-      Data: 3|NoneSelectable, Assembly-CSharp
+      Data: 3|MortalGame.GameModel.NoneSelectable, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -68,8 +68,7 @@ MonoBehaviour:
       Data: 
     - Name: SubSelects
       Entry: 7
-      Data: 4|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[ISubSelectionGroup,
-        Assembly-CSharp]], Unity.Plastic.Antlr3.Runtime
+      Data: 4|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameModel.ISubSelectionGroup, MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
     - Name: 
       Entry: 12
       Data: 0
@@ -81,20 +80,20 @@ MonoBehaviour:
       Data: 
     - Name: Effects
       Entry: 7
-      Data: 5|System.Collections.Generic.List`1[[ICardEffect, Assembly-CSharp]],
+      Data: 5|System.Collections.Generic.List`1[[MortalGame.GameData.ICardEffect, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 2
     - Name: 
       Entry: 7
-      Data: 6|AddPlayerBuffEffect, Assembly-CSharp
+      Data: 6|MortalGame.GameData.AddPlayerBuffEffect, MortalGame.Runtime
     - Name: Targets
       Entry: 7
-      Data: 7|SinglePlayerCollection, Assembly-CSharp
+      Data: 7|MortalGame.GameModel.SinglePlayerCollection, MortalGame.Runtime
     - Name: Target
       Entry: 7
-      Data: 8|CurrentPlayer, Assembly-CSharp
+      Data: 8|MortalGame.GameModel.CurrentPlayer, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -106,10 +105,10 @@ MonoBehaviour:
       Data: ComboAttack
     - Name: Level
       Entry: 7
-      Data: 9|CardIntegerProperty, Assembly-CSharp
+      Data: 9|MortalGame.GameModel.CardIntegerProperty, MortalGame.Runtime
     - Name: Card
       Entry: 7
-      Data: 10|PlayingCard, Assembly-CSharp
+      Data: 10|MortalGame.GameModel.PlayingCard, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -124,13 +123,13 @@ MonoBehaviour:
       Data: 
     - Name: 
       Entry: 7
-      Data: 11|IncreaseDispositionEffect, Assembly-CSharp
+      Data: 11|MortalGame.GameData.IncreaseDispositionEffect, MortalGame.Runtime
     - Name: Targets
       Entry: 7
-      Data: 12|SinglePlayerCollection, Assembly-CSharp
+      Data: 12|MortalGame.GameModel.SinglePlayerCollection, MortalGame.Runtime
     - Name: Target
       Entry: 7
-      Data: 13|CurrentPlayer, Assembly-CSharp
+      Data: 13|MortalGame.GameModel.CurrentPlayer, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
@@ -139,7 +138,7 @@ MonoBehaviour:
       Data: 
     - Name: Value
       Entry: 7
-      Data: 14|ConstInteger, Assembly-CSharp
+      Data: 14|MortalGame.GameModel.ConstInteger, MortalGame.Runtime
     - Name: Value
       Entry: 3
       Data: 3
@@ -157,7 +156,7 @@ MonoBehaviour:
       Data: 
     - Name: TriggeredEffects
       Entry: 7
-      Data: 15|System.Collections.Generic.List`1[[CardData+TriggeredCardEffect, Assembly-CSharp]],
+      Data: 15|System.Collections.Generic.List`1[[MortalGame.GameData.CardData+TriggeredCardEffect, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
@@ -170,14 +169,14 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 16|System.Collections.Generic.List`1[[ICardPropertyData, Assembly-CSharp]],
+      Data: 16|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData, MortalGame.Runtime]],
         mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 17|RecyclePropertyData, Assembly-CSharp
+      Data: 17|MortalGame.GameData.RecyclePropertyData, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
