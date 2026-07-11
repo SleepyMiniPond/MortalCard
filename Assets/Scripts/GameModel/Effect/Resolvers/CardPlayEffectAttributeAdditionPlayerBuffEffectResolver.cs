@@ -1,26 +1,25 @@
 using System.Collections.Generic;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 
 namespace MortalGame.GameModel
 {
 
-public class CardPlayEffectAttributeAdditionPlayerBuffEffectResolver : IPlayerBuffEffectResolver
-{
-    public EffectCommandSet Resolve(TriggerContext context, IPlayerBuffEffect effect)
+    public class CardPlayEffectAttributeAdditionPlayerBuffEffectResolver : IPlayerBuffEffectResolver
     {
-        var attributeEffect = (CardPlayEffectAttributeAdditionPlayerBuffEffect)effect;
-        var effectCommands = new List<IEffectCommand>();
-        var intent = new CardPlayEffectAttributeIntentAction(context.Action.Source);
-        var triggerContext = context with { Action = intent };
-        var value = attributeEffect.Value.Eval(triggerContext);
+        public EffectCommandSet Resolve(TriggerContext context, IPlayerBuffEffect effect)
+        {
+            var attributeEffect = (CardPlayEffectAttributeAdditionPlayerBuffEffect)effect;
+            var effectCommands = new List<IEffectCommand>();
+            var intent = new CardPlayEffectAttributeIntentAction(context.Action.Source);
+            var triggerContext = context with { Action = intent };
+            var value = attributeEffect.Value.Eval(triggerContext);
 
-        effectCommands.Add(new ModifyCardAttributeEffectCommand(
-            attributeEffect.Type,
-            value));
+            effectCommands.Add(new ModifyCardAttributeEffectCommand(
+                attributeEffect.Type,
+                value));
 
-        return new EffectCommandSet(effectCommands);
+            return new EffectCommandSet(effectCommands);
+        }
     }
-}
 
 }

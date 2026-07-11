@@ -3,7 +3,7 @@ using UnityEngine;
 namespace MortalGame.GameView
 {
 
-public class CardBuffInfoViewFactory : PrefabFactory<CardBuffInfoView>
-{
-}
+    public class CardBuffInfoViewFactory : PrefabFactory<CardBuffInfoView>
+    {
+    }
 }

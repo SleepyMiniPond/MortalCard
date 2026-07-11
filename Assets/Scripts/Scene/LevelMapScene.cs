@@ -7,19 +7,19 @@ using UnityEngine.UI;
 namespace MortalGame.Scene
 {
 
-public class LevelMapScene : MonoBehaviour
-{
-    [SerializeField] private CanvasScaler _canvasScaler;
-
-    [SerializeField] private LevelMapView _levelMapView;
-
-    public async UniTask<LevelMapCommand> Run()
+    public class LevelMapScene : MonoBehaviour
     {
-        var presenter = new LevelMapPresenter(_levelMapView);
+        [SerializeField] private CanvasScaler _canvasScaler;
 
-        var levelMapCommand = await presenter.Run();
-        return levelMapCommand;
+        [SerializeField] private LevelMapView _levelMapView;
+
+        public async UniTask<LevelMapCommand> Run()
+        {
+            var presenter = new LevelMapPresenter(_levelMapView);
+
+            var levelMapCommand = await presenter.Run();
+            return levelMapCommand;
+        }
     }
-}
 
 }

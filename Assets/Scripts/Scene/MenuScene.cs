@@ -5,15 +5,15 @@ using UnityEngine.UI;
 namespace MortalGame.Scene
 {
 
-public class MenuScene : MonoBehaviour
-{
-    // Get the reference to the CanvasScaler component attached to the Canvas
-    [SerializeField] private CanvasScaler _canvasScaler;
-
-    public async UniTask Run()
+    public class MenuScene : MonoBehaviour
     {
-        await UniTask.WaitUntil(() => Input.GetMouseButtonDown(0));
+        // Get the reference to the CanvasScaler component attached to the Canvas
+        [SerializeField] private CanvasScaler _canvasScaler;
+
+        public async UniTask Run()
+        {
+            await UniTask.WaitUntil(() => Input.GetMouseButtonDown(0));
+        }
     }
-}
 
 }

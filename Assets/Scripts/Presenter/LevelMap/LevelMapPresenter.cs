@@ -6,49 +6,50 @@ using UnityEngine;
 namespace MortalGame.Presenter
 {
 
-public interface ILevelMapPresenter
-{
-    UniTask<LevelMapCommand> Run();
-}
-
-public class LevelMapPresenter : ILevelMapPresenter
-{
-    private readonly ILevelMapView _levelMapView;
-
-    public LevelMapPresenter(ILevelMapView levelMapView)
+    public interface ILevelMapPresenter
     {
-        _levelMapView = levelMapView;
+        UniTask<LevelMapCommand> Run();
     }
 
-    public async UniTask<LevelMapCommand> Run()
+    public class LevelMapPresenter : ILevelMapPresenter
     {
-        var levelStatus = LevelMapStatus.Walk;
-        var reactionType = LevelMapReactionType.Restart;
+        private readonly ILevelMapView _levelMapView;
 
-        var disposable = _levelMapView.RegisterActions(
-            onClickLevel: () => {
-                levelStatus = LevelMapStatus.Battle;
-                reactionType = LevelMapReactionType.StartGamePlay;
-            });
-
-        while (!IsLevelMapQuit())
+        public LevelMapPresenter(ILevelMapView levelMapView)
         {
-            await UniTask.NextFrame();
+            _levelMapView = levelMapView;
         }
 
-        disposable.Dispose();
-        return new LevelMapCommand(reactionType);
-
-        bool IsLevelMapQuit()
+        public async UniTask<LevelMapCommand> Run()
         {
-            return levelStatus == LevelMapStatus.Leave || levelStatus == LevelMapStatus.Battle;
+            var levelStatus = LevelMapStatus.Walk;
+            var reactionType = LevelMapReactionType.Restart;
+
+            var disposable = _levelMapView.RegisterActions(
+                onClickLevel: () =>
+                {
+                    levelStatus = LevelMapStatus.Battle;
+                    reactionType = LevelMapReactionType.StartGamePlay;
+                });
+
+            while (!IsLevelMapQuit())
+            {
+                await UniTask.NextFrame();
+            }
+
+            disposable.Dispose();
+            return new LevelMapCommand(reactionType);
+
+            bool IsLevelMapQuit()
+            {
+                return levelStatus == LevelMapStatus.Leave || levelStatus == LevelMapStatus.Battle;
+            }
+        }
+
+        private void _OnClickLevel()
+        {
+            // Handle level click logic here
         }
     }
-
-    private void _OnClickLevel()
-    {
-        // Handle level click logic here
-    }
-}
 
 }

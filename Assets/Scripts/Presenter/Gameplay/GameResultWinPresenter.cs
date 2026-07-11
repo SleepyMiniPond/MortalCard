@@ -7,29 +7,29 @@ using UnityEngine;
 namespace MortalGame.Presenter
 {
 
-public interface IGameResultWinPresenter
-{
-    UniTask<GameplayWinResult> Run();
-}
-
-public class GameResultWinPresenter : IGameResultWinPresenter
-{
-    private readonly IGameResultWinPanel _winPanel;
-
-    public GameResultWinPresenter(IGameResultWinPanel winPanel)
+    public interface IGameResultWinPresenter
     {
-        _winPanel = winPanel;
+        UniTask<GameplayWinResult> Run();
     }
 
-    public async UniTask<GameplayWinResult> Run()
+    public class GameResultWinPresenter : IGameResultWinPresenter
     {
-        var isClose = false;
-        while (!isClose)
+        private readonly IGameResultWinPanel _winPanel;
+
+        public GameResultWinPresenter(IGameResultWinPanel winPanel)
         {
-            await UniTask.NextFrame();
+            _winPanel = winPanel;
         }
 
-        return new GameplayWinResult();
+        public async UniTask<GameplayWinResult> Run()
+        {
+            var isClose = false;
+            while (!isClose)
+            {
+                await UniTask.NextFrame();
+            }
+
+            return new GameplayWinResult();
+        }
     }
-}
 }

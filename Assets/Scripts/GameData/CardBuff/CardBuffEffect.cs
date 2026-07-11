@@ -7,16 +7,16 @@ using UnityEngine;
 namespace MortalGame.GameData
 {
 
-[Serializable]
-public class ConditionalCardBuffEffect
-{
-    [ShowInInspector]    
-    [HorizontalGroup("1")]
-    public List<ICardBuffCondition> Conditions = new ();
+    [Serializable]
+    public class ConditionalCardBuffEffect
+    {
+        [ShowInInspector]
+        [HorizontalGroup("1")]
+        public List<ICardBuffCondition> Conditions = new();
 
-    [Space(20)]
-    [HorizontalGroup("2")]
-    public ICardBuffEffect Effect;
-}
+        [Space(20)]
+        [HorizontalGroup("2")]
+        public ICardBuffEffect Effect;
+    }
 
 }

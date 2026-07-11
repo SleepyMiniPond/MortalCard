@@ -9,103 +9,103 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public interface ITargetCardValue
-{
-    Option<ICardEntity> Eval(TriggerContext triggerContext);
-}
+    public interface ITargetCardValue
+    {
+        Option<ICardEntity> Eval(TriggerContext triggerContext);
+    }
 
-[Serializable]
-public class NoneCard : ITargetCardValue
-{
-    public Option<ICardEntity> Eval(TriggerContext triggerContext)
+    [Serializable]
+    public class NoneCard : ITargetCardValue
     {
-        return Option.None<ICardEntity>();
-    }
-}
-[Serializable]
-public class SelectedCard : ITargetCardValue
-{
-    public Option<ICardEntity> Eval(TriggerContext triggerContext)
-    {
-        return triggerContext.Model.GetCard(triggerContext.Model.ContextManager.Context.SelectedCard);
-    }
-}
-[Serializable]
-public class PlayingCard : ITargetCardValue
-{
-    public Option<ICardEntity> Eval(TriggerContext triggerContext)
-    {
-        return triggerContext.Action.Source switch
+        public Option<ICardEntity> Eval(TriggerContext triggerContext)
         {
-            CardPlaySource cardPlaySource =>
-                cardPlaySource.Card.SomeNotNull(),
-            CardPlayResultSource cardPlayResultSource =>
-                cardPlayResultSource.CardPlaySource.Card.SomeNotNull(),
-            _ => Option.None<ICardEntity>()
-        };
+            return Option.None<ICardEntity>();
+        }
     }
-}
-[Serializable]
-public class IndexOfCardCollection : ITargetCardValue
-{
-
-
-    [HorizontalGroup("1")]
-    public ITargetCardCollectionValue CardCollection;
-
-    [HorizontalGroup("2")]
-    public IIntegerValue Index;
-
-    public OrderType Order;
-
-    public Option<ICardEntity> Eval(TriggerContext triggerContext)
+    [Serializable]
+    public class SelectedCard : ITargetCardValue
     {
-        var cards = CardCollection.Eval(triggerContext);
-        var orderedCards = Order switch
+        public Option<ICardEntity> Eval(TriggerContext triggerContext)
         {
-            OrderType.Ascending => cards.ToList(),
-            OrderType.Descending => cards.Reverse().ToList(),
-            _ => cards.ToList()
-        };
-        var index = Index.Eval(triggerContext);
-        return cards.Count > index && index >= 0 ?
-            orderedCards.ElementAt(index).SomeNotNull() :
-            Option.None<ICardEntity>();
+            return triggerContext.Model.GetCard(triggerContext.Model.ContextManager.Context.SelectedCard);
+        }
     }
-}   
-
-public interface ITargetCardCollectionValue
-{
-    IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext);
-}
-
-[Serializable]
-public class SingleCardCollection : ITargetCardCollectionValue
-{
-    [HorizontalGroup("1")]
-    public ITargetCardValue TargetCard;
-
-    public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
+    [Serializable]
+    public class PlayingCard : ITargetCardValue
     {
-        return TargetCard
-            .Eval(triggerContext)
-            .ToEnumerable().ToList();
+        public Option<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Action.Source switch
+            {
+                CardPlaySource cardPlaySource =>
+                    cardPlaySource.Card.SomeNotNull(),
+                CardPlayResultSource cardPlayResultSource =>
+                    cardPlayResultSource.CardPlaySource.Card.SomeNotNull(),
+                _ => Option.None<ICardEntity>()
+            };
+        }
     }
-}
-[Serializable]
-public class AllyHandCards : ITargetCardCollectionValue
-{
-    [HorizontalGroup("1")]
-    public ITargetPlayerValue Player;
-
-    public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
+    [Serializable]
+    public class IndexOfCardCollection : ITargetCardValue
     {
-        var playerOpt = Player.Eval(triggerContext);
-        return playerOpt
-            .Map(player => player.CardManager.HandCard.Cards)
-            .ValueOr(Array.Empty<ICardEntity>());
+
+
+        [HorizontalGroup("1")]
+        public ITargetCardCollectionValue CardCollection;
+
+        [HorizontalGroup("2")]
+        public IIntegerValue Index;
+
+        public OrderType Order;
+
+        public Option<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            var cards = CardCollection.Eval(triggerContext);
+            var orderedCards = Order switch
+            {
+                OrderType.Ascending => cards.ToList(),
+                OrderType.Descending => cards.Reverse().ToList(),
+                _ => cards.ToList()
+            };
+            var index = Index.Eval(triggerContext);
+            return cards.Count > index && index >= 0 ?
+                orderedCards.ElementAt(index).SomeNotNull() :
+                Option.None<ICardEntity>();
+        }
     }
-}
+
+    public interface ITargetCardCollectionValue
+    {
+        IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext);
+    }
+
+    [Serializable]
+    public class SingleCardCollection : ITargetCardCollectionValue
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardValue TargetCard;
+
+        public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            return TargetCard
+                .Eval(triggerContext)
+                .ToEnumerable().ToList();
+        }
+    }
+    [Serializable]
+    public class AllyHandCards : ITargetCardCollectionValue
+    {
+        [HorizontalGroup("1")]
+        public ITargetPlayerValue Player;
+
+        public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            var playerOpt = Player.Eval(triggerContext);
+            return playerOpt
+                .Map(player => player.CardManager.HandCard.Cards)
+                .ValueOr(Array.Empty<ICardEntity>());
+        }
+    }
 
 
 }

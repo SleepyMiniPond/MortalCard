@@ -11,68 +11,68 @@ using MortalGame.GameData;
 namespace MortalGame.Editor
 {
 
-public static class DropdownHelper
-{
-    const string BuffFolderPath = "Assets/ScriptableObjects/PlayerBuff";
-    const string CardBuffFolderPath = "Assets/ScriptableObjects/CardBuff";
-    const string AssetExtension = "*.asset";
-
-    public static IEnumerable<ValueDropdownItem> PlayerBuffNames
+    public static class DropdownHelper
     {
-        get
+        const string BuffFolderPath = "Assets/ScriptableObjects/PlayerBuff";
+        const string CardBuffFolderPath = "Assets/ScriptableObjects/CardBuff";
+        const string AssetExtension = "*.asset";
+
+        public static IEnumerable<ValueDropdownItem> PlayerBuffNames
         {
-            if (Directory.Exists(BuffFolderPath))
+            get
             {
-                var assetPaths = Directory.GetFiles(BuffFolderPath, AssetExtension);
-                foreach (var assetPath in assetPaths)
+                if (Directory.Exists(BuffFolderPath))
                 {
-                    var asset = AssetDatabase.LoadAssetAtPath<PlayerBuffDataScriptable>(assetPath);
-                    if (asset != null && string.IsNullOrEmpty(asset.Data.ID) == false)
+                    var assetPaths = Directory.GetFiles(BuffFolderPath, AssetExtension);
+                    foreach (var assetPath in assetPaths)
                     {
-                        yield return new ValueDropdownItem(asset.Data.ID, asset.Data.ID);
+                        var asset = AssetDatabase.LoadAssetAtPath<PlayerBuffDataScriptable>(assetPath);
+                        if (asset != null && string.IsNullOrEmpty(asset.Data.ID) == false)
+                        {
+                            yield return new ValueDropdownItem(asset.Data.ID, asset.Data.ID);
+                        }
                     }
                 }
             }
         }
-    }
 
-    public static IEnumerable<ValueDropdownItem> CardBuffNames
-    {
-        get
+        public static IEnumerable<ValueDropdownItem> CardBuffNames
         {
-            if (Directory.Exists(CardBuffFolderPath))
+            get
             {
-                var assetPaths = Directory.GetFiles(CardBuffFolderPath, AssetExtension);
-                foreach (var assetPath in assetPaths)
+                if (Directory.Exists(CardBuffFolderPath))
                 {
-                    var asset = AssetDatabase.LoadAssetAtPath<CardBuffScriptable>(assetPath);
-                    if (asset != null && string.IsNullOrEmpty(asset.Data.ID) == false)
+                    var assetPaths = Directory.GetFiles(CardBuffFolderPath, AssetExtension);
+                    foreach (var assetPath in assetPaths)
                     {
-                        yield return new ValueDropdownItem(asset.Data.ID, asset.Data.ID);
+                        var asset = AssetDatabase.LoadAssetAtPath<CardBuffScriptable>(assetPath);
+                        if (asset != null && string.IsNullOrEmpty(asset.Data.ID) == false)
+                        {
+                            yield return new ValueDropdownItem(asset.Data.ID, asset.Data.ID);
+                        }
                     }
                 }
             }
         }
-    }
-    
-    public static IEnumerable<ValueDropdownItem<GameTiming>> UpdateTimings
-    { 
-        get
-        { 
-            var options = new List<ValueDropdownItem<GameTiming>>();
 
-            foreach (GameTiming timing in Enum.GetValues(typeof(GameTiming)))
+        public static IEnumerable<ValueDropdownItem<GameTiming>> UpdateTimings
+        {
+            get
             {
-                var field = typeof(GameTiming).GetField(timing.ToString());
-                var attribute = field.GetCustomAttributes(typeof(DescriptionAttribute), false)
-                                .FirstOrDefault() as DescriptionAttribute;
+                var options = new List<ValueDropdownItem<GameTiming>>();
 
-                string displayName = attribute?.Description ?? timing.ToString();
-                options.Add(new ValueDropdownItem<GameTiming>(displayName, timing));
+                foreach (GameTiming timing in Enum.GetValues(typeof(GameTiming)))
+                {
+                    var field = typeof(GameTiming).GetField(timing.ToString());
+                    var attribute = field.GetCustomAttributes(typeof(DescriptionAttribute), false)
+                                    .FirstOrDefault() as DescriptionAttribute;
+
+                    string displayName = attribute?.Description ?? timing.ToString();
+                    options.Add(new ValueDropdownItem<GameTiming>(displayName, timing));
+                }
+
+                return options;
             }
-
-            return options;
         }
     }
-}
 }

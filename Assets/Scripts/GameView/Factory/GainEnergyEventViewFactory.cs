@@ -1,10 +1,8 @@
 using UnityEngine;
-using MortalGame.GameView;
-
 namespace MortalGame.GameView
 {
 
-public class GainEnergyEventViewFactory : PrefabFactory<GainEnergyEventView>
-{
-}
+    public class GainEnergyEventViewFactory : PrefabFactory<GainEnergyEventView>
+    {
+    }
 }

@@ -7,29 +7,29 @@ using UnityEngine;
 namespace MortalGame.GameData
 {
 
-public class CharacterBuffData
-{
-    [TitleGroup("BasicData")]
-    public string ID;
+    public class CharacterBuffData
+    {
+        [TitleGroup("BasicData")]
+        public string ID;
 
-    [TitleGroup("BasicData")]
-    public int MaxLevel;
- 
-    [ShowInInspector]
-    [BoxGroup("Effects")]
-    public Dictionary<string, IReactionSessionData> Sessions = new();
-    
-    [Space(20)]
-    [ShowInInspector]
-    [BoxGroup("Effects")]
-    public Dictionary<GameTiming, ConditionalCharacterBuffEffect[]> BuffEffects = new();  
+        [TitleGroup("BasicData")]
+        public int MaxLevel;
 
-    [ShowInInspector]
-    [BoxGroup("Properties")]
-    public List<ICharacterBuffPropertyData> PropertyDatas = new();
+        [ShowInInspector]
+        [BoxGroup("Effects")]
+        public Dictionary<string, IReactionSessionData> Sessions = new();
 
-    [BoxGroup("LifeTime")]
-    public ICharacterBuffLifeTimeData LifeTimeData;
-}
+        [Space(20)]
+        [ShowInInspector]
+        [BoxGroup("Effects")]
+        public Dictionary<GameTiming, ConditionalCharacterBuffEffect[]> BuffEffects = new();
+
+        [ShowInInspector]
+        [BoxGroup("Properties")]
+        public List<ICharacterBuffPropertyData> PropertyDatas = new();
+
+        [BoxGroup("LifeTime")]
+        public ICharacterBuffLifeTimeData LifeTimeData;
+    }
 
 }

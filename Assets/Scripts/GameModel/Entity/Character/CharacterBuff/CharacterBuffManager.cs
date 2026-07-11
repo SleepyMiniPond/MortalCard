@@ -1,5 +1,4 @@
 using System;
-using MortalGame.GameModel;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
@@ -8,88 +7,88 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public interface ICharacterBuffManager
-{
-    IReadOnlyCollection<ICharacterBuffEntity> Buffs { get; }
-
-    ModifyCharacterBuffResult ModifyBuffLevel(
-        string buffId, 
-        int level);
-    AddCharacterBuffResult AddBuff(ICharacterBuffEntity newBuff);
-    RemoveCharacterBuffResult RemoveBuff(ICharacterBuffEntity existBuff);
-    
-    IEnumerable<ICharacterBuffEntity> Update(TriggerContext triggerContext);
-}
-
-public class CharacterBuffManager : ICharacterBuffManager
-{
-    private List<ICharacterBuffEntity> _buffs;
-
-    public IReadOnlyCollection<ICharacterBuffEntity> Buffs => _buffs;
-
-    public CharacterBuffManager()
+    public interface ICharacterBuffManager
     {
-        _buffs = new List<ICharacterBuffEntity>();
+        IReadOnlyCollection<ICharacterBuffEntity> Buffs { get; }
+
+        ModifyCharacterBuffResult ModifyBuffLevel(
+            string buffId,
+            int level);
+        AddCharacterBuffResult AddBuff(ICharacterBuffEntity newBuff);
+        RemoveCharacterBuffResult RemoveBuff(ICharacterBuffEntity existBuff);
+
+        IEnumerable<ICharacterBuffEntity> Update(TriggerContext triggerContext);
     }
 
-    public ModifyCharacterBuffResult ModifyBuffLevel(
-        string buffId, 
-        int level)
+    public class CharacterBuffManager : ICharacterBuffManager
     {
-        foreach (var existBuff in _buffs)
+        private List<ICharacterBuffEntity> _buffs;
+
+        public IReadOnlyCollection<ICharacterBuffEntity> Buffs => _buffs;
+
+        public CharacterBuffManager()
         {
-            if (existBuff.CharacterBuffDataId == buffId)
+            _buffs = new List<ICharacterBuffEntity>();
+        }
+
+        public ModifyCharacterBuffResult ModifyBuffLevel(
+            string buffId,
+            int level)
+        {
+            foreach (var existBuff in _buffs)
             {
-                existBuff.AddLevel(level);
-                return new ModifyCharacterBuffResult(
-                    CharacterBuff: existBuff,
-                    DeltaLevel: level,
-                    NewLevel: existBuff.Level
-                );
+                if (existBuff.CharacterBuffDataId == buffId)
+                {
+                    existBuff.AddLevel(level);
+                    return new ModifyCharacterBuffResult(
+                        CharacterBuff: existBuff,
+                        DeltaLevel: level,
+                        NewLevel: existBuff.Level
+                    );
+                }
             }
+
+            throw new Exception($"Player buff {buffId} not found to modify level.");
         }
 
-        throw new Exception($"Player buff {buffId} not found to modify level.");
-    }
-
-    public AddCharacterBuffResult AddBuff(ICharacterBuffEntity newBuff)
-    {
-        if (_buffs.Any(buff => buff.CharacterBuffDataId == newBuff.CharacterBuffDataId))
+        public AddCharacterBuffResult AddBuff(ICharacterBuffEntity newBuff)
         {
-            throw new Exception($"Player buff {newBuff.CharacterBuffDataId} already exists to add.");
-        }
-
-        _buffs.Add(newBuff);
-        return new AddCharacterBuffResult(newBuff);
-    }
-
-    public RemoveCharacterBuffResult RemoveBuff(ICharacterBuffEntity existBuff)
-    {
-        _buffs.Remove(existBuff);
-
-        return new RemoveCharacterBuffResult(existBuff);
-    }
-
-    public IEnumerable<ICharacterBuffEntity> Update(TriggerContext triggerContext)
-    {
-        foreach (var buff in _buffs.ToList())
-        {
-            var isUpdated = false;
-            var triggeredBuff = new CharacterBuffTrigger(buff);
-            var updateCharacterBuffContext = triggerContext with { Triggered = triggeredBuff };
-            foreach (var session in buff.ReactionSessions.Values)
+            if (_buffs.Any(buff => buff.CharacterBuffDataId == newBuff.CharacterBuffDataId))
             {
-                isUpdated |= session.Update(updateCharacterBuffContext);
+                throw new Exception($"Player buff {newBuff.CharacterBuffDataId} already exists to add.");
             }
 
-            isUpdated |= buff.LifeTime.Update(updateCharacterBuffContext);
+            _buffs.Add(newBuff);
+            return new AddCharacterBuffResult(newBuff);
+        }
 
-            if (isUpdated)
-            { 
-                yield return buff;
+        public RemoveCharacterBuffResult RemoveBuff(ICharacterBuffEntity existBuff)
+        {
+            _buffs.Remove(existBuff);
+
+            return new RemoveCharacterBuffResult(existBuff);
+        }
+
+        public IEnumerable<ICharacterBuffEntity> Update(TriggerContext triggerContext)
+        {
+            foreach (var buff in _buffs.ToList())
+            {
+                var isUpdated = false;
+                var triggeredBuff = new CharacterBuffTrigger(buff);
+                var updateCharacterBuffContext = triggerContext with { Triggered = triggeredBuff };
+                foreach (var session in buff.ReactionSessions.Values)
+                {
+                    isUpdated |= session.Update(updateCharacterBuffContext);
+                }
+
+                isUpdated |= buff.LifeTime.Update(updateCharacterBuffContext);
+
+                if (isUpdated)
+                {
+                    yield return buff;
+                }
             }
         }
     }
-}
 
 }

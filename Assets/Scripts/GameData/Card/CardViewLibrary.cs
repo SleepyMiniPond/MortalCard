@@ -3,8 +3,8 @@ using UnityEngine;
 namespace MortalGame.GameData
 {
 
-public class CardViewLibrary
-{
-    
-}
+    public class CardViewLibrary
+    {
+
+    }
 }

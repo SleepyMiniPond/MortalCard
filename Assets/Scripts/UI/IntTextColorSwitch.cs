@@ -6,23 +6,24 @@ using UnityEngine;
 namespace MortalGame.UI
 {
 
-public class IntTextColorSwitch : IntValueSwitch
-{
-    [SerializeField]
-    private TextMeshProUGUI _text;
-
-    [SerializeField]
-    private IntColorMapping _colorMapping;
-    public override int Value
+    public class IntTextColorSwitch : IntValueSwitch
     {
-        set { 
-            if (_text == null)
+        [SerializeField]
+        private TextMeshProUGUI _text;
+
+        [SerializeField]
+        private IntColorMapping _colorMapping;
+        public override int Value
+        {
+            set
             {
-                _text = GetComponent<TextMeshProUGUI>();
+                if (_text == null)
+                {
+                    _text = GetComponent<TextMeshProUGUI>();
+                }
+
+                _text.color = _colorMapping.GetColor(value);
             }
-            
-            _text.color = _colorMapping.GetColor(value);
-        }        
+        }
     }
-}
 }

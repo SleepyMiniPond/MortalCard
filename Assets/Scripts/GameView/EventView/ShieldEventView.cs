@@ -7,28 +7,28 @@ using UnityEngine.Playables;
 namespace MortalGame.GameView
 {
 
-public class ShieldEventView: MonoBehaviour, IRecyclable, IAnimationNumberEventView
-{
-    [SerializeField]
-    private TextMeshProUGUI _text;
-    [SerializeField]
-    private PlayableDirector _playableDirector;
-
-    public void SetEventInfo(GetShieldEvent getShieldEvent, Transform parent)
+    public class ShieldEventView : MonoBehaviour, IRecyclable, IAnimationNumberEventView
     {
-        transform.SetParent(parent, false);
-        _text.text = getShieldEvent.GetShieldResult.ShieldPoint.ToString();
-    }
+        [SerializeField]
+        private TextMeshProUGUI _text;
+        [SerializeField]
+        private PlayableDirector _playableDirector;
 
-    public void Reset()
-    {
-    }
+        public void SetEventInfo(GetShieldEvent getShieldEvent, Transform parent)
+        {
+            transform.SetParent(parent, false);
+            _text.text = getShieldEvent.GetShieldResult.ShieldPoint.ToString();
+        }
 
-    public async UniTask PlayAnimation()
-    {
-        gameObject.SetActive(true);
-        await _playableDirector.PlayAsync();
-        gameObject.SetActive(false);
+        public void Reset()
+        {
+        }
+
+        public async UniTask PlayAnimation()
+        {
+            gameObject.SetActive(true);
+            await _playableDirector.PlayAsync();
+            gameObject.SetActive(false);
+        }
     }
-}
 }

@@ -1,32 +1,31 @@
 using Rayark.Mast;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using UnityEngine;
 
 namespace MortalGame.GameModel
 {
 
-public interface ICharacterBuffPropertyEntity
-{
-    CharacterBuffProperty Property { get; }
-    
-    int Eval(IGameplayModel gameWatcher, ITriggeredSource triggerSource);
-}
+    public interface ICharacterBuffPropertyEntity
+    {
+        CharacterBuffProperty Property { get; }
 
-public class MaxHealthPropertyCharacterBuffEntity : ICharacterBuffPropertyEntity
-{
-    public CharacterBuffProperty Property => CharacterBuffProperty.MaxHealth;
+        int Eval(IGameplayModel gameWatcher, ITriggeredSource triggerSource);
+    }
 
-    public MaxHealthPropertyCharacterBuffEntity() { }
-    public int Eval(IGameplayModel gameWatcher, ITriggeredSource triggerSource) => 0;
-}
+    public class MaxHealthPropertyCharacterBuffEntity : ICharacterBuffPropertyEntity
+    {
+        public CharacterBuffProperty Property => CharacterBuffProperty.MaxHealth;
 
-public class MaxEnergyPropertyCharacterBuffEntity : ICharacterBuffPropertyEntity
-{
-    public CharacterBuffProperty Property => CharacterBuffProperty.MaxEnergy;
+        public MaxHealthPropertyCharacterBuffEntity() { }
+        public int Eval(IGameplayModel gameWatcher, ITriggeredSource triggerSource) => 0;
+    }
 
-    public MaxEnergyPropertyCharacterBuffEntity() { }
-    public int Eval(IGameplayModel gameWatcher, ITriggeredSource triggerSource) => 0;
-}
+    public class MaxEnergyPropertyCharacterBuffEntity : ICharacterBuffPropertyEntity
+    {
+        public CharacterBuffProperty Property => CharacterBuffProperty.MaxEnergy;
+
+        public MaxEnergyPropertyCharacterBuffEntity() { }
+        public int Eval(IGameplayModel gameWatcher, ITriggeredSource triggerSource) => 0;
+    }
 
 }

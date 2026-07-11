@@ -4,9 +4,9 @@ using UnityEngine;
 namespace MortalGame.GameData
 {
 
-[Serializable]
-public class ModifyAttributeData
-{
-}
+    [Serializable]
+    public class ModifyAttributeData
+    {
+    }
 
 }

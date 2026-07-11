@@ -6,51 +6,51 @@ using Sirenix.OdinInspector;
 namespace MortalGame.GameModel
 {
 
-public interface IReactionSessionValueCondition
-{
-    bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity);
-}
-
-[Serializable]
-public class ReactorSessionUpdatedCondition : IReactionSessionValueCondition
-{
-    public bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity)
+    public interface IReactionSessionValueCondition
     {
-        return sessionEntity.IsSessionValueUpdated;
+        bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity);
     }
-}
-[Serializable]
-public class ReactionSessionValueBooleanCondition : IReactionSessionValueCondition
-{
-    [ShowInInspector]
-    [HorizontalGroup("1")]
-    public List<IBooleanValueCondition> Conditions = new();
 
-    public bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity)
+    [Serializable]
+    public class ReactorSessionUpdatedCondition : IReactionSessionValueCondition
     {
-        return sessionEntity
-            .BooleanValue
-            .Match(
-                value => Conditions.All(condition => condition.Eval(triggerContext, value)),
-                () => false);
+        public bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity)
+        {
+            return sessionEntity.IsSessionValueUpdated;
+        }
     }
-}
-
-[Serializable]
-public class ReactionSessionValueIntegerCondition : IReactionSessionValueCondition
-{
-    [ShowInInspector]
-    [HorizontalGroup("1")]
-    public List<IIntegerValueCondition> Conditions = new();
-
-    public bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity)
+    [Serializable]
+    public class ReactionSessionValueBooleanCondition : IReactionSessionValueCondition
     {
-        return sessionEntity
-            .IntegerValue
-            .Match(
-                value => Conditions.All(condition => condition.Eval(triggerContext, value)),
-                () => false);
+        [ShowInInspector]
+        [HorizontalGroup("1")]
+        public List<IBooleanValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity)
+        {
+            return sessionEntity
+                .BooleanValue
+                .Match(
+                    value => Conditions.All(condition => condition.Eval(triggerContext, value)),
+                    () => false);
+        }
     }
-}
+
+    [Serializable]
+    public class ReactionSessionValueIntegerCondition : IReactionSessionValueCondition
+    {
+        [ShowInInspector]
+        [HorizontalGroup("1")]
+        public List<IIntegerValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext, IReactionSessionEntity sessionEntity)
+        {
+            return sessionEntity
+                .IntegerValue
+                .Match(
+                    value => Conditions.All(condition => condition.Eval(triggerContext, value)),
+                    () => false);
+        }
+    }
 
 }

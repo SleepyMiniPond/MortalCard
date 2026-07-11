@@ -7,12 +7,12 @@ using MortalGame.GameModel;
 namespace MortalGame.Presentation.Abstractions
 {
 
-public interface IGameCommand { }
-public record UseCardCommand(
-    Guid CardIndentity,
-    Option<ISelectionTarget> SelectionTarget = default) : IGameCommand;
+    public interface IGameCommand { }
+    public record UseCardCommand(
+        Guid CardIndentity,
+        Option<ISelectionTarget> SelectionTarget = default) : IGameCommand;
 
-public record TurnSubmitCommand(
-    Faction Faction) : IGameCommand;
+    public record TurnSubmitCommand(
+        Faction Faction) : IGameCommand;
 
 }

@@ -7,48 +7,48 @@ using UnityEngine.SceneManagement;
 namespace MortalGame.Scene
 {
 
-public class SceneLoadManager
-{
-    public const string MenuSceneName = "Menu";
-    public const string LevelMapSceneName = "LevelMap";
-    public const string GameplaySceneName = "Gameplay";
-    public const string LoadingSceneName = "Loading";
-
-    public async UniTask<MenuScene> LoadMenuScene()
+    public class SceneLoadManager
     {
-        await SceneManager.LoadSceneAsync(MenuSceneName);
+        public const string MenuSceneName = "Menu";
+        public const string LevelMapSceneName = "LevelMap";
+        public const string GameplaySceneName = "Gameplay";
+        public const string LoadingSceneName = "Loading";
 
-        var menuScene = Object.FindFirstObjectByType<MenuScene>();
+        public async UniTask<MenuScene> LoadMenuScene()
+        {
+            await SceneManager.LoadSceneAsync(MenuSceneName);
 
-        return menuScene;
+            var menuScene = Object.FindFirstObjectByType<MenuScene>();
+
+            return menuScene;
+        }
+
+        public async UniTask<LevelMapScene> LoadLevelMapScene()
+        {
+            await SceneManager.LoadSceneAsync(LevelMapSceneName);
+
+            var levelMapScene = Object.FindFirstObjectByType<LevelMapScene>();
+
+            return levelMapScene;
+        }
+
+        public async UniTask<GameplayScene> LoadGameplayScene()
+        {
+            await SceneManager.LoadSceneAsync(GameplaySceneName);
+
+            var gameplayScene = Object.FindFirstObjectByType<GameplayScene>();
+
+            return gameplayScene;
+        }
+
+        public async UniTask<LoadingScene> LoadLoadingScene()
+        {
+            await SceneManager.LoadSceneAsync(LoadingSceneName);
+
+            var loadingScene = Object.FindFirstObjectByType<LoadingScene>();
+
+            return loadingScene;
+        }
     }
-
-    public async UniTask<LevelMapScene> LoadLevelMapScene()
-    {
-        await SceneManager.LoadSceneAsync(LevelMapSceneName);
-
-        var levelMapScene = Object.FindFirstObjectByType<LevelMapScene>();
-
-        return levelMapScene;
-    }
-
-    public async UniTask<GameplayScene> LoadGameplayScene()
-    {
-        await SceneManager.LoadSceneAsync(GameplaySceneName);
-
-        var gameplayScene = Object.FindFirstObjectByType<GameplayScene>();
-
-        return gameplayScene;
-    }
-
-    public async UniTask<LoadingScene> LoadLoadingScene()
-    {
-        await SceneManager.LoadSceneAsync(LoadingSceneName);
-
-        var loadingScene = Object.FindFirstObjectByType<LoadingScene>();
-
-        return loadingScene;
-    }
-}
 
 }

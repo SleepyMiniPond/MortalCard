@@ -9,51 +9,51 @@ using MortalGame.GameModel;
 namespace MortalGame.Presenter
 {
 
-public class BattleBuidler
-{
-    private Context _context;
-
-    public BattleBuidler(Context context)
+    public class BattleBuidler
     {
-        _context = context;
-    }
+        private Context _context;
 
-    public GameContextManager ConstructGameContextManager(int randomSeed)
-    {
-        var cardLibrary = new CardLibrary(_context.CardTable);
-        var cardBuffLibrary = new CardBuffLibrary(_context.CardBuffTable);
-        var playerBuffLibrary = new PlayerBuffLibrary(_context.PlayerBuffTable);
-        var characterBuffLibrary = new CharacterBuffLibrary(_context.CharacterBuffTable);
-        var dispositionLibrary = new DispositionLibrary(_context.DispositionSettings);
-        var localizeLibrary = new LocalizeLibrary(_context.LocalizeTitleInfoSetting, _context.LocalizeInfoSetting);
+        public BattleBuidler(Context context)
+        {
+            _context = context;
+        }
 
-        return new GameContextManager(
-            cardLibrary, 
-            cardBuffLibrary,
-            playerBuffLibrary,
-            characterBuffLibrary,
-            dispositionLibrary,
-            localizeLibrary,
-            new GameRandom(randomSeed),
-            CardPropertyEntityFactory.CreateDefault(),
-            CardBuffPropertyEntityFactory.CreateDefault(),
-            CardBuffLifeTimeEntityFactory.CreateDefault(),
-            ReactionSessionEntityFactory.CreateDefault(),
-            PlayerBuffPropertyEntityFactory.CreateDefault(),
-            PlayerBuffLifeTimeEntityFactory.CreateDefault(),
-            CharacterBuffPropertyEntityFactory.CreateDefault(),
-            CharacterBuffLifeTimeEntityFactory.CreateDefault());
-    }
+        public GameContextManager ConstructGameContextManager(int randomSeed)
+        {
+            var cardLibrary = new CardLibrary(_context.CardTable);
+            var cardBuffLibrary = new CardBuffLibrary(_context.CardBuffTable);
+            var playerBuffLibrary = new PlayerBuffLibrary(_context.PlayerBuffTable);
+            var characterBuffLibrary = new CharacterBuffLibrary(_context.CharacterBuffTable);
+            var dispositionLibrary = new DispositionLibrary(_context.DispositionSettings);
+            var localizeLibrary = new LocalizeLibrary(_context.LocalizeTitleInfoSetting, _context.LocalizeInfoSetting);
 
-    public GameStageSetting ConstructBattle()
-    { 
-        return new GameStageSetting(
-            StageID: "StageTest",
-            RandomSeed: Environment.TickCount,
-            Ally: _context.Ally,
-            Enemy: _context.AllEnemies[0]);
+            return new GameContextManager(
+                cardLibrary,
+                cardBuffLibrary,
+                playerBuffLibrary,
+                characterBuffLibrary,
+                dispositionLibrary,
+                localizeLibrary,
+                new GameRandom(randomSeed),
+                CardPropertyEntityFactory.CreateDefault(),
+                CardBuffPropertyEntityFactory.CreateDefault(),
+                CardBuffLifeTimeEntityFactory.CreateDefault(),
+                ReactionSessionEntityFactory.CreateDefault(),
+                PlayerBuffPropertyEntityFactory.CreateDefault(),
+                PlayerBuffLifeTimeEntityFactory.CreateDefault(),
+                CharacterBuffPropertyEntityFactory.CreateDefault(),
+                CharacterBuffLifeTimeEntityFactory.CreateDefault());
+        }
+
+        public GameStageSetting ConstructBattle()
+        {
+            return new GameStageSetting(
+                StageID: "StageTest",
+                RandomSeed: Environment.TickCount,
+                Ally: _context.Ally,
+                Enemy: _context.AllEnemies[0]);
+        }
     }
-}
 
 
 }

@@ -7,28 +7,28 @@ using UnityEngine.Playables;
 namespace MortalGame.GameView
 {
 
-public class LoseEnergyEventView: MonoBehaviour, IRecyclable, IAnimationNumberEventView
-{
-    [SerializeField]
-    private TextMeshProUGUI _text;
-    [SerializeField]
-    private PlayableDirector _playableDirector;
-
-    public void SetEventInfo(LoseEnergyEvent loseEnergyEvent, Transform parent)
+    public class LoseEnergyEventView : MonoBehaviour, IRecyclable, IAnimationNumberEventView
     {
-        transform.SetParent(parent, false);
-        _text.text = loseEnergyEvent.LoseEnergyResult.DeltaEp.ToString();
-    }
+        [SerializeField]
+        private TextMeshProUGUI _text;
+        [SerializeField]
+        private PlayableDirector _playableDirector;
 
-    public void Reset()
-    {
-    }
+        public void SetEventInfo(LoseEnergyEvent loseEnergyEvent, Transform parent)
+        {
+            transform.SetParent(parent, false);
+            _text.text = loseEnergyEvent.LoseEnergyResult.DeltaEp.ToString();
+        }
 
-    public async UniTask PlayAnimation()
-    {
-        gameObject.SetActive(true);
-        await _playableDirector.PlayAsync();
-        gameObject.SetActive(false);
+        public void Reset()
+        {
+        }
+
+        public async UniTask PlayAnimation()
+        {
+            gameObject.SetActive(true);
+            await _playableDirector.PlayAsync();
+            gameObject.SetActive(false);
+        }
     }
-}
 }

@@ -6,30 +6,30 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public interface ITargetPlayerBuffValue
-{
-    Option<IPlayerBuffEntity> Eval(TriggerContext triggerContext);
-}
+    public interface ITargetPlayerBuffValue
+    {
+        Option<IPlayerBuffEntity> Eval(TriggerContext triggerContext);
+    }
 
-[Serializable]
-public class NoneBuff : ITargetPlayerBuffValue
-{
-    public Option<IPlayerBuffEntity> Eval(TriggerContext triggerContext)
+    [Serializable]
+    public class NoneBuff : ITargetPlayerBuffValue
     {
-        return Option.None<IPlayerBuffEntity>();
-    }
-}
-[Serializable]
-public class TriggeredPlayerBuff : ITargetPlayerBuffValue
-{
-    public Option<IPlayerBuffEntity> Eval(TriggerContext triggerContext)
-    {
-        return triggerContext.Triggered switch
+        public Option<IPlayerBuffEntity> Eval(TriggerContext triggerContext)
         {
-            PlayerBuffTrigger playerBuffTrigger => playerBuffTrigger.Buff.Some(),
-            _ => Option.None<IPlayerBuffEntity>()
-        };
+            return Option.None<IPlayerBuffEntity>();
+        }
     }
-}
+    [Serializable]
+    public class TriggeredPlayerBuff : ITargetPlayerBuffValue
+    {
+        public Option<IPlayerBuffEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered switch
+            {
+                PlayerBuffTrigger playerBuffTrigger => playerBuffTrigger.Buff.Some(),
+                _ => Option.None<IPlayerBuffEntity>()
+            };
+        }
+    }
 
 }

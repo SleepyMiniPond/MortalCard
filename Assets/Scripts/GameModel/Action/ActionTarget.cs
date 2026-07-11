@@ -1,61 +1,59 @@
 using UnityEngine;
-using MortalGame.GameModel;
-
 namespace MortalGame.GameModel
 {
 
-public interface IActionTarget
-{
-
-}
-
-public class SystemTarget : IActionTarget
-{
-    public SystemTarget()
+    public interface IActionTarget
     {
+
     }
-}
 
-public class PlayerTarget : IActionTarget
-{
-    public IPlayerEntity Player { get; private set; }
-
-    public PlayerTarget(IPlayerEntity player)
+    public class SystemTarget : IActionTarget
     {
-        Player = player;
+        public SystemTarget()
+        {
+        }
     }
-}
 
-public class CharacterTarget : IActionTarget
-{
-    public ICharacterEntity Character { get; private set; }
-
-    public CharacterTarget(ICharacterEntity character)
+    public class PlayerTarget : IActionTarget
     {
-        Character = character;
+        public IPlayerEntity Player { get; private set; }
+
+        public PlayerTarget(IPlayerEntity player)
+        {
+            Player = player;
+        }
     }
-}
 
-public class CardTarget : IActionTarget
-{
-    public ICardEntity Card { get; private set; }
-
-    public CardTarget(ICardEntity card)
+    public class CharacterTarget : IActionTarget
     {
-        Card = card;
+        public ICharacterEntity Character { get; private set; }
+
+        public CharacterTarget(ICharacterEntity character)
+        {
+            Character = character;
+        }
     }
-}
 
-public class PlayerAndCardTarget : IActionTarget
-{
-    public IPlayerEntity Player { get; private set; }
-    public ICardEntity Card { get; private set; }
-
-    public PlayerAndCardTarget(IPlayerEntity player, ICardEntity card)
+    public class CardTarget : IActionTarget
     {
-        Player = player;
-        Card = card;
+        public ICardEntity Card { get; private set; }
+
+        public CardTarget(ICardEntity card)
+        {
+            Card = card;
+        }
     }
-}
+
+    public class PlayerAndCardTarget : IActionTarget
+    {
+        public IPlayerEntity Player { get; private set; }
+        public ICardEntity Card { get; private set; }
+
+        public PlayerAndCardTarget(IPlayerEntity player, ICardEntity card)
+        {
+            Player = player;
+            Card = card;
+        }
+    }
 
 }

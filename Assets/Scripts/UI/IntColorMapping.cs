@@ -6,43 +6,43 @@ using UnityEngine;
 namespace MortalGame.UI
 {
 
-public class IntColorMapping : SerializedMonoBehaviour
-{
-    [SerializeField]
-    private Dictionary<int, Color> _colorMap = new();
-
-    private Dictionary<int, string> _colorHtmlMap = new();
-
-    private void Awake()
+    public class IntColorMapping : SerializedMonoBehaviour
     {
-        _colorHtmlMap = _colorMap.ToDictionary(
-            kvp => kvp.Key,
-            kvp => ColorUtility.ToHtmlStringRGBA(kvp.Value)
-        );
-    }
+        [SerializeField]
+        private Dictionary<int, Color> _colorMap = new();
 
-    public Color GetColor(int value)
-    {
-        if (_colorMap.TryGetValue(value, out var color))
-        {
-            return color;
-        }
-        else
-        {
-            return Color.white;
-        }
-    }
+        private Dictionary<int, string> _colorHtmlMap = new();
 
-    public string GetHtmlColor(int value)
-    {
-        if (_colorHtmlMap.TryGetValue(value, out var color))
+        private void Awake()
         {
-            return color;
+            _colorHtmlMap = _colorMap.ToDictionary(
+                kvp => kvp.Key,
+                kvp => ColorUtility.ToHtmlStringRGBA(kvp.Value)
+            );
         }
-        else
+
+        public Color GetColor(int value)
         {
-            return ColorUtility.ToHtmlStringRGBA(Color.white);
+            if (_colorMap.TryGetValue(value, out var color))
+            {
+                return color;
+            }
+            else
+            {
+                return Color.white;
+            }
+        }
+
+        public string GetHtmlColor(int value)
+        {
+            if (_colorHtmlMap.TryGetValue(value, out var color))
+            {
+                return color;
+            }
+            else
+            {
+                return ColorUtility.ToHtmlStringRGBA(Color.white);
+            }
         }
     }
-}
 }

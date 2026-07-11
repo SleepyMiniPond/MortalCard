@@ -1,5 +1,4 @@
 using System;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Collections;
 using System.Collections.Generic;
@@ -10,32 +9,32 @@ using Optional.Collections;
 namespace MortalGame.GameModel
 {
 
-public interface IDeckEntity : ICardColletionZone
-{
-    Option<ICardEntity> PopCardOrNone();
-    void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards);
-}
-public class DeckEntity : CardColletionZone, IDeckEntity
-{
-    private readonly IGameRandom _random;
-
-    public DeckEntity(IGameRandom random) : base(CardCollectionType.Deck)
+    public interface IDeckEntity : ICardColletionZone
     {
-        _random = random;
+        Option<ICardEntity> PopCardOrNone();
+        void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards);
     }
-
-    public Option<ICardEntity> PopCardOrNone()
+    public class DeckEntity : CardColletionZone, IDeckEntity
     {
-        var popCard = OptionCollectionExtensions.ElementAtOrNone(Cards, 0);        
-        _cards = Cards.Skip(1).ToList();
-        return popCard;
-    }
+        private readonly IGameRandom _random;
 
-    public void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards)
-    {
-        _cards.AddRange(cards);
-        _random.ShuffleInPlace(_cards);
+        public DeckEntity(IGameRandom random) : base(CardCollectionType.Deck)
+        {
+            _random = random;
+        }
+
+        public Option<ICardEntity> PopCardOrNone()
+        {
+            var popCard = OptionCollectionExtensions.ElementAtOrNone(Cards, 0);
+            _cards = Cards.Skip(1).ToList();
+            return popCard;
+        }
+
+        public void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards)
+        {
+            _cards.AddRange(cards);
+            _random.ShuffleInPlace(_cards);
+        }
     }
-}
 
 }

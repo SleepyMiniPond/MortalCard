@@ -3,21 +3,21 @@ using UnityEngine;
 namespace MortalGame.GameView
 {
 
-public interface IGameResultWinPanel
-{
-}
-
-public class GameResultWinPanel : MonoBehaviour, IGameResultWinPanel
-{
-    [SerializeField] private GameObject _panel;
-
-    public void Open()
+    public interface IGameResultWinPanel
     {
-        _panel.SetActive(true);
     }
-    public void Close()
+
+    public class GameResultWinPanel : MonoBehaviour, IGameResultWinPanel
     {
-        _panel.SetActive(false);
+        [SerializeField] private GameObject _panel;
+
+        public void Open()
+        {
+            _panel.SetActive(true);
+        }
+        public void Close()
+        {
+            _panel.SetActive(false);
+        }
     }
-}
 }

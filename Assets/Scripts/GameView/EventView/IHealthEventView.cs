@@ -4,8 +4,8 @@ using UnityEngine;
 namespace MortalGame.GameView
 {
 
-public interface IAnimationNumberEventView 
-{
-    UniTask PlayAnimation();
-}
+    public interface IAnimationNumberEventView
+    {
+        UniTask PlayAnimation();
+    }
 }

@@ -5,28 +5,28 @@ using System.Linq;
 namespace MortalGame.GameModel
 {
 
-public class PlayerBuffInfo
-{
-    public readonly string Id;
-    public readonly Guid Identity;
-    public readonly int Level;
-    public IReadOnlyDictionary<string, int> SessionIntegers;
-
-    public PlayerBuffInfo(string id, Guid identity, int level, Dictionary<string, int> sessionIntegers)
+    public class PlayerBuffInfo
     {
-        Id = id;
-        Identity = identity;
-        Level = level;
-        SessionIntegers = sessionIntegers;
-    }    
+        public readonly string Id;
+        public readonly Guid Identity;
+        public readonly int Level;
+        public IReadOnlyDictionary<string, int> SessionIntegers;
 
-    public const string KEY_LEVEL = "level";
+        public PlayerBuffInfo(string id, Guid identity, int level, Dictionary<string, int> sessionIntegers)
+        {
+            Id = id;
+            Identity = identity;
+            Level = level;
+            SessionIntegers = sessionIntegers;
+        }
 
-    public Dictionary<string, string> GetTemplateValues()
-    {
-        var template = SessionIntegers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
-        template.Add(KEY_LEVEL, Level.ToString());
-        return template;
+        public const string KEY_LEVEL = "level";
+
+        public Dictionary<string, string> GetTemplateValues()
+        {
+            var template = SessionIntegers.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.ToString());
+            template.Add(KEY_LEVEL, Level.ToString());
+            return template;
+        }
     }
-}
 }

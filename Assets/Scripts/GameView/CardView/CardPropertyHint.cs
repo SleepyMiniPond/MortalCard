@@ -3,76 +3,73 @@ using System.Linq;
 using UnityEngine;
 using UnityEngine.UI;
 using MortalGame.UI;
-using MortalGame.GameView;
-
-
 namespace MortalGame.GameView
 {
 
-public class CardPropertyHint : MonoBehaviour
-{
-    public record ViewData(
-        IReadOnlyCollection<InfoCellViewData> InfoDatas);
-    public record InfoCellViewData(
-        LocalizeTitleInfoType Type,
-        string LocalizeId,
-        IReadOnlyDictionary<string, string> TemplateValues);
-
-    [SerializeField]
-    private CardBuffInfoViewFactory _cardBuffInfoViewFactory;
-    [SerializeField]
-    private GameKeyWordInfoViewFactory _gameKeyWordInfoViewFactory;
-    [SerializeField]
-    private RectTransform _layoutParent;
-    [SerializeField]
-    private RectTransform _content;
-
-    private LocalizeLibrary _localizeLibrary;
-    private List<CardBuffInfoView> _propertyViews = new List<CardBuffInfoView>();
-
-    public void Init(LocalizeLibrary localizeLibrary)
+    public class CardPropertyHint : MonoBehaviour
     {
-        _localizeLibrary = localizeLibrary;
-    }
+        public record ViewData(
+            IReadOnlyCollection<InfoCellViewData> InfoDatas);
+        public record InfoCellViewData(
+            LocalizeTitleInfoType Type,
+            string LocalizeId,
+            IReadOnlyDictionary<string, string> TemplateValues);
 
-    public void ShowHint(ViewData viewData, RectTransform referenceRect)
-    {
-        if(viewData.InfoDatas.Count == 0)
+        [SerializeField]
+        private CardBuffInfoViewFactory _cardBuffInfoViewFactory;
+        [SerializeField]
+        private GameKeyWordInfoViewFactory _gameKeyWordInfoViewFactory;
+        [SerializeField]
+        private RectTransform _layoutParent;
+        [SerializeField]
+        private RectTransform _content;
+
+        private LocalizeLibrary _localizeLibrary;
+        private List<CardBuffInfoView> _propertyViews = new List<CardBuffInfoView>();
+
+        public void Init(LocalizeLibrary localizeLibrary)
         {
-            HideHint();
-            return;
+            _localizeLibrary = localizeLibrary;
         }
 
-        _content.gameObject.SetActive(true);
-        foreach(var infoData in viewData.InfoDatas)
+        public void ShowHint(ViewData viewData, RectTransform referenceRect)
         {
-            var cardBuffInfoView = _cardBuffInfoViewFactory.CreatePrefab();
-            cardBuffInfoView.transform.SetParent(_layoutParent, false);
-            _propertyViews.Add(cardBuffInfoView);
+            if (viewData.InfoDatas.Count == 0)
+            {
+                HideHint();
+                return;
+            }
 
-            cardBuffInfoView.SetInfo(infoData, _localizeLibrary);
+            _content.gameObject.SetActive(true);
+            foreach (var infoData in viewData.InfoDatas)
+            {
+                var cardBuffInfoView = _cardBuffInfoViewFactory.CreatePrefab();
+                cardBuffInfoView.transform.SetParent(_layoutParent, false);
+                _propertyViews.Add(cardBuffInfoView);
+
+                cardBuffInfoView.SetInfo(infoData, _localizeLibrary);
+            }
+
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_layoutParent);
+            LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
+
+            var canvas = _content.GetComponentInParent<Canvas>();
+            var rectOnCanvas = canvas.GetRectOnCanvas(referenceRect, _content.parent as RectTransform);
+
+            var anchorY = _content.rect.height > rectOnCanvas.height ?
+                rectOnCanvas.min.y + _content.rect.height / 2 :
+                rectOnCanvas.max.y - _content.rect.height / 2;
+            _content.anchoredPosition = new Vector2(_content.anchoredPosition.x, anchorY);
         }
-        
-        LayoutRebuilder.ForceRebuildLayoutImmediate(_layoutParent);
-        LayoutRebuilder.ForceRebuildLayoutImmediate(_content);
-        
-        var canvas = _content.GetComponentInParent<Canvas>();
-        var rectOnCanvas = canvas.GetRectOnCanvas(referenceRect, _content.parent as RectTransform);
 
-        var anchorY = _content.rect.height > rectOnCanvas.height ?
-            rectOnCanvas.min.y + _content.rect.height / 2 : 
-            rectOnCanvas.max.y - _content.rect.height / 2;
-        _content.anchoredPosition = new Vector2(_content.anchoredPosition.x, anchorY);
-    }
-
-    public void HideHint()
-    {
-        foreach (var propertyView in _propertyViews)
+        public void HideHint()
         {
-            _cardBuffInfoViewFactory.RecyclePrefab(propertyView);
+            foreach (var propertyView in _propertyViews)
+            {
+                _cardBuffInfoViewFactory.RecyclePrefab(propertyView);
+            }
+            _propertyViews.Clear();
+            _content.gameObject.SetActive(false);
         }
-        _propertyViews.Clear();
-        _content.gameObject.SetActive(false);
     }
-}
 }

@@ -53,7 +53,7 @@ public class Main : MonoBehaviour
                         break;
 
                     case LevelMapReactionType.StartGamePlay:
-                        
+
                         var retry = false;
                         do
                         {
@@ -74,7 +74,7 @@ public class Main : MonoBehaviour
                             }
                         }
                         while (retry);
-                
+
                         break;
                 }
             }

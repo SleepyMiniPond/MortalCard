@@ -1,37 +1,36 @@
 using System;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Collections.Generic;
 
 namespace MortalGame.GameModel
 {
 
-public class DecreaseDispositionEffectResolver : ICardEffectResolver
-{
-    public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
+    public class DecreaseDispositionEffectResolver : ICardEffectResolver
     {
-        if (effect is not DecreaseDispositionEffect decreaseDispositionEffect)
-            throw new InvalidOperationException($"DecreaseDispositionEffectResolver 不支援的效果類型：{effect.GetType().Name}");
-
-        var effectCommands = new List<IEffectCommand>();
-        var intent = new DecreaseDispositionIntentAction(context.Action.Source);
-        var triggerContext = context with { Action = intent };
-        var targets = decreaseDispositionEffect.Targets.Eval(triggerContext);
-
-        foreach (var target in targets)
+        public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
         {
-            if (target is not AllyEntity ally) continue;
+            if (effect is not DecreaseDispositionEffect decreaseDispositionEffect)
+                throw new InvalidOperationException($"DecreaseDispositionEffectResolver 不支援的效果類型：{effect.GetType().Name}");
 
-            var playerTarget = new PlayerTarget(ally);
-            var targetIntent = new DecreaseDispositionIntentTargetAction(context.Action.Source, playerTarget);
-            var targetTriggerContext = triggerContext with { Action = targetIntent };
+            var effectCommands = new List<IEffectCommand>();
+            var intent = new DecreaseDispositionIntentAction(context.Action.Source);
+            var triggerContext = context with { Action = intent };
+            var targets = decreaseDispositionEffect.Targets.Eval(triggerContext);
 
-            var decreasePoint = decreaseDispositionEffect.Value.Eval(targetTriggerContext);
+            foreach (var target in targets)
+            {
+                if (target is not AllyEntity ally) continue;
 
-            effectCommands.Add(new DecreaseDispositionEffectCommand(ally, decreasePoint));
+                var playerTarget = new PlayerTarget(ally);
+                var targetIntent = new DecreaseDispositionIntentTargetAction(context.Action.Source, playerTarget);
+                var targetTriggerContext = triggerContext with { Action = targetIntent };
+
+                var decreasePoint = decreaseDispositionEffect.Value.Eval(targetTriggerContext);
+
+                effectCommands.Add(new DecreaseDispositionEffectCommand(ally, decreasePoint));
+            }
+            return new EffectCommandSet(effectCommands);
         }
-        return new EffectCommandSet(effectCommands);
     }
-}
 
 }

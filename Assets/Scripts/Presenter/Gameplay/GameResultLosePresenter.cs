@@ -8,55 +8,58 @@ using UnityEngine;
 namespace MortalGame.Presenter
 {
 
-public interface IGameResultLosePresenter
-{
-    UniTask<GameplayLoseResult> Run();
-}
-
-public class GameResultLosePresenter : IGameResultLosePresenter
-{
-    private readonly IGameResultLosePanel _losePanel;
-
-    public GameResultLosePresenter(IGameResultLosePanel losePanel)
+    public interface IGameResultLosePresenter
     {
-        _losePanel = losePanel;
+        UniTask<GameplayLoseResult> Run();
     }
 
-    public async UniTask<GameplayLoseResult> Run()
+    public class GameResultLosePresenter : IGameResultLosePresenter
     {
-        var reactionType = LoseReactionType.Quit;
-        var isClose = false;
-        var disposables = new CompositeDisposable();
+        private readonly IGameResultLosePanel _losePanel;
 
-        _losePanel.RetryButton.OnClickAsObservable()
-            .Subscribe(_ => {
-                reactionType = LoseReactionType.Retry;
-                isClose = true;
-            })
-            .AddTo(disposables);
-        _losePanel.RestartButton.OnClickAsObservable()
-            .Subscribe(_ => {
-                reactionType = LoseReactionType.Restart;
-                isClose = true;
-            })
-            .AddTo(disposables);
-        _losePanel.QuitButton.OnClickAsObservable()
-            .Subscribe(_ => {
-                reactionType = LoseReactionType.Quit;
-                isClose = true;
-            })
-            .AddTo(disposables);
-
-        _losePanel.Open();
-        while (!isClose)
+        public GameResultLosePresenter(IGameResultLosePanel losePanel)
         {
-            await UniTask.NextFrame();
+            _losePanel = losePanel;
         }
 
-        _losePanel.Close();
-        disposables.Dispose();
+        public async UniTask<GameplayLoseResult> Run()
+        {
+            var reactionType = LoseReactionType.Quit;
+            var isClose = false;
+            var disposables = new CompositeDisposable();
 
-        return new GameplayLoseResult(reactionType);
+            _losePanel.RetryButton.OnClickAsObservable()
+                .Subscribe(_ =>
+                {
+                    reactionType = LoseReactionType.Retry;
+                    isClose = true;
+                })
+                .AddTo(disposables);
+            _losePanel.RestartButton.OnClickAsObservable()
+                .Subscribe(_ =>
+                {
+                    reactionType = LoseReactionType.Restart;
+                    isClose = true;
+                })
+                .AddTo(disposables);
+            _losePanel.QuitButton.OnClickAsObservable()
+                .Subscribe(_ =>
+                {
+                    reactionType = LoseReactionType.Quit;
+                    isClose = true;
+                })
+                .AddTo(disposables);
+
+            _losePanel.Open();
+            while (!isClose)
+            {
+                await UniTask.NextFrame();
+            }
+
+            _losePanel.Close();
+            disposables.Dispose();
+
+            return new GameplayLoseResult(reactionType);
+        }
     }
-}
 }

@@ -9,39 +9,39 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public interface ICardValueCondition
-{
-    bool Eval(TriggerContext triggerContext, ICardEntity card);
-}
-
-[Serializable]
-public class CardEqualCondition : ICardValueCondition
-{
-    [HorizontalGroup("1")]
-    public ITargetCardValue CompareCard;
-
-    public bool Eval(TriggerContext triggerContext, ICardEntity card)
+    public interface ICardValueCondition
     {
-        return CompareCard
-            .Eval(triggerContext)
-            .Match(
-                compareCard => card.Identity == compareCard.Identity,
-                () => false);
+        bool Eval(TriggerContext triggerContext, ICardEntity card);
     }
-}
-[Serializable]
-public class CardTypesCondition : ICardValueCondition
-{
-    [ShowInInspector]
-    [HorizontalGroup("1")]
-    public List<CardType> CardTypes = new();
 
-    public SetConditionType Condition;
-
-    public bool Eval(TriggerContext triggerContext, ICardEntity card)
+    [Serializable]
+    public class CardEqualCondition : ICardValueCondition
     {
-        return Condition.Eval(CardTypes, type => type == card.Type);
+        [HorizontalGroup("1")]
+        public ITargetCardValue CompareCard;
+
+        public bool Eval(TriggerContext triggerContext, ICardEntity card)
+        {
+            return CompareCard
+                .Eval(triggerContext)
+                .Match(
+                    compareCard => card.Identity == compareCard.Identity,
+                    () => false);
+        }
     }
-}
+    [Serializable]
+    public class CardTypesCondition : ICardValueCondition
+    {
+        [ShowInInspector]
+        [HorizontalGroup("1")]
+        public List<CardType> CardTypes = new();
+
+        public SetConditionType Condition;
+
+        public bool Eval(TriggerContext triggerContext, ICardEntity card)
+        {
+            return Condition.Eval(CardTypes, type => type == card.Type);
+        }
+    }
 
 }

@@ -6,25 +6,25 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public class GameHistory
-{
-    private List<TurnRecord> _turnRecords = new();
-    private IGameEventWatcher _gameEventWatcher;
-
-    public GameHistory(IGameEventWatcher gameEventWatcher)
+    public class GameHistory
     {
-        _gameEventWatcher = gameEventWatcher;
+        private List<TurnRecord> _turnRecords = new();
+        private IGameEventWatcher _gameEventWatcher;
+
+        public GameHistory(IGameEventWatcher gameEventWatcher)
+        {
+            _gameEventWatcher = gameEventWatcher;
+        }
     }
-}
 
-public class TurnRecord
-{
-    private List<ActionRecord> _actionRecords = new();
-}
+    public class TurnRecord
+    {
+        private List<ActionRecord> _actionRecords = new();
+    }
 
-public class ActionRecord
-{
+    public class ActionRecord
+    {
 
-}
+    }
 
 }

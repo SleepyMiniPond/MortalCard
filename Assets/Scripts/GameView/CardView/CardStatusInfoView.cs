@@ -1,31 +1,30 @@
 using System.Collections.Generic;
 using TMPro;
 using MortalGame.UI;
-using MortalGame.GameView;
 using UnityEngine;
 
 namespace MortalGame.GameView
 {
 
-public class CardBuffInfoView : MonoBehaviour, IRecyclable
-{
-
-    [SerializeField]
-    private TextMeshProUGUI _cardBuffTitleText;
-    [SerializeField]
-    private TextMeshProUGUI _cardBuffInfoText;
-
-    public void SetInfo(CardPropertyHint.InfoCellViewData viewData, LocalizeLibrary localizeLibrary)
+    public class CardBuffInfoView : MonoBehaviour, IRecyclable
     {
-        var localizeData = localizeLibrary.Get(viewData.Type, viewData.LocalizeId);
-        var templateValue = viewData.TemplateValues;
 
-        _cardBuffTitleText.text = localizeData.Title;
-        _cardBuffInfoText.text = localizeData.Info.ReplaceTemplateKeys(templateValue);
-    }
+        [SerializeField]
+        private TextMeshProUGUI _cardBuffTitleText;
+        [SerializeField]
+        private TextMeshProUGUI _cardBuffInfoText;
 
-    public void Reset()
-    {
+        public void SetInfo(CardPropertyHint.InfoCellViewData viewData, LocalizeLibrary localizeLibrary)
+        {
+            var localizeData = localizeLibrary.Get(viewData.Type, viewData.LocalizeId);
+            var templateValue = viewData.TemplateValues;
+
+            _cardBuffTitleText.text = localizeData.Title;
+            _cardBuffInfoText.text = localizeData.Info.ReplaceTemplateKeys(templateValue);
+        }
+
+        public void Reset()
+        {
+        }
     }
-}
 }

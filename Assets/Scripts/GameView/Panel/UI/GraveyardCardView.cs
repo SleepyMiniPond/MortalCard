@@ -8,25 +8,25 @@ using UnityEngine.UI;
 namespace MortalGame.GameView
 {
 
-public class GraveyardCardView : MonoBehaviour
-{
-    [SerializeField]
-    private Button _button;
-    [SerializeField]
-    private TextMeshProUGUI _graveyardCountText;
-
-    public Button GraveyardButton => _button;
-
-    private IGameViewModel _gameViewModel;
-    private CompositeDisposable _disposables = new();
-
-    public void Init(IGameViewModel gameViewModel)
+    public class GraveyardCardView : MonoBehaviour
     {
-        _gameViewModel = gameViewModel;
+        [SerializeField]
+        private Button _button;
+        [SerializeField]
+        private TextMeshProUGUI _graveyardCountText;
 
-        _gameViewModel.ObservableCardCollectionInfo(Faction.Ally, CardCollectionType.Graveyard)
-            .Subscribe(graveyardInfo => _graveyardCountText.text = graveyardInfo.Count.ToString())
-            .AddTo(_disposables);
+        public Button GraveyardButton => _button;
+
+        private IGameViewModel _gameViewModel;
+        private CompositeDisposable _disposables = new();
+
+        public void Init(IGameViewModel gameViewModel)
+        {
+            _gameViewModel = gameViewModel;
+
+            _gameViewModel.ObservableCardCollectionInfo(Faction.Ally, CardCollectionType.Graveyard)
+                .Subscribe(graveyardInfo => _graveyardCountText.text = graveyardInfo.Count.ToString())
+                .AddTo(_disposables);
+        }
     }
-}
 }

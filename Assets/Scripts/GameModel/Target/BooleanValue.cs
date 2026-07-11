@@ -3,27 +3,27 @@ using System;
 namespace MortalGame.GameModel
 {
 
-public interface IBooleanValue
-{
-    bool Eval(TriggerContext triggerContext);
-}
-
-[Serializable]
-public class TrueValue : IBooleanValue
-{
-    public bool Eval(TriggerContext triggerContext)
+    public interface IBooleanValue
     {
-        return true;
+        bool Eval(TriggerContext triggerContext);
     }
-}
 
-[Serializable]
-public class FalseValue : IBooleanValue
-{
-    public bool Eval(TriggerContext triggerContext)
+    [Serializable]
+    public class TrueValue : IBooleanValue
     {
-        return false;
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return true;
+        }
     }
-}
+
+    [Serializable]
+    public class FalseValue : IBooleanValue
+    {
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return false;
+        }
+    }
 
 }

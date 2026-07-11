@@ -8,59 +8,59 @@ using UnityEngine;
 namespace MortalGame.GameData
 {
 
-public class PlayerBuffLibrary
-{
-    private readonly Dictionary<string, PlayerBuffData> _buffs;
-
-    public PlayerBuffLibrary(IReadOnlyDictionary<string, PlayerBuffData> buffs)
+    public class PlayerBuffLibrary
     {
-        _buffs = new Dictionary<string, PlayerBuffData>(buffs);
-    }
+        private readonly Dictionary<string, PlayerBuffData> _buffs;
 
-    public Option<ConditionalPlayerBuffEffect[]> GetBuffEffects(string buffId, GameTiming triggerTiming)
-    {
-        if (!_buffs.ContainsKey(buffId))
+        public PlayerBuffLibrary(IReadOnlyDictionary<string, PlayerBuffData> buffs)
         {
-            Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
-            return Option.None<ConditionalPlayerBuffEffect[]>();
+            _buffs = new Dictionary<string, PlayerBuffData>(buffs);
         }
 
-        return _buffs[buffId].BuffEffects.TryGetValue(triggerTiming, out var effects)
-            ? effects.SomeNotNull()
-            : Option.None<ConditionalPlayerBuffEffect[]>();
-    }
-
-    public IReadOnlyDictionary<string, IReactionSessionData> GetBuffSessions(string buffId)
-    {
-        if (!_buffs.ContainsKey(buffId))
+        public Option<ConditionalPlayerBuffEffect[]> GetBuffEffects(string buffId, GameTiming triggerTiming)
         {
-            Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
-            return new Dictionary<string, IReactionSessionData>();
+            if (!_buffs.ContainsKey(buffId))
+            {
+                Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
+                return Option.None<ConditionalPlayerBuffEffect[]>();
+            }
+
+            return _buffs[buffId].BuffEffects.TryGetValue(triggerTiming, out var effects)
+                ? effects.SomeNotNull()
+                : Option.None<ConditionalPlayerBuffEffect[]>();
         }
 
-        return _buffs[buffId].Sessions;
-    }
-
-    public IPlayerBuffLifeTimeData GetBuffLifeTime(string buffId)
-    {
-        if (!_buffs.ContainsKey(buffId))
+        public IReadOnlyDictionary<string, IReactionSessionData> GetBuffSessions(string buffId)
         {
-            Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
-            return null;
+            if (!_buffs.ContainsKey(buffId))
+            {
+                Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
+                return new Dictionary<string, IReactionSessionData>();
+            }
+
+            return _buffs[buffId].Sessions;
         }
 
-        return _buffs[buffId].LifeTimeData;
-    }
-
-    public IPlayerBuffPropertyData[] GetBuffProperties(string buffId)
-    {
-        if (!_buffs.ContainsKey(buffId))
+        public IPlayerBuffLifeTimeData GetBuffLifeTime(string buffId)
         {
-            Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
-            return Array.Empty<IPlayerBuffPropertyData>();
+            if (!_buffs.ContainsKey(buffId))
+            {
+                Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
+                return null;
+            }
+
+            return _buffs[buffId].LifeTimeData;
         }
 
-        return _buffs[buffId].PropertyDatas.ToArray();
+        public IPlayerBuffPropertyData[] GetBuffProperties(string buffId)
+        {
+            if (!_buffs.ContainsKey(buffId))
+            {
+                Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
+                return Array.Empty<IPlayerBuffPropertyData>();
+            }
+
+            return _buffs[buffId].PropertyDatas.ToArray();
+        }
     }
-}
 }

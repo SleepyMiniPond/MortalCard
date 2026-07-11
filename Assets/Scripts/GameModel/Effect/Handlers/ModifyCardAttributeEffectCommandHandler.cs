@@ -1,21 +1,20 @@
 using System;
-using MortalGame.GameModel;
 using System.Linq;
 
 namespace MortalGame.GameModel
 {
 
-public class ModifyCardAttributeEffectCommandHandler : IEffectCommandHandler
-{
-    public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+    public class ModifyCardAttributeEffectCommandHandler : IEffectCommandHandler
     {
-        var c = (ModifyCardAttributeEffectCommand)command;
-        if (context.Action.Source is CardPlaySource cardPlaySource)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
         {
-            cardPlaySource.Attribute.ApplyModify(c.AdditionType, c.AdditionValue);
+            var c = (ModifyCardAttributeEffectCommand)command;
+            if (context.Action.Source is CardPlaySource cardPlaySource)
+            {
+                cardPlaySource.Attribute.ApplyModify(c.AdditionType, c.AdditionValue);
+            }
+            return new CommandApplyResult(Array.Empty<BaseResultAction>(), Enumerable.Empty<IGameEvent>());
         }
-        return new CommandApplyResult(Array.Empty<BaseResultAction>(), Enumerable.Empty<IGameEvent>());
     }
-}
 
 }

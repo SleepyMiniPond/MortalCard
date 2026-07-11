@@ -7,38 +7,38 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public interface ICharacterValueCondition
-{
-    bool Eval(TriggerContext triggerContext, ICharacterEntity character);
-}
-
-[Serializable]
-public class CharacterFactionCondition : ICharacterValueCondition
-{
-    public enum FactionCondition
+    public interface ICharacterValueCondition
     {
-        Same,
-        Opposite
+        bool Eval(TriggerContext triggerContext, ICharacterEntity character);
     }
 
-    [HorizontalGroup("1")]
-    public ITargetPlayerValue ComparePlayer;
-
-    public FactionCondition Faction;
-
-    public bool Eval(TriggerContext triggerContext, ICharacterEntity character)
+    [Serializable]
+    public class CharacterFactionCondition : ICharacterValueCondition
     {
-        return ComparePlayer.Eval(triggerContext)
-            .Combine(character.Owner(triggerContext.Model))
-            .Match(
-                tuple => Faction switch
-                {
-                    FactionCondition.Same     => tuple.Item1.Faction == tuple.Item2.Faction,
-                    FactionCondition.Opposite => tuple.Item2.Faction != tuple.Item1.Faction,
-                    _                         => false
-                },
-                () => false);
+        public enum FactionCondition
+        {
+            Same,
+            Opposite
+        }
+
+        [HorizontalGroup("1")]
+        public ITargetPlayerValue ComparePlayer;
+
+        public FactionCondition Faction;
+
+        public bool Eval(TriggerContext triggerContext, ICharacterEntity character)
+        {
+            return ComparePlayer.Eval(triggerContext)
+                .Combine(character.Owner(triggerContext.Model))
+                .Match(
+                    tuple => Faction switch
+                    {
+                        FactionCondition.Same => tuple.Item1.Faction == tuple.Item2.Faction,
+                        FactionCondition.Opposite => tuple.Item2.Faction != tuple.Item1.Faction,
+                        _ => false
+                    },
+                    () => false);
+        }
     }
-}
 
 }

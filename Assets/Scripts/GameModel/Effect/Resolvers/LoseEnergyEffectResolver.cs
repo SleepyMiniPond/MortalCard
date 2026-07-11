@@ -1,35 +1,34 @@
 using System;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Collections.Generic;
 
 namespace MortalGame.GameModel
 {
 
-public class LoseEnergyEffectResolver : ICardEffectResolver
-{
-    public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
+    public class LoseEnergyEffectResolver : ICardEffectResolver
     {
-        if (effect is not LoseEnegyEffect loseEnergyEffect)
-            throw new InvalidOperationException($"LoseEnergyEffectResolver 不支援的效果類型：{effect.GetType().Name}");
-
-        var effectCommands = new List<IEffectCommand>();
-        var intent = new LoseEnergyIntentAction(context.Action.Source);
-        var triggerContext = context with { Action = intent };
-        var targets = loseEnergyEffect.Targets.Eval(triggerContext);
-
-        foreach (var target in targets)
+        public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
         {
-            var playerTarget = new PlayerTarget(target);
-            var targetIntent = new LoseEnergyIntentTargetAction(context.Action.Source, playerTarget);
-            var targetTriggerContext = triggerContext with { Action = targetIntent };
+            if (effect is not LoseEnegyEffect loseEnergyEffect)
+                throw new InvalidOperationException($"LoseEnergyEffectResolver 不支援的效果類型：{effect.GetType().Name}");
 
-            var loseEnergyPoint = loseEnergyEffect.Value.Eval(targetTriggerContext);
+            var effectCommands = new List<IEffectCommand>();
+            var intent = new LoseEnergyIntentAction(context.Action.Source);
+            var triggerContext = context with { Action = intent };
+            var targets = loseEnergyEffect.Targets.Eval(triggerContext);
 
-            effectCommands.Add(new LoseEnergyEffectCommand(target, loseEnergyPoint));
+            foreach (var target in targets)
+            {
+                var playerTarget = new PlayerTarget(target);
+                var targetIntent = new LoseEnergyIntentTargetAction(context.Action.Source, playerTarget);
+                var targetTriggerContext = triggerContext with { Action = targetIntent };
+
+                var loseEnergyPoint = loseEnergyEffect.Value.Eval(targetTriggerContext);
+
+                effectCommands.Add(new LoseEnergyEffectCommand(target, loseEnergyPoint));
+            }
+            return new EffectCommandSet(effectCommands);
         }
-        return new EffectCommandSet(effectCommands);
     }
-}
 
 }

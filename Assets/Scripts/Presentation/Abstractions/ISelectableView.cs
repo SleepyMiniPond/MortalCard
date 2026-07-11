@@ -4,11 +4,11 @@ using MortalGame.GameModel;
 namespace MortalGame.Presentation.Abstractions
 {
 
-public interface ISelectableView : ISelectionTarget
-{
-    RectTransform RectTransform { get; }
+    public interface ISelectableView : ISelectionTarget
+    {
+        RectTransform RectTransform { get; }
 
-    void OnSelect();
-    void OnDeselect();
-}
+        void OnSelect();
+        void OnDeselect();
+    }
 }

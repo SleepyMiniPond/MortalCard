@@ -1,46 +1,45 @@
 using System;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Collections.Generic;
 
 namespace MortalGame.GameModel
 {
 
-public class DamagePlayerBuffEffectResolver : IPlayerBuffEffectResolver
-{
-    public EffectCommandSet Resolve(TriggerContext context, IPlayerBuffEffect effect)
+    public class DamagePlayerBuffEffectResolver : IPlayerBuffEffectResolver
     {
-        return effect switch
+        public EffectCommandSet Resolve(TriggerContext context, IPlayerBuffEffect effect)
         {
-            AdditionalDamagePlayerBuffEffect e => _Resolve(context, e.Targets, e.Value, DamageType.Additional, GameFormula.AdditionalDamagePoint),
-            EffectiveDamagePlayerBuffEffect  e => _Resolve(context, e.Targets, e.Value, DamageType.Effective,  GameFormula.EffectiveDamagePoint),
-            _ => throw new InvalidOperationException($"DamagePlayerBuffEffectResolver 不支援的效果類型：{effect.GetType().Name}")
-        };
-    }
-
-    private static EffectCommandSet _Resolve(
-        TriggerContext context,
-        ITargetCharacterCollectionValue targets,
-        IIntegerValue value,
-        DamageType damageType,
-        Func<TriggerContext, int, int> formulaFunc)
-    {
-        var effectCommands = new List<IEffectCommand>();
-        var intent = new DamageIntentAction(context.Action.Source, damageType);
-        var triggerContext = context with { Action = intent };
-        var targetEntities = targets.Eval(triggerContext);
-
-        foreach (var target in targetEntities)
-        {
-            var characterTarget = new CharacterTarget(target);
-            var targetIntent = new DamageIntentTargetAction(context.Action.Source, characterTarget, damageType);
-            var targetTriggerContext = triggerContext with { Action = targetIntent };
-            var damagePoint = value.Eval(targetTriggerContext);
-            var damageFormulaPoint = formulaFunc(targetTriggerContext, damagePoint);
-            effectCommands.Add(new DamageEffectCommand(target, damageFormulaPoint, damageType));
+            return effect switch
+            {
+                AdditionalDamagePlayerBuffEffect e => _Resolve(context, e.Targets, e.Value, DamageType.Additional, GameFormula.AdditionalDamagePoint),
+                EffectiveDamagePlayerBuffEffect e => _Resolve(context, e.Targets, e.Value, DamageType.Effective, GameFormula.EffectiveDamagePoint),
+                _ => throw new InvalidOperationException($"DamagePlayerBuffEffectResolver 不支援的效果類型：{effect.GetType().Name}")
+            };
         }
-        return new EffectCommandSet(effectCommands);
+
+        private static EffectCommandSet _Resolve(
+            TriggerContext context,
+            ITargetCharacterCollectionValue targets,
+            IIntegerValue value,
+            DamageType damageType,
+            Func<TriggerContext, int, int> formulaFunc)
+        {
+            var effectCommands = new List<IEffectCommand>();
+            var intent = new DamageIntentAction(context.Action.Source, damageType);
+            var triggerContext = context with { Action = intent };
+            var targetEntities = targets.Eval(triggerContext);
+
+            foreach (var target in targetEntities)
+            {
+                var characterTarget = new CharacterTarget(target);
+                var targetIntent = new DamageIntentTargetAction(context.Action.Source, characterTarget, damageType);
+                var targetTriggerContext = triggerContext with { Action = targetIntent };
+                var damagePoint = value.Eval(targetTriggerContext);
+                var damageFormulaPoint = formulaFunc(targetTriggerContext, damagePoint);
+                effectCommands.Add(new DamageEffectCommand(target, damageFormulaPoint, damageType));
+            }
+            return new EffectCommandSet(effectCommands);
+        }
     }
-}
 
 }

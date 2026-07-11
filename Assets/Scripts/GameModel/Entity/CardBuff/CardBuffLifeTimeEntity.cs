@@ -1,97 +1,96 @@
 using System.Linq;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using UnityEngine;
 
 namespace MortalGame.GameModel
 {
 
-public interface ICardBuffLifeTimeEntity
-{
-    bool IsExpired();
-    bool Update(TriggerContext triggerContext);
-    ICardBuffLifeTimeEntity Clone();
-}
-
-public class AlwaysLifeTimeCardBuffEntity : ICardBuffLifeTimeEntity
-{
-    public bool IsExpired()
+    public interface ICardBuffLifeTimeEntity
     {
-        return false;
+        bool IsExpired();
+        bool Update(TriggerContext triggerContext);
+        ICardBuffLifeTimeEntity Clone();
     }
 
-    public bool Update(TriggerContext triggerContext)
-        => false;
-    
-    public ICardBuffLifeTimeEntity Clone() => new AlwaysLifeTimeCardBuffEntity();
-}
-
-public class TurnLifeTimeCardBuffEntity : ICardBuffLifeTimeEntity
-{
-    private int _turn;
-
-    public TurnLifeTimeCardBuffEntity(int turn)
+    public class AlwaysLifeTimeCardBuffEntity : ICardBuffLifeTimeEntity
     {
-        _turn = turn;
-    }
-
-    public bool IsExpired()
-    {
-        return _turn <= 0;
-    }
-
-    public bool Update(TriggerContext triggerContext)
-    {
-        if (triggerContext.Action is UpdateTimingAction timingAction &&
-            timingAction.Timing == GameTiming.TurnEnd)
+        public bool IsExpired()
         {
-            _turn--;
-            return true;
+            return false;
         }
-        return false;
+
+        public bool Update(TriggerContext triggerContext)
+            => false;
+
+        public ICardBuffLifeTimeEntity Clone() => new AlwaysLifeTimeCardBuffEntity();
     }
 
-    public ICardBuffLifeTimeEntity Clone() => new TurnLifeTimeCardBuffEntity(_turn);
-}
-
-public class HandCardLifeTimeCardBuffEntity : ICardBuffLifeTimeEntity
-{
-    private bool _expired;
-    public HandCardLifeTimeCardBuffEntity()
-    { 
-        _expired = false;
-    }
-
-    public bool IsExpired()
+    public class TurnLifeTimeCardBuffEntity : ICardBuffLifeTimeEntity
     {
-        return _expired;
-    }
+        private int _turn;
 
-    public bool Update(TriggerContext triggerContext)
-    {
-        if (!_CheckInHandCard(triggerContext.Model))
+        public TurnLifeTimeCardBuffEntity(int turn)
         {
-            _expired = true;
-            return true;
+            _turn = turn;
         }
-        return false;
-    }
 
-    private bool _CheckInHandCard(IGameplayModel gameModel)
-    {
-        foreach (var card in gameModel.GameStatus.Ally.CardManager.HandCard.Cards
-            .Concat(gameModel.GameStatus.Enemy.CardManager.HandCard.Cards))
+        public bool IsExpired()
         {
-            foreach (var buff in card.BuffManager.Buffs)
+            return _turn <= 0;
+        }
+
+        public bool Update(TriggerContext triggerContext)
+        {
+            if (triggerContext.Action is UpdateTimingAction timingAction &&
+                timingAction.Timing == GameTiming.TurnEnd)
             {
-                if (buff.LifeTime == this)
-                    return true;
+                _turn--;
+                return true;
             }
+            return false;
         }
-        return false;
+
+        public ICardBuffLifeTimeEntity Clone() => new TurnLifeTimeCardBuffEntity(_turn);
     }
 
-    public ICardBuffLifeTimeEntity Clone() => new HandCardLifeTimeCardBuffEntity();
-}
+    public class HandCardLifeTimeCardBuffEntity : ICardBuffLifeTimeEntity
+    {
+        private bool _expired;
+        public HandCardLifeTimeCardBuffEntity()
+        {
+            _expired = false;
+        }
+
+        public bool IsExpired()
+        {
+            return _expired;
+        }
+
+        public bool Update(TriggerContext triggerContext)
+        {
+            if (!_CheckInHandCard(triggerContext.Model))
+            {
+                _expired = true;
+                return true;
+            }
+            return false;
+        }
+
+        private bool _CheckInHandCard(IGameplayModel gameModel)
+        {
+            foreach (var card in gameModel.GameStatus.Ally.CardManager.HandCard.Cards
+                .Concat(gameModel.GameStatus.Enemy.CardManager.HandCard.Cards))
+            {
+                foreach (var buff in card.BuffManager.Buffs)
+                {
+                    if (buff.LifeTime == this)
+                        return true;
+                }
+            }
+            return false;
+        }
+
+        public ICardBuffLifeTimeEntity Clone() => new HandCardLifeTimeCardBuffEntity();
+    }
 
 }

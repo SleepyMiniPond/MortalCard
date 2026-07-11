@@ -7,30 +7,30 @@ using Optional;
 namespace MortalGame.GameModel
 {
 
-public interface IHandCardEntity : ICardColletionZone
-{
-    int MaxCount { get; }
-    IReadOnlyCollection<ICardEntity> ClearHand();
-}
-
-public class HandCardEntity : CardColletionZone, IHandCardEntity
-{
-    private int _maxCount;
-
-    public int MaxCount => _maxCount;
-
-    public HandCardEntity(int maxCount) : base(CardCollectionType.HandCard)
+    public interface IHandCardEntity : ICardColletionZone
     {
-        _maxCount = maxCount;
+        int MaxCount { get; }
+        IReadOnlyCollection<ICardEntity> ClearHand();
     }
 
-    public IReadOnlyCollection<ICardEntity> ClearHand()
+    public class HandCardEntity : CardColletionZone, IHandCardEntity
     {
-        var preservedCards = _cards.Where(c => c.HasProperty(CardProperty.Preserved)).ToList();
-        var recycleCards = _cards.Except(preservedCards).ToList();
-        _cards = preservedCards;
-        return recycleCards;
+        private int _maxCount;
+
+        public int MaxCount => _maxCount;
+
+        public HandCardEntity(int maxCount) : base(CardCollectionType.HandCard)
+        {
+            _maxCount = maxCount;
+        }
+
+        public IReadOnlyCollection<ICardEntity> ClearHand()
+        {
+            var preservedCards = _cards.Where(c => c.HasProperty(CardProperty.Preserved)).ToList();
+            var recycleCards = _cards.Except(preservedCards).ToList();
+            _cards = preservedCards;
+            return recycleCards;
+        }
     }
-}
 
 }

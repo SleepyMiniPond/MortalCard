@@ -4,18 +4,18 @@ using Sirenix.OdinInspector;
 namespace MortalGame.GameData
 {
 
-public interface ICharacterBuffPropertyData
-{
-}
+    public interface ICharacterBuffPropertyData
+    {
+    }
 
-[Serializable]
-public class MaxHealthPropertyCharacterBuffData : ICharacterBuffPropertyData
-{
-}
+    [Serializable]
+    public class MaxHealthPropertyCharacterBuffData : ICharacterBuffPropertyData
+    {
+    }
 
-[Serializable]
-public class MaxEnergyPropertyCharacterBuffData : ICharacterBuffPropertyData
-{
-}
+    [Serializable]
+    public class MaxEnergyPropertyCharacterBuffData : ICharacterBuffPropertyData
+    {
+    }
 
 }

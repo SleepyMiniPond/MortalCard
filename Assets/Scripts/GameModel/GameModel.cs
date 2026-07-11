@@ -3,48 +3,46 @@ using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
 using UnityEngine;
-using MortalGame.GameModel;
-
 namespace MortalGame.GameModel
 {
 
-public interface IGameplayModel
-{
-    GameStatus GameStatus { get; }
-    IGameContextManager ContextManager { get; }
-    Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity);
-    IEnumerable<IGameEvent> UpdateReactorSessionAction(IActionUnit actionUnit);
-    IEnumerable<IGameEvent> TriggerTiming(GameTiming timing, IActionSource actionSource);
-}
-
-public class ClonedGameplayModel : IGameplayModel
-{
-    private IGameplayModel _baseModel;
-    private GameStatus _clonedStatus;
-
-    public GameStatus GameStatus => _clonedStatus;
-    public IGameContextManager ContextManager => _baseModel.ContextManager;
-
-    public ClonedGameplayModel(IGameplayModel baseModel, GameStatus clonedStatus)
+    public interface IGameplayModel
     {
-        _baseModel = baseModel;
-        _clonedStatus = clonedStatus;
+        GameStatus GameStatus { get; }
+        IGameContextManager ContextManager { get; }
+        Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity);
+        IEnumerable<IGameEvent> UpdateReactorSessionAction(IActionUnit actionUnit);
+        IEnumerable<IGameEvent> TriggerTiming(GameTiming timing, IActionSource actionSource);
     }
 
-    public Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity)
+    public class ClonedGameplayModel : IGameplayModel
     {
-        return _baseModel.QueryCardSubSelectionInfos(cardIdentity);
-    }
+        private IGameplayModel _baseModel;
+        private GameStatus _clonedStatus;
 
-    public IEnumerable<IGameEvent> UpdateReactorSessionAction(IActionUnit actionUnit)
-    {
-        return _baseModel.UpdateReactorSessionAction(actionUnit);
-    }
+        public GameStatus GameStatus => _clonedStatus;
+        public IGameContextManager ContextManager => _baseModel.ContextManager;
 
-    public IEnumerable<IGameEvent> TriggerTiming(GameTiming timing, IActionSource actionSource)
-    {
-        return _baseModel.TriggerTiming(timing, actionSource);
+        public ClonedGameplayModel(IGameplayModel baseModel, GameStatus clonedStatus)
+        {
+            _baseModel = baseModel;
+            _clonedStatus = clonedStatus;
+        }
+
+        public Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity)
+        {
+            return _baseModel.QueryCardSubSelectionInfos(cardIdentity);
+        }
+
+        public IEnumerable<IGameEvent> UpdateReactorSessionAction(IActionUnit actionUnit)
+        {
+            return _baseModel.UpdateReactorSessionAction(actionUnit);
+        }
+
+        public IEnumerable<IGameEvent> TriggerTiming(GameTiming timing, IActionSource actionSource)
+        {
+            return _baseModel.TriggerTiming(timing, actionSource);
+        }
     }
-}
 
 }

@@ -1,5 +1,4 @@
 using System;
-using MortalGame.GameModel;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
@@ -8,90 +7,90 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public interface IPlayerBuffManager
-{
-    IReadOnlyCollection<IPlayerBuffEntity> Buffs { get; }
-    ModifyPlayerBuffResult ModifyBuffLevel(
-        string buffId, 
-        int level);
-    AddPlayerBuffResult AddBuff(
-        IPlayerBuffEntity newBuff);
-    RemovePlayerBuffResult RemoveBuff(
-        IPlayerBuffEntity existBuff);
-
-    IEnumerable<IPlayerBuffEntity> Update(TriggerContext triggerContext);
-}
-
-public class PlayerBuffManager : IPlayerBuffManager
-{
-    private List<IPlayerBuffEntity> _buffs;
-
-    public IReadOnlyCollection<IPlayerBuffEntity> Buffs => _buffs;
-
-    public PlayerBuffManager()
+    public interface IPlayerBuffManager
     {
-        _buffs = new List<IPlayerBuffEntity>();
+        IReadOnlyCollection<IPlayerBuffEntity> Buffs { get; }
+        ModifyPlayerBuffResult ModifyBuffLevel(
+            string buffId,
+            int level);
+        AddPlayerBuffResult AddBuff(
+            IPlayerBuffEntity newBuff);
+        RemovePlayerBuffResult RemoveBuff(
+            IPlayerBuffEntity existBuff);
+
+        IEnumerable<IPlayerBuffEntity> Update(TriggerContext triggerContext);
     }
 
-    public ModifyPlayerBuffResult ModifyBuffLevel(
-        string buffId, 
-        int level)
+    public class PlayerBuffManager : IPlayerBuffManager
     {
-        foreach (var existBuff in _buffs)
+        private List<IPlayerBuffEntity> _buffs;
+
+        public IReadOnlyCollection<IPlayerBuffEntity> Buffs => _buffs;
+
+        public PlayerBuffManager()
         {
-            if (existBuff.PlayerBuffDataId == buffId)
-            {
-                existBuff.AddLevel(level);
-                return new ModifyPlayerBuffResult(
-                    PlayerBuff: existBuff,
-                    DeltaLevel: level,
-                    NewLevel: existBuff.Level
-                );
-            }
+            _buffs = new List<IPlayerBuffEntity>();
         }
 
-        throw new Exception($"Player buff {buffId} not found to modify level.");
-    }
-
-    public AddPlayerBuffResult AddBuff(IPlayerBuffEntity newBuff)
-    {
-        if (_buffs.Any(buff => buff.PlayerBuffDataId == newBuff.PlayerBuffDataId))
+        public ModifyPlayerBuffResult ModifyBuffLevel(
+            string buffId,
+            int level)
         {
-            throw new Exception($"Player buff {newBuff.PlayerBuffDataId} already exists to add.");
-        }
-
-        _buffs.Add(newBuff);
-        return new AddPlayerBuffResult(newBuff);
-    }
-    
-    public RemovePlayerBuffResult RemoveBuff(IPlayerBuffEntity existBuff)
-    {
-        _buffs.Remove(existBuff);
-
-        return new RemovePlayerBuffResult(existBuff);
-    }
-
-    public IEnumerable<IPlayerBuffEntity> Update(TriggerContext triggerContext)
-    {
-        foreach (var buff in _buffs.ToList())
-        {
-            var isUpdated = false;
-            var triggerBuff = new PlayerBuffTrigger(buff);
-            var updateBuffTriggerContext = triggerContext with { Triggered = triggerBuff };
-
-            foreach (var session in buff.ReactionSessions.Values)
+            foreach (var existBuff in _buffs)
             {
-                isUpdated |= session.Update(updateBuffTriggerContext);
+                if (existBuff.PlayerBuffDataId == buffId)
+                {
+                    existBuff.AddLevel(level);
+                    return new ModifyPlayerBuffResult(
+                        PlayerBuff: existBuff,
+                        DeltaLevel: level,
+                        NewLevel: existBuff.Level
+                    );
+                }
             }
 
-            isUpdated |= buff.LifeTime.Update(updateBuffTriggerContext);
+            throw new Exception($"Player buff {buffId} not found to modify level.");
+        }
 
-            if (isUpdated)
+        public AddPlayerBuffResult AddBuff(IPlayerBuffEntity newBuff)
+        {
+            if (_buffs.Any(buff => buff.PlayerBuffDataId == newBuff.PlayerBuffDataId))
             {
-                yield return buff;
+                throw new Exception($"Player buff {newBuff.PlayerBuffDataId} already exists to add.");
+            }
+
+            _buffs.Add(newBuff);
+            return new AddPlayerBuffResult(newBuff);
+        }
+
+        public RemovePlayerBuffResult RemoveBuff(IPlayerBuffEntity existBuff)
+        {
+            _buffs.Remove(existBuff);
+
+            return new RemovePlayerBuffResult(existBuff);
+        }
+
+        public IEnumerable<IPlayerBuffEntity> Update(TriggerContext triggerContext)
+        {
+            foreach (var buff in _buffs.ToList())
+            {
+                var isUpdated = false;
+                var triggerBuff = new PlayerBuffTrigger(buff);
+                var updateBuffTriggerContext = triggerContext with { Triggered = triggerBuff };
+
+                foreach (var session in buff.ReactionSessions.Values)
+                {
+                    isUpdated |= session.Update(updateBuffTriggerContext);
+                }
+
+                isUpdated |= buff.LifeTime.Update(updateBuffTriggerContext);
+
+                if (isUpdated)
+                {
+                    yield return buff;
+                }
             }
         }
     }
-}
 
 }

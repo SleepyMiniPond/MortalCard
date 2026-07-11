@@ -1,26 +1,24 @@
 using TMPro;
 using UnityEngine;
-using MortalGame.GameView;
-
 namespace MortalGame.GameView
 {
 
-public class GameKeyWordInfoView : MonoBehaviour, IRecyclable
-{
-    [SerializeField]
-    private TextMeshProUGUI _gameKeyWordTitleText;
-    [SerializeField]
-    private TextMeshProUGUI _gameKeyWordInfoText;
+    public class GameKeyWordInfoView : MonoBehaviour, IRecyclable
+    {
+        [SerializeField]
+        private TextMeshProUGUI _gameKeyWordTitleText;
+        [SerializeField]
+        private TextMeshProUGUI _gameKeyWordInfoText;
 
-    public void SetInfo(GameKeyWord gameKeyWord, LocalizeLibrary localizeLibrary)
-    {
-        var localizeData = localizeLibrary.Get(LocalizeTitleInfoType.KeyWord, gameKeyWord.ToString());
-        _gameKeyWordTitleText.text = localizeData.Title;
-        _gameKeyWordInfoText.text = localizeData.Info;
+        public void SetInfo(GameKeyWord gameKeyWord, LocalizeLibrary localizeLibrary)
+        {
+            var localizeData = localizeLibrary.Get(LocalizeTitleInfoType.KeyWord, gameKeyWord.ToString());
+            _gameKeyWordTitleText.text = localizeData.Title;
+            _gameKeyWordInfoText.text = localizeData.Info;
+        }
+
+        public void Reset()
+        {
+        }
     }
-    
-    public void Reset()
-    {
-    }
-}
 }

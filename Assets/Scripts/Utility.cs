@@ -11,7 +11,7 @@ public static class Utility
 {
     public class Dictionary<T, V> : System.Collections.Generic.Dictionary<T, V>
     {
-        public static readonly Dictionary<T, V> EMPTY = new ();
+        public static readonly Dictionary<T, V> EMPTY = new();
     }
 
     public static bool TryGetValue<T>(this Option<T> opt, out T value)
@@ -71,8 +71,8 @@ public static class Utility
                 yield return value;
             }
         }
-    } 
-    
+    }
+
     public static IEnumerable<T> Shuffle<T>(this IEnumerable<T> source, IGameRandom random)
     {
         var buffer = source.ToList();

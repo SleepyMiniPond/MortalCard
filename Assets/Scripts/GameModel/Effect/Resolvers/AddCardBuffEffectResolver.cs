@@ -1,5 +1,4 @@
 using System;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,59 +8,59 @@ using Optional.Collections;
 namespace MortalGame.GameModel
 {
 
-public class AddCardBuffEffectResolver : ICardEffectResolver
-{
-    public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
+    public class AddCardBuffEffectResolver : ICardEffectResolver
     {
-        if (effect is not AddCardBuffEffect addCardBuffEffect)
-            throw new InvalidOperationException($"AddCardBuffEffectResolver 不支援的效果類型：{effect.GetType().Name}");
-
-        var effectCommands = new List<IEffectCommand>();
-        var intent = new AddCardBuffIntentAction(context.Action.Source);
-        var triggerContext = context with { Action = intent };
-        var cards = addCardBuffEffect.TargetCards.Eval(triggerContext).ToList();
-
-        foreach (var card in cards)
+        public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
         {
-            foreach (var addCardBuff in addCardBuffEffect.AddCardBuffDatas)
+            if (effect is not AddCardBuffEffect addCardBuffEffect)
+                throw new InvalidOperationException($"AddCardBuffEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+
+            var effectCommands = new List<IEffectCommand>();
+            var intent = new AddCardBuffIntentAction(context.Action.Source);
+            var triggerContext = context with { Action = intent };
+            var cards = addCardBuffEffect.TargetCards.Eval(triggerContext).ToList();
+
+            foreach (var card in cards)
             {
-                var cardTarget = new CardTarget(card);
-                var targetIntent = new AddCardBuffIntentTargetAction(context.Action.Source, cardTarget);
-                var targetTriggerContext = triggerContext with { Action = targetIntent };
-                var addLevel = addCardBuff.Level.Eval(targetTriggerContext);
+                foreach (var addCardBuff in addCardBuffEffect.AddCardBuffDatas)
+                {
+                    var cardTarget = new CardTarget(card);
+                    var targetIntent = new AddCardBuffIntentTargetAction(context.Action.Source, cardTarget);
+                    var targetTriggerContext = triggerContext with { Action = targetIntent };
+                    var addLevel = addCardBuff.Level.Eval(targetTriggerContext);
 
-                if (card.BuffManager.Buffs.Any(buff => buff.CardBuffDataID == addCardBuff.CardBuffId))
-                {
-                    effectCommands.Add(new ModifyCardBuffLevelEffectCommand(
-                        card,
-                        addCardBuff.CardBuffId,
-                        addLevel));
-                }
-                else
-                {
-                    var caster = targetTriggerContext.Action switch
+                    if (card.BuffManager.Buffs.Any(buff => buff.CardBuffDataID == addCardBuff.CardBuffId))
                     {
-                        CardPlaySource cardSource => cardSource.Card.Owner(targetTriggerContext.Model),
-                        PlayerBuffSource playerBuffSource => playerBuffSource.Buff.Caster,
-                        _ => Option.None<IPlayerEntity>()
-                    };
+                        effectCommands.Add(new ModifyCardBuffLevelEffectCommand(
+                            card,
+                            addCardBuff.CardBuffId,
+                            addLevel));
+                    }
+                    else
+                    {
+                        var caster = targetTriggerContext.Action switch
+                        {
+                            CardPlaySource cardSource => cardSource.Card.Owner(targetTriggerContext.Model),
+                            PlayerBuffSource playerBuffSource => playerBuffSource.Buff.Caster,
+                            _ => Option.None<IPlayerEntity>()
+                        };
 
-                    var newCardBuff = CardBuffEntity.CreateFromData(
-                        addCardBuff.CardBuffId,
-                        addLevel,
-                        caster,
-                        targetTriggerContext,
-                        context.Model.ContextManager.CardBuffLibrary,
-                        context.Model.ContextManager.CardBuffPropertyEntityFactory,
-                        context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
-                        context.Model.ContextManager.ReactionSessionEntityFactory);
+                        var newCardBuff = CardBuffEntity.CreateFromData(
+                            addCardBuff.CardBuffId,
+                            addLevel,
+                            caster,
+                            targetTriggerContext,
+                            context.Model.ContextManager.CardBuffLibrary,
+                            context.Model.ContextManager.CardBuffPropertyEntityFactory,
+                            context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
+                            context.Model.ContextManager.ReactionSessionEntityFactory);
 
-                    effectCommands.Add(new AddCardBuffEffectCommand(card, newCardBuff));
+                        effectCommands.Add(new AddCardBuffEffectCommand(card, newCardBuff));
+                    }
                 }
             }
+            return new EffectCommandSet(effectCommands);
         }
-        return new EffectCommandSet(effectCommands);
     }
-}
 
 }

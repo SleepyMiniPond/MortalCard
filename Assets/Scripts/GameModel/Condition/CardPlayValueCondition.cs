@@ -7,45 +7,45 @@ using Sirenix.OdinInspector;
 namespace MortalGame.GameModel
 {
 
-public interface ICardPlayValueCondition
-{
-    bool Eval(TriggerContext triggerContext, CardPlaySource cardPlay);
-}
-[Serializable]
-public class CardPlayPositionCondition : ICardPlayValueCondition
-{
-    public enum OrderType
+    public interface ICardPlayValueCondition
     {
-        MostNew,
-        MostOld
+        bool Eval(TriggerContext triggerContext, CardPlaySource cardPlay);
     }
-
-    public OrderType Order;
-
-    public bool Eval(TriggerContext triggerContext, CardPlaySource cardPlay)
+    [Serializable]
+    public class CardPlayPositionCondition : ICardPlayValueCondition
     {
-        switch (Order)
-        { 
-            case OrderType.MostNew:
-                return cardPlay.HandCardIndex == cardPlay.HandCardsCount - 1;
-            case OrderType.MostOld:
-                return cardPlay.HandCardIndex == 0;
-            default:
-                return false;
+        public enum OrderType
+        {
+            MostNew,
+            MostOld
+        }
+
+        public OrderType Order;
+
+        public bool Eval(TriggerContext triggerContext, CardPlaySource cardPlay)
+        {
+            switch (Order)
+            {
+                case OrderType.MostNew:
+                    return cardPlay.HandCardIndex == cardPlay.HandCardsCount - 1;
+                case OrderType.MostOld:
+                    return cardPlay.HandCardIndex == 0;
+                default:
+                    return false;
+            }
         }
     }
-}
-[Serializable]
-public class CardPlayCardCondition : ICardPlayValueCondition
-{
-    [ShowInInspector]
-    [HorizontalGroup("1")]
-    public List<ICardValueCondition> Conditions = new();
-
-    public bool Eval(TriggerContext triggerContext, CardPlaySource cardPlay)
+    [Serializable]
+    public class CardPlayCardCondition : ICardPlayValueCondition
     {
-        return Conditions.All(c => c.Eval(triggerContext, cardPlay.Card));
+        [ShowInInspector]
+        [HorizontalGroup("1")]
+        public List<ICardValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext, CardPlaySource cardPlay)
+        {
+            return Conditions.All(c => c.Eval(triggerContext, cardPlay.Card));
+        }
     }
-}
 
 }

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Linq;
 using Optional.Collections;
@@ -7,28 +6,28 @@ using Optional.Collections;
 namespace MortalGame.GameModel
 {
 
-public class RemoveCardBuffPlayerBuffEffectResolver : IPlayerBuffEffectResolver
-{
-    public EffectCommandSet Resolve(TriggerContext context, IPlayerBuffEffect effect)
+    public class RemoveCardBuffPlayerBuffEffectResolver : IPlayerBuffEffectResolver
     {
-        var removeCardBuffEffect = (RemoveCardBuffPlayerBuffEffect)effect;
-        var effectCommands = new List<IEffectCommand>();
-        var intent = new RemoveCardBuffIntentAction(context.Action.Source);
-        var triggerContext = context with { Action = intent };
-        var cards = removeCardBuffEffect.Targets.Eval(triggerContext).ToList();
-
-        foreach (var card in cards)
+        public EffectCommandSet Resolve(TriggerContext context, IPlayerBuffEffect effect)
         {
-            var existBuffOpt = OptionCollectionExtensions.FirstOrNone(
-                card.BuffManager.Buffs,
-                buff => buff.CardBuffDataID == removeCardBuffEffect.BuffId);
-            existBuffOpt.MatchSome(existBuff =>
+            var removeCardBuffEffect = (RemoveCardBuffPlayerBuffEffect)effect;
+            var effectCommands = new List<IEffectCommand>();
+            var intent = new RemoveCardBuffIntentAction(context.Action.Source);
+            var triggerContext = context with { Action = intent };
+            var cards = removeCardBuffEffect.Targets.Eval(triggerContext).ToList();
+
+            foreach (var card in cards)
             {
-                effectCommands.Add(new RemoveCardBuffEffectCommand(card, existBuff));
-            });
+                var existBuffOpt = OptionCollectionExtensions.FirstOrNone(
+                    card.BuffManager.Buffs,
+                    buff => buff.CardBuffDataID == removeCardBuffEffect.BuffId);
+                existBuffOpt.MatchSome(existBuff =>
+                {
+                    effectCommands.Add(new RemoveCardBuffEffectCommand(card, existBuff));
+                });
+            }
+            return new EffectCommandSet(effectCommands);
         }
-        return new EffectCommandSet(effectCommands);
     }
-}
 
 }

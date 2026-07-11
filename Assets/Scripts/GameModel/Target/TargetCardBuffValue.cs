@@ -5,31 +5,31 @@ using UnityEngine;
 namespace MortalGame.GameModel
 {
 
-public interface ITargetCardBuffValue
-{
-    Option<ICardBuffEntity> Eval(TriggerContext triggerContext);
-}
-
-[Serializable]
-public class NoneCardBuff : ITargetCardBuffValue
-{
-    public Option<ICardBuffEntity> Eval(TriggerContext triggerContext)
+    public interface ITargetCardBuffValue
     {
-        return Option.None<ICardBuffEntity>();
+        Option<ICardBuffEntity> Eval(TriggerContext triggerContext);
     }
-}
 
-[Serializable]
-public class TriggeredCardBuff : ITargetCardBuffValue
-{
-    public Option<ICardBuffEntity> Eval(TriggerContext triggerContext)
+    [Serializable]
+    public class NoneCardBuff : ITargetCardBuffValue
     {
-        return triggerContext.Triggered switch
+        public Option<ICardBuffEntity> Eval(TriggerContext triggerContext)
         {
-            CardBuffTrigger cardBuff => cardBuff.Buff.SomeNotNull(),
-            _ => Option.None<ICardBuffEntity>()
-        };
+            return Option.None<ICardBuffEntity>();
+        }
     }
-}
+
+    [Serializable]
+    public class TriggeredCardBuff : ITargetCardBuffValue
+    {
+        public Option<ICardBuffEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered switch
+            {
+                CardBuffTrigger cardBuff => cardBuff.Buff.SomeNotNull(),
+                _ => Option.None<ICardBuffEntity>()
+            };
+        }
+    }
 
 }

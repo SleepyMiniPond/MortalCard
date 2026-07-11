@@ -7,41 +7,41 @@ using UnityEngine;
 namespace MortalGame.GameData
 {
 
-public class CardBuffData
-{
-    [BoxGroup("Identification")]
-    public string ID;
+    public class CardBuffData
+    {
+        [BoxGroup("Identification")]
+        public string ID;
 
-    [ShowInInspector]
-    [BoxGroup("Effects")]
-    public Dictionary<string, IReactionSessionData> Sessions = new();
+        [ShowInInspector]
+        [BoxGroup("Effects")]
+        public Dictionary<string, IReactionSessionData> Sessions = new();
 
-    [Space(20)]
-    [ShowInInspector]
-    [BoxGroup("Effects")]
-    public Dictionary<CardTriggeredTiming, ConditionalCardBuffEffect[]> Effects = new ();
+        [Space(20)]
+        [ShowInInspector]
+        [BoxGroup("Effects")]
+        public Dictionary<CardTriggeredTiming, ConditionalCardBuffEffect[]> Effects = new();
 
-    [Space(20)]
-    [ShowInInspector]
-    [BoxGroup("Effects")]
-    public Dictionary<GameTiming, ConditionalCardBuffEffect[]> BuffEffects = new();
+        [Space(20)]
+        [ShowInInspector]
+        [BoxGroup("Effects")]
+        public Dictionary<GameTiming, ConditionalCardBuffEffect[]> BuffEffects = new();
 
-    [ShowInInspector]
-    [TitleGroup("Properties")]
-    public List<ICardBuffPropertyData> PropertyDatas = new ();
+        [ShowInInspector]
+        [TitleGroup("Properties")]
+        public List<ICardBuffPropertyData> PropertyDatas = new();
 
-    [TitleGroup("LifeTime")]
-    public ICardBuffLifeTimeData LifeTimeData;
-}
+        [TitleGroup("LifeTime")]
+        public ICardBuffLifeTimeData LifeTimeData;
+    }
 
 
-[Serializable]
-public class AddCardBuffData
-{
-    [ValueDropdown("@DropdownHelper.CardBuffNames")]
-    public string CardBuffId;
+    [Serializable]
+    public class AddCardBuffData
+    {
+        [ValueDropdown("@DropdownHelper.CardBuffNames")]
+        public string CardBuffId;
 
-    public IIntegerValue Level;
-}
+        public IIntegerValue Level;
+    }
 
 }

@@ -4,8 +4,8 @@ using UnityEngine;
 namespace MortalGame.UI
 {
 
-public abstract class IntValueSwitch : SerializedMonoBehaviour
-{
-    public abstract int Value { set; }
-}
+    public abstract class IntValueSwitch : SerializedMonoBehaviour
+    {
+        public abstract int Value { set; }
+    }
 }

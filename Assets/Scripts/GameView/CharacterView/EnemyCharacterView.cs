@@ -3,42 +3,41 @@ using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using UnityEngine;
-using MortalGame.GameView;
 using MortalGame.Presentation.Abstractions;
 
 namespace MortalGame.GameView
 {
 
-public class EnemyCharacterView : BaseCharacterView, ISelectableView
-{
-    [SerializeField]
-    private RectTransform _rectTransform;
-
-    public RectTransform RectTransform => _rectTransform;
-    public TargetType TargetType => TargetType.EnemyCharacter;
-    public Guid TargetIdentity => _playerIdentity;
-
-    private Guid _playerIdentity;
-
-    public void Init(IGameplayModel statusWatcher) 
+    public class EnemyCharacterView : BaseCharacterView, ISelectableView
     {
-        _statusWatcher = statusWatcher;
-        _timmer = 0;
-    }
+        [SerializeField]
+        private RectTransform _rectTransform;
 
-    public void SummonEnemy(EnemySummonEvent enemySummonEvent)
-    {
-        Debug.Log($"Summon Enemy: {enemySummonEvent.Enemy.MainCharacter.NameKey}");
-        _playerIdentity = enemySummonEvent.Enemy.MainCharacter.Identity;
+        public RectTransform RectTransform => _rectTransform;
+        public TargetType TargetType => TargetType.EnemyCharacter;
+        public Guid TargetIdentity => _playerIdentity;
 
-        _Run().Forget();
-    }
+        private Guid _playerIdentity;
 
-    public void OnSelect()
-    {
+        public void Init(IGameplayModel statusWatcher)
+        {
+            _statusWatcher = statusWatcher;
+            _timmer = 0;
+        }
+
+        public void SummonEnemy(EnemySummonEvent enemySummonEvent)
+        {
+            Debug.Log($"Summon Enemy: {enemySummonEvent.Enemy.MainCharacter.NameKey}");
+            _playerIdentity = enemySummonEvent.Enemy.MainCharacter.Identity;
+
+            _Run().Forget();
+        }
+
+        public void OnSelect()
+        {
+        }
+        public void OnDeselect()
+        {
+        }
     }
-    public void OnDeselect()
-    {
-    }
-}
 }

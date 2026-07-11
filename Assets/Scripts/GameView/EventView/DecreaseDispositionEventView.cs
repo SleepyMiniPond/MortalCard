@@ -7,28 +7,28 @@ using UnityEngine.Playables;
 namespace MortalGame.GameView
 {
 
-public class DecreaseDispositionEventView: MonoBehaviour, IRecyclable, IAnimationNumberEventView
-{
-    [SerializeField]
-    private TextMeshProUGUI _text;
-    [SerializeField]
-    private PlayableDirector _playableDirector;
-
-    public void SetEventInfo(DecreaseDispositionEvent decreaseDispositionEvent, Transform parent)
+    public class DecreaseDispositionEventView : MonoBehaviour, IRecyclable, IAnimationNumberEventView
     {
-        transform.SetParent(parent, false);
-        _text.text = decreaseDispositionEvent.DeltaDisposition.ToString();
-    }
+        [SerializeField]
+        private TextMeshProUGUI _text;
+        [SerializeField]
+        private PlayableDirector _playableDirector;
 
-    public void Reset()
-    {
-    }
+        public void SetEventInfo(DecreaseDispositionEvent decreaseDispositionEvent, Transform parent)
+        {
+            transform.SetParent(parent, false);
+            _text.text = decreaseDispositionEvent.DeltaDisposition.ToString();
+        }
 
-    public async UniTask PlayAnimation()
-    {
-        gameObject.SetActive(true);
-        await _playableDirector.PlayAsync();
-        gameObject.SetActive(false);
+        public void Reset()
+        {
+        }
+
+        public async UniTask PlayAnimation()
+        {
+            gameObject.SetActive(true);
+            await _playableDirector.PlayAsync();
+            gameObject.SetActive(false);
+        }
     }
-}
 }
