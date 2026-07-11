@@ -8,17 +8,10 @@ using Optional;
 using Rayark.Mast;
 using UnityEngine;
 using MortalGame.GameView;
+using MortalGame.Presentation.Abstractions;
 
 namespace MortalGame.Presenter
 {
-
-public interface IGameplayActionReciever
-{
-    void RecieveEvent(IGameCommand gameCommand);
-
-    IEnumerable<ISelectableView> SelectableViews { get; }
-    ISelectableView BasicSelectableView { get; }
-}
 
 public class GameplayPresenter : IGameplayActionReciever
 {

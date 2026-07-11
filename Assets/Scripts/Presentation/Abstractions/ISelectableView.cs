@@ -1,7 +1,7 @@
 using UnityEngine;
 using MortalGame.GameModel;
 
-namespace MortalGame.GameView
+namespace MortalGame.Presentation.Abstractions
 {
 
 public interface ISelectableView : ISelectionTarget

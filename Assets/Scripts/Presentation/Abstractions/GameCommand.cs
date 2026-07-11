@@ -4,7 +4,7 @@ using Optional;
 using UnityEngine;
 using MortalGame.GameModel;
 
-namespace MortalGame.Presenter
+namespace MortalGame.Presentation.Abstractions
 {
 
 public interface IGameCommand { }

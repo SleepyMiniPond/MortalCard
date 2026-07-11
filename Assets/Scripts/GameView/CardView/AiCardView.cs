@@ -7,6 +7,7 @@ using UnityEngine;
 using MortalGame.UI;
 using UnityEngine.UI;
 using MortalGame.GameView;
+using MortalGame.Presentation.Abstractions;
 using MortalGame.GameModel;
 
 namespace MortalGame.GameView

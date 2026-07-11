@@ -1,3 +1,4 @@
+using MortalGame.Presentation.Abstractions;
 using System;
 using System.Collections.Generic;
 using System.Threading;
@@ -6,7 +7,7 @@ using Optional;
 using UniRx;
 using UnityEngine;
 
-namespace MortalGame.GameView
+namespace MortalGame.Presenter
 {
 
 public interface IUniTaskPresenter

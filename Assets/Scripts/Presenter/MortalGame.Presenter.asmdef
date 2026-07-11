@@ -1,0 +1,21 @@
+{
+  "name": "MortalGame.Presenter",
+  "rootNamespace": "MortalGame.Presenter",
+  "references": [
+    "MortalGame.Runtime",
+    "MortalGame.Presentation.Abstractions",
+    "MortalGame.GameView",
+    "UniRx",
+    "UniTask",
+    "UnityEngine.UI"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

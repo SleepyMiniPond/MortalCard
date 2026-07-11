@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using MortalGame.Presenter;
 using MortalGame.GameModel;
 using System.Linq;
 using NUnit.Framework;

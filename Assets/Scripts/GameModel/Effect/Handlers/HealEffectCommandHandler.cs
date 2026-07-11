@@ -1,5 +1,4 @@
 using System.Linq;
-using MortalGame.Presenter;
 using MortalGame.GameModel;
 using MortalGame.GameData;
 

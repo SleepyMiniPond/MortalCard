@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-06-30  
+> 最後更新：2026-07-11  
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
 ---
@@ -114,7 +114,22 @@
   - 先處理 Data 建立 Entity 造成的反向依賴，再拆分 GameData / GameModel assembly
   - 建立小批次遷移準則：每次只移動一個清楚邊界，並以 EditMode 測試與 Unity compile 驗證
 - **影響檔案**：各 `.asmdef`、Runtime / Editor / Tests 目錄下的 C# 命名空間與引用
-- **狀態**：🔄 進行中（2026-07-10）
+- **完成內容**：
+  - 完成 Runtime、UI、Presentation Abstractions、GameView、Presenter、Scene 的單向 assembly 邊界
+  - 新增 `MortalGame.Presentation.Abstractions`，集中 `IGameCommand`、`IGameViewModel`、`IGameplayActionReciever`、`ISelectableView` 等 Presenter / View 溝通契約
+  - 將 GameView Panel 目錄中的 Presenter 實作移至 `Assets/Scripts/Presenter/Gameplay/`，並保留 Unity 資產 GUID
+  - 將 `Main.cs` 移入 Scene assembly，解除 Runtime 與 Scene / Presenter / GameView 間的反向依賴
+  - GameView 不再引用 Presenter；Presenter 單向依賴 GameView 與 Presentation Abstractions
+  - GameData 與 GameModel 維持同屬 `MortalGame.Runtime`。目前可執行資料型別直接依賴 runtime Entity / Context，若要再拆分必須另案導入 Content Spec → Runtime Compiler，避免本任務擴張為 ScriptableObject 與 Odin 多型資料重寫
+- **驗證結果**：
+  - Unity AssetDatabase refresh：0 compile error
+  - Unity EditMode tests：107 passed / 0 failed / 0 skipped
+  - PlayMode Tests 目前只有 asmdef，尚無可執行測試案例
+  - `dotnet build MortalGame.Scene.csproj`：0 warning / 0 error
+  - `dotnet build MortalGame.EditModeTests.csproj`：0 error；僅有既有 UniRx 過時 API 與未使用事件警告
+  - Unity 掃描全部 Prefab / Scene：未發現 Missing Script
+  - ScriptableObject、Prefab、Scene 資產未發現舊 `Assembly-CSharp` managed-reference 型別識別
+- **狀態**：✅ 已完成（2026-07-11）
 
 ### T-008：建立 ScriptableObject 資料驗證與 Resolver / Handler 註冊檢查
 - **問題**：Effect、Buff、CardData 等 ScriptableObject 資料與 Resolver / Handler registry 的缺漏，可能要到實際遊戲流程才爆錯，缺少提早檢查機制

@@ -8,6 +8,7 @@ using DG.Tweening;
 using JetBrains.Annotations;
 using UnityEngine;
 using MortalGame.GameView;
+using MortalGame.Presentation.Abstractions;
 
 namespace MortalGame.GameView
 {

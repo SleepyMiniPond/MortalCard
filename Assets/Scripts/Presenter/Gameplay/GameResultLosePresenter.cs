@@ -1,9 +1,11 @@
+using MortalGame.Presentation.Abstractions;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
+using MortalGame.GameView;
 using UniRx;
 using UnityEngine;
 
-namespace MortalGame.GameView
+namespace MortalGame.Presenter
 {
 
 public interface IGameResultLosePresenter

@@ -1,3 +1,4 @@
+using MortalGame.Presentation.Abstractions;
 using System;
 using MortalGame.Presenter;
 using MortalGame.GameData;
@@ -10,7 +11,7 @@ using UniRx;
 using MortalGame.GameModel;
 using MortalGame.GameView;
 
-namespace MortalGame.GameView
+namespace MortalGame.Presenter
 {
 
 public interface IAllCardDetailPresenter
@@ -25,35 +26,6 @@ public interface IAllCardDetailPresenter
         Faction faction,
         CardCollectionType type,
         CancellationToken cancellationToken);
-}
-
-public record CardDetailProperty(
-    ICardView.CardSimpleProperty CardProperty,
-    CardPropertyHint.ViewData CardBuffHint,
-    CardPropertyHint.ViewData CardKeywordHint)
-{
-    public static CardDetailProperty Create(CardInfo cardInfo)
-    {
-        return new CardDetailProperty(
-            CardProperty: new ICardView.CardSimpleProperty(cardInfo),
-            CardBuffHint: new CardPropertyHint.ViewData(
-                cardInfo.BuffInfos
-                    .Select(buffInfo =>
-                        new CardPropertyHint.InfoCellViewData(
-                            LocalizeTitleInfoType.CardBuff,
-                            buffInfo.CardBuffDataId,
-                            buffInfo.GetTemplateValues()))
-                    .ToArray()),
-            CardKeywordHint: new CardPropertyHint.ViewData(
-                cardInfo.Keywords
-                    .Select(keyword =>
-                        new CardPropertyHint.InfoCellViewData(
-                            LocalizeTitleInfoType.KeyWord,
-                            keyword,
-                            Utility.Dictionary<string, string>.EMPTY))
-                    .ToArray()));
-    }
-}
 }
 
 public class AllCardDetailPresenter : IAllCardDetailPresenter
@@ -168,4 +140,5 @@ public class AllCardDetailPresenter : IAllCardDetailPresenter
             );
         _detailPanel.Render(property);
     }
+}
 }

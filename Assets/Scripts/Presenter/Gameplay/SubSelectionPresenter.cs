@@ -1,3 +1,4 @@
+using MortalGame.Presentation.Abstractions;
 using System;
 using MortalGame.Presenter;
 using System.Collections.Generic;
@@ -10,7 +11,7 @@ using MortalGame.GameModel;
 using MortalGame.GameView;
 
 
-namespace MortalGame.GameView
+namespace MortalGame.Presenter
 {
 
 public interface ISubSelectionPresenter

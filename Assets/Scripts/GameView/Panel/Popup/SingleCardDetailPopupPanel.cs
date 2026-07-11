@@ -1,5 +1,5 @@
 using Cysharp.Threading.Tasks;
-using MortalGame.Presenter;
+using MortalGame.Presentation.Abstractions;
 using MortalGame.GameData;
 using UniRx;
 using UnityEngine;

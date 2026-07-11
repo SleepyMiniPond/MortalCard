@@ -1,0 +1,19 @@
+{
+  "name": "MortalGame.Scene",
+  "rootNamespace": "MortalGame.Scene",
+  "references": [
+    "MortalGame.Runtime",
+    "MortalGame.Presenter",
+    "MortalGame.GameView",
+    "UniTask"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}

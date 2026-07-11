@@ -1,3 +1,4 @@
+using MortalGame.Presentation.Abstractions;
 using System;
 using MortalGame.Presenter;
 using MortalGame.GameData;
@@ -10,7 +11,7 @@ using UniRx;
 using MortalGame.GameView;
 using UnityEngine;
 
-namespace MortalGame.GameView
+namespace MortalGame.Presenter
 {
 
 public interface IUIPresenter

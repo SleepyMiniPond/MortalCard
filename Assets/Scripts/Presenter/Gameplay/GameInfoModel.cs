@@ -8,32 +8,10 @@ using Optional.Collections;
 using UniRx;
 using UnityEngine;
 using MortalGame.GameModel;
+using MortalGame.Presentation.Abstractions;
 
 namespace MortalGame.Presenter
 {
-
-public interface IGameViewModel
-{
-    void UpdateCardCollectionInfo(Faction faction, CardCollectionInfo cardCollectionInfo);
-    void UpdateCardManagerInfo(Faction faction, CardManagerInfo cardManagerInfo);
-    void EnableHandCardsAction();
-    void DisableHandCardsAction();
-
-    IReadOnlyReactiveProperty<bool> IsHandCardsEnabled { get; }
-    IReadOnlyReactiveProperty<CardCollectionInfo> ObservableCardCollectionInfo(Faction faction, CardCollectionType type);
-
-
-    void UpdateCardInfo(CardInfo cardInfo);
-    void UpdatePlayerBuffInfo(PlayerBuffInfo playerBuffInfo);
-    void UpdateCharacterBuffInfo(CharacterBuffInfo characterBuffInfo);
-
-    Option<IReadOnlyReactiveProperty<CardInfo>> ObservableCardInfo(Guid identity);
-    Option<IReadOnlyReactiveProperty<PlayerBuffInfo>> ObservablePlayerBuffInfo(Guid identity);
-    Option<IReadOnlyReactiveProperty<CharacterBuffInfo>> ObservableCharacterBuffInfo(Guid identity);
-
-    void UpdateDispositionInfo(DispositionInfo dispositionInfo);
-    IReadOnlyReactiveProperty<DispositionInfo> ObservableDispositionInfo { get; }
-}
 
 public class GameViewModel : IGameViewModel
 {
