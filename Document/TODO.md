@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-07-11  
+> 最後更新：2026-07-12
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
 ---
@@ -172,14 +172,27 @@
 
 ### T-016：重構 TriggerTiming 與 UpdateReactorSessionAction 的時機模型
 - **問題**：目前 `UpdateReactorSessionAction` 分散在 GameplayManager 主流程、EffectCommandHandler、Triggered*BuffEffectQueueItem，導致 timing session 更新順序不一致；特別是 `TriggerBuffEnd` 目前可能只觸發 Buff queue，未穩定更新 ReactionSession。
-- **結論草案**：採用明確的 Before / After timing hook，例如 `BeforeTurnEnd` / `AfterTurnEnd`、`BeforePlayCardEnd` / `AfterPlayCardEnd`，並建立統一 `RunTiming(GameTiming timing, IActionSource source)` pipeline，讓每個 timing pulse 固定先更新 ReactionSession，再執行對應 Buff trigger queue。
+- **採用方案**：使用明確的 Before / After timing hook，並建立統一 Timing Pipeline，讓每個 timing pulse 固定先更新 ReactionSession，再執行對應 Buff trigger queue。
 - **設計筆記**：`.agents/working/2026-06-30-trigger-timing-reactor-session-design.md`
-- **實作建議**：
-  - 先補 EditMode 測試鎖定 WholeTurn / PlayCard session 在 Before / After timing 的讀取與清理行為。
-  - 擴充 `GameTiming`，逐步淘汰模糊的 `TurnEnd`、`PlayCardEnd`、`TriggerBuffStart`、`TriggerBuffEnd`。
-  - 將 GameplayManager 中屬於 timing pulse 的 session update 收斂到 `RunTiming`。
-  - 保留 EffectCommandHandler 對 result action 的 `UpdateReactorSessionAction`，避免 result 類事件失去記憶更新。
-- **狀態**：待規劃 / 待實作
+- **完成內容**：
+  - `TriggerTimingQueueItem` 統一執行「ReactionSession update → Buff 條件掃描 → Effect Queue」，包含遞迴 Buff timing。
+  - 新增 Turn、DrawCard、Execute、PlayCard、TriggerBuffEffect、CharacterSummon、CharacterDeath 的 Before / After timing hooks。
+  - 新增 `CardPlayIntent` / `CardPlayResult`，分離出牌 Action 與流程 hook 的 timing 語意。
+  - GameplayManager 的 Turn、DrawCard、Player / Enemy Execute、PlayCard 流程改用新 hooks；`CardPlayResultAction` 會在 `BeforePlayCardEnd` 前更新 Session。
+  - WholeTurn Session 改為 `BeforeTurnStart` reset、`AfterTurnEnd` clear；PlayCard Session 改為 `BeforePlayCardStart` reset、`AfterPlayCardEnd` clear。
+  - PlayerBuff、CharacterBuff、CardBuff 的回合生命週期改由 `AfterTurnEnd` 扣除。
+  - Buff effect 拆成同一 Effect Queue 內的 `BeforeTriggerBuffEffect → Effect → AfterTriggerBuffEffect`，保留深度優先順序、最大處理數保護及 Card / Character selected context。
+  - `EnqueueImmediate` 新增 `IEnumerable<EffectQueueItem>` overload，呼叫端可依實際執行順序加入子流程；移除所有僅包裝 `Enqueue` 的 Effect 專用 helper。
+  - 建立 `GameTimingMigrationTool`，支援 Dry Run、安全項目套用、衝突與人工確認報告、Undo 與資產儲存。
+  - 完成 6 個 PlayerBuff ScriptableObject、共 7 個舊 timing 欄位遷移；ComboAttack Session 依實際 Action 語意修正為 `CardPlayResult`。
+  - 舊 timing enum 成員已完全刪除；原始 2～10、14～15 數值保留為空洞且不重用，Migration Tool 仍可辨識未定義的舊序列化值。
+  - EffectCommandHandler 的 result action Session 更新維持原設計，避免 Damage、Heal、DrawCard 等結果記憶遺失。
+- **驗證結果**：
+  - Unity AssetDatabase refresh：0 compile error。
+  - Migration Dry Run：0 safe / 0 review，已無可識別的舊 timing 資料。
+  - GameTiming 序列化與 Migration mapping 測試通過。
+  - T-016 Timing Pipeline、Buff Timing、Effect Queue 與 ScriptableObject validation 測試通過。
+- **狀態**：✅ 已完成（2026-07-12）
 
 ## 🟣 新功能 — 卡牌系統擴展
 

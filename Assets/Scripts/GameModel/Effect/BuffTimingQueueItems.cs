@@ -13,13 +13,15 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
+            var events = new List<IGameEvent>(Manager.UpdateReactorSessionAction(
+                new UpdateTimingAction(Timing, Source)));
             var items = Manager.CreateTriggerTimingQueueItems(Timing, Source);
             for (var i = items.Count - 1; i >= 0; i--)
             {
                 queue.EnqueueImmediate(items[i]);
             }
 
-            return new EffectResult(Array.Empty<BaseResultAction>(), Array.Empty<IGameEvent>());
+            return new EffectResult(Array.Empty<BaseResultAction>(), events);
         }
     }
 
@@ -31,16 +33,13 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            var events = new List<IGameEvent>();
-            events.AddRange(Manager.UpdateReactorSessionAction(
-                new UpdateTimingAction(GameTiming.TriggerBuffStart, Context.Action.Source)));
-
-            var commands = EffectDataResolver.ResolvePlayerBuffEffect(Context, Effect);
-            var effectResult = EffectCommandExecutor.ApplyEffectCommands(Context, commands);
-            events.AddRange(effectResult.Events);
-
-            queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffSource));
-            return new EffectResult(effectResult.Actions, events);
+            queue.EnqueueImmediate(new EffectQueueItem[]
+            {
+                new TriggerTimingQueueItem(Manager, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
+                new PlayerBuffEffectExecutionQueueItem(Context, Effect),
+                new TriggerTimingQueueItem(Manager, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
+            });
+            return new EffectResult(Array.Empty<BaseResultAction>(), Array.Empty<IGameEvent>());
         }
     }
 
@@ -53,17 +52,13 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            using var characterContext = Manager.EffectQueueContextManager.SetSelectedCharacter(SelectedCharacter.Some());
-            var events = new List<IGameEvent>();
-            events.AddRange(Manager.UpdateReactorSessionAction(
-                new UpdateTimingAction(GameTiming.TriggerBuffStart, Context.Action.Source)));
-
-            var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
-            var effectResult = EffectCommandExecutor.ApplyEffectCommands(Context, commands);
-            events.AddRange(effectResult.Events);
-
-            queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffSource));
-            return new EffectResult(effectResult.Actions, events);
+            queue.EnqueueImmediate(new EffectQueueItem[]
+            {
+                new CharacterTimingQueueItem(Manager, SelectedCharacter, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
+                new CharacterBuffEffectExecutionQueueItem(Manager, SelectedCharacter, Context, Effect),
+                new CharacterTimingQueueItem(Manager, SelectedCharacter, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
+            });
+            return new EffectResult(Array.Empty<BaseResultAction>(), Array.Empty<IGameEvent>());
         }
     }
 
@@ -76,17 +71,78 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
+            queue.EnqueueImmediate(new EffectQueueItem[]
+            {
+                new CardTimingQueueItem(Manager, SelectedCard, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
+                new CardBuffEffectExecutionQueueItem(Manager, SelectedCard, Context, Effect),
+                new CardTimingQueueItem(Manager, SelectedCard, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
+            });
+            return new EffectResult(Array.Empty<BaseResultAction>(), Array.Empty<IGameEvent>());
+        }
+    }
+
+    internal sealed record PlayerBuffEffectExecutionQueueItem(
+        TriggerContext Context,
+        IPlayerBuffEffect Effect) : EffectQueueItem(Context)
+    {
+        public override EffectResult Execute(IEffectQueueContext queue)
+        {
+            var commands = EffectDataResolver.ResolvePlayerBuffEffect(Context, Effect);
+            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+        }
+    }
+
+    internal sealed record CharacterBuffEffectExecutionQueueItem(
+        GameplayManager Manager,
+        ICharacterEntity SelectedCharacter,
+        TriggerContext Context,
+        ICharacterBuffEffect Effect) : EffectQueueItem(Context)
+    {
+        public override EffectResult Execute(IEffectQueueContext queue)
+        {
+            using var characterContext = Manager.EffectQueueContextManager.SetSelectedCharacter(SelectedCharacter.Some());
+            var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
+            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+        }
+    }
+
+    internal sealed record CardBuffEffectExecutionQueueItem(
+        GameplayManager Manager,
+        ICardEntity SelectedCard,
+        TriggerContext Context,
+        ICardBuffEffect Effect) : EffectQueueItem(Context)
+    {
+        public override EffectResult Execute(IEffectQueueContext queue)
+        {
             using var cardContext = Manager.EffectQueueContextManager.SetSelectedCard(SelectedCard.Some());
-            var events = new List<IGameEvent>();
-            events.AddRange(Manager.UpdateReactorSessionAction(
-                new UpdateTimingAction(GameTiming.TriggerBuffStart, Context.Action.Source)));
-
             var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
-            var effectResult = EffectCommandExecutor.ApplyEffectCommands(Context, commands);
-            events.AddRange(effectResult.Events);
+            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+        }
+    }
 
-            queue.EnqueueImmediate(new TriggerTimingQueueItem(Manager, GameTiming.TriggerBuffEnd, TriggerBuffSource));
-            return new EffectResult(effectResult.Actions, events);
+    internal sealed record CharacterTimingQueueItem(
+        GameplayManager Manager,
+        ICharacterEntity SelectedCharacter,
+        GameTiming Timing,
+        IActionSource Source) : EffectQueueItem((TriggerContext)null)
+    {
+        public override EffectResult Execute(IEffectQueueContext queue)
+        {
+            using var characterContext = Manager.EffectQueueContextManager.SetSelectedCharacter(SelectedCharacter.Some());
+            return new TriggerTimingQueueItem(Manager, Timing, Source).Execute(queue);
+        }
+    }
+
+    internal sealed record CardTimingQueueItem(
+        GameplayManager Manager,
+        ICardEntity SelectedCard,
+        GameTiming Timing,
+        IActionSource Source) : EffectQueueItem((TriggerContext)null)
+    {
+        public override EffectResult Execute(IEffectQueueContext queue)
+        {
+            using var cardContext = Manager.EffectQueueContextManager.SetSelectedCard(SelectedCard.Some());
+            return new TriggerTimingQueueItem(Manager, Timing, Source).Execute(queue);
         }
     }
 

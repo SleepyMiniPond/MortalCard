@@ -176,8 +176,7 @@ namespace MortalGame.GameModel
                     .ToList());
             _gameEvents.AddRange(createEnemyDeckResult.Events);
 
-            _gameEvents.AddRange(
-                UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.GameStart, new SystemSource())));
+            _gameEvents.AddRange(_RunTiming(GameTiming.GameStart, SystemSource.Instance));
 
             AllyEntity _ParseAlly(AllyInstance allyInstance, IGameContextManager gameContextManager)
             {
@@ -224,8 +223,7 @@ namespace MortalGame.GameModel
 
         private void _TurnStart()
         {
-            _gameEvents.AddRange(
-                UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.TurnStart, new SystemSource())));
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeTurnStart, SystemSource.Instance));
 
             _gameStatus.SetNewTurn();
             _gameEvents.Add(new RoundStartEvent(
@@ -241,13 +239,14 @@ namespace MortalGame.GameModel
             var enemyGainEnergyResult = _gameStatus.Enemy.EnergyManager.RecoverEnergy(_gameStatus.Enemy.EnergyRecoverPoint);
             _gameEvents.Add(new GainEnergyEvent(_gameStatus.Enemy.Faction, _gameStatus.Enemy.EnergyManager.ToInfo(), enemyGainEnergyResult));
 
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterTurnStart, SystemSource.Instance));
+
             _CheckGameEnd();
         }
 
         private void _TurnDrawCard()
         {
-            _gameEvents.AddRange(
-                UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.DrawCard, new SystemSource())));
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeDrawCard, SystemSource.Instance));
 
             var allyDrawCount = _contextMgr.DispositionLibrary.GetDrawCardCount(_gameStatus.Ally.DispositionManager.CurrentDisposition);
             var enemyDrawCount = _gameStatus.Enemy.TurnStartDrawCardCount;
@@ -258,8 +257,7 @@ namespace MortalGame.GameModel
             var enemyDrawEvents = EffectManager.DrawCards(this, SystemSource.Instance, _gameStatus.Enemy, enemyDrawCount);
             _gameEvents.AddRange(enemyDrawEvents.Events);
 
-            var triggerEvts = _TriggerTiming(GameTiming.DrawCard, SystemSource.Instance);
-            _gameEvents.AddRange(triggerEvts);
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterDrawCard, SystemSource.Instance));
 
             _CheckGameEnd();
         }
@@ -280,12 +278,17 @@ namespace MortalGame.GameModel
         public async UniTask _PlayerExecute(CancellationToken cancellationToken)
         {
             using var allyStatus = _gameStatus.SetCurrentPlayer(_gameStatus.Ally);
+            var executeStartSource = new SystemExectueStartSource(_gameStatus.Ally);
+
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeExecuteStart, executeStartSource));
 
             _gameEvents.Add(new PlayerExecuteStartEvent(
                 Faction: _gameStatus.Ally.Faction,
                 CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(this),
                 HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
             ));
+
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterExecuteStart, executeStartSource));
 
             var isExecuting = true;
             while (isExecuting)
@@ -317,10 +320,12 @@ namespace MortalGame.GameModel
         }
         private void _EnemyExecute()
         {
-            _gameEvents.AddRange(
-                UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.ExecuteStart, new SystemSource())));
-
             using var enemyStatus = _gameStatus.SetCurrentPlayer(_gameStatus.Enemy);
+            var executeStartSource = new SystemExectueStartSource(_gameStatus.Enemy);
+
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeExecuteStart, executeStartSource));
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterExecuteStart, executeStartSource));
+
             while (_gameStatus.Enemy.TryGetNextUseCardAction(this, out var useCardAction))
             {
                 using (_SetUseCardSelectTarget(useCardAction))
@@ -336,52 +341,47 @@ namespace MortalGame.GameModel
                 _CheckGameEnd();
             }
 
-            var unselectedCards = _gameStatus.Enemy.SelectedCards.UnSelectAllCards();
-            _gameEvents.Add(new EnemyUnselectedCardEvent(UnselectedCards: unselectedCards.Select(c => c.Identity).ToImmutableArray()));
-
             _FinishEnemyExecuteTurn();
         }
 
         private void _FinishPlayerExecuteTurn()
         {
+            var executeEndSource = new SystemExectueEndSource(_gameStatus.Ally);
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeExecuteEnd, executeEndSource));
+
             _gameEvents.Add(new PlayerExecuteEndEvent(
                 Faction: _gameStatus.Ally.Faction,
                 CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(this)
             ));
 
-            var endTurnSource = new SystemExectueEndSource(_gameStatus.Ally);
-            var triggerEvts = _TriggerTiming(GameTiming.ExecuteEnd, endTurnSource);
-            _gameEvents.AddRange(triggerEvts);
-
-            _gameEvents.AddRange(
-                UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.ExecuteEnd, new SystemSource())));
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterExecuteEnd, executeEndSource));
 
             _gameActions.Clear();
         }
         private void _FinishEnemyExecuteTurn()
         {
-            var endTurnSource = new SystemExectueEndSource(_gameStatus.Enemy);
-            var triggerEvts = _TriggerTiming(GameTiming.ExecuteEnd, endTurnSource);
-            _gameEvents.AddRange(triggerEvts);
+            var executeEndSource = new SystemExectueEndSource(_gameStatus.Enemy);
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeExecuteEnd, executeEndSource));
 
-            _gameEvents.AddRange(
-                UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.ExecuteEnd, new SystemSource())));
+            var unselectedCards = _gameStatus.Enemy.SelectedCards.UnSelectAllCards();
+            _gameEvents.Add(new EnemyUnselectedCardEvent(
+                UnselectedCards: unselectedCards.Select(c => c.Identity).ToImmutableArray()));
+
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterExecuteEnd, executeEndSource));
 
             _gameActions.Clear();
         }
 
         private void _TurnEnd()
         {
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance));
+
             _gameEvents.AddRange(
                 _gameStatus.Ally.CardManager.ClearHandOnTurnEnd(this));
             _gameEvents.AddRange(
                 _gameStatus.Enemy.CardManager.ClearHandOnTurnEnd(this));
 
-            _gameEvents.AddRange(
-                UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.TurnEnd, new SystemSource())));
-
-            var triggerEvts = _TriggerTiming(GameTiming.TurnEnd, SystemSource.Instance);
-            _gameEvents.AddRange(triggerEvts);
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterTurnEnd, SystemSource.Instance));
 
             _CheckGameEnd();
         }
@@ -432,15 +432,14 @@ namespace MortalGame.GameModel
 
                         using (playCardDisposable)
                         {
-                            // Create PlayCardSession
-                            useCardEvents.AddRange(UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.PlayCardStart, new SystemSource())));
+                            useCardEvents.AddRange(_RunTiming(GameTiming.BeforePlayCardStart, cardPlaySource));
 
                             useCardEvents.AddRange(UpdateReactorSessionAction(cardPlayIntent));
 
                             //TODO: check and remove expired buffs
                             //      trigger events while remove buffs
 
-                            useCardEvents.AddRange(_TriggerTiming(GameTiming.PlayCardStart, cardPlaySource));
+                            useCardEvents.AddRange(_RunTiming(GameTiming.AfterPlayCardStart, cardPlaySource));
 
                             var effectActionResults = new List<BaseResultAction>();
 
@@ -451,7 +450,7 @@ namespace MortalGame.GameModel
                                 var effectQueueRunner = new EffectQueueRunner();
                                 foreach (var effect in usedCard.Effects)
                                 {
-                                    effectQueueRunner.EnqueueCardEffect(cardPlayTriggerContext, effect);
+                                    effectQueueRunner.Enqueue(new CardEffectQueueItem(cardPlayTriggerContext, effect));
                                 }
 
                                 var effectResult = effectQueueRunner.RunToCompletion();
@@ -467,6 +466,10 @@ namespace MortalGame.GameModel
                                 UsedCardInfo: usedCardInfo,
                                 CardManagerInfo: player.CardManager.ToInfo(this));
                             useCardEvents.Add(usedCardEvent);
+
+                            useCardEvents.AddRange(
+                                UpdateReactorSessionAction(new CardPlayResultAction(cardPlayResultSource)));
+                            useCardEvents.AddRange(_RunTiming(GameTiming.BeforePlayCardEnd, cardPlayResultSource));
                         }
 
                         if (usedCard.HasProperty(CardProperty.Recycle))
@@ -475,14 +478,7 @@ namespace MortalGame.GameModel
                             useCardEvents.AddRange(recycleResult.Events);
                         }
 
-                        useCardEvents.AddRange(_TriggerTiming(GameTiming.PlayCardEnd, cardPlayResultSource));
-
-                        useCardEvents.AddRange(
-                            UpdateReactorSessionAction(new CardPlayResultAction(cardPlayResultSource)));
-
-                        // Close PlayCardSession
-                        useCardEvents.AddRange(
-                            UpdateReactorSessionAction(new UpdateTimingAction(GameTiming.PlayCardEnd, new SystemSource())));
+                        useCardEvents.AddRange(_RunTiming(GameTiming.AfterPlayCardEnd, cardPlayResultSource));
                     }
                 }
 
@@ -502,13 +498,13 @@ namespace MortalGame.GameModel
 
         public IEnumerable<IGameEvent> TriggerTiming(GameTiming timing, IActionSource actionSource)
         {
-            return _TriggerTiming(timing, actionSource);
+            return _RunTiming(timing, actionSource);
         }
 
         internal IGameContextManager EffectQueueContextManager => _contextMgr;
 
         // TODO: collect reactionEffects created from reactionSessions
-        private IEnumerable<IGameEvent> _TriggerTiming(GameTiming timing, IActionSource actionSource)
+        private IEnumerable<IGameEvent> _RunTiming(GameTiming timing, IActionSource actionSource)
         {
             var effectQueueRunner = new EffectQueueRunner();
             effectQueueRunner.Enqueue(new TriggerTimingQueueItem(this, timing, actionSource));

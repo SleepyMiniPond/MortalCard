@@ -32,7 +32,8 @@ MonoBehaviour:
       Data: 99
     - Name: Sessions
       Entry: 7
-      Data: 1|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[MortalGame.GameData.IReactionSessionData, MortalGame.Runtime]], mscorlib
+      Data: 1|System.Collections.Generic.Dictionary`2[[System.String, mscorlib],[MortalGame.GameData.IReactionSessionData,
+        MortalGame.Runtime]], mscorlib
     - Name: comparer
       Entry: 7
       Data: 2|System.Collections.Generic.GenericEqualityComparer`1[[System.String,
@@ -60,7 +61,8 @@ MonoBehaviour:
       Data: 1
     - Name: UpdateRules
       Entry: 7
-      Data: 4|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.SessionInteger+TimingRule, MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
+      Data: 4|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.SessionInteger+TimingRule,
+        MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
     - Name: 
       Entry: 12
       Data: 1
@@ -69,7 +71,7 @@ MonoBehaviour:
       Data: 5|MortalGame.GameData.SessionInteger+TimingRule, MortalGame.Runtime
     - Name: Timing
       Entry: 3
-      Data: 10
+      Data: 37
     - Name: Rules
       Entry: 7
       Data: 6|MortalGame.GameData.ConditionIntegerUpdateRule[], MortalGame.Runtime
@@ -96,8 +98,8 @@ MonoBehaviour:
       Data: 10|MortalGame.GameModel.CardPlayCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 11|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardPlayValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 11|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardPlayValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -106,8 +108,8 @@ MonoBehaviour:
       Data: 12|MortalGame.GameModel.CardPlayCardCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 13|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 13|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -116,7 +118,8 @@ MonoBehaviour:
       Data: 14|MortalGame.GameModel.CardTypesCondition, MortalGame.Runtime
     - Name: CardTypes
       Entry: 7
-      Data: 15|System.Collections.Generic.List`1[[MortalGame.GameData.CardType, MortalGame.Runtime]], mscorlib
+      Data: 15|System.Collections.Generic.List`1[[MortalGame.GameData.CardType, MortalGame.Runtime]],
+        mscorlib
     - Name: 
       Entry: 12
       Data: 2
@@ -197,8 +200,8 @@ MonoBehaviour:
       Data: 20|MortalGame.GameModel.CardPlayCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 21|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardPlayValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 21|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardPlayValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -207,8 +210,8 @@ MonoBehaviour:
       Data: 22|MortalGame.GameModel.CardPlayCardCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 23|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 23|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -217,7 +220,8 @@ MonoBehaviour:
       Data: 24|MortalGame.GameModel.CardTypesCondition, MortalGame.Runtime
     - Name: CardTypes
       Entry: 7
-      Data: 25|System.Collections.Generic.List`1[[MortalGame.GameData.CardType, MortalGame.Runtime]], mscorlib
+      Data: 25|System.Collections.Generic.List`1[[MortalGame.GameData.CardType, MortalGame.Runtime]],
+        mscorlib
     - Name: 
       Entry: 12
       Data: 2
@@ -307,11 +311,13 @@ MonoBehaviour:
       Data: 
     - Name: BuffEffects
       Entry: 7
-      Data: 27|System.Collections.Generic.Dictionary`2[[MortalGame.GameData.GameTiming, MortalGame.Runtime],[MortalGame.GameData.ConditionalPlayerBuffEffect[], MortalGame.Runtime]], mscorlib
+      Data: 27|System.Collections.Generic.Dictionary`2[[MortalGame.GameData.GameTiming,
+        MortalGame.Runtime],[MortalGame.GameData.ConditionalPlayerBuffEffect[], MortalGame.Runtime]],
+        mscorlib
     - Name: comparer
       Entry: 7
-      Data: 28|System.Collections.Generic.EnumEqualityComparer`1[[MortalGame.GameData.GameTiming, MortalGame.Runtime]],
-        mscorlib
+      Data: 28|System.Collections.Generic.EnumEqualityComparer`1[[MortalGame.GameData.GameTiming,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 0
@@ -329,7 +335,7 @@ MonoBehaviour:
       Data: 
     - Name: $k
       Entry: 3
-      Data: 9
+      Data: 27
     - Name: $v
       Entry: 7
       Data: 29|MortalGame.GameData.ConditionalPlayerBuffEffect[], MortalGame.Runtime
@@ -341,8 +347,8 @@ MonoBehaviour:
       Data: 30|MortalGame.GameData.ConditionalPlayerBuffEffect, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 31|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerBuffCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 31|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerBuffCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 2
@@ -357,8 +363,8 @@ MonoBehaviour:
       Data: 
     - Name: Conditions
       Entry: 7
-      Data: 34|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerBuffValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 34|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerBuffValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -370,7 +376,8 @@ MonoBehaviour:
       Data: combo
     - Name: Conditions
       Entry: 7
-      Data: 36|System.Collections.Generic.List`1[[MortalGame.GameModel.IReactionSessionValueCondition, MortalGame.Runtime]], mscorlib
+      Data: 36|System.Collections.Generic.List`1[[MortalGame.GameModel.IReactionSessionValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -379,8 +386,8 @@ MonoBehaviour:
       Data: 37|MortalGame.GameModel.ReactionSessionValueIntegerCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 38|System.Collections.Generic.List`1[[MortalGame.GameModel.IIntegerValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 38|System.Collections.Generic.List`1[[MortalGame.GameModel.IIntegerValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -434,8 +441,8 @@ MonoBehaviour:
       Data: 41|MortalGame.GameModel.CardPlayCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 42|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardPlayValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 42|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardPlayValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -444,8 +451,8 @@ MonoBehaviour:
       Data: 43|MortalGame.GameModel.CardPlayCardCondition, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 44|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardValueCondition, MortalGame.Runtime]],
-        mscorlib
+      Data: 44|System.Collections.Generic.List`1[[MortalGame.GameModel.ICardValueCondition,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
@@ -454,7 +461,8 @@ MonoBehaviour:
       Data: 45|MortalGame.GameModel.CardTypesCondition, MortalGame.Runtime
     - Name: CardTypes
       Entry: 7
-      Data: 46|System.Collections.Generic.List`1[[MortalGame.GameData.CardType, MortalGame.Runtime]], mscorlib
+      Data: 46|System.Collections.Generic.List`1[[MortalGame.GameData.CardType, MortalGame.Runtime]],
+        mscorlib
     - Name: 
       Entry: 12
       Data: 2
@@ -502,7 +510,8 @@ MonoBehaviour:
       Data: 
     - Name: Effect
       Entry: 7
-      Data: 47|MortalGame.GameData.CardPlayEffectAttributeAdditionPlayerBuffEffect, MortalGame.Runtime
+      Data: 47|MortalGame.GameData.CardPlayEffectAttributeAdditionPlayerBuffEffect,
+        MortalGame.Runtime
     - Name: Type
       Entry: 3
       Data: 2
@@ -568,8 +577,8 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 53|System.Collections.Generic.List`1[[MortalGame.GameData.IPlayerBuffPropertyData, MortalGame.Runtime]],
-        mscorlib
+      Data: 53|System.Collections.Generic.List`1[[MortalGame.GameData.IPlayerBuffPropertyData,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 0

@@ -10,6 +10,7 @@ namespace MortalGame.GameModel
         int ProcessedItemCount { get; }
         void Enqueue(EffectQueueItem item);
         void EnqueueImmediate(EffectQueueItem item);
+        void EnqueueImmediate(IEnumerable<EffectQueueItem> items);
     }
 
     public sealed class EffectQueueRunner : IEffectQueueContext
@@ -39,24 +40,16 @@ namespace MortalGame.GameModel
             _items.AddFirst(item);
         }
 
-        public void EnqueueCardEffect(TriggerContext context, ICardEffect effect)
+        public void EnqueueImmediate(IEnumerable<EffectQueueItem> items)
         {
-            Enqueue(new CardEffectQueueItem(context, effect));
-        }
+            if (items == null)
+                throw new ArgumentNullException(nameof(items));
 
-        public void EnqueuePlayerBuffEffect(TriggerContext context, IPlayerBuffEffect effect)
-        {
-            Enqueue(new PlayerBuffEffectQueueItem(context, effect));
-        }
-
-        public void EnqueueCharacterBuffEffect(TriggerContext context, ICharacterBuffEffect effect)
-        {
-            Enqueue(new CharacterBuffEffectQueueItem(context, effect));
-        }
-
-        public void EnqueueCardBuffEffect(TriggerContext context, ICardBuffEffect effect)
-        {
-            Enqueue(new CardBuffEffectQueueItem(context, effect));
+            var bufferedItems = new List<EffectQueueItem>(items);
+            for (var i = bufferedItems.Count - 1; i >= 0; i--)
+            {
+                _items.AddFirst(bufferedItems[i]);
+            }
         }
 
         public EffectResult RunToCompletion()

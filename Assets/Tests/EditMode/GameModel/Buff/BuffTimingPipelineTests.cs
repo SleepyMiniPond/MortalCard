@@ -33,16 +33,16 @@ namespace MortalGame.Tests
             };
             var playerBuffData = BuffTestBuilder.CreatePlayerBuffData(
                 BuffTestBuilder.PlayerBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 conditionalEffect);
             var built = new GameplayManagerTestBuilder()
                 .WithPlayerBuff(playerBuffData)
                 .Build();
             built.Ally.BuffManager.AddBuff(BuffTestBuilder.CreatePlayerBuff());
 
-            var events = built.Manager.TriggerTiming(GameTiming.TurnEnd, SystemSource.Instance).ToList();
+            var events = built.Manager.TriggerTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance).ToList();
 
-            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(2));
+            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(6));
         }
 
         [Test]
@@ -59,16 +59,16 @@ namespace MortalGame.Tests
             };
             var playerBuffData = BuffTestBuilder.CreatePlayerBuffData(
                 BuffTestBuilder.PlayerBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 conditionalEffect);
             var built = new GameplayManagerTestBuilder()
                 .WithPlayerBuff(playerBuffData)
                 .Build();
             built.Ally.BuffManager.AddBuff(BuffTestBuilder.CreatePlayerBuff());
 
-            var events = built.Manager.TriggerTiming(GameTiming.TurnEnd, SystemSource.Instance).ToList();
+            var events = built.Manager.TriggerTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance).ToList();
 
-            Assert.That(events, Is.Empty);
+            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(2));
         }
 
         [Test]
@@ -85,16 +85,16 @@ namespace MortalGame.Tests
             };
             var characterBuffData = BuffTestBuilder.CreateCharacterBuffData(
                 BuffTestBuilder.CharacterBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 conditionalEffect);
             var built = new GameplayManagerTestBuilder()
                 .WithCharacterBuff(characterBuffData)
                 .Build();
             built.Ally.MainCharacter.BuffManager.AddBuff(BuffTestBuilder.CreateCharacterBuff());
 
-            var events = built.Manager.TriggerTiming(GameTiming.TurnEnd, SystemSource.Instance).ToList();
+            var events = built.Manager.TriggerTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance).ToList();
 
-            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(2));
+            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(6));
         }
 
         [Test]
@@ -108,7 +108,7 @@ namespace MortalGame.Tests
             };
             var cardBuffData = BuffTestBuilder.CreateCardBuffData(
                 BuffTestBuilder.CardBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 conditionalEffect);
             var built = new GameplayManagerTestBuilder()
                 .WithCard(CardTestBuilder.CreateCardData())
@@ -117,16 +117,16 @@ namespace MortalGame.Tests
             var context = new TriggerContext(
                 built.Manager,
                 new PlayerTrigger(built.Ally),
-                new UpdateTimingAction(GameTiming.TurnEnd, SystemSource.Instance));
+                new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             observedCard = CardTestBuilder.CreateCardWithBuff(
                 context,
                 built.ContextManager.CardBuffLibrary,
                 built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(observedCard);
 
-            var events = built.Manager.TriggerTiming(GameTiming.TurnEnd, SystemSource.Instance).ToList();
+            var events = built.Manager.TriggerTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance).ToList();
 
-            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(2));
+            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(6));
             Assert.AreEqual(GameContext.EMPTY, built.ContextManager.Context);
         }
 
@@ -135,7 +135,7 @@ namespace MortalGame.Tests
         {
             var playerBuffData = BuffTestBuilder.CreatePlayerBuffData(
                 BuffTestBuilder.PlayerBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
@@ -147,7 +147,7 @@ namespace MortalGame.Tests
                 });
             var characterBuffData = BuffTestBuilder.CreateCharacterBuffData(
                 BuffTestBuilder.CharacterBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 new ConditionalCharacterBuffEffect
                 {
                     Conditions = new ICharacterBuffCondition[] { new ConstCondition { Value = true } },
@@ -159,7 +159,7 @@ namespace MortalGame.Tests
                 });
             var cardBuffData = BuffTestBuilder.CreateCardBuffData(
                 BuffTestBuilder.CardBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 new ConditionalCardBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
@@ -176,14 +176,14 @@ namespace MortalGame.Tests
             var context = new TriggerContext(
                 built.Manager,
                 new PlayerTrigger(built.Ally),
-                new UpdateTimingAction(GameTiming.TurnEnd, SystemSource.Instance));
+                new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var card = CardTestBuilder.CreateCardWithBuff(
                 context,
                 built.ContextManager.CardBuffLibrary,
                 built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var items = built.Manager.CreateTriggerTimingQueueItems(GameTiming.TurnEnd, SystemSource.Instance);
+            var items = built.Manager.CreateTriggerTimingQueueItems(GameTiming.BeforeTurnEnd, SystemSource.Instance);
 
             Assert.That(items.Count, Is.EqualTo(3));
             Assert.That(items, Has.Exactly(1).TypeOf<TriggeredPlayerBuffEffectQueueItem>());
@@ -193,11 +193,11 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void TriggerTiming_WhenBuffTriggers_ThenTriggerBuffEndTimingIsProcessed()
+        public void TriggerTiming_WhenBuffTriggers_ThenAfterTriggerBuffEffectTimingIsProcessed()
         {
             var firstBuffData = BuffTestBuilder.CreatePlayerBuffData(
                 "first-buff",
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
@@ -209,7 +209,7 @@ namespace MortalGame.Tests
                 });
             var secondBuffData = BuffTestBuilder.CreatePlayerBuffData(
                 "second-buff",
-                GameTiming.TriggerBuffEnd,
+                GameTiming.AfterTriggerBuffEffect,
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new PlayerBuffSourceIdCondition("first-buff") },
@@ -226,9 +226,9 @@ namespace MortalGame.Tests
             built.Ally.BuffManager.AddBuff(BuffTestBuilder.CreatePlayerBuff("first-buff"));
             built.Ally.BuffManager.AddBuff(BuffTestBuilder.CreatePlayerBuff("second-buff"));
 
-            var events = built.Manager.TriggerTiming(GameTiming.TurnEnd, SystemSource.Instance).ToList();
+            var events = built.Manager.TriggerTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance).ToList();
 
-            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(4));
+            Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(10));
         }
     }
 }

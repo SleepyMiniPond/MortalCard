@@ -58,24 +58,24 @@ namespace MortalGame.GameModel
                 switch (_lifeTime)
                 {
                     case SessionLifeTime.WholeTurn:
-                        if (timingAction.Timing == GameTiming.TurnStart)
+                        if (timingAction.Timing == GameTiming.BeforeTurnStart)
                         {
                             isUpdated = true;
                             _Reset();
                         }
-                        else if (timingAction.Timing == GameTiming.TurnEnd)
+                        else if (timingAction.Timing == GameTiming.AfterTurnEnd)
                         {
                             isUpdated = true;
                             _Clear();
                         }
                         break;
                     case SessionLifeTime.PlayCard:
-                        if (timingAction.Timing == GameTiming.PlayCardStart)
+                        if (timingAction.Timing == GameTiming.BeforePlayCardStart)
                         {
                             isUpdated = true;
                             _Reset();
                         }
-                        else if (timingAction.Timing == GameTiming.PlayCardEnd)
+                        else if (timingAction.Timing == GameTiming.AfterPlayCardEnd)
                         {
                             isUpdated = true;
                             _Clear();

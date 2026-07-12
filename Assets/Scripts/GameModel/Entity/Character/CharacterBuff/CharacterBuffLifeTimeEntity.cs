@@ -38,7 +38,7 @@ namespace MortalGame.GameModel
         public bool Update(TriggerContext triggerContext)
         {
             if (triggerContext.Action is UpdateTimingAction timingAction &&
-                timingAction.Timing == GameTiming.TurnEnd)
+                timingAction.Timing == GameTiming.AfterTurnEnd)
             {
                 _turn--;
                 return true;

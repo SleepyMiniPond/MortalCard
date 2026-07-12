@@ -30,8 +30,8 @@ namespace MortalGame.Tests
                 Value = new ConstInteger { Value = 2 }
             };
 
-            runner.EnqueueCardEffect(context, firstEffect);
-            runner.EnqueueCardEffect(context, secondEffect);
+            runner.Enqueue(new CardEffectQueueItem(context, firstEffect));
+            runner.Enqueue(new CardEffectQueueItem(context, secondEffect));
             var result = runner.RunToCompletion();
 
             Assert.That(built.Ally.CurrentEnergy, Is.EqualTo(3));
@@ -51,7 +51,7 @@ namespace MortalGame.Tests
             var context = new TriggerContext(
                 built.Manager,
                 new PlayerBuffTrigger(BuffTestBuilder.CreatePlayerBuff()),
-                new UpdateTimingAction(GameTiming.TurnEnd, SystemSource.Instance));
+                new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
             var effect = new EffectiveDamagePlayerBuffEffect
             {
@@ -62,7 +62,7 @@ namespace MortalGame.Tests
                 Value = new ConstInteger { Value = 5 }
             };
 
-            runner.EnqueuePlayerBuffEffect(context, effect);
+            runner.Enqueue(new PlayerBuffEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
 
             Assert.That(built.Ally.MainCharacter.CurrentHealth, Is.EqualTo(95));
@@ -78,7 +78,7 @@ namespace MortalGame.Tests
             var context = new TriggerContext(
                 built.Manager,
                 new CharacterBuffTrigger(BuffTestBuilder.CreateCharacterBuff()),
-                new UpdateTimingAction(GameTiming.TurnEnd, SystemSource.Instance));
+                new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
             var effect = new EffectiveDamageCharacterBuffEffect
             {
@@ -89,7 +89,7 @@ namespace MortalGame.Tests
                 Value = new ConstInteger { Value = 7 }
             };
 
-            runner.EnqueueCharacterBuffEffect(context, effect);
+            runner.Enqueue(new CharacterBuffEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
 
             Assert.That(built.Enemy.MainCharacter.CurrentHealth, Is.EqualTo(93));
@@ -102,7 +102,7 @@ namespace MortalGame.Tests
         {
             var cardBuffData = BuffTestBuilder.CreateCardBuffData(
                 BuffTestBuilder.CardBuffId,
-                GameTiming.TurnEnd,
+                GameTiming.BeforeTurnEnd,
                 new ConditionalCardBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
@@ -114,15 +114,15 @@ namespace MortalGame.Tests
             var createBuffContext = new TriggerContext(
                 built.Manager,
                 new PlayerTrigger(built.Ally),
-                new UpdateTimingAction(GameTiming.TurnEnd, SystemSource.Instance));
+                new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var buff = BuffTestBuilder.CreateCardBuff(createBuffContext, built.ContextManager.CardBuffLibrary);
             var context = new TriggerContext(
                 built.Manager,
                 new CardBuffTrigger(buff),
-                new UpdateTimingAction(GameTiming.TurnEnd, SystemSource.Instance));
+                new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
 
-            runner.EnqueueCardBuffEffect(context, new NoOpCardBuffEffect());
+            runner.Enqueue(new CardBuffEffectQueueItem(context, new NoOpCardBuffEffect()));
             var result = runner.RunToCompletion();
 
             Assert.That(result.Actions, Is.Empty);
@@ -150,6 +150,20 @@ namespace MortalGame.Tests
             var result = runner.RunToCompletion();
 
             Assert.That(result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id).ToArray(), Is.EqualTo(new[] { 1, 2, 3 }));
+        }
+
+        [Test]
+        public void RunToCompletion_WhenImmediateItemsUseExecutionOrder_PreservesProvidedOrder()
+        {
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new ImmediateSequenceQueueItem(null));
+            runner.Enqueue(new StaticQueueItem(null, 4));
+            var result = runner.RunToCompletion();
+
+            Assert.That(
+                result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id).ToArray(),
+                Is.EqualTo(new[] { 1, 2, 3, 4 }));
         }
 
         [Test]
@@ -208,5 +222,20 @@ public sealed record StaticQueueItem(TriggerContext Context, int Id) : EffectQue
     public override EffectResult Execute(IEffectQueueContext queue)
     {
         return new EffectResult(Array.Empty<BaseResultAction>(), new IGameEvent[] { new TestQueueEvent(Id) });
+    }
+}
+
+public sealed record ImmediateSequenceQueueItem(TriggerContext Context) : EffectQueueItem(Context)
+{
+    public override EffectResult Execute(IEffectQueueContext queue)
+    {
+        queue.EnqueueImmediate(new EffectQueueItem[]
+        {
+            new StaticQueueItem(Context, 2),
+            new StaticQueueItem(Context, 3)
+        });
+        return new EffectResult(
+            Array.Empty<BaseResultAction>(),
+            new IGameEvent[] { new TestQueueEvent(1) });
     }
 }

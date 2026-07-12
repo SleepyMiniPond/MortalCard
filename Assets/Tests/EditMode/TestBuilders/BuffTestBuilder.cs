@@ -12,7 +12,10 @@ namespace MortalGame.Tests
         public const string CharacterBuffId = "test-character-buff";
         public const string CardBuffId = "test-card-buff";
 
-        public static PlayerBuffEntity CreatePlayerBuff(string buffId = PlayerBuffId, IPlayerEntity caster = null)
+        public static PlayerBuffEntity CreatePlayerBuff(
+            string buffId = PlayerBuffId,
+            IPlayerEntity caster = null,
+            IReadOnlyDictionary<string, IReactionSessionEntity> reactionSessions = null)
         {
             return (PlayerBuffEntity)Activator.CreateInstance(
                 typeof(PlayerBuffEntity),
@@ -22,7 +25,7 @@ namespace MortalGame.Tests
                 PlayerCasterOption(caster),
                 Array.Empty<IPlayerBuffPropertyEntity>(),
                 new AlwaysLifeTimePlayerBuffEntity(),
-                new Dictionary<string, IReactionSessionEntity>());
+                reactionSessions ?? new Dictionary<string, IReactionSessionEntity>());
         }
 
         public static CharacterBuffEntity CreateCharacterBuff(string buffId = CharacterBuffId, IPlayerEntity caster = null)

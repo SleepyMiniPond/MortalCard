@@ -64,13 +64,13 @@ namespace MortalGame.GameModel
 
     public record CardPlayIntentAction(CardPlaySource CardPlaySource) : IActionUnit
     {
-        public GameTiming Timing => GameTiming.PlayCardStart;
+        public GameTiming Timing => GameTiming.CardPlayIntent;
         public IActionSource Source => CardPlaySource;
     };
 
     public record CardPlayResultAction(CardPlayResultSource CardPlayResultSource) : IActionUnit
     {
-        public GameTiming Timing => GameTiming.PlayCardEnd;
+        public GameTiming Timing => GameTiming.CardPlayResult;
         public IActionSource Source => CardPlayResultSource;
     };
 
