@@ -18,7 +18,7 @@ namespace MortalGame.GameModel
                 moveResult.Card.ToInfo(context.Model),
                 c.Start,
                 c.Destination,
-                c.Target.CardManager.ToInfo(context.Model));
+                c.Target.CardManager.ToInfo());
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(moveCardEvent));
         }
     }

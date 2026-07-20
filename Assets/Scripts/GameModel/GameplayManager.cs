@@ -284,7 +284,7 @@ namespace MortalGame.GameModel
 
             _gameEvents.Add(new PlayerExecuteStartEvent(
                 Faction: _gameStatus.Ally.Faction,
-                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(this),
+                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
                 HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
             ));
 
@@ -303,7 +303,7 @@ namespace MortalGame.GameModel
                             _UseCard(_gameStatus.Ally, useCardAction.CardIndentity);
                             _gameEvents.Add(new PlayerExecuteStartEvent(
                                 Faction: _gameStatus.Ally.Faction,
-                                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(this),
+                                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
                                 HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
                             ));
                         }
@@ -333,7 +333,7 @@ namespace MortalGame.GameModel
                     _UseCard(_gameStatus.Enemy, useCardAction.CardIndentity);
                     _gameEvents.Add(new PlayerExecuteStartEvent(
                         Faction: _gameStatus.Enemy.Faction,
-                        CardManagerInfo: _gameStatus.Enemy.CardManager.ToInfo(this),
+                        CardManagerInfo: _gameStatus.Enemy.CardManager.ToInfo(),
                         HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
                     ));
                 }
@@ -351,7 +351,7 @@ namespace MortalGame.GameModel
 
             _gameEvents.Add(new PlayerExecuteEndEvent(
                 Faction: _gameStatus.Ally.Faction,
-                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(this)
+                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo()
             ));
 
             _gameEvents.AddRange(_RunTiming(GameTiming.AfterExecuteEnd, executeEndSource));
@@ -464,7 +464,7 @@ namespace MortalGame.GameModel
                             var usedCardEvent = new UsedCardEvent(
                                 Faction: player.Faction,
                                 UsedCardInfo: usedCardInfo,
-                                CardManagerInfo: player.CardManager.ToInfo(this));
+                                CardManagerInfo: player.CardManager.ToInfo());
                             useCardEvents.Add(usedCardEvent);
 
                             useCardEvents.AddRange(

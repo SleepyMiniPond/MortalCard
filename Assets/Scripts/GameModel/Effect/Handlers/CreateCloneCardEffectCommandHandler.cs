@@ -25,7 +25,7 @@ namespace MortalGame.GameModel
                 c.Target.Faction,
                 createResult.Card.ToInfo(context.Model),
                 c.Destination,
-                c.Target.CardManager.ToInfo(context.Model));
+                c.Target.CardManager.ToInfo());
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(createCardEvent));
         }
 
@@ -39,7 +39,7 @@ namespace MortalGame.GameModel
                 c.Target.Faction,
                 cloneResult.Card.ToInfo(context.Model),
                 c.Destination,
-                c.Target.CardManager.ToInfo(context.Model));
+                c.Target.CardManager.ToInfo());
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cloneCardEvent));
         }
     }

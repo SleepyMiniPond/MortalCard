@@ -37,8 +37,7 @@ namespace MortalGame.GameModel
     }
 
     public record CardManagerInfo(
-        IReadOnlyDictionary<CardCollectionType, ImmutableArray<Guid>> CardZoneInfos,
-        Option<CardInfo> PlayingCard);
+        IReadOnlyDictionary<CardCollectionType, ImmutableArray<Guid>> CardZoneInfos);
 
     public class PlayerCardManager : IPlayerCardManager, IDisposable
     {
@@ -124,7 +123,7 @@ namespace MortalGame.GameModel
                 Faction: this.Owner(model).ValueOr(DummyPlayer.Instance).Faction,
                 DiscardedCardInfos: discardedCards.Select(c => c.ToInfo(model)).ToArray(),
                 ExcludedCardInfos: excludeCards.Select(c => c.ToInfo(model)).ToArray(),
-                CardManagerInfo: this.ToInfo(model)));
+                CardManagerInfo: this.ToInfo()));
 
             return events;
         }
@@ -141,7 +140,7 @@ namespace MortalGame.GameModel
                 events.Add(new RecycleGraveyardToHandCardEvent(
                     Faction: this.Owner(model).ValueOr(DummyPlayer.Instance).Faction,
                     RecycledCardInfo: recycledCard.ToInfo(model),
-                    CardManagerInfo: this.ToInfo(model)));
+                    CardManagerInfo: this.ToInfo()));
             }
 
             return events;
@@ -229,7 +228,7 @@ namespace MortalGame.GameModel
             return Option.None<IPlayerEntity>();
         }
 
-        public static CardManagerInfo ToInfo(this IPlayerCardManager cardManager, IGameplayModel gameWatcher)
+        public static CardManagerInfo ToInfo(this IPlayerCardManager cardManager)
             => new(
                 new Dictionary<CardCollectionType, ImmutableArray<Guid>>
                 {
@@ -238,8 +237,7 @@ namespace MortalGame.GameModel
                 { CardCollectionType.Graveyard, cardManager.Graveyard.ToCardIdentities() },
                 { CardCollectionType.ExclusionZone, cardManager.ExclusionZone.ToCardIdentities() },
                 { CardCollectionType.DisposeZone, cardManager.DisposeZone.ToCardIdentities() }
-                },
-                cardManager.PlayingCard.Map(c => c.ToInfo(gameWatcher)));
+                });
 
         public static IEnumerable<ICardEntity> AllCards(this IPlayerCardManager cardManager)
         {

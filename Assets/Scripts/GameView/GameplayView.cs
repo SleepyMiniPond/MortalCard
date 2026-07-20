@@ -230,6 +230,9 @@ namespace MortalGame.GameView
                     case RemovePlayerBuffEvent removeBuffEvent:
                         _RemoveBuffView(removeBuffEvent);
                         break;
+                    case ModifyPlayerBuffLevelEvent modifyBuffEvent:
+                        _gameViewModel.UpdatePlayerBuffInfo(modifyBuffEvent.Buff);
+                        break;
                 }
             }
         }

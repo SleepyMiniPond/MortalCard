@@ -250,16 +250,22 @@
 
 ### T-015：CardInfo 氾濫 — 重複製造與事件冗餘
 - **問題**：`CardInfo.Create()` 每次都執行 `GameFormula` 計算 + Buff 枚舉 + LINQ 合併，並非輕量操作，但目前存在多個重複製造的路徑：
-  1. **Buff 事件與 GeneralUpdateEvent 雙重更新同一張卡**：`EffectCommandExecutor` 在執行 `AddCardBuffEffectCommand` / `RemoveCardBuffEffectCommand` / `ModifyCardBuffLevelEffectCommand` 時，同時發出 `AddCardBuffEvent(card.ToInfo())` 和 `GeneralUpdateEvent(card.ToInfo())`（透過 `UpdateReactorSessionAction` → `PlayerEntity.Update()` 產生），View 側兩者都流向 `_gameViewModel.UpdateCardInfo()`，同一張卡被重複更新
+  1. **Buff 事件與 GeneralUpdateEvent 重複製造同一張卡的快照**：`CardBuffEffectCommandHandler` 在執行 `AddCardBuffEffectCommand` / `RemoveCardBuffEffectCommand` / `ModifyCardBuffLevelEffectCommand` 時，同時產生 CardBuff specific event 的 `CardInfo`，以及 `UpdateReactorSessionAction` → `PlayerEntity.Update()` 所產生的 `GeneralUpdateEvent(CardInfo)`。目前 View 只消費後者，因此前者是未使用的完整快照。
   2. **CardManagerInfo 內無謂計算 PlayingCard**：`DrawCardEvent`、`CreateCardEvent`、`UsedCardEvent`、`PlayerExecuteStartEvent` 等事件都攜帶 `CardManagerInfo`，其中包含 `PlayingCard.ToInfo()`，但 PlayingCard 在這些事件的當下實際上並未改變
   3. **CardBuff 事件攜帶完整 CardInfo 但不必要**：`AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent` 的目的只是通知某張卡的 Buff 列表有變，卻帶了包含 Cost/Power 計算的完整 CardInfo
 - **方向**：
-  - **核心原則**：命名事件只描述「發生了什麼」，不負責搬運完整資料快照；由 View 收到 Identity 後自行從 `GameInfoModel.ObservableCardInfo()` pull 最新值
+  - **核心原則**：命名事件只描述「發生了什麼」，不負責搬運未被消費的完整資料快照；畫面狀態仍由既有 `GeneralUpdateEvent` 更新，若未來 specific event 需要畫面資料，再依 Identity 從 `GameInfoModel.ObservableCardInfo()` 取得最新值。
   - `AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent` 改為只攜帶 `Faction` + `Guid Identity`，不帶 `CardInfo`
   - 評估 `CardManagerInfo` 的 `PlayingCard` 欄位是否真的需要 CardInfo，或改為 `Option<Guid>`
   - 釐清 `GeneralUpdateEvent` 和 CardBuff specific event 在 View 側的職責分工，避免同一更新走兩條路
 - **影響檔案**：`GameEvent.cs`、`EffectCommandExecutor.cs`、`GameplayView.cs`、`GameInfoModel.cs`
-- **狀態**：⬜ 未開始
+- **第一階段完成內容**（2026-07-20）：
+  - `AddCardBuffEvent`、`RemoveCardBuffEvent`、`ModifyCardBuffLevelEvent` 改為只攜帶 `Faction + CardIdentity`，不再額外呼叫 `CardInfo.Create()`。
+  - 確認目前 `GameplayView` 未直接消費 CardBuff specific event；卡片完整快照仍由同批 `GeneralUpdateEvent` 單一路徑更新，避免為 Identity 事件新增第二次 ViewModel 更新。
+  - `CardManagerInfo.PlayingCard` 沒有任何消費者，已移除該欄位及其 `CardInfo` 建立成本；`ToInfo()` 也不再需要 `IGameplayModel`。
+  - 修正手牌生命週期 CardBuff 僅標記過期但未移除的問題；單張 `CardInfo` 更新時也會同步替換各卡片區域集合內的舊快照，避免棄牌堆詳情顯示過期 Buff。
+  - 後續仍需評估其他卡片事件攜帶完整快照的必要性。
+- **狀態**：🔄 進行中（第一階段完成）
 
 ---
 

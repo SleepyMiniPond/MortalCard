@@ -80,6 +80,8 @@ namespace MortalGame.GameModel
 
                 isUpdated |= buff.LifeTime.Update(updateBuffContext);
             }
+
+            isUpdated |= _buffs.RemoveAll(buff => buff.IsExpired()) > 0;
             return isUpdated;
         }
     }

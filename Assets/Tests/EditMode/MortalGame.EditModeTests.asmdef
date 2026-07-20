@@ -18,7 +18,8 @@
   "precompiledReferences": [
     "Optional.dll",
     "Optional.Collections.dll",
-    "Sirenix.Serialization.dll"
+    "Sirenix.Serialization.dll",
+    "System.Collections.Immutable.dll"
   ],
   "autoReferenced": false,
   "defineConstraints": [

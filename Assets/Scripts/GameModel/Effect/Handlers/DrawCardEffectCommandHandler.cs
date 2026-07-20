@@ -24,7 +24,7 @@ namespace MortalGame.GameModel
                     var reactorEvents = context.Model.UpdateReactorSessionAction(recycleDeckResultAction);
                     var recycleEvent = new RecycleGraveyardToDeckEvent(
                         Faction: c.Target.Faction,
-                        CardManagerInfo: cardManager.ToInfo(context.Model));
+                        CardManagerInfo: cardManager.ToInfo());
 
                     resultActions.Add(recycleDeckResultAction);
                     events.AddRange(reactorEvents);
@@ -40,7 +40,7 @@ namespace MortalGame.GameModel
                     var drawCardEvent = new DrawCardEvent(
                         c.Target.Faction,
                         drawCard.ToInfo(context.Model),
-                        c.Target.CardManager.ToInfo(context.Model));
+                        c.Target.CardManager.ToInfo());
 
                     resultActions.Add(drawCardResultAction);
                     events.AddRange(reactorEvents);

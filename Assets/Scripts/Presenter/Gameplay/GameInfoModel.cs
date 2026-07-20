@@ -114,6 +114,25 @@ namespace MortalGame.Presenter
             {
                 _cardInfos[cardInfo.Identity].Value = cardInfo;
             }
+
+            foreach (var factionCollections in _cardCollectionInfos.Values)
+            {
+                foreach (var collectionInfoProperty in factionCollections.Values)
+                {
+                    var collectionInfo = collectionInfoProperty.Value;
+                    if (!collectionInfo.CardInfos.Keys.Any(info => info.Identity == cardInfo.Identity))
+                    {
+                        continue;
+                    }
+
+                    collectionInfoProperty.Value = collectionInfo with
+                    {
+                        CardInfos = collectionInfo.CardInfos.ToImmutableDictionary(
+                            pair => pair.Key.Identity == cardInfo.Identity ? cardInfo : pair.Key,
+                            pair => pair.Value)
+                    };
+                }
+            }
         }
 
         public void UpdatePlayerBuffInfo(PlayerBuffInfo playerBuffInfo)
