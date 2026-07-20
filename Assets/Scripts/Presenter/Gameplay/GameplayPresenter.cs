@@ -65,32 +65,16 @@ namespace MortalGame.Presenter
             using var battleCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
             var battleResult = Option.None<BattleResult>();
-            var battleTask = RunBattle().Preserve();
-            var gameplayEventTask = _GameplayBattleActions(battleCancellation.Token).Preserve();
-            var uiTask = _uiPresenter.Run(battleCancellation.Token).Preserve();
-            try
-            {
-                var completedTaskIndex = await UniTask.WhenAny(
-                    battleTask,
-                    gameplayEventTask,
-                    uiTask);
+            var (battleCompleted, gameplayEventCompleted, uiCompleted) = await UniTask.WhenAll(
+                RunAndCancelOthers(RunBattle()),
+                RunAndCancelOthers(_GameplayBattleActions(battleCancellation.Token)),
+                RunAndCancelOthers(_uiPresenter.Run(battleCancellation.Token)));
 
-                if (completedTaskIndex != 0)
-                {
-                    var completedLoop = completedTaskIndex == 1 ? gameplayEventTask : uiTask;
-                    await completedLoop;
-                    throw new InvalidOperationException($"completedTask[{completedTaskIndex}] ended before the battle completed.");
-                }
-
-                await battleTask;
-            }
-            finally
+            cancellationToken.ThrowIfCancellationRequested();
+            if (!battleCompleted)
             {
-                battleCancellation.Cancel();
-                await UniTask.WhenAll(
-                    battleTask.SuppressCancellationThrow(),
-                    gameplayEventTask.SuppressCancellationThrow(),
-                    uiTask.SuppressCancellationThrow());
+                throw new InvalidOperationException(
+                    $"gameplayEvent Completed?[{gameplayEventCompleted}] UI Completed?[{uiCompleted}] before the battle completed.");
             }
 
             _gameplayView.DisableAllInteraction();
@@ -109,6 +93,23 @@ namespace MortalGame.Presenter
             async UniTask RunBattle()
             {
                 battleResult = await _gameplayManager.StartBattle(battleCancellation.Token);
+            }
+
+            async UniTask<bool> RunAndCancelOthers(UniTask task)
+            {
+                try
+                {
+                    await task;
+                    return true;
+                }
+                catch (OperationCanceledException) when (battleCancellation.IsCancellationRequested)
+                {
+                    return false;
+                }
+                finally
+                {
+                    battleCancellation.Cancel();
+                }
             }
         }
 
