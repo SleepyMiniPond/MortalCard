@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cb1530a4c49fb54ca4e5676814f8ced, type: 3}
+  m_Name: DeckComboAttackTest
+  m_EditorClassIdentifier: 
+  serializationData:
+    SerializedFormat: 2
+    SerializedBytes: 
+    ReferencedUnityObjects: []
+    SerializedBytesString: 
+    Prefab: {fileID: 0}
+    PrefabModificationsReferencedUnityObjects: []
+    PrefabModifications: []
+    SerializationNodes: []
+  Cards:
+  - {fileID: 11400000, guid: 036b6dfa27973cb42b409bc28d236429, type: 2}
+  - {fileID: 11400000, guid: 036b6dfa27973cb42b409bc28d236429, type: 2}
+  - {fileID: 11400000, guid: 036b6dfa27973cb42b409bc28d236429, type: 2}
+  - {fileID: 11400000, guid: 5c0c1617da064a0428bf6db750729c6f, type: 2}
+  - {fileID: 11400000, guid: 5c0c1617da064a0428bf6db750729c6f, type: 2}
+  - {fileID: 11400000, guid: 042018e0ae444854ea76d3aced892fea, type: 2}
+  - {fileID: 11400000, guid: 042018e0ae444854ea76d3aced892fea, type: 2}
+  - {fileID: 11400000, guid: ed073673a67b998469e60751780c5e8d, type: 2}
