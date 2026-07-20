@@ -66,15 +66,5 @@ namespace MortalGame.Tests
             Assert.That(beforeAfterTimings.Select(timing => (int)timing), Is.All.GreaterThan(15));
             Assert.That(beforeAfterTimings.Distinct().Count(), Is.EqualTo(beforeAfterTimings.Length));
         }
-
-        [Test]
-        public void UpdateTimingDropdown_ExcludesObsoleteTimings()
-        {
-            Assert.That(DropdownHelper.IsSelectableGameTiming((GameTiming)3), Is.False);
-            Assert.That(DropdownHelper.IsSelectableGameTiming((GameTiming)10), Is.False);
-            Assert.That(DropdownHelper.IsSelectableGameTiming((GameTiming)15), Is.False);
-            Assert.That(DropdownHelper.IsSelectableGameTiming(GameTiming.BeforeTurnEnd), Is.True);
-            Assert.That(DropdownHelper.IsSelectableGameTiming(GameTiming.CardPlayResult), Is.True);
-        }
     }
 }

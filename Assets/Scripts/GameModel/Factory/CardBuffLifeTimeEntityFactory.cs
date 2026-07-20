@@ -26,13 +26,13 @@ namespace MortalGame.GameModel
             _creators = creators.ToDictionary(creator => creator.DataType);
         }
 
-        public static CardBuffLifeTimeEntityFactory CreateDefault()
+        public static ICardBuffLifeTimeEntityFactory CreateDefault()
         {
             return new CardBuffLifeTimeEntityFactory(new ICardBuffLifeTimeEntityCreator[]
             {
-            new AlwaysLifeTimeCardBuffEntityCreator(),
-            new TurnLifeTimeCardBuffEntityCreator(),
-            new HandCardLifeTimeCardBuffEntityCreator(),
+                new AlwaysLifeTimeCardBuffEntityCreator(),
+                new TurnLifeTimeCardBuffEntityCreator(),
+                new HandCardLifeTimeCardBuffEntityCreator(),
             });
         }
 

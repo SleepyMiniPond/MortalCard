@@ -32,7 +32,10 @@ namespace MortalGame.Tests
         [Test]
         public void CreateProperty_UnknownDataType_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _propertyFactory.Create(new UnknownCardBuffPropertyData()));
+            var factory = new CardBuffPropertyEntityFactory(
+                Array.Empty<ICardBuffPropertyEntityCreator>());
+
+            Assert.Throws<ArgumentException>(() => factory.Create(new SealedCardBuffPropertyData()));
         }
 
         [TestCase(typeof(AlwaysLifeTimeCardBuffData), typeof(AlwaysLifeTimeCardBuffEntity))]
@@ -62,15 +65,10 @@ namespace MortalGame.Tests
         [Test]
         public void CreateLifeTime_UnknownDataType_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _lifeTimeFactory.Create(new UnknownCardBuffLifeTimeData(), null));
-        }
+            var factory = new CardBuffLifeTimeEntityFactory(
+                Array.Empty<ICardBuffLifeTimeEntityCreator>());
 
-        private sealed class UnknownCardBuffPropertyData : ICardBuffPropertyData
-        {
-        }
-
-        private sealed class UnknownCardBuffLifeTimeData : ICardBuffLifeTimeData
-        {
+            Assert.Throws<ArgumentException>(() => factory.Create(new AlwaysLifeTimeCardBuffData(), null));
         }
     }
 
