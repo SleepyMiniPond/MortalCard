@@ -258,14 +258,16 @@
   - `AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent` 改為只攜帶 `Faction` + `Guid Identity`，不帶 `CardInfo`
   - 評估 `CardManagerInfo` 的 `PlayingCard` 欄位是否真的需要 CardInfo，或改為 `Option<Guid>`
   - 釐清 `GeneralUpdateEvent` 和 CardBuff specific event 在 View 側的職責分工，避免同一更新走兩條路
-- **影響檔案**：`GameEvent.cs`、`EffectCommandExecutor.cs`、`GameplayView.cs`、`GameInfoModel.cs`
-- **第一階段完成內容**（2026-07-20）：
+- **影響檔案**：`GameEvent.cs`、`PlayerCardManager.cs`、`GameplayManager.cs`、`MoveCardEffectCommandHandler.cs`、`GameplayView.cs`、`AllyHandCardView.cs`、`EnemySelectedCardView.cs`、`GameInfoModel.cs`
+- **完成內容**（2026-07-20～2026-07-22）：
   - `AddCardBuffEvent`、`RemoveCardBuffEvent`、`ModifyCardBuffLevelEvent` 改為只攜帶 `Faction + CardIdentity`，不再額外呼叫 `CardInfo.Create()`。
   - 確認目前 `GameplayView` 未直接消費 CardBuff specific event；卡片完整快照仍由同批 `GeneralUpdateEvent` 單一路徑更新，避免為 Identity 事件新增第二次 ViewModel 更新。
   - `CardManagerInfo.PlayingCard` 沒有任何消費者，已移除該欄位及其 `CardInfo` 建立成本；`ToInfo()` 也不再需要 `IGameplayModel`。
   - 修正手牌生命週期 CardBuff 僅標記過期但未移除的問題；單張 `CardInfo` 更新時也會同步替換各卡片區域集合內的舊快照，避免棄牌堆詳情顯示過期 Buff。
-  - 後續仍需評估其他卡片事件攜帶完整快照的必要性。
-- **狀態**：🔄 進行中（第一階段完成）
+  - `UsedCardEvent` 與 `MoveCardEvent` 改為只攜帶卡片 Identity；移除出牌與移牌事件建立完整 `CardInfo` 的成本。
+  - `DiscardHandCardEvent` 的棄牌與排除牌資料改為 Identity 集合；回合結束時不再為整批手牌建立完整 `CardInfo`。
+  - 保留 `DrawCardEvent`、`AddCardEvent`、`EnemySelectCardEvent` 的完整 `CardInfo`，因為接收端仍需要它建立或更新卡片畫面。
+- **狀態**：✅ 已完成（2026-07-22）
 
 ---
 

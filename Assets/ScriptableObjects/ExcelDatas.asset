@@ -86,6 +86,9 @@ MonoBehaviour:
   - Id: SealedOneTurn
     Title: "\u5C01\u5370"
     Info: "\u7121\u6CD5\u6253\u51FA"
+  - Id: Recycle
+    Title: "\u56DE\u624B"
+    Info: "\u6253\u51FA\u5F8C\u7ACB\u523B\u5F9E\u68C4\u724C\u5806\u56DE\u5230\u624B\u4E0A"
   LocalizeKeyWord:
   - Id: Attack
     Title: "\u6345\u4EBA"
@@ -126,7 +129,7 @@ MonoBehaviour:
   - Id: EffectTimes
     Title: "\u91CD\u8907"
     Info: "\u6253\u51FA\u5361\u724C\u6642\uFF0C\u91CD\u8907\u8A72\u5361\u724C\u6548\u679C"
-  - Id: RecycleTimes
+  - Id: Recycle
     Title: "\u56DE\u6536"
     Info: "\u6253\u51FA\u5361\u724C\u5F8C\uFF0C\u5C07\u8A72\u5361\u724C\u76F4\u63A5\u62FF\u56DE\u624B\u4E0A"
   - Id: Initialize
@@ -168,7 +171,7 @@ MonoBehaviour:
   LocalizePlayerBuff:
   - Id: ComboAttack
     Title: "\u9023\u64CA"
-    Info: "\u5C64\u6578 : {:level}\n\u672C\u56DE\u5408\u6345\u4EBA/\u7D55\u62DB\u7684\u50B7\u5BB3\u589E\u52A0
+    Info: "\u5C64\u6578 : {:level}\n\u672C\u56DE\u5408\u9023\u7E8C2\u6B21\u4EE5\u4E0A\u6253\u51FA\u6345\u4EBA/\u7D55\u62DB\u6642\uFF0C\u6345\u4EBA/\u7D55\u62DB\u7684\u50B7\u5BB3\u589E\u52A0
       {:level}+\u9023\u64CA\u6578{:combo}"
   - Id: FollowAttack
     Title: "\u8FFD\u64CA"
@@ -176,7 +179,7 @@ MonoBehaviour:
       {:level}"
   - Id: FullAttack
     Title: "\u91CD\u64CA"
-    Info: "\u5C64\u6578 : {:level}\n\u8017\u76E1\u6C23\u529B\u7684\u653B\u64CA\u589E\u52A0
+    Info: "\u5C64\u6578 : {:level}\n\u6253\u51FA\u8017\u76E1\u6C23\u529B\u7684\u5361\u724C\u6642\uFF0C\u653B\u64CA\u589E\u52A0
       {:level}"
   - Id: Poison
     Title: "\u4E2D\u6BD2"

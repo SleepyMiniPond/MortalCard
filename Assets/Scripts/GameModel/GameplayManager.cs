@@ -460,10 +460,9 @@ namespace MortalGame.GameModel
 
                             cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
 
-                            var usedCardInfo = usedCard.ToInfo(this);
                             var usedCardEvent = new UsedCardEvent(
                                 Faction: player.Faction,
-                                UsedCardInfo: usedCardInfo,
+                                UsedCardIdentity: usedCard.Identity,
                                 CardManagerInfo: player.CardManager.ToInfo());
                             useCardEvents.Add(usedCardEvent);
 

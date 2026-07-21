@@ -100,44 +100,44 @@ namespace MortalGame.GameView
 
         public void RemoveCardView(UsedCardEvent usedCardEvent)
         {
-            if (_cardViewDict.TryGetValue(usedCardEvent.UsedCardInfo.Identity, out var cardView))
+            if (_cardViewDict.TryGetValue(usedCardEvent.UsedCardIdentity, out var cardView))
             {
                 _cardViews.Remove(cardView);
-                _cardViewDict.Remove(usedCardEvent.UsedCardInfo.Identity);
+                _cardViewDict.Remove(usedCardEvent.UsedCardIdentity);
                 _cardViewFactory.RecyclePrefab(cardView as CardView);
 
                 foreach (var view in _cardViews)
-                    view.RemoveLocationOffset(usedCardEvent.UsedCardInfo.Identity, _focusDuration);
+                    view.RemoveLocationOffset(usedCardEvent.UsedCardIdentity, _focusDuration);
                 _RearrangeCardViews();
             }
         }
 
         public void RemoveCardView(MoveCardEvent moveCardEvent)
         {
-            if (_cardViewDict.TryGetValue(moveCardEvent.CardInfo.Identity, out var cardView))
+            if (_cardViewDict.TryGetValue(moveCardEvent.CardIdentity, out var cardView))
             {
                 _cardViews.Remove(cardView);
-                _cardViewDict.Remove(moveCardEvent.CardInfo.Identity);
+                _cardViewDict.Remove(moveCardEvent.CardIdentity);
                 _cardViewFactory.RecyclePrefab(cardView as CardView);
 
                 foreach (var view in _cardViews)
-                    view.RemoveLocationOffset(moveCardEvent.CardInfo.Identity, _focusDuration);
+                    view.RemoveLocationOffset(moveCardEvent.CardIdentity, _focusDuration);
                 _RearrangeCardViews();
             }
         }
 
         public void RecycleHandCards(DiscardHandCardEvent recycleHandCardEvent)
         {
-            foreach (var cardInfo in recycleHandCardEvent.DiscardedCardInfos.Concat(recycleHandCardEvent.ExcludedCardInfos))
+            foreach (var cardIdentity in recycleHandCardEvent.DiscardedCardIdentities.Concat(recycleHandCardEvent.ExcludedCardIdentities))
             {
-                if (_cardViewDict.TryGetValue(cardInfo.Identity, out var cardView))
+                if (_cardViewDict.TryGetValue(cardIdentity, out var cardView))
                 {
                     _cardViews.Remove(cardView);
-                    _cardViewDict.Remove(cardInfo.Identity);
+                    _cardViewDict.Remove(cardIdentity);
 
                     _cardViewFactory.RecyclePrefab(cardView as CardView);
                     foreach (var view in _cardViews)
-                        view.RemoveLocationOffset(cardInfo.Identity, _focusDuration);
+                        view.RemoveLocationOffset(cardIdentity, _focusDuration);
                 }
             }
 

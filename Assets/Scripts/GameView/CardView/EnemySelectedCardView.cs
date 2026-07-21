@@ -88,10 +88,10 @@ namespace MortalGame.GameView
 
         public void RemoveCardView(UsedCardEvent usedCardEvent)
         {
-            if (_cardViewDict.TryGetValue(usedCardEvent.UsedCardInfo.Identity, out var cardView))
+            if (_cardViewDict.TryGetValue(usedCardEvent.UsedCardIdentity, out var cardView))
             {
                 _cardViews.Remove(cardView);
-                _cardViewDict.Remove(usedCardEvent.UsedCardInfo.Identity);
+                _cardViewDict.Remove(usedCardEvent.UsedCardIdentity);
                 _cardViewFactory.RecyclePrefab(cardView as AiCardView);
 
                 _RearrangeCardViews();
@@ -99,10 +99,10 @@ namespace MortalGame.GameView
         }
         public void RemoveCardView(MoveCardEvent moveCardEvent)
         {
-            if (_cardViewDict.TryGetValue(moveCardEvent.CardInfo.Identity, out var cardView))
+            if (_cardViewDict.TryGetValue(moveCardEvent.CardIdentity, out var cardView))
             {
                 _cardViews.Remove(cardView);
-                _cardViewDict.Remove(moveCardEvent.CardInfo.Identity);
+                _cardViewDict.Remove(moveCardEvent.CardIdentity);
                 _cardViewFactory.RecyclePrefab(cardView as AiCardView);
 
                 _RearrangeCardViews();
@@ -125,12 +125,12 @@ namespace MortalGame.GameView
         }
         public void RemoveCardView(DiscardHandCardEvent recycleHandCardEvent)
         {
-            foreach (var cardInfo in recycleHandCardEvent.DiscardedCardInfos.Concat(recycleHandCardEvent.ExcludedCardInfos))
+            foreach (var cardIdentity in recycleHandCardEvent.DiscardedCardIdentities.Concat(recycleHandCardEvent.ExcludedCardIdentities))
             {
-                if (_cardViewDict.TryGetValue(cardInfo.Identity, out var cardView))
+                if (_cardViewDict.TryGetValue(cardIdentity, out var cardView))
                 {
                     _cardViews.Remove(cardView);
-                    _cardViewDict.Remove(cardInfo.Identity);
+                    _cardViewDict.Remove(cardIdentity);
                     _cardViewFactory.RecyclePrefab(cardView as AiCardView);
                 }
             }

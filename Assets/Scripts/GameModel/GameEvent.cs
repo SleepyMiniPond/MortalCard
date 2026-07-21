@@ -32,8 +32,8 @@ namespace MortalGame.GameModel
         CardManagerInfo CardManagerInfo) : IGameEvent;
     public record DiscardHandCardEvent(
         Faction Faction,
-        IReadOnlyCollection<CardInfo> DiscardedCardInfos,
-        IReadOnlyCollection<CardInfo> ExcludedCardInfos,
+        ImmutableArray<Guid> DiscardedCardIdentities,
+        ImmutableArray<Guid> ExcludedCardIdentities,
         CardManagerInfo CardManagerInfo) : IGameEvent;
     public record RecycleGraveyardToHandCardEvent(
         Faction Faction,
@@ -46,7 +46,7 @@ namespace MortalGame.GameModel
 
     public record MoveCardEvent(
         Faction Faction,
-        CardInfo CardInfo,
+        Guid CardIdentity,
         CardCollectionType Start,
         CardCollectionType Destination,
         CardManagerInfo CardManagerInfo) : IGameEvent;
@@ -60,7 +60,7 @@ namespace MortalGame.GameModel
     public record EnemyUnselectedCardEvent(ImmutableArray<Guid> UnselectedCards) : IGameEvent;
     public record PlayerExecuteStartEvent(Faction Faction, CardManagerInfo CardManagerInfo, CardCollectionInfo HandCardInfo) : IGameEvent;
     public record PlayerExecuteEndEvent(Faction Faction, CardManagerInfo CardManagerInfo) : IGameEvent;
-    public record UsedCardEvent(Faction Faction, CardInfo UsedCardInfo, CardManagerInfo CardManagerInfo) : IGameEvent;
+    public record UsedCardEvent(Faction Faction, Guid UsedCardIdentity, CardManagerInfo CardManagerInfo) : IGameEvent;
 
     public record GainEnergyEvent(Faction Faction, EnergyInfo Info, GainEnergyResult GainEnergyResult) : IGameEvent, IAnimationNumberEvent;
     public record LoseEnergyEvent(Faction Faction, EnergyInfo Info, LoseEnergyResult LoseEnergyResult) : IGameEvent, IAnimationNumberEvent;

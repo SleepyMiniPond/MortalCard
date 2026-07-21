@@ -15,7 +15,7 @@ namespace MortalGame.GameModel
             var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
             var moveCardEvent = new MoveCardEvent(
                 c.Target.Faction,
-                moveResult.Card.ToInfo(context.Model),
+                moveResult.Card.Identity,
                 c.Start,
                 c.Destination,
                 c.Target.CardManager.ToInfo());

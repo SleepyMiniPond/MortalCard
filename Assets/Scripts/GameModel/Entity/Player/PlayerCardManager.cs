@@ -121,8 +121,8 @@ namespace MortalGame.GameModel
             Graveyard.AddCards(discardedCards);
             events.Add(new DiscardHandCardEvent(
                 Faction: this.Owner(model).ValueOr(DummyPlayer.Instance).Faction,
-                DiscardedCardInfos: discardedCards.Select(c => c.ToInfo(model)).ToArray(),
-                ExcludedCardInfos: excludeCards.Select(c => c.ToInfo(model)).ToArray(),
+                DiscardedCardIdentities: discardedCards.Select(c => c.Identity).ToImmutableArray(),
+                ExcludedCardIdentities: excludeCards.Select(c => c.Identity).ToImmutableArray(),
                 CardManagerInfo: this.ToInfo()));
 
             return events;
