@@ -40,6 +40,7 @@
 
 ### Unity 整合最佳實踐
 - **ScriptableObject 封裝**：所有遊戲資料透過 SO 管理
+- **資料資產規範**：建立或修改 ScriptableObject 資產時，遵循 [GameData 資料資產製作規範](GameData_Asset_Guidelines.md)
 - **編輯器友善**：重視設計師工作流程體驗
 - **資源管理**：統一的資料載入與快取機制
 

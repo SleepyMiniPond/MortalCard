@@ -8,6 +8,8 @@ GameData 是整個專案的**資料基礎層**，負責定義所有遊戲實體�
 
 設計師透過 Odin Inspector 在 Unity 編輯器中直接編輯這些資料，無需接觸程式碼。
 
+實際建立與維護 ScriptableObject 資料資產時，請參閱 [GameData 資料資產製作規範](GameData_Asset_Guidelines.md)。
+
 ## 子系統總覽
 
 ```

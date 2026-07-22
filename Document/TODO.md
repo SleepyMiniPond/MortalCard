@@ -1,304 +1,100 @@
 # 專案待辦事項
 
-> 最後更新：2026-07-12
+> 最後更新：2026-07-23
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
+> 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
+
+## 工作優先順序
+
+```text
+現在可開始
+├─ T-010 卡片變身
+└─ T-011 多步驟目標選取
+
+T-010 + T-011 完成
+        ↓
+T-012 卡片合成
+
+獨立排期
+├─ T-013 敵人動態增減
+└─ T-014 Preview / Simulation
+```
+
+T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始。T-012 同時依賴兩者；T-013、T-014 影響面較廣，不與其他大型功能同時進行。
 
 ---
 
-## 🔴 高優先 — 架構改善
-
-### T-001：消除 Switch Expression 雙重派發
-- **問題**：`EffectDataResolver` 與 `EffectCommandExecutor` 各有 15~17 分支的 type-switch，新增效果至少要改 4 個檔案（Effect 定義、Resolver 分支、Command 定義、Executor 分支），違反 Open-Closed Principle
-- **方向**：
-  - 方案 A：讓 `ICardEffect` 自帶 `Resolve()` / `IEffectCommand` 自帶 `Execute()`，把邏輯內聚到效果本身
-  - 方案 B：Strategy Dictionary（`Dictionary<Type, IEffectResolver>`）做中間層，保持 data class 純淨
-  - 方案 C：Visitor Pattern 分離資料與行為但仍集中註冊
-- **影響檔案**：`EffectDataResolver.cs`、`EffectCommandExecutor.cs`、`CardEffect.cs`、`EffectCommand.cs`
-- **狀態**：✅ 已完成（2026-05-11）
-  - 方案 B 實施：`Resolvers/` 目錄（ICardEffectResolver × 13 + IPlayerBuffEffectResolver × 5）、`Handlers/` 目錄（IEffectCommandHandler × 11）
-  - 新增效果只需加 Resolver/Handler class 並在 registry 新增一行，不需動 Resolver/Executor 本體
-
----
-
-## 🟡 中優先 — 功能補完
-
-### T-002：接通 CardBuff / CharacterBuff 觸發管線
-- **問題**：`GameplayManager._TriggerTiming()` 中角色 Buff 和卡牌 Buff 的 foreach 迴圈是空殼，只有 PlayerBuff 真正接入反應管線
-- **方向**：參照 PlayerBuff 的觸發邏輯，為 CardBuff 和 CharacterBuff 補上 `ConditionalEffect` 的解析與執行
-- **注意**：CardBuff scope 較小（只影響單張牌），TriggerContext 需正確攜帶該 Card 作為 Source
-- **影響檔案**：`GameplayManager.cs`（`_TriggerTiming` 方法）
-- **狀態**：✅ 已完成（2026-05-15）
-  - CharacterBuff 與 CardBuff 的觸發邏輯已完整實作，結構與 PlayerBuff 一致
-
-### T-003：評估 Effect Queue 機制
-- **問題**：目前效果是 `List<ICardEffect>` 線性展開成 `EffectCommandSet` 一次性執行，無法支援效果鏈（效果 A 結果影響效果 B）、效果中觸發新效果、效果取消/替代
-- **方向**：引入 Effect Queue，讓效果執行中可以往佇列塞新效果；`GameContextManager` 的 stack-based scoping 已有雛形
-- **前置**：先完成 T-001（消除 switch 派發後更容易引入 Queue）
-- **完成內容**：
-  - 新增 `EffectQueueRunner` 與 `EffectQueueItem`，將 CardEffect、PlayerBuffEffect、CharacterBuffEffect、CardBuffEffect 納入統一佇列執行流程
-  - `EffectQueueItem.Execute()` 改為接收 `IEffectQueueContext`，允許效果執行期間插入後續效果
-  - 新增 `EnqueueImmediate()`，用於保留原本遞迴觸發的深度優先順序，例如 buff 效果結束後立即處理對應的 `TriggerBuffEnd`
-  - 新增最大處理數保護，超過上限時安全停駐並保留尚未執行的 pending queue，避免無限連鎖造成死循環
-  - `_TriggerTiming()` 改為透過 `TriggerTimingQueueItem` 進入 Effect Queue，`TriggerBuffEnd` 這類遞迴 timing 也以 queue item 表示
-  - 將 Buff timing 專屬 queue item 拆出至 `BuffTimingQueueItems.cs`，讓 `EffectQueueRunner` 保持通用佇列基礎設施，`GameplayManager` 保留 timing 掃描與組裝責任
-  - 擴充 `EffectQueueRunnerTests`，覆蓋佇列順序、立即插入與 max count 安全停駐
-- **驗證結果**：
-  - `dotnet build MortalGame.EditModeTests.csproj`：0 error，2 warnings（既有 `GameplayManager.OneTurnStart` / `OnTurnEnd` 未使用）
-  - Unity MCP `assets-refresh`：成功
-  - Unity MCP `tests-run` EditMode：63 passed / 0 failed / 0 skipped
-  - 測試中仍有 `NoOpCardBuffEffect` 未知 resolver warning，屬於既有測試用空效果案例
-- **後續注意**：
-  - 目前完成的是執行期 Effect Queue 的第一版架構；「效果取消 / 替代」尚未實作，建議等實際卡牌需求或 Preview / Simulation 管線明確後再擴充
-  - 後續新增會連鎖觸發的效果時，應優先補 EditMode 測試確認 queue 順序與 selected context 邊界
-- **狀態**：✅ 已完成（2026-06-29）
-
-### T-004：建立核心 EditMode 測試與測試資料建構器
-- **問題**：核心 GameModel 與 Buff Timing 缺少自動化回歸保護，後續 T-003 Effect Queue、Buff 連鎖控制、Preview / Simulation 等工作容易在重構時產生行為回歸
-- **方向**：建立 EditMode 測試基礎、測試資料建構器與可控的 `GameplayManager` 測試接縫，優先覆蓋 Buff timing 與 GameContext scope 行為
-- **完成內容**：
-  - 新增 `GameplayManager` 測試用 constructor overload，可注入受控 `GameStatus`，避免新增生硬的 `SetGameStatusForTesting` 測試介面
-  - 新增 `InternalsVisibleTo("MortalGame.EditModeTests")`，讓 EditMode 測試能存取必要的 internal 測試接縫
-  - 建立測試資料建構器：`GameContextTestBuilder`、`GameplayManagerTestBuilder`、`BuffTestBuilder`、`CardTestBuilder`、`OptionTestValue`
-  - 新增 `BuffTimingPipelineTests`，覆蓋 PlayerBuff、CharacterBuff、CardBuff timing、條件判斷、Card selected context，以及 `TriggerBuffEnd` 後續觸發
-  - 新增 `GameContextManagerTests`，覆蓋 selected player / character / card scope 的 push 與 restore 行為
-  - 調整 `MortalGame.EditModeTests.asmdef`，讓測試 assembly 能正確參考 Optional 套件
-- **驗證結果**：
-  - `BuffTimingPipelineTests`：6 passed / 0 failed
-  - `GameContextManagerTests`：4 passed / 0 failed
-  - 完整 EditMode 測試：56 passed / 0 failed
-  - 驗證使用 Unity `6000.0.3f1` batchmode，在臨時專案副本執行，避免與使用者開啟中的 Unity Editor 搶 project lock
-- **注意事項**：
-  - Unity log 仍有既有 NuGetForUnity duplicate / same filename 警告，非本次 T-004 引入
-  - 後續若要進行 T-003，應優先沿用這批 builder 與 Buff timing 測試擴充案例
-- **狀態**：✅ 已完成（2026-06-25）
-
-### T-005：修正場景級 UniTask 取消與 Presenter 生命週期
-- **問題**：場景與 Presenter 流程中仍可能存在 `.Forget()`、取消 token 傳遞不完整、切場景後非同步流程繼續更新 View / Model 的風險
-- **方向**：建立場景級與 Presenter 級的取消邊界，讓 Menu、LevelMap、Gameplay 等場景流程在離開、重開或銷毀時能可靠取消尚未完成的 UniTask
-- **設計思路**：
-  - 盤點 `GameplayPresenter`、Scene `Run()` 流程與 UI command loop 中的 `.Forget()` 使用點
-  - 將場景生命週期 `CancellationToken` 傳入 Presenter 與長時間等待流程
-  - 對戰鬥結束、切場景、重新開始、離開戰鬥等路徑建立取消測試或最小驗證
-  - 明確區分「背景 fire-and-forget」與「必須被場景生命週期管理」的非同步工作
-- **影響檔案**：`GameplayPresenter.cs`、Scene 相關 `Run()` 流程、可能包含 UI command / action loop
-- **完成內容**：
-  - 建立 `Main → SceneLoadManager → Scene → Presenter → UI / Model` 的 CancellationToken 傳遞鏈；各 Scene 連結自身銷毀 Token，場景載入與長時間等待皆可取消
-  - `GameplayManager.StartBattle()`、玩家 Action 等待與相關長時間流程改為強制接收 Token，不保留可省略的 default token
-  - GameplayPresenter 保存並監督 Battle、Gameplay Event、UI 三條並行工作；Battle 正常完成後取消其餘工作並等待完全收斂，輔助 loop 提前完成或失敗則向上回報
-  - 玩家 pending queue 改存 `IGameCommand`，由單一 Gameplay Event loop Dequeue 後依序啟動處理，避免 UniTask 在入列時提前執行
-  - UI、SubSelection、卡片詳情 Popup 與勝負面板完整傳遞 Token，並以 `finally` 保證關閉面板與釋放 UniRx 訂閱
-  - 新增 `CharacterAnimationWorker`，以 `Dispose + Completion` 管理角色動畫事件佇列、進行中動畫與取消收斂，不再使用無主 `.Forget()`
-  - 新增 `ICharacterEventAnimationPlayer` / `CharacterEventAnimationPlayer` 分離動畫排程與事件呈現；新增 `BaseAnimationEventView` 統一 PlayableDirector 的取消、停止與隱藏生命週期
-  - GameplayView 管理 Ally / Enemy Character Worker；替換或戰鬥結束時 Dispose 並等待 Completion。多角色集合遷移已記錄於 T-013
-- **驗證結果**：
-  - Unity AssetDatabase refresh：成功，0 compile error
-  - Unity EditMode Tests：111 tests，狀態 Passed，0 failed（新增 4 項生命週期測試）
-  - `dotnet build MortalGame.Scene.csproj`：0 warning / 0 error
-  - `dotnet build MortalGame.EditModeTests.csproj`：0 warning / 0 error
-  - 七個 EventView Prefab 的 PlayableDirector 序列化引用保持有效
-- **已知限制**：勝利結果面板目前沒有正常關閉按鈕或完成事件，仍會等待 Scene 取消；屬既有功能缺口，不在 T-005 內擅自定義互動
-- **狀態**：✅ 已完成（2026-07-12）
-
-### T-006：導入戰鬥專用決定性亂數服務
-- **問題**：`GameStageSetting.RandomSeed` 已存在，但洗牌、抽取與其他隨機行為仍可能直接使用 `UnityEngine.Random`，導致相同 seed 無法重現同一場戰鬥
-- **方向**：導入戰鬥專用亂數服務，讓每場戰鬥持有獨立且可注入的亂數狀態，支援測試、重播、AI simulation 與問題重現
-- **設計思路**：
-  - 定義 `IGameRandom` 或等價介面，封裝 range、shuffle、choice 等常用操作
-  - 由 `GameStageSetting.RandomSeed` 初始化每場戰鬥的亂數實例
-  - 將洗牌、抽牌順序、敵方隨機決策等戰鬥內隨機來源改由服務提供
-  - 增加 EditMode 測試：相同 seed 產生相同結果，不同 seed 可產生不同結果
-- **影響檔案**：`GameStageSetting`、戰鬥建立流程、卡牌抽洗流程、敵方邏輯中使用亂數的位置
-- **狀態**：✅ 已完成（2026-07-07）
-- **完成摘要**：
-  - 新增 `IGameRandom` / `GameRandom`，以 `System.Random` 提供戰鬥專用、可注入的決定性亂數
-  - `GameContextManager` 必須由外部注入唯一 `IGameRandom`，移除 `gameRandom = null`、`SetGameRandom()` 與 fallback 建構路徑
-  - `BattleBuilder` / `GameplayScene` 改由 `GameStageSetting.RandomSeed` 建立戰鬥 context random
-  - `DeckEntity`、`PlayerCardManager`、`PlayerEntity` 改為強制傳入 `IGameRandom`，移除無參數或自動產生 random 的相容性入口
-  - `Utility.Shuffle()` 僅保留 `Shuffle(IGameRandom random)`，`SelectTargetLogic` 的隨機 sub-selection 已改用 battle random
-  - 移除 `GameStatus.RandomState` 對 `UnityEngine.Random.state` 的舊式全域亂數暴露
-- **驗證結果**：
-  - Unity AssetDatabase refresh：0 compile error
-  - Unity EditMode tests：73 passed / 0 failed / 0 skipped
-  - `dotnet build MortalGame.EditModeTests.csproj`：0 error
-
-### T-007：完成模組命名空間、依賴反轉與 asmdef 遷移
-- **問題**：專案已開始導入 Runtime / Editor / Tests 的 asmdef 基礎，但大量類別仍缺少穩定命名空間與清楚模組邊界；GameData 的 `CreateEntity()` 與 GameModel 形成雙向依賴，若直接硬切會引發程序集循環
-- **方向**：採漸進式整理命名空間、Runtime / Editor / Tests 邊界，並將 Entity 建立責任由 GameData 移至 GameModel Factory / Builder 或等價單向設計；完成依賴反轉後，實際拆分 Runtime 子 assembly
-- **設計思路**：
-  - 先確認 Runtime、Editor、EditMode Tests、PlayMode Tests 的引用方向與允許依賴
-  - 為核心區域規劃命名空間，例如 GameModel、GameData、GameView、Presenter、Scene
-  - 先處理 Data 建立 Entity 造成的反向依賴，再拆分 GameData / GameModel assembly
-  - 建立小批次遷移準則：每次只移動一個清楚邊界，並以 EditMode 測試與 Unity compile 驗證
-- **影響檔案**：各 `.asmdef`、Runtime / Editor / Tests 目錄下的 C# 命名空間與引用
-- **完成內容**：
-  - 完成 Runtime、UI、Presentation Abstractions、GameView、Presenter、Scene 的單向 assembly 邊界
-  - 新增 `MortalGame.Presentation.Abstractions`，集中 `IGameCommand`、`IGameViewModel`、`IGameplayActionReciever`、`ISelectableView` 等 Presenter / View 溝通契約
-  - 將 GameView Panel 目錄中的 Presenter 實作移至 `Assets/Scripts/Presenter/Gameplay/`，並保留 Unity 資產 GUID
-  - 將 `Main.cs` 移入 Scene assembly，解除 Runtime 與 Scene / Presenter / GameView 間的反向依賴
-  - GameView 不再引用 Presenter；Presenter 單向依賴 GameView 與 Presentation Abstractions
-  - GameData 與 GameModel 維持同屬 `MortalGame.Runtime`。目前可執行資料型別直接依賴 runtime Entity / Context，若要再拆分必須另案導入 Content Spec → Runtime Compiler，避免本任務擴張為 ScriptableObject 與 Odin 多型資料重寫
-- **驗證結果**：
-  - Unity AssetDatabase refresh：0 compile error
-  - Unity EditMode tests：107 passed / 0 failed / 0 skipped
-  - PlayMode Tests 目前只有 asmdef，尚無可執行測試案例
-  - `dotnet build MortalGame.Scene.csproj`：0 warning / 0 error
-  - `dotnet build MortalGame.EditModeTests.csproj`：0 error；僅有既有 UniRx 過時 API 與未使用事件警告
-  - Unity 掃描全部 Prefab / Scene：未發現 Missing Script
-  - ScriptableObject、Prefab、Scene 資產未發現舊 `Assembly-CSharp` managed-reference 型別識別
-- **狀態**：✅ 已完成（2026-07-11）
-
-### T-008：建立 ScriptableObject 資料驗證與 Resolver / Handler 註冊檢查
-- **問題**：Effect、Buff、CardData 等 ScriptableObject 資料與 Resolver / Handler registry 的缺漏，可能要到實際遊戲流程才爆錯，缺少提早檢查機制
-- **方向**：建立 EditMode 測試或 Editor validation，檢查資料引用、效果解析器與命令處理器註冊是否完整
-- **完成內容**：
-  - 新增 `ScriptableObjectDataValidationTests`，以 EditMode 測試持續掃描 `Assets/ScriptableObjects` 下的實際資料資產
-  - 以反射檢查所有具體 `IEffectCommand` 型別皆有 `IEffectCommandHandler` 註冊，避免新增 command 時漏接 handler
-  - 檢查 Card / PlayerBuff / CharacterBuff / CardBuff 資料中實際使用到的 Effect 是否有對應 resolver
-  - 檢查常見跨 library ID 引用：`AddPlayerBuffEffect.BuffId`、`RemovePlayerBuffEffect.BuffId`、`CreateCardEffect.CardDataIds`、`AddCardBuffData.CardBuffId`、`RemoveCardBuffEffect.BuffId`、Deck 卡牌引用與 Player/Enemy Deck 引用
-  - 調整 `MortalGame.EditModeTests.asmdef`，補上 `Sirenix.Serialization.dll`，讓 EditMode 測試 assembly 能正確讀取 Odin `SerializedScriptableObject`
-- **驗證結果**：
-  - Unity MCP `assets-refresh`：成功，0 compile error
-  - Unity MCP `tests-run` EditMode：67 passed / 0 failed / 0 skipped
-  - `dotnet build MortalGame.EditModeTests.csproj`：0 warning / 0 error
-- **後續注意**：
-  - 目前先以 EditMode 測試作為持續保證；若後續設計資料調整頻繁，再抽出共用 `GameDataValidator` 並補 Unity Editor menu（例如 `MortalGame/Validate Game Data`）
-  - 可再擴充 localize key、MainTarget/SubSelection 完整性、LifeTimeData 空值與 AllCard/AllBuff 集合覆蓋率檢查
-- **影響檔案**：Resolver / Handler registry、ScriptableObject 資料載入與 library、EditMode Tests
-- **狀態**：✅ 已完成第一階段（2026-06-30）
-
----
-
-## 🟣 後續架構討論：TriggerTiming / ReactorSession 時機一致化
-
-### T-016：重構 TriggerTiming 與 UpdateReactorSessionAction 的時機模型
-- **問題**：目前 `UpdateReactorSessionAction` 分散在 GameplayManager 主流程、EffectCommandHandler、Triggered*BuffEffectQueueItem，導致 timing session 更新順序不一致；特別是 `TriggerBuffEnd` 目前可能只觸發 Buff queue，未穩定更新 ReactionSession。
-- **採用方案**：使用明確的 Before / After timing hook，並建立統一 Timing Pipeline，讓每個 timing pulse 固定先更新 ReactionSession，再執行對應 Buff trigger queue。
-- **設計筆記**：`.agents/working/2026-06-30-trigger-timing-reactor-session-design.md`
-- **完成內容**：
-  - `TriggerTimingQueueItem` 統一執行「ReactionSession update → Buff 條件掃描 → Effect Queue」，包含遞迴 Buff timing。
-  - 新增 Turn、DrawCard、Execute、PlayCard、TriggerBuffEffect、CharacterSummon、CharacterDeath 的 Before / After timing hooks。
-  - 新增 `CardPlayIntent` / `CardPlayResult`，分離出牌 Action 與流程 hook 的 timing 語意。
-  - GameplayManager 的 Turn、DrawCard、Player / Enemy Execute、PlayCard 流程改用新 hooks；`CardPlayResultAction` 會在 `BeforePlayCardEnd` 前更新 Session。
-  - WholeTurn Session 改為 `BeforeTurnStart` reset、`AfterTurnEnd` clear；PlayCard Session 改為 `BeforePlayCardStart` reset、`AfterPlayCardEnd` clear。
-  - PlayerBuff、CharacterBuff、CardBuff 的回合生命週期改由 `AfterTurnEnd` 扣除。
-  - Buff effect 拆成同一 Effect Queue 內的 `BeforeTriggerBuffEffect → Effect → AfterTriggerBuffEffect`，保留深度優先順序、最大處理數保護及 Card / Character selected context。
-  - `EnqueueImmediate` 新增 `IEnumerable<EffectQueueItem>` overload，呼叫端可依實際執行順序加入子流程；移除所有僅包裝 `Enqueue` 的 Effect 專用 helper。
-  - 建立 `GameTimingMigrationTool`，支援 Dry Run、安全項目套用、衝突與人工確認報告、Undo 與資產儲存。
-  - 完成 6 個 PlayerBuff ScriptableObject、共 7 個舊 timing 欄位遷移；ComboAttack Session 依實際 Action 語意修正為 `CardPlayResult`。
-  - 舊 timing enum 成員已完全刪除；原始 2～10、14～15 數值保留為空洞且不重用，Migration Tool 仍可辨識未定義的舊序列化值。
-  - EffectCommandHandler 的 result action Session 更新維持原設計，避免 Damage、Heal、DrawCard 等結果記憶遺失。
-- **驗證結果**：
-  - Unity AssetDatabase refresh：0 compile error。
-  - Migration Dry Run：0 safe / 0 review，已無可識別的舊 timing 資料。
-  - GameTiming 序列化與 Migration mapping 測試通過。
-  - T-016 Timing Pipeline、Buff Timing、Effect Queue 與 ScriptableObject validation 測試通過。
-- **狀態**：✅ 已完成（2026-07-12）
-
-## 🟣 新功能 — 卡牌系統擴展
+## 現在可開始
 
 ### T-010：卡片變身（保留狀態）
-- **需求**：卡片能夠變成另一張卡片，但保留既有狀態（如降費、已附加的 Buff）
-- **設計思路**：
-  - CardEntity 已有 `_mutationCardDataIds` 欄位，暗示變身機制的雛形已存在
-  - 變身 = 切換 `_actingCardDataId`，但保留 `CardBuffManager` 和 `CardPropertyEntity` 的現有狀態
-  - 需要定義哪些屬性跟著原卡、哪些跟著新卡（如：費用修改保留，基礎效果換新）
+
+- **目標**：讓戰鬥中的卡片切換成另一張 CardData，同時保留指定的執行期狀態。
+- **開始前需決定**：
+  - 哪些狀態保留，例如 CardBuff、費用修正與卡牌屬性。
+  - 哪些內容改用新 CardData，例如名稱、基礎數值、效果與目標規則。
+  - 變身是否可逆，以及 `_mutationCardDataIds` 的切換規則。
+- **建議階段**：
+  1. 定義狀態保留規則與 Model 行為。
+  2. 建立變身結果事件與 CardInfo 更新流程。
+  3. 更新 View，並補 EditMode 測試與最小資料案例。
+- **完成條件**：變身後資料與畫面一致，保留／替換狀態符合規則，重新載入 CardInfo 不會回到舊資料。
 - **狀態**：⬜ 未開始
 
 ### T-011：多步驟自訂目標選取
-- **需求**：卡片打出時顯示 UI 讓玩家依序選擇多次不同目標（例如先從手牌選 1 張，再從牌堆選 3 張）
-- **設計思路**：
-  - 現有 `SubSelectionPresenter` 已支援單次子選取，需擴展為**有序多步驟選取佇列**
-  - 每一步定義：來源區域（手牌/牌堆/墓地/場上）、選取數量、篩選條件、顯示說明
-  - `ISubSelectionGroup` 可以擴展為有序列表，依序彈出選取面板
-  - 選取結果按步驟 ID 存入 `ISubSelectionAction` 字典
-- **狀態**：⬜ 未開始
 
-### T-012：卡片合成系統（自訂藥水）
-- **需求**：類似爐石的自訂藥水 — 玩家先收集效果片段，打出合成卡時進行多次 N 選 1，組合成一張新卡
-- **設計思路**：
-  - 需要新的 CardProperty 或 CardBuff 類型來記錄「已收集的效果片段」
-  - 合成打出時觸發特殊的 SubSelection 流程（多輪 N 選 1）
-  - 選取完成後根據組合結果，動態建立新的 CardInstance（可能搭配 T-010 變身機制）
-  - 或者：合成結果對應預定義的 CardData 組合表（較簡單但彈性低）
-- **前置**：T-011（多步驟選取）、T-010（卡片變身）
+- **目標**：支援卡片依序要求多次不同來源、數量與條件的目標選取。
+- **開始前需決定**：
+  - 每一步的識別方式、來源區域、數量、篩選條件與提示文字。
+  - 玩家取消、中途無合法目標及選取不足時的處理方式。
+  - 各步驟結果如何交給 Action 與 Effect 管線。
+- **建議階段**：
+  1. 將單次 SubSelection 擴展為有序步驟資料。
+  2. 讓 Presenter 依序執行並保存各步驟結果。
+  3. 補 UI 取消／關閉流程與 EditMode 測試。
+- **完成條件**：多步驟選取順序穩定、結果能依步驟識別取得，取消與場景生命週期可正確收斂。
 - **狀態**：⬜ 未開始
-
-### T-013：戰鬥中敵人動態增減
-- **需求**：戰鬥中能夠新增敵人（增援）或移除敵人（逃跑）
-- **設計思路**：
-  - 目前 `PlayerEntity.Characters` 是初始化時建立的固定陣列
-  - 需要改為動態集合（`List` 或 `ReactiveCollection`）
-  - 新增敵人：運行時建立 CharacterEntity 插入集合，View 層需動態生成 CharacterView
-  - 敵人逃跑：標記角色離場（非死亡），移出戰鬥計算，View 層播放離場動畫
-  - 影響層面廣：目標解析（`ITargetCharacterCollectionValue`）、勝負判定、EnemyLogic、View 排版
-  - T-005 目前依照「單一 Ally／單一 Enemy CharacterView」架構，分別以 `SerialDisposable` 管理最新角色的動畫生命週期；實作多角色時，必須改為以角色 Identity 管理 `CharacterView + IDisposable` 的動態集合
-  - 多角色 Summon 不可讓多條動畫 loop 共用同一個 CharacterView；應由 CharacterView Factory／物件池建立獨立 View，角色移除時按 Identity Dispose scope 並回收 View，戰鬥結束時再統一清理所有剩餘角色
-- **狀態**：⬜ 未開始
-
-### T-014：Preview / Simulation 預演管線
-- **需求**：支援長按手牌或 hover 時預覽效果，例如預估傷害、預計命中目標、預期抽牌/生成結果；長期也可支援 AI 預演與除錯用途
-- **設計思路**：
-  - 保留既有 `Effect -> Command -> Result` 三段式架構，但正式區分三種用途：`Preview`、`Simulation`、`Execution`
-  - `Preview`：只跑 Resolver，產出可供 UI 顯示的 Command/Preview 資訊，不真的修改遊戲狀態
-  - `Simulation`：在隔離的模擬上下文中執行 Command，取得接近真實結果的 SimulatedResult，但不污染正式戰鬥狀態
-  - `Execution`：維持現行正式套用流程，真正更新 Entity、Session、Event
-  - 第一階段可先做 command-based preview（目標高亮、預估數值）；第二階段再補完整 simulation sandbox
-- **依賴/關聯**：
-  - 與 T-001 高度相關，因為 preview / simulation 需要更乾淨的 dispatch 邊界
-  - 若未來要做 AI 預演、連鎖效果預覽、複雜 UI 提示，會與 T-003（Effect Queue）互相影響
-- **狀態**：⬜ 未開始
-
-### T-015：CardInfo 氾濫 — 重複製造與事件冗餘
-- **問題**：`CardInfo.Create()` 每次都執行 `GameFormula` 計算 + Buff 枚舉 + LINQ 合併，並非輕量操作，但目前存在多個重複製造的路徑：
-  1. **Buff 事件與 GeneralUpdateEvent 重複製造同一張卡的快照**：`CardBuffEffectCommandHandler` 在執行 `AddCardBuffEffectCommand` / `RemoveCardBuffEffectCommand` / `ModifyCardBuffLevelEffectCommand` 時，同時產生 CardBuff specific event 的 `CardInfo`，以及 `UpdateReactorSessionAction` → `PlayerEntity.Update()` 所產生的 `GeneralUpdateEvent(CardInfo)`。目前 View 只消費後者，因此前者是未使用的完整快照。
-  2. **CardManagerInfo 內無謂計算 PlayingCard**：`DrawCardEvent`、`CreateCardEvent`、`UsedCardEvent`、`PlayerExecuteStartEvent` 等事件都攜帶 `CardManagerInfo`，其中包含 `PlayingCard.ToInfo()`，但 PlayingCard 在這些事件的當下實際上並未改變
-  3. **CardBuff 事件攜帶完整 CardInfo 但不必要**：`AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent` 的目的只是通知某張卡的 Buff 列表有變，卻帶了包含 Cost/Power 計算的完整 CardInfo
-- **方向**：
-  - **核心原則**：命名事件只描述「發生了什麼」，不負責搬運未被消費的完整資料快照；畫面狀態仍由既有 `GeneralUpdateEvent` 更新，若未來 specific event 需要畫面資料，再依 Identity 從 `GameInfoModel.ObservableCardInfo()` 取得最新值。
-  - `AddCardBuffEvent` / `RemoveCardBuffEvent` / `ModifyCardBuffLevelEvent` 改為只攜帶 `Faction` + `Guid Identity`，不帶 `CardInfo`
-  - 評估 `CardManagerInfo` 的 `PlayingCard` 欄位是否真的需要 CardInfo，或改為 `Option<Guid>`
-  - 釐清 `GeneralUpdateEvent` 和 CardBuff specific event 在 View 側的職責分工，避免同一更新走兩條路
-- **影響檔案**：`GameEvent.cs`、`PlayerCardManager.cs`、`GameplayManager.cs`、`MoveCardEffectCommandHandler.cs`、`GameplayView.cs`、`AllyHandCardView.cs`、`EnemySelectedCardView.cs`、`GameInfoModel.cs`
-- **完成內容**（2026-07-20～2026-07-22）：
-  - `AddCardBuffEvent`、`RemoveCardBuffEvent`、`ModifyCardBuffLevelEvent` 改為只攜帶 `Faction + CardIdentity`，不再額外呼叫 `CardInfo.Create()`。
-  - 確認目前 `GameplayView` 未直接消費 CardBuff specific event；卡片完整快照仍由同批 `GeneralUpdateEvent` 單一路徑更新，避免為 Identity 事件新增第二次 ViewModel 更新。
-  - `CardManagerInfo.PlayingCard` 沒有任何消費者，已移除該欄位及其 `CardInfo` 建立成本；`ToInfo()` 也不再需要 `IGameplayModel`。
-  - 修正手牌生命週期 CardBuff 僅標記過期但未移除的問題；單張 `CardInfo` 更新時也會同步替換各卡片區域集合內的舊快照，避免棄牌堆詳情顯示過期 Buff。
-  - `UsedCardEvent` 與 `MoveCardEvent` 改為只攜帶卡片 Identity；移除出牌與移牌事件建立完整 `CardInfo` 的成本。
-  - `DiscardHandCardEvent` 的棄牌與排除牌資料改為 Identity 集合；回合結束時不再為整批手牌建立完整 `CardInfo`。
-  - 保留 `DrawCardEvent`、`AddCardEvent`、`EnemySelectCardEvent` 的完整 `CardInfo`，因為接收端仍需要它建立或更新卡片畫面。
-- **狀態**：✅ 已完成（2026-07-22）
 
 ---
 
-## 建議執行順序
+## 前置完成後開始
 
-```
-T-001（消除 Switch 派發）
-  ↓
-T-002（接通 Buff 管線）  +  T-010（卡片變身）
-  ↓                            ↓
-T-004（EditMode 測試基礎，已完成）
-  ↓
-T-003（Effect Queue，已完成）
-  ↓
-T-008（資料驗證，已完成第一階段） + T-006（決定性亂數，已完成） + T-005（生命週期）
-  ↓
-T-011（多步驟選取）
-  ↓             ↓              ↓
-T-007（asmdef / 命名空間整理，分階段穿插）
-  ↓
-T-014（預演管線） T-013（敵人動態增減） T-012（卡片合成）
-```
+### T-012：卡片合成系統（自訂藥水）
 
-- T-001 是基礎設施改善，先做會讓後續所有功能的開發更輕鬆
-- T-004 已完成，提供 Buff Timing 與 GameContext scope 的測試保護；T-003 已沿用既有測試 builder 擴充 queue 行為案例
-- T-003 已完成第一版 Effect Queue，後續若要支援效果取消 / 替代，應等具體卡牌需求或 Preview / Simulation 管線明確後再擴充
-- T-008 已完成第一階段，以 EditMode 測試持續保護資料與 registry 驗證；Editor menu 可等設計資料調整頻繁時再補
-- T-006 已完成決定性亂數基礎，後續重播、AI simulation 與問題重現可沿用 `IGameRandom`
-- T-007 建議作為下一個優先項，先盤點 Runtime / Editor / Tests assembly 與命名空間邊界，再分階段整理，避免大規模搬遷造成噪音
-- T-005 仍重要，但較偏場景生命週期與非同步穩定性；若目前沒有切場景或 `.Forget()` 相關 bug，可排在 T-007 之後
-- T-010 和 T-011 互相獨立，可以平行開發
-- T-012 依賴 T-010 + T-011 的基礎
-- T-013 相對獨立但影響面廣，建議架構穩定後再動
-- T-014 屬於中長期能力建設，先做輕量 preview 即可，完整 simulation 可等 T-001 / T-003 方向穩定後再投入
+- **目標**：讓玩家透過多輪選擇效果片段，組合或轉換成新的卡片結果。
+- **前置**：T-010 卡片變身、T-011 多步驟目標選取。
+- **開始前需決定**：採用動態效果組合，或使用預先定義的 CardData 組合表。
+- **建議階段**：先完成單一固定配方的垂直切片，再擴充多種片段與組合規則。
+- **完成條件**：合成選取、結果建立、狀態保存與畫面更新形成完整流程。
+- **狀態**：⬜ 未開始
+
+---
+
+## 長期／獨立排期
+
+### T-013：戰鬥中敵人動態增減
+
+- **目標**：支援戰鬥中新增敵人、逃跑或移除非死亡敵人。
+- **主要影響**：角色集合、目標解析、勝負判定、EnemyLogic、CharacterView 建立與動畫生命週期。
+- **關鍵方向**：將單一 CharacterView 管理改為依角色 Identity 管理的動態集合，並使用 Factory／物件池建立及回收 View。
+- **完成條件**：角色增減不破壞選取、勝負判定與動畫佇列，戰鬥結束可完整清理所有角色資源。
+- **狀態**：⬜ 未開始
+
+### T-014：Preview / Simulation 預演管線
+
+- **目標**：在不修改正式戰鬥狀態的情況下，預覽卡片效果、目標與結果。
+- **主要方向**：區分 `Preview`、`Simulation`、`Execution` 三種用途。
+- **建議階段**：先做 Resolver 層的輕量 Preview；完整 Simulation sandbox 等 AI 或除錯需求明確後再設計。
+- **既有基礎**：T-001 Resolver／Handler、T-003 Effect Queue、T-006 決定性亂數。
+- **完成條件**：Preview 不污染正式狀態，且相同輸入能產生穩定、可供 UI 使用的預演資訊。
+- **狀態**：⬜ 未開始
+
+---
+
+## 未來可能方向（非待辦）
+
+- Effect Queue 的效果取消／替代。
+- 戰鬥重播與 AI Simulation。
+- GameData 與 GameModel 的 Content Spec → Runtime Compiler 拆分。
+- GameData Validator 的 localize key、Target、LifeTimeData 等延伸規則。
+
+這些項目目前不排入工作順序；等實際需求或風險出現後，再建立新的 T 編號。

@@ -16,6 +16,8 @@
 | [AI_Notes_Index.md](AI_Notes_Index.md) | 本文件 — 文件索引 |
 | [Coding_Standards.md](Coding_Standards.md) | 編程規範（命名、架構、技術堆疊） |
 | [Documentation_Guidelines.md](Documentation_Guidelines.md) | 文件撰寫標準 |
+| [TODO.md](TODO.md) | 目前工作清單、依賴與完成條件 |
+| [TODO_Archive.md](TODO_Archive.md) | 已完成任務的設計與驗證紀錄 |
 
 ---
 
@@ -33,6 +35,7 @@
 | 文件 | 說明 | 狀態 |
 |------|------|------|
 | [GameData.md](GameData.md) | 資料層總覽、ExcelDatas、Library、列舉 | ✅ 2026-04-20 |
+| [GameData_Asset_Guidelines.md](GameData_Asset_Guidelines.md) | ScriptableObject 資料資產的製作、驗證與維護規範 | 🔄 持續維護 |
 
 ---
 
@@ -109,7 +112,7 @@
 
 ## 文件系統統計
 
-- **總文件數**：32 個
+- **總文件數**：33 個
 - **必讀文件**：4 個
 - **系統文件**：25 個
 - **全面重寫日期**：2026-04-20
