@@ -132,6 +132,7 @@ CardBuff 是施加在單張卡牌上的修正器，可以改變卡牌的威力�
 
 ## 相關文件
 
+- [Card Transformation 卡片變身](CardTransformation.md) — 現有形態代理結構與尚未完成的能力
 - [CardBuff 卡牌 Buff](CardBuff.md) — 卡牌級別的 Buff 系統
 - [Effect 效果管線](Effect.md) — 卡牌效果的執行流程
 - [Target 目標系統](Target.md) — 目標選取規則

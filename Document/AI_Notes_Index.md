@@ -50,6 +50,7 @@
 | [Target.md](Target.md) | 目標解析系統 | ✅ 2026-04-20 |
 | [Entity.md](Entity.md) | 實體系統（組合式設計） | ✅ 2026-04-20 |
 | [Card.md](Card.md) | 卡牌系統（三層流轉） | ✅ 2026-04-20 |
+| [CardTransformation.md](CardTransformation.md) | 卡片變身的現有代理結構、資料流與實作缺口 | ✅ 2026-07-24 |
 | [CardBuff.md](CardBuff.md) | 卡牌 Buff 系統 | ✅ 2026-04-20 |
 | [Character.md](Character.md) | 角色系統（血量、護甲、CharacterBuff） | ✅ 2026-04-20 |
 | [Player.md](Player.md) | 玩家系統（能量、牌組、好感度） | ✅ 2026-04-20 |
@@ -112,7 +113,7 @@
 
 ## 文件系統統計
 
-- **總文件數**：33 個
+- **總文件數**：34 個
 - **必讀文件**：4 個
 - **系統文件**：25 個
 - **全面重寫日期**：2026-04-20

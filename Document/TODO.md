@@ -29,10 +29,13 @@ T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始�
 ### T-010：卡片變身（保留狀態）
 
 - **目標**：讓戰鬥中的卡片切換成另一張 CardData，同時保留指定的執行期狀態。
-- **開始前需決定**：
-  - 哪些狀態保留，例如 CardBuff、費用修正與卡牌屬性。
-  - 哪些內容改用新 CardData，例如名稱、基礎數值、效果與目標規則。
-  - 變身是否可逆，以及 `_mutationCardDataIds` 的切換規則。
+- **現況分析**：[CardTransformation.md](CardTransformation.md)
+- **已定案重點**：
+  - 變身只由原始 CardData 的 TransformRule 控制，其他卡片不能直接指定變身結果。
+  - Identity、區域順序、CardBuff 與 CardInstance 額外 Property 保留；CardData 自帶 Property 隨形態替換。
+  - 第一版只保存單一 CardFormState，以明確的 Apply／Revert 規則切換形態。
+  - 規則以 Priority 優先，Priority 相同時依陣列順序決定。
+  - 持久形態以獨立狀態寫回 CardInstance，不覆蓋原始 CardData ID。
 - **建議階段**：
   1. 定義狀態保留規則與 Model 行為。
   2. 建立變身結果事件與 CardInfo 更新流程。
