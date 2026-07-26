@@ -1,6 +1,6 @@
 # AI 工作記憶
 
-> 最後更新：2026-06-24
+> 最後更新：2026-07-27
 
 ## 文件與草稿偏好
 
@@ -29,3 +29,10 @@
 - 若原生 MCP tool 沒有直接暴露，改用 `unity-mcp-cli run-tool ...` 呼叫 MCP，例如 `unity-mcp-cli run-tool tests-run --input-file <json>`。
 - 不要優先使用 Unity `-batchmode` 開第二個 Editor；本專案常態會有 Unity Editor 開著，batchmode 容易被 project lock 擋住。
 - 只有在 MCP 不可用、使用者明確同意、或需要驗證 MCP 本身不可用時，才把 batchmode 當 fallback，且必須清楚回報原因。
+
+## Runtime 與 Validator 程式風格
+
+- Runtime 只處理遊戲機制中合理可能發生的失效，例如排隊中的後續 Effect 因前一個 Effect 已移除目標而找不到 Buff；這類情況應安靜 No-op／Rejected。
+- Library、CardData、必要 ID、Operation、Condition 等企劃資產缺失，應由 Validator 在執行前排除；Runtime 核心邏輯不要重複堆疊 null 或缺少資料的防禦判斷。
+- 若檢查源自同一語意有兩份輸入，優先改為單一資料來源，讓 Script 直接呈現遊戲流程。
+- 玩家輸入、存檔與網路資料等未經專案 Validator 保證的外部邊界，仍需正常驗證。

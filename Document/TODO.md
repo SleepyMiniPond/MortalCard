@@ -31,11 +31,20 @@ T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始�
 - **目標**：讓戰鬥中的卡片切換成另一張 CardData，同時保留指定的執行期狀態。
 - **現況分析**：[CardTransformation.md](CardTransformation.md)
 - **已定案重點**：
-  - 變身只由原始 CardData 的 TransformRule 控制，其他卡片不能直接指定變身結果。
-  - Identity、區域順序、CardBuff 與 CardInstance 額外 Property 保留；CardData 自帶 Property 隨形態替換。
-  - 第一版只保存單一 CardFormState，以明確的 Apply／Revert 規則切換形態。
+  - Self Transform 由原始 CardData 的 TransformRule 控制；外部效果可透過獨立的 Form Override 暫時強制形態。
+  - Effective Form 依 `External Override > Self Form > Base Form` 解析；第一版只允許一層 Override，並保留未來堆疊擴充空間。
+  - Self Transform 保留 CardInstance Property 與 Base CardBuff；CardData 自帶 Property 隨形態替換。
+  - External Override 暫停 CardInstance Property、凍結 Base CardBuff 與 Self TransformRule，並使用獨立的臨時 Buff Layer。
+  - Override 期間取得的 CardBuff 在解除時全部移除；PlayerBuff 仍作用於 Override Form。
   - 規則以 Priority 優先，Priority 相同時依陣列順序決定。
-  - 持久形態以獨立狀態寫回 CardInstance，不覆蓋原始 CardData ID。
+  - 所有 IActionUnit 共用 Reaction Dispatch；同一 Timing 先更新 Session、處理一般 Reaction，最後才原子提交形態變更。
+  - FormChanged 使用獨立 Timing；狀態與 CardInfo 提交後，由新 Effective Form 觸發，並重新驗證 View 的拖曳、聚焦與選取狀態。
+  - Buff Command 由 Resolver 攜帶內部 LayerHandle；已失效 Layer 的排隊命令靜默 No-op 並保留診斷。
+  - Self Form 只有 `BattleOnly`（本場限定）與 `Persistent`（永久保留）；勝利／失敗寫回，取消不寫回。
+  - External Override 永遠清除且不持久化；第一版只需產生 CardInstanceChangeSet，不要求先完成完整戰鬥外系統。
+  - Clone 只依當下 Effective CardData 建立獨立卡片，不複製 Instance Property、Buff 或形態狀態，也不自動加入 Dispose。
+  - 一般與 Override 卡片資產分為 StandardCardDataScriptable／OverrideCardDataScriptable，並共用 CardDataScriptableBase。
+  - Effect Queue 以 Root Action 共用 Budget、CorrelationId 與 TriggerPath，超限時明確停止並留下診斷。
 - **建議階段**：
   1. 定義狀態保留規則與 Model 行為。
   2. 建立變身結果事件與 CardInfo 更新流程。

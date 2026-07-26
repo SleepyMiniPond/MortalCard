@@ -68,8 +68,8 @@ MonoBehaviour:
       Data: 
     - Name: SubSelects
       Entry: 7
-      Data: 4|System.Collections.Generic.List`1[[MortalGame.GameModel.ISubSelectionGroup, MortalGame.Runtime]],
-        mscorlib
+      Data: 4|System.Collections.Generic.List`1[[MortalGame.GameModel.ISubSelectionGroup,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 0
@@ -81,8 +81,8 @@ MonoBehaviour:
       Data: 
     - Name: Effects
       Entry: 7
-      Data: 5|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.ICardEffect, MortalGame.Runtime]],
-        Unity.Plastic.Antlr3.Runtime
+      Data: 5|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.ICardEffect,
+        MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
     - Name: 
       Entry: 12
       Data: 1
@@ -127,7 +127,21 @@ MonoBehaviour:
       Data: 
     - Name: TriggeredEffects
       Entry: 7
-      Data: 11|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.CardData+TriggeredCardEffect, MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
+      Data: 11|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.CardData+TriggeredCardEffect,
+        MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: TransformRules
+      Entry: 7
+      Data: 12|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.CardTransformRule,
+        MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
     - Name: 
       Entry: 12
       Data: 0
@@ -139,14 +153,14 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 12|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData, MortalGame.Runtime]],
-        mscorlib
+      Data: 13|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
+        MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 13|MortalGame.GameData.PreservedPropertyData, MortalGame.Runtime
+      Data: 14|MortalGame.GameData.PreservedPropertyData, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

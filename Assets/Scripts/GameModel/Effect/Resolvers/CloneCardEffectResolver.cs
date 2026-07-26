@@ -33,7 +33,7 @@ namespace MortalGame.GameModel
                     targetIntent = new CloneCardIntentTargetAction(context.Action.Source, playerCardTarget);
                     targetTriggerContext = targetTriggerContext with { Action = targetIntent };
 
-                    var cloneCard = originCard.Clone(includeCardBuffs: false, includeCardProperties: false);
+                    var cloneCard = originCard.Clone();
                     var cloneCardCaster = triggerContext.Action switch
                     {
                         CardPlaySource cardSource => cardSource.Card.Owner(triggerContext.Model),

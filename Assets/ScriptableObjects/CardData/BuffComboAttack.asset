@@ -168,16 +168,29 @@ MonoBehaviour:
     - Name: 
       Entry: 8
       Data: 
+    - Name: TransformRules
+      Entry: 7
+      Data: 16|System.Collections.Generic.List`1[[MortalGame.GameData.CardTransformRule,
+        MortalGame.Runtime]], mscorlib
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 16|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
+      Data: 17|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
         MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
       Data: 1
     - Name: 
       Entry: 7
-      Data: 17|MortalGame.GameData.RecyclePropertyData, MortalGame.Runtime
+      Data: 18|MortalGame.GameData.RecyclePropertyData, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

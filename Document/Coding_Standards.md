@@ -46,6 +46,25 @@
 
 ## 📋 程式碼品質標準
 
+### Validator 與 Runtime 責任邊界
+
+- **遊戲機制允許的失效必須由 Runtime 表達**：若目標可能因同一批次中較早執行的 Effect 而消失，例如第一個 Effect 已移除 Buff，導致第二個 Effect 找不到原目標，應視為正常遊戲流程並安全地 No-op／Rejected。
+- **正常失效不產生 Gameplay Event 或動畫**：需要時保留 Debug Trace，但不可將正常的時序失效誤報為資料錯誤。
+- **資產製作錯誤必須由 Validator 事先排除**：缺少 Library 資料、CardData、必要 ID、Operation、Condition 或其他理應存在的企劃資料，應在進入遊戲前由 GameData Validator 明確報錯。
+- **Runtime 信任已通過驗證的企劃資料**：核心流程不要重複加入逐層 null、缺少資料或未知型別的防禦分支，以免掩蓋資產錯誤並干擾主要業務邏輯。
+- **優先消除重複資料來源**：若防禦檢查只是為了確認兩份相同語意的輸入一致，應重構成單一資料來源，而不是保留額外一致性判斷。
+- **邊界資料仍需驗證**：玩家輸入、存檔、網路回應或其他未經專案 Validator 保證的外部資料，不適用「Runtime 直接信任」原則。
+
+判斷準則：
+
+| 情境 | 處理位置 | Runtime 行為 |
+|------|----------|--------------|
+| Effect 排隊後目標因較早 Effect 消失 | Runtime 遊戲機制 | 安靜 No-op／Rejected |
+| Buff Layer 已被移除，舊 Command 才執行 | Runtime 遊戲機制 | 安靜 No-op／Rejected，保留 Debug Trace |
+| CardData ID 不存在於 CardLibrary | GameData Validator | 阻止錯誤資料進入正式 Runtime |
+| 必填 Operation／Condition／Target 遺漏 | GameData Validator | 明確列出資產錯誤 |
+| 外部存檔或網路資料損壞 | 系統輸入邊界 | 驗證並回報錯誤 |
+
 ### 必須使用
 - ✅ UniTask 處理異步
 - ✅ UniRx 處理事件流
@@ -63,4 +82,4 @@
 
 **維護責任**：所有開發者  
 **更新頻率**：發現新模式時即時更新  
-**版本**：v1.0
+**版本**：v1.1

@@ -17,8 +17,74 @@ namespace MortalGame.Editor
             return ValidateEffectCommandHandlers()
                 .Concat(ValidateEffectResolvers())
                 .Concat(ValidateReferenceIds())
+                .Concat(ValidateCardTransformRules())
                 .Distinct()
                 .ToArray();
+        }
+
+        public static IReadOnlyList<string> ValidateCardTransformRules()
+        {
+            return LoadAssets<CardDataScriptable>()
+                .SelectMany(asset => ValidateCardTransformRules(
+                    asset.Data,
+                    AssetDatabase.GetAssetPath(asset)))
+                .ToArray();
+        }
+
+        public static IReadOnlyList<string> ValidateCardTransformRules(
+            CardData cardData,
+            string context)
+        {
+            if (cardData == null)
+                return new[] { $"{context} 的 CardData 為空" };
+
+            var rules = cardData.TransformRules ?? new List<CardTransformRule>();
+            var errors = new List<string>();
+            var validRules = rules.Where(rule => rule != null).ToArray();
+
+            if (rules.Any(rule => rule == null))
+                errors.Add($"{context} / CardData[{cardData.ID}].TransformRules 含有空規則");
+
+            var transformKeys = validRules
+                .Select(rule => rule.TransformKey)
+                .Where(key => !string.IsNullOrWhiteSpace(key))
+                .Distinct()
+                .ToArray();
+            if (transformKeys.Length > 1)
+                errors.Add($"{context} / CardData[{cardData.ID}].TransformRules 第一版只能使用一個 TransformKey");
+
+            foreach (var ruleGroup in validRules
+                .Where(rule => !string.IsNullOrWhiteSpace(rule.RuleId))
+                .GroupBy(rule => rule.RuleId)
+                .Where(group => group.Count() > 1))
+            {
+                errors.Add($"{context} / CardData[{cardData.ID}].TransformRules 的 RuleId 重複：{ruleGroup.Key}");
+            }
+
+            foreach (var rule in validRules)
+            {
+                var ruleContext = $"{context} / CardData[{cardData.ID}].TransformRules[{rule.RuleId}]";
+                if (string.IsNullOrWhiteSpace(rule.RuleId))
+                    errors.Add($"{ruleContext} 的 RuleId 為空");
+                if (string.IsNullOrWhiteSpace(rule.TransformKey))
+                    errors.Add($"{ruleContext} 的 TransformKey 為空");
+                if (rule.Timing == GameTiming.None)
+                    errors.Add($"{ruleContext} 的 Timing 不可為 None");
+                if (rule.Conditions == null || rule.Conditions.Any(condition => condition == null))
+                    errors.Add($"{ruleContext} 的 Conditions 含有空值");
+                switch (rule.Operation)
+                {
+                    case null:
+                        errors.Add($"{ruleContext} 的 Operation 為空");
+                        break;
+                    case ApplyCardTransformOperationData apply
+                        when string.IsNullOrWhiteSpace(apply.TargetCardDataId):
+                        errors.Add($"{ruleContext} 的 Apply 缺少 TargetCardDataId");
+                        break;
+                }
+            }
+
+            return errors;
         }
 
         public static IReadOnlyList<string> ValidateEffectCommandHandlers()

@@ -13,7 +13,9 @@ namespace MortalGame.GameModel
     {
         Guid Identity { get; }
         Option<Guid> OriginCardInstanceGuid { get; }
+        string BaseCardDataId { get; }
         string CardDataId { get; }
+        Option<CardFormState> SelfFormState { get; }
 
         CardType Type { get; }
         CardRarity Rarity { get; }
@@ -30,7 +32,12 @@ namespace MortalGame.GameModel
         int OriginCost { get; }
         int OriginPower { get; }
 
-        ICardEntity Clone(bool includeCardProperties, bool includeCardBuffs);
+        CardFormOperationResult TryApplySelfForm(
+            string transformKey,
+            string targetCardDataId,
+            CardFormPersistence persistence);
+        CardFormOperationResult TryRevertSelfForm(string transformKey);
+        ICardEntity Clone();
     }
 
     public class CardEntity : ICardEntity
@@ -38,64 +45,73 @@ namespace MortalGame.GameModel
         // Card static data
         private readonly Guid _indentity;
         private readonly Option<Guid> _originCardInstanceGuid;
-        private readonly string _mainCardDataId;
+        private readonly string _baseCardDataId;
 
         // Card runtime data
-        private readonly List<string> _mutationCardDataIds = new();
-        private readonly IReadOnlyList<ICardPropertyEntity> _properties;
+        private Option<CardFormState> _selfFormState;
+        private IReadOnlyList<ICardPropertyEntity> _cardDataProperties;
+        private readonly IReadOnlyList<ICardPropertyEntity> _instanceProperties;
 
         // Card components
         private readonly ICardBuffManager _buffManager;
         private readonly CardLibrary _cardLibrary;
+        private readonly ICardPropertyEntityFactory _cardPropertyEntityFactory;
 
-        // from ActingCardData
-        private string _actingCardDataId => _mutationCardDataIds.FirstOrDefault() ?? _mainCardDataId;
-        private CardData _actingCardData => _cardLibrary.GetCardData(_actingCardDataId);
-        public string CardDataId => _actingCardDataId;
-        public CardType Type => _actingCardData.Type;
-        public CardRarity Rarity => _actingCardData.Rarity;
-        public int OriginCost => _actingCardData.Cost;
-        public int OriginPower => _actingCardData.Power;
-        public IEnumerable<CardTheme> Themes => _actingCardData.Themes;
-        public MainTargetSelectLogic MainSelect => _actingCardData.MainSelect;
-        public IEnumerable<ISubSelectionGroup> SubSelects => _actingCardData.SubSelects;
-        public IEnumerable<ICardEffect> Effects => _actingCardData.Effects;
+        private string _effectiveCardDataId => _selfFormState.Map(state => state.CardDataId).ValueOr(_baseCardDataId);
+        private CardData _effectiveCardData => _cardLibrary.GetCardData(_effectiveCardDataId);
+        public string BaseCardDataId => _baseCardDataId;
+        public string CardDataId => _effectiveCardDataId;
+        public Option<CardFormState> SelfFormState => _selfFormState;
+        public CardType Type => _effectiveCardData.Type;
+        public CardRarity Rarity => _effectiveCardData.Rarity;
+        public int OriginCost => _effectiveCardData.Cost;
+        public int OriginPower => _effectiveCardData.Power;
+        public IEnumerable<CardTheme> Themes => _effectiveCardData.Themes;
+        public MainTargetSelectLogic MainSelect => _effectiveCardData.MainSelect;
+        public IEnumerable<ISubSelectionGroup> SubSelects => _effectiveCardData.SubSelects;
+        public IEnumerable<ICardEffect> Effects => _effectiveCardData.Effects;
         public IReadOnlyDictionary<CardTriggeredTiming, IEnumerable<ICardEffect>> TriggeredEffects
-            => _actingCardData.TriggeredEffects.ToDictionary(
+            => _effectiveCardData.TriggeredEffects.ToDictionary(
                 pair => pair.Timing,
                 pair => (IEnumerable<ICardEffect>)pair.Effects);
 
         public Guid Identity => _indentity;
         public Option<Guid> OriginCardInstanceGuid => _originCardInstanceGuid;
-        public IEnumerable<ICardPropertyEntity> Properties => _properties;
+        public IEnumerable<ICardPropertyEntity> Properties => _cardDataProperties.Concat(_instanceProperties);
         public ICardBuffManager BuffManager => _buffManager;
         public bool IsDummy => this == DummyCard;
 
         public static ICardEntity DummyCard = new CardEntity(
             indentity: Guid.Empty,
             originCardInstanceGuid: Option.None<Guid>(),
-            cardDataId: string.Empty,
-            properties: new List<ICardPropertyEntity>(),
+            baseCardDataId: string.Empty,
+            cardDataProperties: new List<ICardPropertyEntity>(),
+            instanceProperties: new List<ICardPropertyEntity>(),
             buffs: new List<ICardBuffEntity>(),
-            cardLibrary: null
+            cardLibrary: null,
+            cardPropertyEntityFactory: null
         );
 
         private CardEntity(
             Guid indentity,
             Option<Guid> originCardInstanceGuid,
-            string cardDataId,
-            IEnumerable<ICardPropertyEntity> properties,
+            string baseCardDataId,
+            IEnumerable<ICardPropertyEntity> cardDataProperties,
+            IEnumerable<ICardPropertyEntity> instanceProperties,
             IEnumerable<ICardBuffEntity> buffs,
-            CardLibrary cardLibrary
+            CardLibrary cardLibrary,
+            ICardPropertyEntityFactory cardPropertyEntityFactory
         )
         {
             _indentity = indentity;
             _originCardInstanceGuid = originCardInstanceGuid;
-            _mainCardDataId = cardDataId;
-            _mutationCardDataIds = new List<string>();
-            _properties = properties.ToList();
+            _baseCardDataId = baseCardDataId;
+            _selfFormState = Option.None<CardFormState>();
+            _cardDataProperties = cardDataProperties.ToList();
+            _instanceProperties = instanceProperties.ToList();
             _buffManager = new CardBuffManager(buffs);
             _cardLibrary = cardLibrary;
+            _cardPropertyEntityFactory = cardPropertyEntityFactory;
         }
 
         public static ICardEntity CreateFromInstance(
@@ -106,12 +122,13 @@ namespace MortalGame.GameModel
             return new CardEntity(
                 indentity: Guid.NewGuid(),
                 originCardInstanceGuid: cardInstance.InstanceGuid.Some(),
-                cardDataId: cardInstance.CardDataId,
-                properties: cardLibrary.GetCardData(cardInstance.CardDataId).PropertyDatas
-                    .Select(cardPropertyEntityFactory.Create)
-                    .Concat(cardInstance.AdditionPropertyDatas.Select(cardPropertyEntityFactory.Create)),
+                baseCardDataId: cardInstance.CardDataId,
+                cardDataProperties: cardLibrary.GetCardData(cardInstance.CardDataId).PropertyDatas
+                    .Select(cardPropertyEntityFactory.Create),
+                instanceProperties: cardInstance.AdditionPropertyDatas.Select(cardPropertyEntityFactory.Create),
                 buffs: Array.Empty<ICardBuffEntity>(),
-                cardLibrary: cardLibrary
+                cardLibrary: cardLibrary,
+                cardPropertyEntityFactory: cardPropertyEntityFactory
             );
         }
 
@@ -123,29 +140,101 @@ namespace MortalGame.GameModel
             return new CardEntity(
                 indentity: Guid.NewGuid(),
                 originCardInstanceGuid: Option.None<Guid>(),
-                cardDataId: cardDataId,
-                properties: cardLibrary.GetCardData(cardDataId).PropertyDatas.Select(cardPropertyEntityFactory.Create),
+                baseCardDataId: cardDataId,
+                cardDataProperties: cardLibrary.GetCardData(cardDataId).PropertyDatas.Select(cardPropertyEntityFactory.Create),
+                instanceProperties: Array.Empty<ICardPropertyEntity>(),
                 buffs: Array.Empty<ICardBuffEntity>(),
-                cardLibrary: cardLibrary
+                cardLibrary: cardLibrary,
+                cardPropertyEntityFactory: cardPropertyEntityFactory
             );
         }
 
-        public ICardEntity Clone(bool includeCardProperties, bool includeCardBuffs)
+        public CardFormOperationResult TryApplySelfForm(
+            string transformKey,
+            string targetCardDataId,
+            CardFormPersistence persistence)
         {
-            var cloneCard = new CardEntity(
+            var beforeCardDataId = CardDataId;
+            if (string.IsNullOrWhiteSpace(transformKey) || string.IsNullOrWhiteSpace(targetCardDataId))
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.Rejected,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    transformKey,
+                    "TransformKey 與目標 CardDataId 不可為空白。");
+            }
+
+            if (targetCardDataId == beforeCardDataId)
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.NoOp,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    transformKey);
+            }
+
+            var targetCardData = _cardLibrary.GetCardData(targetCardDataId);
+            if (targetCardData == null)
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.Rejected,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    transformKey,
+                    $"找不到目標 CardData：{targetCardDataId}。");
+            }
+
+            _selfFormState = new CardFormState(transformKey, targetCardDataId, persistence).Some();
+            _RebuildCardDataProperties(targetCardData);
+
+            return new CardFormOperationResult(
+                CardFormOperationStatus.Applied,
+                beforeCardDataId,
+                CardDataId,
+                transformKey);
+        }
+
+        public CardFormOperationResult TryRevertSelfForm(string transformKey)
+        {
+            var beforeCardDataId = CardDataId;
+            if (!_selfFormState.TryGetValue(out var currentForm) || currentForm.TransformKey != transformKey)
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.NoOp,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    transformKey);
+            }
+
+            _selfFormState = Option.None<CardFormState>();
+            _RebuildCardDataProperties(_cardLibrary.GetCardData(_baseCardDataId));
+
+            return new CardFormOperationResult(
+                CardFormOperationStatus.Reverted,
+                beforeCardDataId,
+                CardDataId,
+                transformKey);
+        }
+
+        public ICardEntity Clone()
+        {
+            return new CardEntity(
                 indentity: Guid.NewGuid(),
                 originCardInstanceGuid: Option.None<Guid>(),
-                cardDataId: _mainCardDataId,
-                properties: includeCardProperties
-                    ? _properties.Select(p => p.Clone())
-                    : Array.Empty<ICardPropertyEntity>(),
-                buffs: includeCardBuffs
-                    ? _buffManager.Buffs.Select(b => b.Clone())
-                    : Array.Empty<ICardBuffEntity>(),
-                cardLibrary: _cardLibrary
-            );
+                baseCardDataId: CardDataId,
+                cardDataProperties: _effectiveCardData.PropertyDatas.Select(_cardPropertyEntityFactory.Create),
+                instanceProperties: Array.Empty<ICardPropertyEntity>(),
+                buffs: Array.Empty<ICardBuffEntity>(),
+                cardLibrary: _cardLibrary,
+                cardPropertyEntityFactory: _cardPropertyEntityFactory);
+        }
 
-            return cloneCard;
+        private void _RebuildCardDataProperties(CardData cardData)
+        {
+            _cardDataProperties = cardData.PropertyDatas
+                .Select(_cardPropertyEntityFactory.Create)
+                .ToList();
         }
     }
 

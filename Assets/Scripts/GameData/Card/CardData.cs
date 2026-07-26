@@ -54,6 +54,11 @@ namespace MortalGame.GameData
         [TableList]
         public List<TriggeredCardEffect> TriggeredEffects = new();
 
+        [BoxGroup("Transform")]
+        [ShowInInspector]
+        [TableList]
+        public List<CardTransformRule> TransformRules = new();
+
         [ShowInInspector]
         [BoxGroup("Properties")]
         public List<ICardPropertyData> PropertyDatas = new();
