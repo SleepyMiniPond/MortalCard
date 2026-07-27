@@ -22,7 +22,7 @@ namespace MortalGame.GameModel
             var cardTarget = new CardTarget(c.Target);
             var addResult = c.Target.BuffManager.AddBuff(c.NewBuff);
             var resultAction = new AddCardBuffResultAction(context.Action.Source, cardTarget, addResult);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var cardBuffEvent = new AddCardBuffEvent(c.Target.Faction(context.Model), c.Target.Identity);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cardBuffEvent));
         }
@@ -32,7 +32,7 @@ namespace MortalGame.GameModel
             var cardTarget = new CardTarget(c.Target);
             var removeResult = c.Target.BuffManager.RemoveBuff(c.ExistBuff);
             var resultAction = new RemoveCardBuffResultAction(context.Action.Source, cardTarget, removeResult);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var cardBuffEvent = new RemoveCardBuffEvent(c.Target.Faction(context.Model), c.Target.Identity);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cardBuffEvent));
         }
@@ -42,7 +42,7 @@ namespace MortalGame.GameModel
             var cardTarget = new CardTarget(c.Target);
             var modifyResult = c.Target.BuffManager.ModifyBuffLevel(c.BuffId, c.Level);
             var resultAction = new ModifyCardBuffLevelResultAction(context.Action.Source, cardTarget, modifyResult);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var cardBuffEvent = new ModifyCardBuffLevelEvent(c.Target.Faction(context.Model), c.Target.Identity);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cardBuffEvent));
         }

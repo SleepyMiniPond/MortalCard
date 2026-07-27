@@ -1,10 +1,35 @@
 using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
+using System.Linq;
 using Optional;
 
 namespace MortalGame.GameModel
 {
+
+    internal sealed record CharacterBuffReactionCandidate(
+        ICharacterEntity Character,
+        ICharacterBuffEntity Buff);
+
+    internal sealed record CardBuffReactionCandidate(
+        ICardEntity Card,
+        ICardBuffEntity Buff);
+
+    internal sealed record TimingReactionSnapshot(
+        UpdateTimingAction Action,
+        IReadOnlyList<IPlayerBuffEntity> PlayerBuffs,
+        IReadOnlyList<CharacterBuffReactionCandidate> CharacterBuffs,
+        IReadOnlyList<CardBuffReactionCandidate> CardBuffs,
+        IReadOnlyList<ICardEntity> Cards);
+
+    internal sealed record TimingDispatchPlan(
+        IReadOnlyList<EffectQueueItem> GeneralReactionItems,
+        IReadOnlyList<EffectQueueItem> FormTransitionItems)
+    {
+        public IReadOnlyList<EffectQueueItem> OrderedItems => GeneralReactionItems
+            .Concat(FormTransitionItems)
+            .ToArray();
+    }
 
     internal sealed record TriggerTimingQueueItem(
         GameplayManager Manager,
@@ -13,9 +38,9 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            var events = new List<IGameEvent>(Manager.UpdateReactorSessionAction(
-                new UpdateTimingAction(Timing, Source)));
-            var items = Manager.CreateTriggerTimingQueueItems(Timing, Source);
+            var snapshot = Manager.CreateTimingReactionSnapshot(Timing, Source);
+            var events = new List<IGameEvent>(Manager.ObserveAction(snapshot.Action));
+            var items = Manager.CreateTimingDispatchPlan(snapshot).OrderedItems;
             for (var i = items.Count - 1; i >= 0; i--)
             {
                 queue.EnqueueImmediate(items[i]);

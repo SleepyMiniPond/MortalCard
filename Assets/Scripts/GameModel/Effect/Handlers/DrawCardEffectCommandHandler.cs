@@ -21,7 +21,7 @@ namespace MortalGame.GameModel
                     cardManager.Deck.EnqueueCardsThenShuffle(graveyardCards);
 
                     var recycleDeckResultAction = new RecycleDeckResultAction(new PlayerTarget(c.Target));
-                    var reactorEvents = context.Model.UpdateReactorSessionAction(recycleDeckResultAction);
+                    var reactorEvents = context.Model.ObserveAction(recycleDeckResultAction);
                     var recycleEvent = new RecycleGraveyardToDeckEvent(
                         Faction: c.Target.Faction,
                         CardManagerInfo: cardManager.ToInfo());
@@ -36,7 +36,7 @@ namespace MortalGame.GameModel
                     cardManager.HandCard.AddCard(drawCard);
 
                     var drawCardResultAction = new DrawCardResultAction(context.Action.Source, new PlayerTarget(c.Target), drawCard);
-                    var reactorEvents = context.Model.UpdateReactorSessionAction(drawCardResultAction);
+                    var reactorEvents = context.Model.ObserveAction(drawCardResultAction);
                     var drawCardEvent = new DrawCardEvent(
                         c.Target.Faction,
                         drawCard.ToInfo(context.Model),

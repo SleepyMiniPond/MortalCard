@@ -14,7 +14,7 @@ namespace MortalGame.GameModel
                 context.Model.ContextManager.Context);
 
             var resultAction = new HealResultAction(context.Action.Source, new CharacterTarget(c.Target), healResult);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var healEvent = new GetHealEvent(c.Target.Faction(context.Model), c.Target, healResult);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(healEvent));
         }

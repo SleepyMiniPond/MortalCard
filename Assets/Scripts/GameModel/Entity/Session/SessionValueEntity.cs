@@ -51,19 +51,18 @@ namespace MortalGame.GameModel
                     };
                     return true;
                 }
-                break;
             }
             return false;
         }
 
         public bool Update(TriggerContext triggerContext)
         {
-            var isChanged = false;
-            foreach (var rule in _updateRules.Where(r => r.Timing == triggerContext.Action.Timing))
-            {
-                isChanged |= _UpdateRules(rule.Rules, triggerContext);
-            }
-            return isChanged;
+            var timingRule = _updateRules.FirstOrDefault(
+                rule => rule.Timing == triggerContext.Action.Timing);
+            return timingRule != null &&
+                _UpdateRules(
+                    timingRule.Rules ?? Array.Empty<ConditionBooleanUpdateRule>(),
+                    triggerContext);
         }
     }
 
@@ -108,13 +107,12 @@ namespace MortalGame.GameModel
 
         public bool Update(TriggerContext triggerContext)
         {
-            var isChanged = false;
-
-            foreach (var rule in _updateRules.Where(r => r.Timing == triggerContext.Action.Timing))
-            {
-                isChanged |= _UpdateRules(rule.Rules, triggerContext);
-            }
-            return isChanged;
+            var timingRule = _updateRules.FirstOrDefault(
+                rule => rule.Timing == triggerContext.Action.Timing);
+            return timingRule != null &&
+                _UpdateRules(
+                    timingRule.Rules ?? Array.Empty<ConditionIntegerUpdateRule>(),
+                    triggerContext);
         }
     }
 

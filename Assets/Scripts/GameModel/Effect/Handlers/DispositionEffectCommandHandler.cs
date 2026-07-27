@@ -20,7 +20,7 @@ namespace MortalGame.GameModel
         {
             var result = c.Target.DispositionManager.IncreaseDisposition(c.DispositionPoint);
             var resultAction = new IncreaseDispositionResultAction(context.Action.Source, new PlayerTarget(c.Target), result);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var dispositionEvent = new IncreaseDispositionEvent(c.Target.DispositionManager.ToInfo(), result.DeltaDisposition);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(dispositionEvent));
         }
@@ -29,7 +29,7 @@ namespace MortalGame.GameModel
         {
             var result = c.Target.DispositionManager.DecreaseDisposition(c.DispositionPoint);
             var resultAction = new DecreaseDispositionResultAction(context.Action.Source, new PlayerTarget(c.Target), result);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var dispositionEvent = new DecreaseDispositionEvent(c.Target.DispositionManager.ToInfo(), result.DeltaDisposition);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(dispositionEvent));
         }

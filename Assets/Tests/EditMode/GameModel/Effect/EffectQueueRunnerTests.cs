@@ -178,6 +178,76 @@ namespace MortalGame.Tests
             Assert.That(runner.PendingItemCount, Is.EqualTo(1));
             Assert.That(result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id).ToArray(), Is.EqualTo(new[] { 1, 2, 3 }));
         }
+
+        [Test]
+        public void RunToCompletion_WhenBudgetExceeded_ProvidesCorrelationAndTriggerPath()
+        {
+            var runner = new EffectQueueRunner(maxProcessedItemCount: 2);
+
+            runner.Enqueue(new SelfEnqueueingQueueItem(null));
+            runner.RunToCompletion();
+
+            Assert.That(runner.IsHalted, Is.True);
+            Assert.That(runner.HaltDiagnostic, Is.Not.Null);
+            Assert.That(runner.HaltDiagnostic.CorrelationId, Is.Not.EqualTo(Guid.Empty));
+            Assert.That(runner.HaltDiagnostic.Budget, Is.EqualTo(2));
+            Assert.That(runner.HaltDiagnostic.ProcessedItemCount, Is.EqualTo(2));
+            Assert.That(
+                runner.HaltDiagnostic.TriggerPath,
+                Is.EqualTo(new[]
+                {
+                    nameof(SelfEnqueueingQueueItem),
+                    nameof(SelfEnqueueingQueueItem),
+                    nameof(SelfEnqueueingQueueItem)
+                }));
+        }
+
+        [Test]
+        public void RunToCompletion_TwoRunners_HaveIndependentBudgets()
+        {
+            var firstRunner = new EffectQueueRunner(maxProcessedItemCount: 2);
+            var secondRunner = new EffectQueueRunner(maxProcessedItemCount: 2);
+
+            firstRunner.Enqueue(new StaticQueueItem(null, 1));
+            firstRunner.Enqueue(new StaticQueueItem(null, 2));
+            var firstResult = firstRunner.RunToCompletion();
+
+            secondRunner.Enqueue(new StaticQueueItem(null, 3));
+            secondRunner.Enqueue(new StaticQueueItem(null, 4));
+            var secondResult = secondRunner.RunToCompletion();
+
+            Assert.That(
+                firstResult.Events.OfType<TestQueueEvent>().Select(evt => evt.Id),
+                Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(
+                secondResult.Events.OfType<TestQueueEvent>().Select(evt => evt.Id),
+                Is.EqualTo(new[] { 3, 4 }));
+            Assert.That(firstRunner.ProcessedItemCount, Is.EqualTo(2));
+            Assert.That(secondRunner.ProcessedItemCount, Is.EqualTo(2));
+            Assert.That(firstRunner.IsHalted, Is.False);
+            Assert.That(secondRunner.IsHalted, Is.False);
+        }
+
+        [Test]
+        public void TimingDispatchPlan_OrdersGeneralReactionsBeforeFormTransitions()
+        {
+            var plan = new TimingDispatchPlan(
+                new EffectQueueItem[]
+                {
+                    new StaticQueueItem(null, 1),
+                    new StaticQueueItem(null, 2)
+                },
+                new EffectQueueItem[]
+                {
+                    new StaticQueueItem(null, 3)
+                });
+
+            Assert.That(
+                plan.OrderedItems
+                    .Cast<StaticQueueItem>()
+                    .Select(item => item.Id),
+                Is.EqualTo(new[] { 1, 2, 3 }));
+        }
     }
 }
 

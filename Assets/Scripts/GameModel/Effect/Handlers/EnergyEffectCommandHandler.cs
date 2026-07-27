@@ -21,7 +21,7 @@ namespace MortalGame.GameModel
         {
             var result = c.Target.EnergyManager.GainEnergy(c.EnergyPoint);
             var resultAction = new GainEnergyResultAction(context.Action.Source, new PlayerTarget(c.Target), result);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var energyEvent = new GainEnergyEvent(c.Target.Faction, c.Target.EnergyManager.ToInfo(), result);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(energyEvent));
         }
@@ -30,7 +30,7 @@ namespace MortalGame.GameModel
         {
             var result = c.Target.EnergyManager.LoseEnergy(c.EnergyPoint);
             var resultAction = new LoseEnergyResultAction(context.Action.Source, new PlayerTarget(c.Target), result);
-            var reactorEvents = context.Model.UpdateReactorSessionAction(resultAction);
+            var reactorEvents = context.Model.ObserveAction(resultAction);
             var energyEvent = new LoseEnergyEvent(c.Target.Faction, c.Target.EnergyManager.ToInfo(), result);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(energyEvent));
         }

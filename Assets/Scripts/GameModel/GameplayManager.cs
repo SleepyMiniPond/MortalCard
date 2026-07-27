@@ -434,7 +434,7 @@ namespace MortalGame.GameModel
                         {
                             useCardEvents.AddRange(_RunTiming(GameTiming.BeforePlayCardStart, cardPlaySource));
 
-                            useCardEvents.AddRange(UpdateReactorSessionAction(cardPlayIntent));
+                            useCardEvents.AddRange(ObserveAction(cardPlayIntent));
 
                             //TODO: check and remove expired buffs
                             //      trigger events while remove buffs
@@ -467,7 +467,7 @@ namespace MortalGame.GameModel
                             useCardEvents.Add(usedCardEvent);
 
                             useCardEvents.AddRange(
-                                UpdateReactorSessionAction(new CardPlayResultAction(cardPlayResultSource)));
+                                ObserveAction(new CardPlayResultAction(cardPlayResultSource)));
                             useCardEvents.AddRange(_RunTiming(GameTiming.BeforePlayCardEnd, cardPlayResultSource));
                         }
 
@@ -487,7 +487,7 @@ namespace MortalGame.GameModel
             }
         }
 
-        public IEnumerable<IGameEvent> UpdateReactorSessionAction(IActionUnit actionUnit)
+        public IEnumerable<IGameEvent> ObserveAction(IActionUnit actionUnit)
         {
             var allyEvt = _gameStatus.Ally.Update(new TriggerContext(this, new PlayerTrigger(_gameStatus.Ally), actionUnit));
             var enemyEvt = _gameStatus.Enemy.Update(new TriggerContext(this, new PlayerTrigger(_gameStatus.Enemy), actionUnit));
@@ -503,47 +503,71 @@ namespace MortalGame.GameModel
         internal IGameContextManager EffectQueueContextManager => _contextMgr;
 
         // TODO: collect reactionEffects created from reactionSessions
-        private IEnumerable<IGameEvent> _RunTiming(GameTiming timing, IActionSource actionSource)
+        private IEnumerable<IGameEvent> _RunTiming(
+            GameTiming timing,
+            IActionSource actionSource)
         {
             var effectQueueRunner = new EffectQueueRunner();
             effectQueueRunner.Enqueue(new TriggerTimingQueueItem(this, timing, actionSource));
             return effectQueueRunner.RunToCompletion().Events;
         }
 
-        internal IReadOnlyList<EffectQueueItem> CreateTriggerTimingQueueItems(GameTiming timing, IActionSource actionSource)
+        internal TimingReactionSnapshot CreateTimingReactionSnapshot(
+            GameTiming timing,
+            IActionSource actionSource)
         {
             var timingAction = new UpdateTimingAction(timing, actionSource);
-
-            return PlayerQueueItems(_gameStatus.Ally)
-                .Concat(PlayerQueueItems(_gameStatus.Enemy))
+            IPlayerEntity[] players = { _gameStatus.Ally, _gameStatus.Enemy };
+            var cards = players
+                .SelectMany(player => player.CardManager.AllCards())
                 .ToArray();
 
-            IEnumerable<EffectQueueItem> PlayerQueueItems(IPlayerEntity player)
-            {
-                return PlayerBuffQueueItems(player)
-                    .Concat(CharacterBuffQueueItems(player))
-                    .Concat(CardBuffQueueItems(player));
-            }
-
-            IEnumerable<EffectQueueItem> PlayerBuffQueueItems(IPlayerEntity player)
-            {
-                return player.BuffManager.Buffs
-                    .SelectMany(buff => AddPlayerBuffQueueItems(buff, timing, timingAction));
-            }
-
-            IEnumerable<EffectQueueItem> CharacterBuffQueueItems(IPlayerEntity player)
-            {
-                return player.Characters
+            return new TimingReactionSnapshot(
+                timingAction,
+                players
+                    .SelectMany(player => player.BuffManager.Buffs)
+                    .ToArray(),
+                players
+                    .SelectMany(player => player.Characters)
                     .SelectMany(character => character.BuffManager.Buffs
-                        .SelectMany(buff => AddCharacterBuffQueueItems(character, buff, timing, timingAction)));
-            }
-
-            IEnumerable<EffectQueueItem> CardBuffQueueItems(IPlayerEntity player)
-            {
-                return player.CardManager.AllCards()
+                        .Select(buff => new CharacterBuffReactionCandidate(character, buff)))
+                    .ToArray(),
+                cards
                     .SelectMany(card => card.BuffManager.Buffs
-                        .SelectMany(buff => AddCardBuffQueueItems(card, buff, timing, timingAction)));
-            }
+                        .Select(buff => new CardBuffReactionCandidate(card, buff)))
+                    .ToArray(),
+                cards);
+        }
+
+        internal TimingDispatchPlan CreateTimingDispatchPlan(
+            TimingReactionSnapshot snapshot)
+        {
+            return new TimingDispatchPlan(
+                CreateGeneralReactionQueueItems(snapshot),
+                Array.Empty<EffectQueueItem>());
+        }
+
+        internal IReadOnlyList<EffectQueueItem> CreateGeneralReactionQueueItems(
+            TimingReactionSnapshot snapshot)
+        {
+            var timingAction = snapshot.Action;
+            var timing = timingAction.Timing;
+
+            return snapshot.PlayerBuffs
+                .SelectMany(buff => AddPlayerBuffQueueItems(buff, timing, timingAction))
+                .Concat(snapshot.CharacterBuffs.SelectMany(candidate =>
+                    AddCharacterBuffQueueItems(
+                        candidate.Character,
+                        candidate.Buff,
+                        timing,
+                        timingAction)))
+                .Concat(snapshot.CardBuffs.SelectMany(candidate =>
+                    AddCardBuffQueueItems(
+                        candidate.Card,
+                        candidate.Buff,
+                        timing,
+                        timingAction)))
+                .ToArray();
 
             IEnumerable<EffectQueueItem> AddPlayerBuffQueueItems(
                 IPlayerBuffEntity buff,
@@ -613,6 +637,14 @@ namespace MortalGame.GameModel
                         .ToArray())
                     .ValueOr(Array.Empty<EffectQueueItem>());
             }
+        }
+
+        internal IReadOnlyList<EffectQueueItem> CreateGeneralReactionQueueItems(
+            GameTiming timing,
+            IActionSource actionSource)
+        {
+            return CreateGeneralReactionQueueItems(
+                CreateTimingReactionSnapshot(timing, actionSource));
         }
 
         private void _CheckGameEnd()

@@ -1,6 +1,7 @@
 using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MortalGame.GameModel
 {
@@ -13,31 +14,78 @@ namespace MortalGame.GameModel
         void EnqueueImmediate(IEnumerable<EffectQueueItem> items);
     }
 
+    public sealed record EffectQueueHaltDiagnostic(
+        Guid CorrelationId,
+        int Budget,
+        int ProcessedItemCount,
+        IReadOnlyList<string> TriggerPath);
+
+    internal sealed class EffectQueueExecutionScope
+    {
+        public Guid CorrelationId { get; }
+        public int Budget { get; }
+        public int ProcessedItemCount { get; private set; }
+        public bool IsHalted { get; private set; }
+        public EffectQueueHaltDiagnostic HaltDiagnostic { get; private set; }
+
+        public EffectQueueExecutionScope(int budget)
+        {
+            if (budget <= 0)
+                throw new ArgumentOutOfRangeException(nameof(budget));
+
+            Budget = budget;
+            CorrelationId = Guid.NewGuid();
+        }
+
+        internal bool TryBeginItem(IReadOnlyList<string> triggerPath)
+        {
+            if (IsHalted)
+                return false;
+
+            if (ProcessedItemCount >= Budget)
+            {
+                IsHalted = true;
+                HaltDiagnostic = new EffectQueueHaltDiagnostic(
+                    CorrelationId,
+                    Budget,
+                    ProcessedItemCount,
+                    triggerPath.ToArray());
+                return false;
+            }
+
+            ProcessedItemCount++;
+            return true;
+        }
+    }
+
     public sealed class EffectQueueRunner : IEffectQueueContext
     {
-        private readonly LinkedList<EffectQueueItem> _items = new();
-        private readonly int _maxProcessedItemCount;
+        private sealed record PendingEffectQueueItem(
+            EffectQueueItem Item,
+            IReadOnlyList<string> TriggerPath);
 
-        public bool IsHalted { get; private set; }
-        public int ProcessedItemCount { get; private set; }
+        private readonly LinkedList<PendingEffectQueueItem> _items = new();
+        private readonly EffectQueueExecutionScope _executionScope;
+        private IReadOnlyList<string> _currentTriggerPath = Array.Empty<string>();
+
+        public bool IsHalted => _executionScope.IsHalted;
+        public int ProcessedItemCount => _executionScope.ProcessedItemCount;
         public int PendingItemCount => _items.Count;
+        public EffectQueueHaltDiagnostic HaltDiagnostic => _executionScope.HaltDiagnostic;
 
         public EffectQueueRunner(int maxProcessedItemCount = 1000)
         {
-            if (maxProcessedItemCount <= 0)
-                throw new ArgumentOutOfRangeException(nameof(maxProcessedItemCount));
-
-            _maxProcessedItemCount = maxProcessedItemCount;
+            _executionScope = new EffectQueueExecutionScope(maxProcessedItemCount);
         }
 
         public void Enqueue(EffectQueueItem item)
         {
-            _items.AddLast(item);
+            _items.AddLast(CreatePendingItem(item));
         }
 
         public void EnqueueImmediate(EffectQueueItem item)
         {
-            _items.AddFirst(item);
+            _items.AddFirst(CreatePendingItem(item));
         }
 
         public void EnqueueImmediate(IEnumerable<EffectQueueItem> items)
@@ -48,7 +96,7 @@ namespace MortalGame.GameModel
             var bufferedItems = new List<EffectQueueItem>(items);
             for (var i = bufferedItems.Count - 1; i >= 0; i--)
             {
-                _items.AddFirst(bufferedItems[i]);
+                _items.AddFirst(CreatePendingItem(bufferedItems[i]));
             }
         }
 
@@ -57,25 +105,39 @@ namespace MortalGame.GameModel
             var actions = new List<BaseResultAction>();
             var events = new List<IGameEvent>();
 
-            IsHalted = false;
-            ProcessedItemCount = 0;
             while (_items.Count > 0)
             {
-                if (ProcessedItemCount >= _maxProcessedItemCount)
-                {
-                    IsHalted = true;
+                var pendingItem = _items.First.Value;
+                if (!_executionScope.TryBeginItem(pendingItem.TriggerPath))
                     break;
-                }
 
-                var item = _items.First.Value;
                 _items.RemoveFirst();
-                ProcessedItemCount++;
-                var result = item.Execute(this);
-                actions.AddRange(result.Actions);
-                events.AddRange(result.Events);
+                var previousTriggerPath = _currentTriggerPath;
+                _currentTriggerPath = pendingItem.TriggerPath;
+                try
+                {
+                    var result = pendingItem.Item.Execute(this);
+                    actions.AddRange(result.Actions);
+                    events.AddRange(result.Events);
+                }
+                finally
+                {
+                    _currentTriggerPath = previousTriggerPath;
+                }
             }
 
             return new EffectResult(actions, events);
+        }
+
+        private PendingEffectQueueItem CreatePendingItem(EffectQueueItem item)
+        {
+            if (item == null)
+                throw new ArgumentNullException(nameof(item));
+
+            var triggerPath = _currentTriggerPath
+                .Concat(new[] { item.GetType().Name })
+                .ToArray();
+            return new PendingEffectQueueItem(item, triggerPath);
         }
     }
 
