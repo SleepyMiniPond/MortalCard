@@ -18,7 +18,59 @@ namespace MortalGame.Editor
                 .Concat(ValidateEffectResolvers())
                 .Concat(ValidateReferenceIds())
                 .Concat(ValidateCardTransformRules())
+                .Concat(ValidateReactionSessionRules())
                 .Distinct()
+                .ToArray();
+        }
+
+        public static IReadOnlyList<string> ValidateReactionSessionRules()
+        {
+            var errors = new List<string>();
+
+            foreach (var asset in LoadAssets<PlayerBuffDataScriptable>())
+            {
+                if (asset.Data == null)
+                    continue;
+
+                errors.AddRange(ValidateReactionSessionRules(
+                    asset.Data.Sessions,
+                    $"{AssetDatabase.GetAssetPath(asset)} / PlayerBuffData[{asset.Data.ID}].Sessions"));
+            }
+
+            foreach (var asset in LoadAssets<CharacterBuffDataScriptable>())
+            {
+                if (asset.Data == null)
+                    continue;
+
+                errors.AddRange(ValidateReactionSessionRules(
+                    asset.Data.Sessions,
+                    $"{AssetDatabase.GetAssetPath(asset)} / CharacterBuffData[{asset.Data.ID}].Sessions"));
+            }
+
+            foreach (var asset in LoadAssets<CardBuffScriptable>())
+            {
+                if (asset.Data == null)
+                    continue;
+
+                errors.AddRange(ValidateReactionSessionRules(
+                    asset.Data.Sessions,
+                    $"{AssetDatabase.GetAssetPath(asset)} / CardBuffData[{asset.Data.ID}].Sessions"));
+            }
+
+            return errors;
+        }
+
+        public static IReadOnlyList<string> ValidateReactionSessionRules(
+            IReadOnlyDictionary<string, IReactionSessionData> sessions,
+            string context)
+        {
+            if (sessions == null)
+                return Array.Empty<string>();
+
+            return sessions
+                .SelectMany(pair => GetDuplicateTimings(pair.Value)
+                    .Select(timing =>
+                        $"{context}[{pair.Key}] 的 TimingRule 重複：{timing}"))
                 .ToArray();
         }
 
@@ -471,6 +523,34 @@ namespace MortalGame.Editor
                 .Select(AssetDatabase.GUIDToAssetPath)
                 .Select(AssetDatabase.LoadAssetAtPath<T>)
                 .Where(asset => asset != null);
+        }
+
+        private static IEnumerable<GameTiming> GetDuplicateTimings(
+            IReactionSessionData session)
+        {
+            return session switch
+            {
+                SessionBoolean booleanSession => FindDuplicates(
+                    booleanSession.UpdateRules?
+                        .Where(rule => rule != null)
+                        .Select(rule => rule.Timing) ??
+                    Enumerable.Empty<GameTiming>()),
+                SessionInteger integerSession => FindDuplicates(
+                    integerSession.UpdateRules?
+                        .Where(rule => rule != null)
+                        .Select(rule => rule.Timing) ??
+                    Enumerable.Empty<GameTiming>()),
+                _ => Enumerable.Empty<GameTiming>()
+            };
+
+            static IEnumerable<GameTiming> FindDuplicates(
+                IEnumerable<GameTiming> timings)
+            {
+                return timings
+                    .GroupBy(timing => timing)
+                    .Where(group => group.Count() > 1)
+                    .Select(group => group.Key);
+            }
         }
 
         private static IEnumerable<Type> GetConcreteTypes<T>()

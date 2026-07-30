@@ -432,14 +432,18 @@ namespace MortalGame.GameModel
 
                         using (playCardDisposable)
                         {
-                            useCardEvents.AddRange(_RunTiming(GameTiming.BeforePlayCardStart, cardPlaySource));
+                            useCardEvents.AddRange(_RunTiming(
+                                GameTiming.BeforePlayCardStart,
+                                cardPlaySource));
 
                             useCardEvents.AddRange(ObserveAction(cardPlayIntent));
 
                             //TODO: check and remove expired buffs
                             //      trigger events while remove buffs
 
-                            useCardEvents.AddRange(_RunTiming(GameTiming.AfterPlayCardStart, cardPlaySource));
+                            useCardEvents.AddRange(_RunTiming(
+                                GameTiming.AfterPlayCardStart,
+                                cardPlaySource));
 
                             var effectActionResults = new List<BaseResultAction>();
 
@@ -468,7 +472,9 @@ namespace MortalGame.GameModel
 
                             useCardEvents.AddRange(
                                 ObserveAction(new CardPlayResultAction(cardPlayResultSource)));
-                            useCardEvents.AddRange(_RunTiming(GameTiming.BeforePlayCardEnd, cardPlayResultSource));
+                            useCardEvents.AddRange(_RunTiming(
+                                GameTiming.BeforePlayCardEnd,
+                                cardPlayResultSource));
                         }
 
                         if (usedCard.HasProperty(CardProperty.Recycle))
@@ -477,7 +483,9 @@ namespace MortalGame.GameModel
                             useCardEvents.AddRange(recycleResult.Events);
                         }
 
-                        useCardEvents.AddRange(_RunTiming(GameTiming.AfterPlayCardEnd, cardPlayResultSource));
+                        useCardEvents.AddRange(_RunTiming(
+                            GameTiming.AfterPlayCardEnd,
+                            cardPlayResultSource));
                     }
                 }
 
@@ -509,7 +517,8 @@ namespace MortalGame.GameModel
         {
             var effectQueueRunner = new EffectQueueRunner();
             effectQueueRunner.Enqueue(new TriggerTimingQueueItem(this, timing, actionSource));
-            return effectQueueRunner.RunToCompletion().Events;
+            var result = effectQueueRunner.RunToCompletion();
+            return result.Events;
         }
 
         internal TimingReactionSnapshot CreateTimingReactionSnapshot(
