@@ -63,6 +63,7 @@ namespace MortalGame.GameData
         Discarded,
         EffectDiscarded,
         Initialize,
+        FormChanged,
     }
 
     public enum CardCollectionType

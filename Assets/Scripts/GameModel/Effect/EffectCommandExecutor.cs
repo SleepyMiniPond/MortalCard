@@ -6,7 +6,12 @@ namespace MortalGame.GameModel
 
     public record EffectResult(
         IReadOnlyCollection<BaseResultAction> Actions,
-        IReadOnlyCollection<IGameEvent> Events);
+        IReadOnlyCollection<IGameEvent> Events)
+    {
+        public static EffectResult Empty { get; } = new(
+            Array.Empty<BaseResultAction>(),
+            Array.Empty<IGameEvent>());
+    }
 
     public record CommandApplyResult(
         IEnumerable<BaseResultAction> Actions,

@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-07-23
+> 最後更新：2026-08-05
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -17,10 +17,11 @@ T-012 卡片合成
 
 獨立排期
 ├─ T-013 敵人動態增減
-└─ T-014 Preview / Simulation
+├─ T-014 Preview / Simulation
+└─ T-017 CardTriggeredTiming 觸發管線
 ```
 
-T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始。T-012 同時依賴兩者；T-013、T-014 影響面較廣，不與其他大型功能同時進行。
+T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始。T-012 同時依賴兩者；T-013、T-014 影響面較廣，不與其他大型功能同時進行。T-017 可獨立處理，但開始前需先定義各卡片生命週期時機的精確順序。
 
 ---
 
@@ -37,20 +38,24 @@ T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始�
   - External Override 暫停 CardInstance Property、凍結 Base CardBuff 與 Self TransformRule，並使用獨立的臨時 Buff Layer。
   - Override 期間取得的 CardBuff 在解除時全部移除；PlayerBuff 仍作用於 Override Form。
   - 規則以 Priority 優先，Priority 相同時依陣列順序決定。
-  - 所有 IActionUnit 共用 Reaction Dispatch；同一 Timing 先更新 Session、處理一般 Reaction，最後才原子提交形態變更。
+  - `ObserveAction` 只更新 ReactionSession；只有明確的 Timing Dispatch 會產生一般 Buff Effect，並在一般 Reaction 後原子提交形態變更。
   - FormChanged 使用獨立 Timing；狀態與 CardInfo 提交後，由新 Effective Form 觸發，並重新驗證 View 的拖曳、聚焦與選取狀態。
   - Buff Command 由 Resolver 攜帶內部 LayerHandle；已失效 Layer 的排隊命令靜默 No-op 並保留診斷。
   - Self Form 只有 `BattleOnly`（本場限定）與 `Persistent`（永久保留）；勝利／失敗寫回，取消不寫回。
   - External Override 永遠清除且不持久化；第一版只需產生 CardInstanceChangeSet，不要求先完成完整戰鬥外系統。
   - Clone 只依當下 Effective CardData 建立獨立卡片，不複製 Instance Property、Buff 或形態狀態，也不自動加入 Dispose。
   - 一般與 Override 卡片資產分為 StandardCardDataScriptable／OverrideCardDataScriptable，並共用 CardDataScriptableBase。
-  - Effect Queue 以 Root Action 共用 Budget、CorrelationId 與 TriggerPath，超限時明確停止並留下診斷。
-- **建議階段**：
-  1. 定義狀態保留規則與 Model 行為。
-  2. 建立變身結果事件與 CardInfo 更新流程。
-  3. 更新 View，並補 EditMode 測試與最小資料案例。
+  - 每個 EffectQueueRunner 擁有獨立的 Budget、CorrelationId 與 TriggerPath；同一 Runner 內的連鎖 Reaction 共用預算，超限時明確停止並輸出診斷。
+- **目前進度**：
+  - ✅ 階段 0：建立 T-010 Characterization Test 與測試 Builder。
+  - ✅ 階段 1：完成 CardForm Model、CardData／Instance／Buff Property 分層、Clone 與持久化規則。
+  - ✅ 階段 2：完成多型 CardTransformRule Operation、Evaluator 與 TransformRule Validator。
+  - ✅ 階段 3：完成 Action Observation／Timing Dispatch 分流、Reaction Snapshot、Effect Queue Scope、ReactionSession 修正與 Validator。
+  - ✅ 階段 4：完成 Self Transform Timing Dispatch、CardFormChanged Event、FormChanged Effect 與基本 CardInfo／View 更新。
+- **下一步**：階段 5，建立 Standard／Override CardData Scriptable 分型與對應 Validator。
+- **後續階段**：CardBuff Layer、External Override、全區域 View 整合、CardInstanceChangeSet 與完整資料驗證。
 - **完成條件**：變身後資料與畫面一致，保留／替換狀態符合規則，重新載入 CardInfo 不會回到舊資料。
-- **狀態**：⬜ 未開始
+- **狀態**：🔄 進行中（階段 0～4 完成）
 
 ### T-011：多步驟自訂目標選取
 
@@ -98,6 +103,26 @@ T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始�
 - **建議階段**：先做 Resolver 層的輕量 Preview；完整 Simulation sandbox 等 AI 或除錯需求明確後再設計。
 - **既有基礎**：T-001 Resolver／Handler、T-003 Effect Queue、T-006 決定性亂數。
 - **完成條件**：Preview 不污染正式狀態，且相同輸入能產生穩定、可供 UI 使用的預演資訊。
+- **狀態**：⬜ 未開始
+
+### T-017：完成 CardTriggeredTiming 生命週期觸發管線
+
+- **目標**：讓 `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 能在抽牌、打出、保留、丟棄、初始化等卡片生命週期中，依明確且唯一的時機進入 Effect Queue。
+- **現況**：
+  - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入，會在形態狀態與最新 `CardInfo` 提交後執行新 Effective Form 的 Effects。
+  - 其餘 `Drawed`、`EffectDrawed`、`Played`、`EffectPlayed`、`Preserved`、`Discarded`、`EffectDiscarded`、`Initialize` 目前只有 enum、資料欄位、Entity 查詢與 Validator，尚未找到正式的 Runtime 觸發入口。
+  - `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 共用 `CardTriggeredTiming`，實作時必須同時處理卡片本體與目前有效的 CardBuff，避免兩套生命週期語意分離。
+- **開始前需決定**：
+  - 一般流程與 Effect 造成的流程如何區分，例如 `Drawed`／`EffectDrawed`、`Played`／`EffectPlayed`、`Discarded`／`EffectDiscarded`。
+  - 每個 timing 位於卡片區域移動、狀態提交、Gameplay Event 與畫面更新之前或之後。
+  - CardData Effect 與 CardBuff Effect 的固定順序、快照範圍、Selected Card Context 與同一 EffectQueueRunner Budget 規則。
+  - `Initialize` 的觸發範圍，以及既有 `Drawed` 命名若調整時的序列化數值與資產遷移策略。
+- **建議階段**：
+  1. 盤點每個 enum 對應的 GameplayManager／CardManager 狀態轉換點，建立唯一的生命週期順序表。
+  2. 建立共用 Card Trigger Dispatch Queue Item，同時快照並執行 CardData 與有效 CardBuff Effects。
+  3. 分批接入抽牌、打出、保留、丟棄與初始化流程，補齊 Effect 造成流程的來源辨識。
+  4. 新增 EditMode 測試與 Validator，確認不重複觸發、Context 正確且新增／移除的 Effect 不回頭參與同一次快照。
+- **完成條件**：除 `None` 外，每個 `CardTriggeredTiming` 都有一個明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。
 - **狀態**：⬜ 未開始
 
 ---

@@ -40,7 +40,7 @@ namespace MortalGame.GameModel
         {
             var snapshot = Manager.CreateTimingReactionSnapshot(Timing, Source);
             var events = new List<IGameEvent>(Manager.ObserveAction(snapshot.Action));
-            var items = Manager.CreateTimingDispatchPlan(snapshot).OrderedItems;
+            var items = TimingDispatchPlanner.Create(Manager, snapshot).OrderedItems;
             for (var i = items.Count - 1; i >= 0; i--)
             {
                 queue.EnqueueImmediate(items[i]);
@@ -64,7 +64,7 @@ namespace MortalGame.GameModel
                 new PlayerBuffEffectExecutionQueueItem(Context, Effect),
                 new TriggerTimingQueueItem(Manager, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
             });
-            return new EffectResult(Array.Empty<BaseResultAction>(), Array.Empty<IGameEvent>());
+            return EffectResult.Empty;
         }
     }
 
@@ -83,7 +83,7 @@ namespace MortalGame.GameModel
                 new CharacterBuffEffectExecutionQueueItem(Manager, SelectedCharacter, Context, Effect),
                 new CharacterTimingQueueItem(Manager, SelectedCharacter, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
             });
-            return new EffectResult(Array.Empty<BaseResultAction>(), Array.Empty<IGameEvent>());
+            return EffectResult.Empty;
         }
     }
 
@@ -102,7 +102,7 @@ namespace MortalGame.GameModel
                 new CardBuffEffectExecutionQueueItem(Manager, SelectedCard, Context, Effect),
                 new CardTimingQueueItem(Manager, SelectedCard, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
             });
-            return new EffectResult(Array.Empty<BaseResultAction>(), Array.Empty<IGameEvent>());
+            return EffectResult.Empty;
         }
     }
 

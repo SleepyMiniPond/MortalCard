@@ -74,4 +74,10 @@ namespace MortalGame.GameModel
         public IActionSource Source => CardPlayResultSource;
     };
 
+    public record CardFormChangedAction(CardFormChangedSource CardFormChangedSource) : IActionUnit
+    {
+        public GameTiming Timing => GameTiming.None;
+        public IActionSource Source => CardFormChangedSource;
+    };
+
 }

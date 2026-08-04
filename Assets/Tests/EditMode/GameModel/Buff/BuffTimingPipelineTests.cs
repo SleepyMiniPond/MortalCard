@@ -131,7 +131,7 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void CreateGeneralReactionQueueItems_WhenAllBuffTypesMatchTiming_ReturnsQueueItemsForEachBuffType()
+        public void TimingDispatchPlanner_WhenAllBuffTypesMatchTiming_CreatesGeneralReactionItemsForEachBuffType()
         {
             var playerBuffData = BuffTestBuilder.CreatePlayerBuffData(
                 BuffTestBuilder.PlayerBuffId,
@@ -183,9 +183,13 @@ namespace MortalGame.Tests
                 built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var items = built.Manager.CreateGeneralReactionQueueItems(
+            var snapshot = built.Manager.CreateTimingReactionSnapshot(
                 GameTiming.BeforeTurnEnd,
                 SystemSource.Instance);
+            built.Manager.ObserveAction(snapshot.Action).ToList();
+            var items = TimingDispatchPlanner
+                .Create(built.Manager, snapshot)
+                .GeneralReactionItems;
 
             Assert.That(items.Count, Is.EqualTo(3));
             Assert.That(items, Has.Exactly(1).TypeOf<TriggeredPlayerBuffEffectQueueItem>());

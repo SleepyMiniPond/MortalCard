@@ -23,13 +23,11 @@ namespace MortalGame.Tests.T010
             var built = new CardTransformationTestBuilder()
                 .WithCard(cardData)
                 .Build();
-            var evaluator = new CardTransformRuleEvaluator();
-
-            var evenResult = evaluator.Evaluate(
+            var evenResult = CardTransformRuleEvaluator.Evaluate(
                 GameTiming.BeforeTurnStart,
                 CreateContext(built));
             built.Gameplay.Status.SetNewTurn();
-            var oddResult = evaluator.Evaluate(
+            var oddResult = CardTransformRuleEvaluator.Evaluate(
                 GameTiming.BeforeTurnStart,
                 CreateContext(built));
 
@@ -53,7 +51,7 @@ namespace MortalGame.Tests.T010
                 .WithCard(cardData)
                 .Build();
 
-            var result = new CardTransformRuleEvaluator().Evaluate(
+            var result = CardTransformRuleEvaluator.Evaluate(
                 GameTiming.BeforeTurnStart,
                 CreateContext(built));
 
@@ -75,7 +73,7 @@ namespace MortalGame.Tests.T010
                 .WithCard(cardData)
                 .Build();
 
-            var result = new CardTransformRuleEvaluator().Evaluate(
+            var result = CardTransformRuleEvaluator.Evaluate(
                 GameTiming.BeforeTurnStart,
                 CreateContext(built));
 
@@ -104,7 +102,7 @@ namespace MortalGame.Tests.T010
                 CardTransformationTestBuilder.AlternateCardId,
                 CardFormPersistence.Persistent);
 
-            var result = new CardTransformRuleEvaluator().Evaluate(
+            var result = CardTransformRuleEvaluator.Evaluate(
                 GameTiming.BeforeTurnStart,
                 CreateContext(built));
 
@@ -123,7 +121,7 @@ namespace MortalGame.Tests.T010
                 .WithCard(cardData)
                 .Build();
 
-            var result = new CardTransformRuleEvaluator().Evaluate(
+            var result = CardTransformRuleEvaluator.Evaluate(
                 GameTiming.BeforeTurnStart,
                 CreateContext(built, isSuppressed: true));
 

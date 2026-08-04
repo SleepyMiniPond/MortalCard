@@ -31,9 +31,9 @@ namespace MortalGame.GameModel
         string RuleId,
         string TransformKey) : CardFormOperation(RuleId, TransformKey);
 
-    public sealed class CardTransformRuleEvaluator
+    public static class CardTransformRuleEvaluator
     {
-        public Option<CardFormOperation> Evaluate(
+        public static Option<CardFormOperation> Evaluate(
             GameTiming timing,
             CardFormRuleContext context)
         {

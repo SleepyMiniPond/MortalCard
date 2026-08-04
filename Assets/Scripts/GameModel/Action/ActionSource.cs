@@ -39,4 +39,11 @@ namespace MortalGame.GameModel
     public record CardBuffSource(ICardBuffEntity Buff) : IActionSource;
     public record CharacterBuffSource(ICharacterBuffEntity Buff) : IActionSource;
 
+    public record CardFormChangedSource(
+        ICardEntity Card,
+        string BeforeCardDataId,
+        string AfterCardDataId,
+        string TransformKey,
+        CardFormChangeCause Cause) : IActionSource;
+
 }

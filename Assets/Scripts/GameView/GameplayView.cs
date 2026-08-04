@@ -170,6 +170,9 @@ namespace MortalGame.GameView
                     case GeneralUpdateEvent updateEvent:
                         _UpdateGeneralInfo(updateEvent);
                         break;
+                    case CardFormChangedEvent formChangedEvent:
+                        _gameViewModel.UpdateCardInfo(formChangedEvent.CardInfo);
+                        break;
                     case AllySummonEvent allySummonEvent:
                         _AllySummonEvent(allySummonEvent);
                         break;

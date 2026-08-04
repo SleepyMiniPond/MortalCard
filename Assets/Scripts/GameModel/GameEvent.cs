@@ -93,6 +93,14 @@ namespace MortalGame.GameModel
     public record RemoveCardBuffEvent(Faction Faction, Guid CardIdentity) : IGameEvent;
     public record ModifyCardBuffLevelEvent(Faction Faction, Guid CardIdentity) : IGameEvent;
 
+    public record CardFormChangedEvent(
+        Guid CardIdentity,
+        string BeforeCardDataId,
+        string AfterCardDataId,
+        string TransformKey,
+        CardFormChangeCause Cause,
+        CardInfo CardInfo) : IGameEvent;
+
     public record GeneralUpdateEvent(
         IReadOnlyList<PlayerBuffInfo> PlayerBuffInfos,
         IReadOnlyList<CharacterBuffInfo> CharacterBuffInfos,
