@@ -1,25 +1,26 @@
 using System;
-using MortalGame.GameData;
 using System.Collections.Generic;
-using System.Linq;
-using UniRx;
+using MortalGame.GameData;
+using Optional;
 
 namespace MortalGame.GameModel
 {
 
     public record CardInstance(
-        // static data
+        // 靜態資料
         Guid InstanceGuid,
         string CardDataId,
-        // dynamic data
-        IReadOnlyList<ICardPropertyData> AdditionPropertyDatas)
+        // 動態資料
+        IReadOnlyList<ICardPropertyData> AdditionPropertyDatas,
+        Option<PersistentCardFormState> PersistentFormState = default)
     {
         public static CardInstance Create(StandardCardData cardData)
         {
             return new CardInstance(
                 InstanceGuid: Guid.NewGuid(),
                 CardDataId: cardData.ID,
-                AdditionPropertyDatas: Array.Empty<ICardPropertyData>()
+                AdditionPropertyDatas: Array.Empty<ICardPropertyData>(),
+                PersistentFormState: Option.None<PersistentCardFormState>()
             );
         }
     }

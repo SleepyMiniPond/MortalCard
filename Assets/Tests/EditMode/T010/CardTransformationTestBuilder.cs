@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MortalGame.GameData;
 using MortalGame.GameModel;
+using Optional;
 
 namespace MortalGame.Tests.T010
 {
@@ -91,11 +92,30 @@ namespace MortalGame.Tests.T010
 
         public BuiltCardTransformationTest BuildFromInstance(params ICardPropertyData[] additionProperties)
         {
+            return _BuildFromInstance(
+                Option.None<PersistentCardFormState>(),
+                additionProperties);
+        }
+
+        public BuiltCardTransformationTest BuildFromInstance(
+            PersistentCardFormState persistentFormState,
+            params ICardPropertyData[] additionProperties)
+        {
+            return _BuildFromInstance(
+                persistentFormState.Some(),
+                additionProperties);
+        }
+
+        private BuiltCardTransformationTest _BuildFromInstance(
+            Option<PersistentCardFormState> persistentFormState,
+            IReadOnlyList<ICardPropertyData> additionProperties)
+        {
             var built = Build();
             var instance = new CardInstance(
                 Guid.NewGuid(),
                 BaseCardId,
-                additionProperties);
+                additionProperties,
+                persistentFormState);
             var card = CardEntity.CreateFromInstance(
                 instance,
                 built.Gameplay.ContextManager.CardLibrary,

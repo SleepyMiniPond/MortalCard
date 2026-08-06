@@ -1,12 +1,12 @@
 # Instance 實例層
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-08-07 | 版本：v2.1
 
 ## 設計理念
 
-Instance 層是三層資料架構的**中間橋樑**，代表「可持久化的遊戲狀態快照」。它的存在解決了一個核心問題：**Data 是不可變的設計模板，Entity 是戰鬥中的可變物件，那「遊戲存檔」該存什麼？**
+Instance 層是三層資料架構的**中間橋樑**，代表 Level／Run 期間可跨戰鬥延續的 Domain 狀態。它的存在解決了一個核心問題：**Data 是不可變的設計模板，Entity 是戰鬥中的可變物件，那跨戰鬥狀態該存在哪裡？**
 
-答案就是 Instance——使用 C# Record 類型確保不可變性，攜帶唯一 Guid 確保身份追蹤，同時只保存跨場景需要持久化的資訊。
+答案就是 Instance——使用 C# Record 類型確保不可變性，攜帶唯一 Guid 確保身份追蹤，同時只保存跨場景需要持久化的資訊。Instance 是 Domain Model；未來磁碟存檔會使用獨立 SaveData DTO 與它轉換，不直接把 Instance 當作檔案契約。
 
 ## CardInstance — 卡牌實例
 
@@ -18,6 +18,7 @@ Instance 層是三層資料架構的**中間橋樑**，代表「可持久化的�
 - **InstanceGuid**：唯一識別碼，跨場景/存檔追蹤
 - **CardDataId**：指向設計模板（而非直接引用物件）
 - **AdditionPropertyDatas**：附加屬性（超出原始設計的額外修正）
+- **PersistentFormState**：可選的跨戰鬥 Self Form，只保存 TransformKey 與形態 CardDataId
 
 ### 建構流程
 
@@ -27,11 +28,22 @@ CardData（設計師配置）
 CardInstance（持久化快照）
     ↓ CardEntity.CreateFromInstance(CardInstance, CardLibrary)
 CardEntity（戰鬥實體）
+    ↓ CardInstancePersistenceMapper.TryUpdate(CardEntity, CardInstance)
+新的 CardInstance（保留或清除 Persistent Form）
 ```
 
 ### 設計意義
 
 一個 CardData 可以產生多個 CardInstance（例如牌組中有 3 張「基本攻擊」），每個 Instance 有獨立 Guid。戰鬥開始時，每個 Instance 轉化為 CardEntity，在戰鬥中擁有獨立的 Buff 和狀態。
+
+### CardForm 持久化邊界
+
+- `CardDataId` 永遠代表 Base Form，不因變身而覆蓋。
+- `PersistentFormState` 存在時，`CardEntity.CreateFromInstance()` 會原子建立 Persistent Self Form，並以該形態的 CardData Property 作為初始有效資料。
+- `BattleOnly` Form 不寫回 CardInstance；若它取代舊 Persistent Form，寫回結果會清除舊狀態，不回看歷史形態。
+- `CardInstancePersistenceMapper.TryUpdate()` 只接受 `OriginCardInstanceGuid` 相符的 Entity／Instance，並回傳新的 CardInstance Record。
+- Runtime 建立的卡片與 Clone 沒有來源 Instance，因此不會被寫回。
+- 正式磁碟存檔功能實作時，使用獨立 `CardInstanceSaveData` 處理版本相容、外部資料驗證與多型 Property 序列化。
 
 ## AllyInstance — 友軍實例
 

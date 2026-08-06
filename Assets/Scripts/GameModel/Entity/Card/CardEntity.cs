@@ -85,6 +85,7 @@ namespace MortalGame.GameModel
             indentity: Guid.Empty,
             originCardInstanceGuid: Option.None<Guid>(),
             baseCardDataId: string.Empty,
+            selfFormState: Option.None<CardFormState>(),
             cardDataProperties: new List<ICardPropertyEntity>(),
             instanceProperties: new List<ICardPropertyEntity>(),
             buffs: new List<ICardBuffEntity>(),
@@ -96,6 +97,7 @@ namespace MortalGame.GameModel
             Guid indentity,
             Option<Guid> originCardInstanceGuid,
             string baseCardDataId,
+            Option<CardFormState> selfFormState,
             IEnumerable<ICardPropertyEntity> cardDataProperties,
             IEnumerable<ICardPropertyEntity> instanceProperties,
             IEnumerable<ICardBuffEntity> buffs,
@@ -106,7 +108,7 @@ namespace MortalGame.GameModel
             _indentity = indentity;
             _originCardInstanceGuid = originCardInstanceGuid;
             _baseCardDataId = baseCardDataId;
-            _selfFormState = Option.None<CardFormState>();
+            _selfFormState = selfFormState;
             _cardDataProperties = cardDataProperties.ToList();
             _instanceProperties = instanceProperties.ToList();
             _buffManager = new CardBuffManager(buffs);
@@ -119,11 +121,21 @@ namespace MortalGame.GameModel
             CardLibrary cardLibrary,
             ICardPropertyEntityFactory cardPropertyEntityFactory)
         {
+            var selfFormState = cardInstance.PersistentFormState.Map(state =>
+                new CardFormState(
+                    state.TransformKey,
+                    state.CardDataId,
+                    CardFormPersistence.Persistent));
+            var effectiveCardDataId = selfFormState
+                .Map(state => state.CardDataId)
+                .ValueOr(cardInstance.CardDataId);
+
             return new CardEntity(
                 indentity: Guid.NewGuid(),
                 originCardInstanceGuid: cardInstance.InstanceGuid.Some(),
                 baseCardDataId: cardInstance.CardDataId,
-                cardDataProperties: cardLibrary.GetCardData(cardInstance.CardDataId).PropertyDatas
+                selfFormState: selfFormState,
+                cardDataProperties: cardLibrary.GetCardData(effectiveCardDataId).PropertyDatas
                     .Select(cardPropertyEntityFactory.Create),
                 instanceProperties: cardInstance.AdditionPropertyDatas.Select(cardPropertyEntityFactory.Create),
                 buffs: Array.Empty<ICardBuffEntity>(),
@@ -141,6 +153,7 @@ namespace MortalGame.GameModel
                 indentity: Guid.NewGuid(),
                 originCardInstanceGuid: Option.None<Guid>(),
                 baseCardDataId: cardDataId,
+                selfFormState: Option.None<CardFormState>(),
                 cardDataProperties: cardLibrary.GetCardData(cardDataId).PropertyDatas.Select(cardPropertyEntityFactory.Create),
                 instanceProperties: Array.Empty<ICardPropertyEntity>(),
                 buffs: Array.Empty<ICardBuffEntity>(),
@@ -223,6 +236,7 @@ namespace MortalGame.GameModel
                 indentity: Guid.NewGuid(),
                 originCardInstanceGuid: Option.None<Guid>(),
                 baseCardDataId: CardDataId,
+                selfFormState: Option.None<CardFormState>(),
                 cardDataProperties: _effectiveCardData.PropertyDatas.Select(_cardPropertyEntityFactory.Create),
                 instanceProperties: Array.Empty<ICardPropertyEntity>(),
                 buffs: Array.Empty<ICardBuffEntity>(),

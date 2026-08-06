@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-08-05
+> 最後更新：2026-08-07
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -41,7 +41,7 @@ T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始�
   - `ObserveAction` 只更新 ReactionSession；只有明確的 Timing Dispatch 會產生一般 Buff Effect，並在一般 Reaction 後原子提交形態變更。
   - FormChanged 使用獨立 Timing；狀態與 CardInfo 提交後，由新 Effective Form 觸發，並重新驗證 View 的拖曳、聚焦與選取狀態。
   - Buff Command 由 Resolver 攜帶內部 LayerHandle；已失效 Layer 的排隊命令靜默 No-op 並保留診斷。
-  - Self Form 只有 `BattleOnly`（本場限定）與 `Persistent`（永久保留）；勝利／失敗寫回，取消不寫回。
+  - Self Form 只有 `BattleOnly`（本場限定）與 `Persistent`（跨戰鬥、於目前 Level／Run 內保留）；勝利／失敗寫回，取消不寫回。
   - External Override 永遠清除且不持久化；第一版只需產生 CardInstanceChangeSet，不要求先完成完整戰鬥外系統。
   - Clone 只依當下 Effective CardData 建立獨立卡片，不複製 Instance Property、Buff 或形態狀態，也不自動加入 Dispose。
   - 一般與 Override 卡片資產分為 StandardCardDataScriptable／OverrideCardDataScriptable，並共用 CardDataScriptableBase。
@@ -53,14 +53,16 @@ T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始�
   - ✅ 階段 3：完成 Action Observation／Timing Dispatch 分流、Reaction Snapshot、Effect Queue Scope、ReactionSession 修正與 Validator。
   - ✅ 階段 4：完成 Self Transform Timing Dispatch、CardFormChanged Event、FormChanged Effect 與基本 CardInfo／View 更新。
   - ✅ 階段 5：已建立 Standard／Override CardData Scriptable 分型與共用 `CardData` 基底；只有 `StandardCardData` 擁有 `TransformRules`，Override 在型別與 Inspector 層級均無法定義 Self Transform。既有 Standard 資產已在保留 GUID 與內容的前提下完成型別遷移。
+  - ✅ 階段 6：完成 CardInstance Persistent Form、CardEntity 原子還原與 `CardInstancePersistenceMapper` 單卡 round-trip；正式磁碟存檔未實作，未來採獨立 `CardInstanceSaveData`，不直接序列化 Domain Record。
 - **階段 4 收尾**：合併 Self Transform 的 QueueItem 執行責任、以 `EffectResult.Empty` 統一空結果、將無狀態的 `CardTransformRuleEvaluator` 靜態化，並以 `TimingDispatchPlanner` 集中建立一般 Reaction 與 Self Transform QueueItem；`GameplayManager` 僅保留 Reaction Snapshot 建立與流程驅動。
 - **階段 4 驗證**：Buff Timing Pipeline 7 項、Effect Queue Runner 11 項及 T-010 20 項 EditMode 測試全數通過，Unity 編譯為 0 error。
 - **階段 5 驗證**：Unity 編譯 0 error、0 warning；T-010 定向測試涵蓋 Scriptable 分型、Library 共用／Standard 查詢邊界、既有變身流程與資產 round-trip。20 個 Standard 資產的 GUID、CardData ID 與內容摘要在遷移前後一致，GameData Validator 全數通過。
+- **階段 6 驗證**：CardInstance 預設／持久形態、Entity 還原、Revert、BattleOnly 清除、最新 Persistent 覆蓋、來源 Guid 核對及 Runtime Card／Clone 拒絕案例皆通過；T-010 EditMode 33 項全數通過，Unity 編譯 0 error。Console 僅有既有測試預期 Error 與既有 warning。
 - **TriggeredCardEffect 資產遷移**：將舊 `CardData.TriggeredCardEffect` 提升為 Standard／Override 共用的頂層型別；遷移前確認 20 個既有集合皆為空，遷移後 GUID、CardData ID 與集合數量一致，且資產中已無舊型別名稱。另以 Unity Asset round-trip 測試驗證 Timing 與多型 Effect 可保存並重新載入。
-- **下一步**：開始階段 6，將 CardForm 的儲存與讀取整合進 SaveData。
-- **後續階段**：CardBuff Layer、External Override、全區域 View 整合、CardInstanceChangeSet 與完整資料驗證。
+- **下一步**：開始階段 7，建立 CardBuff Layer 的 Base Facade 與 LayerHandle 骨架，先維持既有單層 Buff 行為不變。
+- **後續階段**：External Override、全區域 View 整合、戰鬥結束 CardInstanceChangeSet 與完整資料驗證。
 - **完成條件**：變身後資料與畫面一致，保留／替換狀態符合規則，重新載入 CardInfo 不會回到舊資料。
-- **狀態**：🔄 進行中（階段 0～4 完成）
+- **狀態**：🔄 進行中（階段 0～6 完成）
 
 ### T-011：多步驟自訂目標選取
 
