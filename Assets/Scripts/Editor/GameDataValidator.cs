@@ -14,7 +14,8 @@ namespace MortalGame.Editor
 
         public static IReadOnlyList<string> ValidateAll()
         {
-            return ValidateEffectCommandHandlers()
+            return ValidateCardScriptableTypes()
+                .Concat(ValidateEffectCommandHandlers())
                 .Concat(ValidateEffectResolvers())
                 .Concat(ValidateReferenceIds())
                 .Concat(ValidateCardTransformRules())
@@ -76,15 +77,84 @@ namespace MortalGame.Editor
 
         public static IReadOnlyList<string> ValidateCardTransformRules()
         {
-            return LoadAssets<CardDataScriptable>()
+            return LoadAssets<StandardCardDataScriptable>()
                 .SelectMany(asset => ValidateCardTransformRules(
                     asset.Data,
                     AssetDatabase.GetAssetPath(asset)))
                 .ToArray();
         }
 
+        public static IReadOnlyList<string> ValidateCardScriptableTypes()
+        {
+            return ValidateCardScriptableTypes(
+                LoadAssets<CardDataScriptableBase>(),
+                LoadAssets<DeckScriptable>());
+        }
+
+        public static IReadOnlyList<string> ValidateCardScriptableTypes(
+            IEnumerable<CardDataScriptableBase> cardAssets,
+            IEnumerable<DeckScriptable> deckAssets)
+        {
+            var cards = (cardAssets ?? Enumerable.Empty<CardDataScriptableBase>())
+                .Where(asset => asset != null)
+                .ToArray();
+            var errors = new List<string>();
+
+            foreach (var duplicateId in cards
+                .Where(asset => asset.CardData != null)
+                .GroupBy(asset => asset.CardData.ID)
+                .Where(group => !string.IsNullOrWhiteSpace(group.Key) && group.Count() > 1))
+            {
+                errors.Add($"CardData ID 在 Standard／Override 資產間重複：{duplicateId.Key}");
+            }
+
+            var assetsById = cards
+                .Where(asset => asset.CardData != null)
+                .Where(asset => !string.IsNullOrWhiteSpace(asset.CardData.ID))
+                .GroupBy(asset => asset.CardData.ID)
+                .ToDictionary(group => group.Key, group => group.First());
+
+            foreach (var cardAsset in cards)
+            {
+                var context = GetAssetContext(cardAsset);
+                var cardData = cardAsset.CardData;
+                if (cardData == null)
+                {
+                    errors.Add($"{context} 的 CardData 為空");
+                    continue;
+                }
+
+                if (cardAsset is not StandardCardDataScriptable standardCardAsset)
+                    continue;
+
+                foreach (var applyOperation in (standardCardAsset.Data.TransformRules ?? new List<CardTransformRule>())
+                    .Where(rule => rule?.Operation is ApplyCardTransformOperationData)
+                    .Select(rule => (ApplyCardTransformOperationData)rule.Operation))
+                {
+                    if (assetsById.TryGetValue(applyOperation.TargetCardDataId, out var targetAsset) &&
+                        targetAsset is not StandardCardDataScriptable)
+                    {
+                        errors.Add(
+                            $"{context} / CardData[{cardData.ID}] 的 Self Transform Target " +
+                            $"必須是 Standard CardData：{applyOperation.TargetCardDataId}");
+                    }
+                }
+            }
+
+            foreach (var deck in deckAssets ?? Enumerable.Empty<DeckScriptable>())
+            {
+                if (deck == null)
+                    continue;
+
+                if ((deck.Cards ?? Array.Empty<StandardCardDataScriptable>()).Any(card => card == null))
+                    errors.Add($"{GetAssetContext(deck)} 的 DeckScriptable.Cards 含有空卡牌引用");
+            }
+
+            return errors;
+        }
+
         public static IReadOnlyList<string> ValidateCardTransformRules(
-            CardData cardData,
+            StandardCardData cardData,
             string context)
         {
             if (cardData == null)
@@ -122,6 +192,8 @@ namespace MortalGame.Editor
                     errors.Add($"{ruleContext} 的 TransformKey 為空");
                 if (rule.Timing == GameTiming.None)
                     errors.Add($"{ruleContext} 的 Timing 不可為 None");
+                else if (!IsTimingDispatchSupported(rule.Timing))
+                    errors.Add($"{ruleContext} 的 Timing 不會進入 Timing Dispatch：{rule.Timing}");
                 if (rule.Conditions == null || rule.Conditions.Any(condition => condition == null))
                     errors.Add($"{ruleContext} 的 Conditions 含有空值");
                 switch (rule.Operation)
@@ -151,8 +223,8 @@ namespace MortalGame.Editor
         {
             var errors = new List<string>();
 
-            foreach (var cardAsset in LoadAssets<CardDataScriptable>())
-                ValidateCardEffects(cardAsset.Data, AssetDatabase.GetAssetPath(cardAsset), errors);
+            foreach (var cardAsset in LoadAssets<CardDataScriptableBase>())
+                ValidateCardEffects(cardAsset.CardData, AssetDatabase.GetAssetPath(cardAsset), errors);
 
             foreach (var buffAsset in LoadAssets<PlayerBuffDataScriptable>())
                 ValidatePlayerBuffEffects(buffAsset.Data, AssetDatabase.GetAssetPath(buffAsset), errors);
@@ -168,9 +240,9 @@ namespace MortalGame.Editor
 
         public static IReadOnlyList<string> ValidateReferenceIds()
         {
-            var cardIds = LoadAssets<CardDataScriptable>()
-                .Where(asset => asset.Data != null)
-                .Select(asset => asset.Data.ID)
+            var cardIds = LoadAssets<CardDataScriptableBase>()
+                .Where(asset => asset.CardData != null)
+                .Select(asset => asset.CardData.ID)
                 .ToHashSet();
             var cardBuffIds = LoadAssets<CardBuffScriptable>()
                 .Where(asset => asset.Data != null)
@@ -182,10 +254,10 @@ namespace MortalGame.Editor
                 .ToHashSet();
             var errors = new List<string>();
 
-            foreach (var cardAsset in LoadAssets<CardDataScriptable>())
+            foreach (var cardAsset in LoadAssets<CardDataScriptableBase>())
             {
                 ValidateCardReferenceIds(
-                    cardAsset.Data,
+                    cardAsset.CardData,
                     AssetDatabase.GetAssetPath(cardAsset),
                     cardIds,
                     cardBuffIds,
@@ -234,7 +306,7 @@ namespace MortalGame.Editor
             foreach (var effect in cardData.Effects ?? Enumerable.Empty<ICardEffect>())
                 ValidateCardEffectResolver(effect, $"{assetPath} / CardData[{cardData.ID}].Effects", errors);
 
-            foreach (var triggeredEffect in cardData.TriggeredEffects ?? Enumerable.Empty<CardData.TriggeredCardEffect>())
+            foreach (var triggeredEffect in cardData.TriggeredEffects ?? Enumerable.Empty<TriggeredCardEffect>())
             {
                 foreach (var effect in triggeredEffect?.Effects ?? Array.Empty<ICardEffect>())
                 {
@@ -418,7 +490,7 @@ namespace MortalGame.Editor
             if (deck == null)
                 return;
 
-            foreach (var cardAsset in deck.Cards ?? Array.Empty<CardDataScriptable>())
+            foreach (var cardAsset in deck.Cards ?? Array.Empty<StandardCardDataScriptable>())
             {
                 if (cardAsset == null)
                 {
@@ -459,7 +531,7 @@ namespace MortalGame.Editor
             foreach (var effect in cardData.Effects ?? Enumerable.Empty<ICardEffect>())
                 yield return effect;
 
-            foreach (var triggeredEffect in cardData.TriggeredEffects ?? Enumerable.Empty<CardData.TriggeredCardEffect>())
+            foreach (var triggeredEffect in cardData.TriggeredEffects ?? Enumerable.Empty<TriggeredCardEffect>())
             {
                 foreach (var effect in triggeredEffect?.Effects ?? Array.Empty<ICardEffect>())
                     yield return effect;
@@ -523,6 +595,25 @@ namespace MortalGame.Editor
                 .Select(AssetDatabase.GUIDToAssetPath)
                 .Select(AssetDatabase.LoadAssetAtPath<T>)
                 .Where(asset => asset != null);
+        }
+
+        private static string GetAssetContext(UnityEngine.Object asset)
+        {
+            var assetPath = AssetDatabase.GetAssetPath(asset);
+            return string.IsNullOrWhiteSpace(assetPath) ? asset.name : assetPath;
+        }
+
+        private static bool IsTimingDispatchSupported(GameTiming timing)
+        {
+            return timing is GameTiming.GameStart or
+                GameTiming.BeforeTurnStart or GameTiming.AfterTurnStart or
+                GameTiming.BeforeDrawCard or GameTiming.AfterDrawCard or
+                GameTiming.BeforeExecuteStart or GameTiming.AfterExecuteStart or
+                GameTiming.BeforeExecuteEnd or GameTiming.AfterExecuteEnd or
+                GameTiming.BeforeTurnEnd or GameTiming.AfterTurnEnd or
+                GameTiming.BeforePlayCardStart or GameTiming.AfterPlayCardStart or
+                GameTiming.BeforePlayCardEnd or GameTiming.AfterPlayCardEnd or
+                GameTiming.BeforeTriggerBuffEffect or GameTiming.AfterTriggerBuffEffect;
         }
 
         private static IEnumerable<GameTiming> GetDuplicateTimings(

@@ -23,7 +23,7 @@ MonoBehaviour:
     SerializationNodes:
     - Name: Data
       Entry: 7
-      Data: 0|MortalGame.GameData.CardData, MortalGame.Runtime
+      Data: 0|MortalGame.GameData.StandardCardData, MortalGame.Runtime
     - Name: ID
       Entry: 1
       Data: BuffComboAttack
@@ -157,20 +157,7 @@ MonoBehaviour:
       Data: 
     - Name: TriggeredEffects
       Entry: 7
-      Data: 15|System.Collections.Generic.List`1[[MortalGame.GameData.CardData+TriggeredCardEffect,
-        MortalGame.Runtime]], mscorlib
-    - Name: 
-      Entry: 12
-      Data: 0
-    - Name: 
-      Entry: 13
-      Data: 
-    - Name: 
-      Entry: 8
-      Data: 
-    - Name: TransformRules
-      Entry: 7
-      Data: 16|System.Collections.Generic.List`1[[MortalGame.GameData.CardTransformRule,
+      Data: 15|System.Collections.Generic.List`1[[MortalGame.GameData.TriggeredCardEffect,
         MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
@@ -183,17 +170,30 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 17|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
+      Data: 16|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
         MortalGame.Runtime]], mscorlib
-    - Name: 
+    - Name:
       Entry: 12
       Data: 1
-    - Name: 
+    - Name:
       Entry: 7
-      Data: 18|MortalGame.GameData.RecyclePropertyData, MortalGame.Runtime
+      Data: 17|MortalGame.GameData.RecyclePropertyData, MortalGame.Runtime
+    - Name:
+      Entry: 8
+      Data:
+    - Name: 
+      Entry: 13
+      Data: 
     - Name: 
       Entry: 8
       Data: 
+    - Name: TransformRules
+      Entry: 7
+      Data: 18|System.Collections.Generic.List`1[[MortalGame.GameData.CardTransformRule,
+        MortalGame.Runtime]], mscorlib
+    - Name: 
+      Entry: 12
+      Data: 0
     - Name: 
       Entry: 13
       Data: 

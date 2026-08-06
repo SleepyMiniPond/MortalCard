@@ -143,6 +143,22 @@ namespace MortalGame.Tests.T010
             Assert.That(errors, Has.Some.Contains("只能使用一個 TransformKey"));
         }
 
+        [Test]
+        public void ValidateCardTransformRules_WithObservationOnlyTiming_ReturnsError()
+        {
+            var cardData = CardTransformationTestBuilder.CreateCardData(
+                CardTransformationTestBuilder.BaseCardId,
+                2,
+                3);
+            var rule = CreateRule("observation-only", priority: 0);
+            rule.Timing = GameTiming.CardPlayResult;
+            cardData.TransformRules.Add(rule);
+
+            var errors = GameDataValidator.ValidateCardTransformRules(cardData, "T-010 Test");
+
+            Assert.That(errors, Has.Some.Contains("不會進入 Timing Dispatch：CardPlayResult"));
+        }
+
         private static CardTransformRule CreateRule(
             string ruleId,
             int priority,

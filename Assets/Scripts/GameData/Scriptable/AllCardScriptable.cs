@@ -7,6 +7,6 @@ namespace MortalGame.GameData
     [CreateAssetMenu(fileName = "AllCardScriptable", menuName = "Scriptable Objects/AllCardScriptable")]
     public class AllCardScriptable : SerializedScriptableObject
     {
-        public CardDataScriptable[] AllCardData = new CardDataScriptable[0];
+        public CardDataScriptableBase[] AllCardData = new CardDataScriptableBase[0];
     }
 }

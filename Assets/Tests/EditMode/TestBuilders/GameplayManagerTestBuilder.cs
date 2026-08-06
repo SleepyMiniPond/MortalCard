@@ -13,7 +13,13 @@ namespace MortalGame.Tests
         private readonly Dictionary<string, CharacterBuffData> _characterBuffs = new();
         private readonly Dictionary<string, CardBuffData> _cardBuffs = new();
 
-        public GameplayManagerTestBuilder WithCard(CardData cardData)
+        public GameplayManagerTestBuilder WithCard(StandardCardData cardData)
+        {
+            _cards[cardData.ID] = cardData;
+            return this;
+        }
+
+        public GameplayManagerTestBuilder WithCard(OverrideCardData cardData)
         {
             _cards[cardData.ID] = cardData;
             return this;

@@ -37,7 +37,13 @@ namespace MortalGame.Tests.T010
                 }));
         }
 
-        public CardTransformationTestBuilder WithCard(CardData cardData)
+        public CardTransformationTestBuilder WithCard(StandardCardData cardData)
+        {
+            _cards[cardData.ID] = cardData;
+            return this;
+        }
+
+        public CardTransformationTestBuilder WithCard(OverrideCardData cardData)
         {
             _cards[cardData.ID] = cardData;
             return this;
@@ -54,7 +60,15 @@ namespace MortalGame.Tests.T010
             var gameplay = new GameplayManagerTestBuilder();
             foreach (var cardData in _cards.Values)
             {
-                gameplay.WithCard(cardData);
+                switch (cardData)
+                {
+                    case StandardCardData standardCardData:
+                        gameplay.WithCard(standardCardData);
+                        break;
+                    case OverrideCardData overrideCardData:
+                        gameplay.WithCard(overrideCardData);
+                        break;
+                }
             }
 
             foreach (var cardBuff in _cardBuffs.Values)
@@ -94,7 +108,7 @@ namespace MortalGame.Tests.T010
             return new BuiltCardTransformationTest(built.Gameplay, card, context);
         }
 
-        public static CardData CreateCardData(string cardId, int cost, int power)
+        public static StandardCardData CreateCardData(string cardId, int cost, int power)
         {
             var cardData = CardTestBuilder.CreateCardData(cardId);
             cardData.Cost = cost;

@@ -41,7 +41,7 @@ namespace MortalGame.GameModel
                 return Option.None<CardFormOperation>();
 
             var baseCardData = context.Model.ContextManager.CardLibrary
-                .GetCardData(context.Owner.BaseCardDataId);
+                .GetStandardCardData(context.Owner.BaseCardDataId);
             var orderedRules = baseCardData.TransformRules
                 .Select((rule, index) => (Rule: rule, Index: index))
                 .Where(pair => pair.Rule.Timing == timing)

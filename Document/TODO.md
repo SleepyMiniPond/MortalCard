@@ -52,7 +52,12 @@ T-010 與 T-011 互相獨立，應依近期卡牌需求選擇其中一項開始�
   - ✅ 階段 2：完成多型 CardTransformRule Operation、Evaluator 與 TransformRule Validator。
   - ✅ 階段 3：完成 Action Observation／Timing Dispatch 分流、Reaction Snapshot、Effect Queue Scope、ReactionSession 修正與 Validator。
   - ✅ 階段 4：完成 Self Transform Timing Dispatch、CardFormChanged Event、FormChanged Effect 與基本 CardInfo／View 更新。
-- **下一步**：階段 5，建立 Standard／Override CardData Scriptable 分型與對應 Validator。
+  - ✅ 階段 5：已建立 Standard／Override CardData Scriptable 分型與共用 `CardData` 基底；只有 `StandardCardData` 擁有 `TransformRules`，Override 在型別與 Inspector 層級均無法定義 Self Transform。既有 Standard 資產已在保留 GUID 與內容的前提下完成型別遷移。
+- **階段 4 收尾**：合併 Self Transform 的 QueueItem 執行責任、以 `EffectResult.Empty` 統一空結果、將無狀態的 `CardTransformRuleEvaluator` 靜態化，並以 `TimingDispatchPlanner` 集中建立一般 Reaction 與 Self Transform QueueItem；`GameplayManager` 僅保留 Reaction Snapshot 建立與流程驅動。
+- **階段 4 驗證**：Buff Timing Pipeline 7 項、Effect Queue Runner 11 項及 T-010 20 項 EditMode 測試全數通過，Unity 編譯為 0 error。
+- **階段 5 驗證**：Unity 編譯 0 error、0 warning；T-010 定向測試涵蓋 Scriptable 分型、Library 共用／Standard 查詢邊界、既有變身流程與資產 round-trip。20 個 Standard 資產的 GUID、CardData ID 與內容摘要在遷移前後一致，GameData Validator 全數通過。
+- **TriggeredCardEffect 資產遷移**：將舊 `CardData.TriggeredCardEffect` 提升為 Standard／Override 共用的頂層型別；遷移前確認 20 個既有集合皆為空，遷移後 GUID、CardData ID 與集合數量一致，且資產中已無舊型別名稱。另以 Unity Asset round-trip 測試驗證 Timing 與多型 Effect 可保存並重新載入。
+- **下一步**：開始階段 6，將 CardForm 的儲存與讀取整合進 SaveData。
 - **後續階段**：CardBuff Layer、External Override、全區域 View 整合、CardInstanceChangeSet 與完整資料驗證。
 - **完成條件**：變身後資料與畫面一致，保留／替換狀態符合規則，重新載入 CardInfo 不會回到舊資料。
 - **狀態**：🔄 進行中（階段 0～4 完成）

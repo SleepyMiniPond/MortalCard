@@ -4,11 +4,40 @@ using System.Linq;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace MortalGame.Tests.T010
 {
     public class CardTransformationCharacterizationTests
     {
+        [Test]
+        public void CardLibrary_OverrideCardSupportsCommonLookupButNotStandardLookup()
+        {
+            const string overrideCardId = "t010-override-card";
+            var overrideCardData = new OverrideCardData
+            {
+                ID = overrideCardId,
+                Cost = 3,
+                Power = 4
+            };
+            var library = new CardLibrary(new Dictionary<string, CardData>
+            {
+                [overrideCardId] = overrideCardData
+            });
+
+            var commonCardData = library.GetCardData(overrideCardId);
+            LogAssert.Expect(
+                LogType.Error,
+                $"Card ID[{overrideCardId}] 不是 Standard CardData。");
+            var standardCardData = library.GetStandardCardData(overrideCardId);
+
+            Assert.That(commonCardData, Is.SameAs(overrideCardData));
+            Assert.That(commonCardData.Cost, Is.EqualTo(3));
+            Assert.That(commonCardData.Power, Is.EqualTo(4));
+            Assert.That(standardCardData, Is.Null);
+        }
+
         [Test]
         public void CardInfo_Create_UsesCardEntityCurrentData()
         {

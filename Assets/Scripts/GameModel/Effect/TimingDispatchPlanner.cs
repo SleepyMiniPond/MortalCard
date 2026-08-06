@@ -52,7 +52,7 @@ namespace MortalGame.GameModel
         {
             return snapshot.Cards
                 .Where(card => contextManager.CardLibrary
-                    .GetCardData(card.BaseCardDataId)
+                    .GetStandardCardData(card.BaseCardDataId)
                     .TransformRules
                     .Any(rule => rule.Timing == snapshot.Action.Timing))
                 .Select(card => new SelfTransformQueueItem(

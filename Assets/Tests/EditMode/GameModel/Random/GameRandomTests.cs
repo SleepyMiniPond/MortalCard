@@ -84,7 +84,7 @@ namespace MortalGame.Tests
         {
             var cardDatas = Enumerable.Range(1, 10)
                 .Select(index => CardTestBuilder.CreateCardData($"test-card-{index}"))
-                .ToDictionary(card => card.ID);
+                .ToDictionary(card => card.ID, card => (CardData)card);
             var cardLibrary = new CardLibrary(cardDatas);
 
             return cardDatas.Keys

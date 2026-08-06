@@ -14,7 +14,7 @@ namespace MortalGame.GameModel
         // dynamic data
         IReadOnlyList<ICardPropertyData> AdditionPropertyDatas)
     {
-        public static CardInstance Create(CardData cardData)
+        public static CardInstance Create(StandardCardData cardData)
         {
             return new CardInstance(
                 InstanceGuid: Guid.NewGuid(),

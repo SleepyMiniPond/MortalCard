@@ -7,6 +7,6 @@ namespace MortalGame.GameData
     [CreateAssetMenu(fileName = "DeckScriptable", menuName = "Scriptable Objects/DeckScriptable")]
     public class DeckScriptable : SerializedScriptableObject
     {
-        public CardDataScriptable[] Cards = new CardDataScriptable[0];
+        public StandardCardDataScriptable[] Cards = new StandardCardDataScriptable[0];
     }
 }

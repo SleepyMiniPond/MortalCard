@@ -158,7 +158,7 @@ namespace MortalGame.Tests.T010
                 Is.EqualTo(CardTransformationTestBuilder.AlternateCardId));
         }
 
-        private static CardData CreateCardWithApplyRule(
+        private static StandardCardData CreateCardWithApplyRule(
             string cardId,
             string targetCardDataId)
         {
@@ -179,9 +179,9 @@ namespace MortalGame.Tests.T010
             return card;
         }
 
-        private static CardData.TriggeredCardEffect CreateFormChangedEnergyEffect(int value)
+        private static TriggeredCardEffect CreateFormChangedEnergyEffect(int value)
         {
-            return new CardData.TriggeredCardEffect
+            return new TriggeredCardEffect
             {
                 Timing = CardTriggeredTiming.FormChanged,
                 Effects = new ICardEffect[]

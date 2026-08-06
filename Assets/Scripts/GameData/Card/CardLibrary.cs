@@ -23,5 +23,15 @@ namespace MortalGame.GameData
 
             return _cards[cardId];
         }
+
+        public StandardCardData GetStandardCardData(string cardId)
+        {
+            var cardData = GetCardData(cardId);
+            if (cardData is StandardCardData standardCardData)
+                return standardCardData;
+
+            Debug.LogError($"Card ID[{cardId}] 不是 Standard CardData。");
+            return null;
+        }
     }
 }

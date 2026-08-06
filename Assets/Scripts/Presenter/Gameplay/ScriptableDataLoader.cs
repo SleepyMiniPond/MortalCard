@@ -27,7 +27,7 @@ namespace MortalGame.Presenter
         [SerializeField]
         private ExcelDatas _excelDatasScriptable;
 
-        public CardData[] AllCards => _allCardScriptable.AllCardData.Select(c => c.Data).ToArray();
+        public CardData[] AllCards => _allCardScriptable.AllCardData.Select(c => c.CardData).ToArray();
         public CardBuffData[] AllCardBuffs => _allCardBuffScriptable.AllCardBuffData.Select(c => c.Data).ToArray();
         public PlayerBuffData[] AllPlayerBuffs => _allPlayerBuffScriptable.AllBuffData.Select(b => b.Data).ToArray();
         public CharacterBuffData[] AllCharacterBuffs => _allCharacterBuffScriptable.AllBuffData.Select(b => b.Data).ToArray();

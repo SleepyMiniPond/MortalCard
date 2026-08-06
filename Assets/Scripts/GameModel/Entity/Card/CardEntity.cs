@@ -174,7 +174,7 @@ namespace MortalGame.GameModel
                     transformKey);
             }
 
-            var targetCardData = _cardLibrary.GetCardData(targetCardDataId);
+            var targetCardData = _cardLibrary.GetStandardCardData(targetCardDataId);
             if (targetCardData == null)
             {
                 return new CardFormOperationResult(

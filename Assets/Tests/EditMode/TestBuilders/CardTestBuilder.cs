@@ -9,9 +9,9 @@ namespace MortalGame.Tests
     {
         public const string CardId = "test-card";
 
-        public static CardData CreateCardData(string cardId = CardId)
+        public static StandardCardData CreateCardData(string cardId = CardId)
         {
-            return new CardData
+            return new StandardCardData
             {
                 ID = cardId,
                 Rarity = CardRarity.Common,

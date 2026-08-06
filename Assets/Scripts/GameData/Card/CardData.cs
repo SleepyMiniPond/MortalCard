@@ -1,26 +1,16 @@
 using System;
 using MortalGame.GameModel;
-using System.Collections;
 using System.Collections.Generic;
 using Sirenix.OdinInspector;
 using UnityEngine;
 
 namespace MortalGame.GameData
 {
-
-    public class CardData
+    /// <summary>
+    /// Standard 與 Override 卡牌資料共用的基底型別。
+    /// </summary>
+    public abstract class CardData
     {
-        [Serializable]
-        public class TriggeredCardEffect
-        {
-            [TableColumnWidth(150, false)]
-            public CardTriggeredTiming Timing;
-
-            [ShowInInspector]
-            // TODO: conditional cardeffect
-            public ICardEffect[] Effects = new ICardEffect[0];
-        }
-
         [BoxGroup("Identification")]
         public string ID;
 
@@ -54,21 +44,20 @@ namespace MortalGame.GameData
         [TableList]
         public List<TriggeredCardEffect> TriggeredEffects = new();
 
-        [BoxGroup("Transform")]
-        [ShowInInspector]
-        [TableList]
-        public List<CardTransformRule> TransformRules = new();
-
         [ShowInInspector]
         [BoxGroup("Properties")]
         public List<ICardPropertyData> PropertyDatas = new();
     }
 
-    [Serializable]
-    public class MainTargetSelectLogic
+    /// <summary>
+    /// 可獨立存在的標準卡片資料，也是唯一能定義 Self Transform 規則的卡片資料。
+    /// </summary>
+    public sealed class StandardCardData : CardData
     {
-        public IMainTargetSelectable MainSelectable = new NoneSelectable();
-        public TargetLogicTag LogicTag = TargetLogicTag.None;
+        [BoxGroup("Transform")]
+        [ShowInInspector]
+        [TableList]
+        public List<CardTransformRule> TransformRules = new();
     }
 
 }
