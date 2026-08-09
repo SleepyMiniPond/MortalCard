@@ -7,6 +7,7 @@ using Cysharp.Threading.Tasks;
 using UniRx;
 using MortalGame.GameModel;
 using MortalGame.GameView;
+using Optional;
 
 
 namespace MortalGame.Presenter
@@ -30,6 +31,7 @@ namespace MortalGame.Presenter
         private readonly ICardSelectionPanel _cardSelectionPanel;
         private readonly SingleCardDetailPopupPanel _singleCardDetailPopupPanel;
         private readonly IUniTaskPresenter _uniTaskPresenter;
+        private readonly IGameViewModel _gameViewModel;
 
         public SubSelectionPresenter(
             IGameViewModel gameViewModel,
@@ -37,6 +39,7 @@ namespace MortalGame.Presenter
             SingleCardDetailPopupPanel singleCardDetailPopupPanel,
             ICardSelectionPanel cardSelectionPanel)
         {
+            _gameViewModel = gameViewModel;
             _singleCardDetailPopupPanel = singleCardDetailPopupPanel;
             _singleCardDetailPopupPanel.Init(gameViewModel, localizeLibrary);
             _cardSelectionPanel = cardSelectionPanel;
@@ -149,10 +152,16 @@ namespace MortalGame.Presenter
                 return new ICardSelectionPanel.SelectionProperty(
                     cardInfo.Identity.ToString(),
                     cardInfo,
-                    (info, cardView) =>
-                        _uniTaskPresenter.TryEnqueueNextEvent(new ISubSelectionPresenter.SelectCardEvent(info, cardView)),
-                    (info, cardView) =>
-                        _uniTaskPresenter.TryEnqueueNextEvent(new ISubSelectionPresenter.LongTouchCardEvent(info, cardView))
+                    (identity, cardView) =>
+                        _gameViewModel.GetCardInfoOrNone(identity)
+                            .MatchSome(info =>
+                                _uniTaskPresenter.TryEnqueueNextEvent(
+                                    new ISubSelectionPresenter.SelectCardEvent(info, cardView))),
+                    (identity, cardView) =>
+                        _gameViewModel.GetCardInfoOrNone(identity)
+                            .MatchSome(info =>
+                                _uniTaskPresenter.TryEnqueueNextEvent(
+                                    new ISubSelectionPresenter.LongTouchCardEvent(info, cardView)))
                 );
             }
             ICardSelectionPanel.Property CreateProperty()

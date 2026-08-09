@@ -412,6 +412,7 @@ namespace MortalGame.GameView
 
         private void _SelectCardView(EnemySelectCardEvent enemySelectCardEvent)
         {
+            _gameViewModel.UpdateCardInfo(enemySelectCardEvent.SelectedCardInfo);
             _enemySelectedCardView.CreateCardView(enemySelectCardEvent);
         }
         private void _UnselectCardView(EnemyUnselectedCardEvent enemyUnselectedCardEvent)

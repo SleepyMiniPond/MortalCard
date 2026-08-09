@@ -33,16 +33,16 @@ namespace MortalGame.GameView
     {
         public record RuntimeHandCardProperty(
             CardInfo CardInfo,
-            Action<CardInfo> OnPointerEnter = null,
-            Action<CardInfo> OnPointerExit = null,
-            Action<CardInfo, Vector2> OnBeginDrag = null,
-            Action<CardInfo, Vector2> OnDrag = null,
-            Action<CardInfo, Vector2> OnEndDrag = null);
+            Action<Guid> OnPointerEnter = null,
+            Action OnPointerExit = null,
+            Action<Guid, Vector2> OnBeginDrag = null,
+            Action<Guid, Vector2> OnDrag = null,
+            Action<Guid, Vector2> OnEndDrag = null);
         public record CardClickableProperty(
             CardInfo CardInfo,
             bool IsClickable,
-            Action<CardInfo, ICardView> OnClickCard = null,
-            Action<CardInfo, ICardView> OnLongPressCard = null);
+            Action<Guid, ICardView> OnClickCard = null,
+            Action<Guid, ICardView> OnLongPressCard = null);
         public record CardSimpleProperty(
             CardInfo CardInfo);
 
@@ -101,8 +101,8 @@ namespace MortalGame.GameView
         public RectTransform ParentRectTransform => transform.parent.GetComponent<RectTransform>();
         public Canvas Canvas => transform.GetComponentInParent<Canvas>();
 
-        private CompositeDisposable _disposables = new();
-        private IDisposable _cardInfoSubscription;
+        private readonly SerialDisposable _interactionSubscription = new();
+        private readonly SerialDisposable _cardInfoSubscription = new();
         private Vector3 _localPosition;
         private Quaternion _localRotation;
         private Dictionary<Guid, List<Vector3>> _offsets = new Dictionary<Guid, List<Vector3>>();
@@ -122,36 +122,31 @@ namespace MortalGame.GameView
 
         public void Render(ICardView.RuntimeHandCardProperty property)
         {
-            _disposables.Clear();
-            _gameViewModel.ObservableCardInfo(property.CardInfo.Identity)
-                .MatchSome(reactiveProp =>
-                {
-                    _cardInfoSubscription?.Dispose();
-                    _cardInfoSubscription = reactiveProp
-                        .Subscribe(info => _Render(info));
-                });
+            var interactionSubscriptions = new CompositeDisposable();
+            _interactionSubscription.Disposable = interactionSubscriptions;
+            _ObserveCardInfo(property.CardInfo);
 
             _button.OnPointerEnterAsObservable()
-                .Subscribe(_ => property.OnPointerEnter?.Invoke(property.CardInfo))
-                .AddTo(_disposables);
+                .Subscribe(_ => property.OnPointerEnter?.Invoke(_cardIdentity))
+                .AddTo(interactionSubscriptions);
             _button.OnPointerExitAsObservable()
-                .Subscribe(_ => property.OnPointerExit?.Invoke(property.CardInfo))
-                .AddTo(_disposables);
+                .Subscribe(_ => property.OnPointerExit?.Invoke())
+                .AddTo(interactionSubscriptions);
             _button.OnBeginDragAsObservable()
-                .Subscribe(eventData => property.OnBeginDrag?.Invoke(property.CardInfo, eventData.position))
-                .AddTo(_disposables);
+                .Subscribe(eventData => property.OnBeginDrag?.Invoke(_cardIdentity, eventData.position))
+                .AddTo(interactionSubscriptions);
             _button.OnDragAsObservable()
-                .Subscribe(eventData => property.OnDrag?.Invoke(property.CardInfo, eventData.position))
-                .AddTo(_disposables);
+                .Subscribe(eventData => property.OnDrag?.Invoke(_cardIdentity, eventData.position))
+                .AddTo(interactionSubscriptions);
             _button.OnEndDragAsObservable()
-                .Subscribe(eventData => property.OnEndDrag?.Invoke(property.CardInfo, eventData.position))
-                .AddTo(_disposables);
-
-            _Render(property.CardInfo);
+                .Subscribe(eventData => property.OnEndDrag?.Invoke(_cardIdentity, eventData.position))
+                .AddTo(interactionSubscriptions);
         }
         public void Render(ICardView.CardClickableProperty property)
         {
-            _disposables.Clear();
+            var interactionSubscriptions = new CompositeDisposable();
+            _interactionSubscription.Disposable = interactionSubscriptions;
+            _ObserveCardInfo(property.CardInfo);
             _button.interactable = property.IsClickable;
             if (property.IsClickable)
             {
@@ -161,22 +156,35 @@ namespace MortalGame.GameView
                         switch (pressType)
                         {
                             case ObservableButtonExtensions.PressType.Click:
-                                property.OnClickCard?.Invoke(property.CardInfo, this);
+                                property.OnClickCard?.Invoke(_cardIdentity, this);
                                 break;
                             case ObservableButtonExtensions.PressType.LongPress:
-                                property.OnLongPressCard?.Invoke(property.CardInfo, this);
+                                property.OnLongPressCard?.Invoke(_cardIdentity, this);
                                 break;
                         }
                     })
-                    .AddTo(_disposables);
+                    .AddTo(interactionSubscriptions);
             }
-
-            _Render(property.CardInfo);
         }
         public void Render(ICardView.CardSimpleProperty property)
         {
-            _disposables.Clear();
-            _Render(property.CardInfo);
+            _interactionSubscription.Disposable = null;
+            _ObserveCardInfo(property.CardInfo);
+        }
+
+        private void _ObserveCardInfo(CardInfo cardInfo)
+        {
+            _cardInfoSubscription.Disposable = null;
+            _Render(cardInfo);
+
+            _gameViewModel.ObservableCardInfo(cardInfo.Identity)
+                .MatchSome(reactiveProp =>
+                {
+                    _cardInfoSubscription.Disposable = reactiveProp.Subscribe(info =>
+                    {
+                        _Render(info);
+                    });
+                });
         }
 
         private void _Render(CardInfo cardInfo)
@@ -257,11 +265,17 @@ namespace MortalGame.GameView
             _localRotation = Quaternion.identity;
             transform.localRotation = _localRotation;
             _UpdateLocalPosition();
-            _cardInfoSubscription?.Dispose();
+            _cardInfoSubscription.Disposable = null;
             _button.interactable = false;
-            _disposables.Clear();
+            _interactionSubscription.Disposable = null;
             OnDeselect();
             HideHandCardFocusContent();
+        }
+
+        private void OnDestroy()
+        {
+            _cardInfoSubscription.Dispose();
+            _interactionSubscription.Dispose();
         }
 
         public void SetPositionAndRotation(Vector3 position, Quaternion rotation)

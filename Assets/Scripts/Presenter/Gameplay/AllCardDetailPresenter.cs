@@ -141,8 +141,11 @@ namespace MortalGame.Presenter
                     new ICardView.CardClickableProperty(
                         CardInfo: cardInfo,
                         IsClickable: true,
-                        OnClickCard: (info, cardView) =>
-                            _uniTaskPresenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.CardDetailEvent(info, cardView))))
+                        OnClickCard: (identity, cardView) =>
+                            _gameViewModel.GetCardInfoOrNone(identity)
+                                .MatchSome(info =>
+                                    _uniTaskPresenter.TryEnqueueNextEvent(
+                                        new IAllCardDetailPresenter.CardDetailEvent(info, cardView)))))
                 );
             _detailPanel.Render(property);
         }

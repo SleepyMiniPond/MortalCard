@@ -148,7 +148,13 @@ namespace MortalGame.GameModel
             }
             catch (GameEndException gameEndEx)
             {
-                _battleResult = new BattleResult(gameEndEx.IsAllyWin).Some();
+                var cardInstanceChanges = CardInstanceChangeSetCollector.CollectForBattleResult(
+                    gameEndEx.IsAllyWin,
+                    _gameStageSetting.Ally.Deck,
+                    _gameStatus.Ally.CardManager);
+                _battleResult = new BattleResult(
+                    gameEndEx.IsAllyWin,
+                    cardInstanceChanges).Some();
             }
         }
 

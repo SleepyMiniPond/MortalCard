@@ -29,6 +29,7 @@ namespace MortalGame.Presentation.Abstractions
         void UpdatePlayerBuffInfo(PlayerBuffInfo playerBuffInfo);
         void UpdateCharacterBuffInfo(CharacterBuffInfo characterBuffInfo);
 
+        Option<CardInfo> GetCardInfoOrNone(Guid identity);
         Option<IReadOnlyReactiveProperty<CardInfo>> ObservableCardInfo(Guid identity);
         Option<IReadOnlyReactiveProperty<PlayerBuffInfo>> ObservablePlayerBuffInfo(Guid identity);
         Option<IReadOnlyReactiveProperty<CharacterBuffInfo>> ObservableCharacterBuffInfo(Guid identity);

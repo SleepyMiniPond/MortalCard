@@ -156,6 +156,10 @@ namespace MortalGame.Tests.T010
             var currentInfo = infoProperty.Value;
             Assert.That(currentInfo.CardDataID,
                 Is.EqualTo(CardTransformationTestBuilder.AlternateCardId));
+            Assert.That(
+                viewModel.GetCardInfoOrNone(built.Card.Identity).TryGetValue(out var queriedInfo),
+                Is.True);
+            Assert.That(queriedInfo, Is.SameAs(currentInfo));
         }
 
         private static StandardCardData CreateCardWithApplyRule(

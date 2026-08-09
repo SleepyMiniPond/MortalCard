@@ -2,7 +2,6 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 
 namespace MortalGame.GameModel
 {
@@ -14,12 +13,6 @@ namespace MortalGame.GameModel
         void EnqueueImmediate(EffectQueueItem item);
         void EnqueueImmediate(IEnumerable<EffectQueueItem> items);
     }
-
-    public sealed record EffectQueueHaltDiagnostic(
-        Guid CorrelationId,
-        int Budget,
-        int ProcessedItemCount,
-        IReadOnlyList<string> TriggerPath);
 
     internal sealed class EffectQueueExecutionScope
     {
@@ -51,12 +44,7 @@ namespace MortalGame.GameModel
                     Budget,
                     ProcessedItemCount,
                     triggerPath.ToArray());
-                Debug.LogError(
-                    "[EffectQueueRunner] 執行預算已耗盡。" +
-                    $"CorrelationId={CorrelationId}, " +
-                    $"Budget={Budget}, " +
-                    $"ProcessedItemCount={ProcessedItemCount}, " +
-                    $"TriggerPath={string.Join(" -> ", triggerPath)}");
+                EffectQueueDiagnosticLogger.LogBudgetExceeded(HaltDiagnostic);
                 return false;
             }
 

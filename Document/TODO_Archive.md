@@ -1,6 +1,6 @@
 # 專案已完成任務封存
 
-> 封存日期：2026-07-23
+> 封存日期：2026-08-10
 > 本文件保留已完成任務的設計、實作與驗證紀錄；目前工作請查看 [TODO.md](TODO.md)。
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
@@ -222,3 +222,27 @@
   - `DiscardHandCardEvent` 的棄牌與排除牌資料改為 Identity 集合；回合結束時不再為整批手牌建立完整 `CardInfo`。
   - 保留 `DrawCardEvent`、`AddCardEvent`、`EnemySelectCardEvent` 的完整 `CardInfo`，因為接收端仍需要它建立或更新卡片畫面。
 - **狀態**：✅ 已完成（2026-07-22）
+
+---
+
+### T-010：卡片變身（保留狀態）
+
+- **目標**：讓戰鬥中的卡片切換 CardData，同時依形態來源保留、暫停或替換指定執行期狀態。
+- **完成內容**：
+  - 建立 `Base Form < Self Form < External Override` 的 Effective Form 層級；Self Transform 與 Override 都不改變卡片 Identity、區域或順序。
+  - Self Transform 由 Standard CardData 的 TransformRule 控制，支援 Priority、Apply／Revert、BattleOnly／Persistent 與 FormChanged Timing。
+  - External Override 使用單一可取代 Slot、專用 ReactionSession／ReleaseRule 與 CardBuff Override Layer；第二個 Override 會擠掉第一個，解除後不恢復舊 Override。
+  - CardBuff Command 攜帶 LayerHandle；失效 Layer 的排隊命令安全 No-op。Base Buff 在 Override 期間凍結，Override Buff 解除時丟棄，PlayerBuff 仍可作用於目前形態。
+  - CardInfo、Presenter 與 View 改為 Identity-based 更新；拖曳、Focus、詳情與選取會重新查詢最新資料並驗證目標。
+  - Standard／Override ScriptableObject 完成分型與既有資產遷移；GameData Validator 覆蓋目標型別、必填欄位、ReleaseRule、巢狀 Condition、ReactionSession 與 SessionKey。
+  - Clone 只使用當下 Effective CardData 建立獨立 Base Form，不複製 Instance Property、Buff、Self／Override State，也不自動加入 Dispose。
+  - 勝利時輸出 `CardInstanceChangeSet`；Lose、Retry、Restart、Quit 與取消不輸出且不修改卡片狀態。戰鬥外實際套用與磁碟存檔不屬於本任務範圍。
+- **整合驗證**：A 經 Timing 變成 B、套用 C Override、由 PlayerBuff 在 C 期間加入 Override Buff、Clone C，再解除 C 回到 B；底層 Property／Buff、區域、順序與 CardInfo 均符合規格。
+- **驗證結果**：
+  - Unity 編譯：0 error。
+  - GameData Validator 定向測試：11 項全數通過。
+  - T-010 EditMode：74 項全數通過。
+  - 完整 EditMode：222 項全數通過。
+- **已知邊界**：專案尚無 Gameplay Prefab View 測試 Harness；拖曳中與 Focus 中變形的程式接線已完成，保留正式內容資產下的非阻塞人工 smoke test。
+- **正式文件**：[CardTransformation.md](CardTransformation.md)
+- **狀態**：✅ 已完成（2026-08-10）

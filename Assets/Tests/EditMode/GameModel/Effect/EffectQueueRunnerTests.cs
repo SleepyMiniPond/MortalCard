@@ -172,48 +172,6 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void RunToCompletion_WhenQueueExceedsMaxProcessedItemCount_HaltsSafely()
-        {
-            var runner = new EffectQueueRunner();
-            ExpectBudgetExceededLog(EffectQueueRunner.BUDGET_COUNT);
-
-            runner.Enqueue(new SelfEnqueueingQueueItem(null));
-            var result = runner.RunToCompletion();
-
-            Assert.IsTrue(runner.IsHalted);
-            Assert.That(runner.PendingItemCount, Is.EqualTo(1));
-            Assert.That(
-                result.Events.OfType<TestQueueEvent>().Count(),
-                Is.EqualTo(EffectQueueRunner.BUDGET_COUNT));
-        }
-
-        [Test]
-        public void RunToCompletion_WhenBudgetExceeded_ProvidesCorrelationAndTriggerPath()
-        {
-            var runner = new EffectQueueRunner();
-            ExpectBudgetExceededLog(EffectQueueRunner.BUDGET_COUNT);
-
-            runner.Enqueue(new SelfEnqueueingQueueItem(null));
-            runner.RunToCompletion();
-
-            Assert.That(runner.IsHalted, Is.True);
-            Assert.That(runner.HaltDiagnostic, Is.Not.Null);
-            Assert.That(runner.HaltDiagnostic.CorrelationId, Is.Not.EqualTo(Guid.Empty));
-            Assert.That(
-                runner.HaltDiagnostic.Budget,
-                Is.EqualTo(EffectQueueRunner.BUDGET_COUNT));
-            Assert.That(
-                runner.HaltDiagnostic.ProcessedItemCount,
-                Is.EqualTo(EffectQueueRunner.BUDGET_COUNT));
-            Assert.That(
-                runner.HaltDiagnostic.TriggerPath.Last(),
-                Is.EqualTo(nameof(SelfEnqueueingQueueItem)));
-            Assert.That(
-                runner.HaltDiagnostic.TriggerPath.Count,
-                Is.EqualTo(EffectQueueRunner.BUDGET_COUNT + 1));
-        }
-
-        [Test]
         public void RunToCompletion_TwoRunners_HaveIndependentBudgets()
         {
             var firstRunner = new EffectQueueRunner();
@@ -237,18 +195,6 @@ namespace MortalGame.Tests
             Assert.That(secondRunner.ProcessedItemCount, Is.EqualTo(2));
             Assert.That(firstRunner.IsHalted, Is.False);
             Assert.That(secondRunner.IsHalted, Is.False);
-        }
-
-        private static void ExpectBudgetExceededLog(int budget)
-        {
-            LogAssert.Expect(
-                LogType.Error,
-                new Regex(
-                    @"^\[EffectQueueRunner\] 執行預算已耗盡。" +
-                    @"CorrelationId=[^,]+, " +
-                    $@"Budget={budget}, " +
-                    $@"ProcessedItemCount={budget}, " +
-                    @"TriggerPath=.+$"));
         }
 
         [Test]

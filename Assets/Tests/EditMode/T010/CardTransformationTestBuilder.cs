@@ -16,6 +16,7 @@ namespace MortalGame.Tests.T010
         public const string CardBuffId = "t010-card-buff";
 
         private readonly Dictionary<string, CardData> _cards = new();
+        private readonly Dictionary<string, PlayerBuffData> _playerBuffs = new();
         private readonly Dictionary<string, CardBuffData> _cardBuffs = new();
 
         public CardTransformationTestBuilder()
@@ -56,6 +57,12 @@ namespace MortalGame.Tests.T010
             return this;
         }
 
+        public CardTransformationTestBuilder WithPlayerBuff(PlayerBuffData playerBuffData)
+        {
+            _playerBuffs[playerBuffData.ID] = playerBuffData;
+            return this;
+        }
+
         public BuiltCardTransformationTest Build()
         {
             var gameplay = new GameplayManagerTestBuilder();
@@ -75,6 +82,11 @@ namespace MortalGame.Tests.T010
             foreach (var cardBuff in _cardBuffs.Values)
             {
                 gameplay.WithCardBuff(cardBuff);
+            }
+
+            foreach (var playerBuff in _playerBuffs.Values)
+            {
+                gameplay.WithPlayerBuff(playerBuff);
             }
 
             var builtGameplay = gameplay.Build();

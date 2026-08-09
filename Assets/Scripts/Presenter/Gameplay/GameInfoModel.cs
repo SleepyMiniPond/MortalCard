@@ -175,6 +175,12 @@ namespace MortalGame.Presenter
                 .Map(prop => (IReadOnlyReactiveProperty<CardInfo>)prop);
         }
 
+        public Option<CardInfo> GetCardInfoOrNone(Guid identity)
+        {
+            return OptionCollectionExtensions.GetValueOrNone(_cardInfos, identity)
+                .Map(prop => prop.Value);
+        }
+
         public Option<IReadOnlyReactiveProperty<PlayerBuffInfo>> ObservablePlayerBuffInfo(Guid identity)
         {
             return OptionCollectionExtensions.GetValueOrNone(_playerBuffInfos, identity)

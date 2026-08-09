@@ -76,18 +76,26 @@ namespace MortalGame.Presenter
                 throw new InvalidOperationException(
                     $"gameplayEvent Completed?[{gameplayEventCompleted}] UI Completed?[{uiCompleted}] before the battle completed.");
             }
+            if (!battleResult.TryGetValue(out var completedBattleResult))
+            {
+                throw new InvalidOperationException("戰鬥已結束，但 GameplayManager 未提供 BattleResult。");
+            }
 
             _gameplayView.DisableAllInteraction();
 
-            if (battleResult.Map(result => result.IsAllyWin).ValueOr(false))
+            if (completedBattleResult.IsAllyWin)
             {
                 var winResult = await _gameResultWinPresenter.Run(cancellationToken);
-                return new GameplayResultCommand(winResult);
+                return new GameplayResultCommand(
+                    winResult,
+                    completedBattleResult.CardInstanceChanges);
             }
             else
             {
                 var loseResult = await _gameResultLosePresenter.Run(cancellationToken);
-                return new GameplayResultCommand(loseResult);
+                return new GameplayResultCommand(
+                    loseResult,
+                    completedBattleResult.CardInstanceChanges);
             }
 
             async UniTask RunBattle()

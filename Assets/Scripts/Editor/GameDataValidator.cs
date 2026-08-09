@@ -124,6 +124,11 @@ namespace MortalGame.Editor
                     continue;
                 }
 
+                errors.AddRange(ValidateCardFormOverrideEffects(
+                    cardData,
+                    context,
+                    assetsById));
+
                 if (cardAsset is not StandardCardDataScriptable standardCardAsset)
                     continue;
 
@@ -131,8 +136,13 @@ namespace MortalGame.Editor
                     .Where(rule => rule?.Operation is ApplyCardTransformOperationData)
                     .Select(rule => (ApplyCardTransformOperationData)rule.Operation))
                 {
-                    if (assetsById.TryGetValue(applyOperation.TargetCardDataId, out var targetAsset) &&
-                        targetAsset is not StandardCardDataScriptable)
+                    if (!assetsById.TryGetValue(applyOperation.TargetCardDataId, out var targetAsset))
+                    {
+                        errors.Add(
+                            $"{context} / CardData[{cardData.ID}] 的 Self Transform Target " +
+                            $"指向不存在的 CardData：{applyOperation.TargetCardDataId}");
+                    }
+                    else if (targetAsset is not StandardCardDataScriptable)
                     {
                         errors.Add(
                             $"{context} / CardData[{cardData.ID}] 的 Self Transform Target " +
@@ -151,6 +161,162 @@ namespace MortalGame.Editor
             }
 
             return errors;
+        }
+
+        private static IReadOnlyList<string> ValidateCardFormOverrideEffects(
+            CardData cardData,
+            string context,
+            IReadOnlyDictionary<string, CardDataScriptableBase> assetsById)
+        {
+            var errors = new List<string>();
+            var effects = EnumerateCardEffects(cardData)
+                .OfType<ApplyCardFormOverrideEffect>()
+                .ToArray();
+
+            for (var index = 0; index < effects.Length; index++)
+            {
+                var effect = effects[index];
+                var effectContext =
+                    $"{context} / CardData[{cardData.ID}].ApplyCardFormOverrideEffect[{index}]";
+
+                if (effect.TargetCards == null)
+                    errors.Add($"{effectContext} 的 TargetCards 為空");
+                if (string.IsNullOrWhiteSpace(effect.OverrideKey))
+                    errors.Add($"{effectContext} 的 OverrideKey 為空");
+
+                if (string.IsNullOrWhiteSpace(effect.TargetCardDataId))
+                {
+                    errors.Add($"{effectContext} 的 TargetCardDataId 為空");
+                }
+                else if (!assetsById.TryGetValue(effect.TargetCardDataId, out var targetAsset))
+                {
+                    errors.Add(
+                        $"{effectContext} 指向不存在的 Override CardData：{effect.TargetCardDataId}");
+                }
+                else if (targetAsset is not OverrideCardDataScriptable)
+                {
+                    errors.Add(
+                        $"{effectContext} 的 Target 必須是 Override CardData：{effect.TargetCardDataId}");
+                }
+
+                var releaseRules = effect.ReleaseRules;
+                if (releaseRules == null || releaseRules.Count == 0)
+                {
+                    errors.Add($"{effectContext} 的 ReleaseRules 不可為空");
+                }
+                else
+                {
+                    for (var ruleIndex = 0; ruleIndex < releaseRules.Count; ruleIndex++)
+                    {
+                        var rule = releaseRules[ruleIndex];
+                        var ruleContext = $"{effectContext}.ReleaseRules[{ruleIndex}]";
+                        if (rule == null)
+                        {
+                            errors.Add($"{ruleContext} 為空");
+                            continue;
+                        }
+
+                        if (rule.Timing == GameTiming.None)
+                            errors.Add($"{ruleContext} 的 Timing 不可為 None");
+                        else if (!IsTimingDispatchSupported(rule.Timing))
+                            errors.Add($"{ruleContext} 的 Timing 不會進入 Timing Dispatch：{rule.Timing}");
+
+                        ValidateOverrideReleaseRuleConditions(
+                            rule.Conditions,
+                            ruleContext,
+                            effect.ReactionSessions,
+                            errors);
+                    }
+                }
+
+                if (effect.ReactionSessions == null)
+                {
+                    errors.Add($"{effectContext} 的 ReactionSessions 為空");
+                    continue;
+                }
+
+                foreach (var session in effect.ReactionSessions)
+                {
+                    if (string.IsNullOrWhiteSpace(session.Key))
+                        errors.Add($"{effectContext} 的 ReactionSession Key 為空");
+                    if (session.Value == null)
+                        errors.Add($"{effectContext}.ReactionSessions[{session.Key}] 的資料為空");
+                }
+
+                errors.AddRange(ValidateReactionSessionRules(
+                    effect.ReactionSessions,
+                    $"{effectContext}.ReactionSessions"));
+            }
+
+            return errors;
+        }
+
+        private static void ValidateOverrideReleaseRuleConditions(
+            IReadOnlyList<ICondition> conditions,
+            string context,
+            IReadOnlyDictionary<string, IReactionSessionData> reactionSessions,
+            ICollection<string> errors)
+        {
+            if (conditions == null)
+            {
+                errors.Add($"{context} 的 Conditions 含有空值");
+                return;
+            }
+
+            for (var index = 0; index < conditions.Count; index++)
+            {
+                var condition = conditions[index];
+                var conditionContext = $"{context}.Conditions[{index}]";
+                if (condition == null)
+                {
+                    errors.Add($"{context} 的 Conditions 含有空值");
+                    continue;
+                }
+
+                switch (condition)
+                {
+                    case AllCondition all:
+                        ValidateOverrideReleaseRuleConditions(
+                            all.Conditions,
+                            conditionContext,
+                            reactionSessions,
+                            errors);
+                        break;
+                    case AnyCondition any:
+                        ValidateOverrideReleaseRuleConditions(
+                            any.Conditions,
+                            conditionContext,
+                            reactionSessions,
+                            errors);
+                        break;
+                    case InverseCondition inverse:
+                        ValidateOverrideReleaseRuleConditions(
+                            new[] { inverse.Condition },
+                            conditionContext,
+                            reactionSessions,
+                            errors);
+                        break;
+                    case CardFormOverrideSessionCondition sessionCondition:
+                        if (string.IsNullOrWhiteSpace(sessionCondition.SessionKey))
+                        {
+                            errors.Add($"{conditionContext} 的 Override SessionKey 為空");
+                        }
+                        else if (reactionSessions == null ||
+                            !reactionSessions.ContainsKey(sessionCondition.SessionKey))
+                        {
+                            errors.Add(
+                                $"{conditionContext} 引用不存在的 Override SessionKey：" +
+                                sessionCondition.SessionKey);
+                        }
+
+                        if (sessionCondition.Conditions == null ||
+                            sessionCondition.Conditions.Any(valueCondition => valueCondition == null))
+                        {
+                            errors.Add($"{conditionContext} 的 Session Conditions 含有空值");
+                        }
+                        break;
+                }
+            }
         }
 
         public static IReadOnlyList<string> ValidateCardTransformRules(

@@ -63,7 +63,8 @@ namespace MortalGame.GameView
         {
             var cardView = _cardViewFactory.CreatePrefab();
             cardView.transform.SetParent(_cardViewParent, false);
-            cardView.SetCardInfo(enemySelectCardEvent.SelectedCardInfo, _localizeLibrary);
+            cardView.Initialize(_gameViewModel, _localizeLibrary);
+            cardView.SetCardInfo(enemySelectCardEvent.SelectedCardInfo);
 
             _cardViews.Add(cardView);
             _cardViewDict.Add(enemySelectCardEvent.SelectedCardInfo.Identity, cardView);
@@ -76,7 +77,8 @@ namespace MortalGame.GameView
         {
             var cardView = _cardViewFactory.CreatePrefab();
             cardView.transform.SetParent(_cardViewParent, false);
-            cardView.SetCardInfo(addCardEvent.CardInfo, _localizeLibrary);
+            cardView.Initialize(_gameViewModel, _localizeLibrary);
+            cardView.SetCardInfo(addCardEvent.CardInfo);
 
             _cardViews.Add(cardView);
             _cardViewDict.Add(addCardEvent.CardInfo.Identity, cardView);

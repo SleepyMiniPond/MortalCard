@@ -48,6 +48,17 @@ namespace MortalGame.GameView
                     .Subscribe(_ => isClose = true)
                     .AddTo(disposables);
             }
+            _gameViewModel.ObservableCardInfo(property.CardProperty.CardInfo.Identity)
+                .MatchSome(infoProperty =>
+                    infoProperty
+                        .Skip(1)
+                        .Subscribe(cardInfo =>
+                        {
+                            var latestProperty = CardDetailProperty.Create(cardInfo);
+                            _cardBuffHint.ShowHint(latestProperty.CardBuffHint, _cardView.RectTransform);
+                            _cardKeywordHint.ShowHint(latestProperty.CardKeywordHint, _cardView.RectTransform);
+                        })
+                        .AddTo(disposables));
 
             using (disposables)
             {

@@ -2,10 +2,8 @@ using System;
 using MortalGame.GameData;
 using TMPro;
 using UniRx;
-using UniRx.Triggers;
 using UnityEngine;
 using MortalGame.UI;
-using UnityEngine.UI;
 using MortalGame.Presentation.Abstractions;
 using MortalGame.GameModel;
 
@@ -14,7 +12,8 @@ namespace MortalGame.GameView
 
     public interface IAiCardView : IRecyclable, ISelectableView
     {
-        void SetCardInfo(CardInfo cardInfo, LocalizeLibrary localizeLibrary);
+        void Initialize(IGameViewModel gameViewModel, LocalizeLibrary localizeLibrary);
+        void SetCardInfo(CardInfo cardInfo);
         void SetPositionAndRotation(Vector3 position, Quaternion rotation);
     }
 
@@ -32,17 +31,36 @@ namespace MortalGame.GameView
         private TextMeshProUGUI _power;
 
 
-        private CompositeDisposable _disposables = new CompositeDisposable();
+        private readonly SerialDisposable _cardInfoSubscription = new();
 
         public RectTransform RectTransform => _rectTransform;
         public TargetType TargetType => TargetType.EnemyCard;
         public Guid TargetIdentity => _cardIdentity;
 
         private Guid _cardIdentity;
+        private IGameViewModel _gameViewModel;
+        private LocalizeLibrary _localizeLibrary;
 
-        public void SetCardInfo(CardInfo cardInfo, LocalizeLibrary localizeLibrary)
+        public void Initialize(
+            IGameViewModel gameViewModel,
+            LocalizeLibrary localizeLibrary)
         {
-            var cardLocalizeData = localizeLibrary.Get(LocalizeTitleInfoType.Card, cardInfo.CardDataID);
+            _gameViewModel = gameViewModel;
+            _localizeLibrary = localizeLibrary;
+        }
+
+        public void SetCardInfo(CardInfo cardInfo)
+        {
+            _cardInfoSubscription.Disposable = null;
+            _Render(cardInfo);
+            _gameViewModel.ObservableCardInfo(cardInfo.Identity)
+                .MatchSome(infoProperty =>
+                    _cardInfoSubscription.Disposable = infoProperty.Subscribe(_Render));
+        }
+
+        private void _Render(CardInfo cardInfo)
+        {
+            var cardLocalizeData = _localizeLibrary.Get(LocalizeTitleInfoType.Card, cardInfo.CardDataID);
             var templateValue = cardInfo.GetTemplateValues();
 
             _cardIdentity = cardInfo.Identity;
@@ -58,8 +76,13 @@ namespace MortalGame.GameView
 
         public void Reset()
         {
-            _disposables.Clear();
+            _cardInfoSubscription.Disposable = null;
             _cardIdentity = Guid.Empty;
+        }
+
+        private void OnDestroy()
+        {
+            _cardInfoSubscription.Dispose();
         }
 
         public void OnSelect()

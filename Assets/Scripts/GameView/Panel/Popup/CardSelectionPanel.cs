@@ -24,8 +24,8 @@ namespace MortalGame.GameView
         public record SelectionProperty(
             string Id,
             CardInfo CardInfo,
-            Action<CardInfo, ICardView> OnClick,
-            Action<CardInfo, ICardView> OnLongPress);
+            Action<Guid, ICardView> OnClick,
+            Action<Guid, ICardView> OnLongPress);
         public record UpdateProperty(
             bool IsVisible,
             bool IsConfirmable,
@@ -84,7 +84,7 @@ namespace MortalGame.GameView
 
         private IGameViewModel _gameViewModel;
         private LocalizeLibrary _localizeLibrary;
-        private Dictionary<CardInfo, CardView> _cardViewMap = new();
+        private Dictionary<Guid, CardView> _cardViewMap = new();
 
         public void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary)
         {
@@ -138,7 +138,7 @@ namespace MortalGame.GameView
                         true,
                         selection.OnClick,
                         selection.OnLongPress));
-                _cardViewMap.Add(selection.CardInfo, cardView);
+                _cardViewMap.Add(selection.CardInfo.Identity, cardView);
             }
         }
         public void RenderUpdate(ICardSelectionPanel.UpdateProperty property)
@@ -155,9 +155,12 @@ namespace MortalGame.GameView
                 property.SelectedCards.Count(),
                 property.MaxSelectCount);
 
+            var selectedCardIdentities = property.SelectedCards
+                .Select(cardInfo => cardInfo.Identity)
+                .ToHashSet();
             foreach (var kvp in _cardViewMap)
             {
-                if (property.SelectedCards.Contains(kvp.Key))
+                if (selectedCardIdentities.Contains(kvp.Key))
                 {
                     kvp.Value.OnSelect();
                 }

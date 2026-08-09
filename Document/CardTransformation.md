@@ -1,113 +1,162 @@
-# Card Transformation 卡片變身現況
+# Card Transformation 卡片變身系統
 
-> 最後更新：2026-07-24 | 版本：v1.0
+> 最後更新：2026-08-10 | 版本：v1.2
 
 ## 文件定位
 
-本文件記錄目前程式碼中已存在的卡片變身基礎、資料流與限制。T-010 尚未實作，因此本文件不把討論中的目標 API 或資料結構描述成現有功能。
+本文件描述已完成的 T-010 卡片形態架構，涵蓋 Self Transform、External Override、CardBuff Layer、區域反應邊界、View 互動安全，以及勝利時的批次 `CardInstanceChangeSet` 輸出。
 
-尚未實作的 T-010 設計草稿依專案規範存放於 `.agents/working/`，待功能完成後再依實際程式更新本文件。
+## 形態層級
 
-## 現有變身基礎
+同一個 `CardEntity` 會保留三種形態來源：
 
-### CardEntity 的資料引用
+1. **Base Form**：由原始 `CardInstance.CardDataId` 或 Runtime 建立時的 CardData ID 決定。
+2. **Self Form**：由 Standard CardData 的 `CardTransformRule` 套用。
+3. **External Override**：由外部 Effect 暫時強制套用 Override CardData。
 
-目前 [CardEntity](../Assets/Scripts/GameModel/Entity/Card/CardEntity.cs) 同時保存：
+Effective Form 的優先順序固定為：
 
-- `_mainCardDataId`：建立 CardEntity 時傳入的原始 CardData ID。
-- `_mutationCardDataIds`：預留給形態切換使用的字串 List。
+```text
+External Override > Self Form > Base Form
+```
 
-CardEntity 以 `_mutationCardDataIds` 的第一筆作為目前生效的 CardData ID；List 為空時則回退至 `_mainCardDataId`。目前程式將這個結果稱為 Acting CardData。
+`CardEntity.CardDataId`、Type、Rarity、Theme、Cost、Power、選取規則、Effects 與 TriggeredEffects 都從目前 Effective Form 讀取。形態切換不會更換 `CardEntity.Identity`，也不會改變卡片所在區域。
 
-下列資料已統一代理至 Acting CardData：
+## Self Transform
 
-- CardData ID。
-- 卡片類型、稀有度與主題。
-- 基礎 Cost 與 Power。
-- 主目標與子目標選取規則。
-- 主動 Effects。
-- TriggeredEffects。
+### 資料定義
 
-這代表 Model 已具備「替換目前 CardData 後，大部分靜態卡片內容一起切換」的基礎。
+只有 `StandardCardData` 能定義 `TransformRules`。每個 `CardTransformRule` 包含：
 
-### Identity 與執行期元件
+- `RuleId` 與 `TransformKey`。
+- `Priority`。
+- `GameTiming`。
+- Conditions。
+- Apply 或 Revert Operation。
 
-CardEntity 的 Identity、OriginCardInstanceGuid、CardBuffLayerManager 與 CardManager 區域歸屬，不是 Acting CardData 的一部分。
+Apply Operation 指定目標 Standard CardData 與 `CardFormPersistence`；Revert Operation 依 `TransformKey` 解除目前 Self Form。
 
-因此，如果未來在同一個 CardEntity 上切換 Acting CardData，而非刪除並重建 CardEntity，既有架構可以保留：
+同一 Timing 有多個規則成立時，Evaluator 先比較 Priority，Priority 相同時依資產陣列順序決定。一次 Timing 最多提交一個 Self Form Operation。
 
-- 戰鬥 Identity。
-- CardInstance 來源關聯。
-- CardBuffLayerManager 及其中的 Buff。
-- CardManager 中的物件參考、所在區域與排列位置。
+### 執行限制
 
-目前尚未存在公開的變身操作，因此上述內容是既有物件結構提供的能力，不代表完整變身流程已完成。
+- External Override 存在時不執行 Self Transform Rule。
+- Apply 目標必須是 Standard CardData。
+- 空白 Key、空白目標或不存在的 CardData 會被拒絕。
+- 套用目前已生效的 CardData，或 Revert 不符合目前 `TransformKey` 的狀態，會回傳 No-op。
 
-## CardProperty 現況
+## External Override
 
-CardEntity 建立時，會將兩種來源的 Property 一次轉換並合併至 `_properties`：
+External Override 由 `ApplyCardFormOverrideEffect` 建立，內容包含：
 
-1. 原始 CardData 的 `PropertyDatas`。
-2. CardInstance 的 `AdditionPropertyDatas`。
+- Override Key 與目標 Override CardData。
+- 套用來源 `IActionSource`。
+- Release Rules。
+- 專用 ReactionSessions。
+- 對應的 CardBuff Override Layer Handle。
 
-合併後的集合不再保留來源資訊，而且不會隨 Acting CardData 動態重建。這造成目前變身基礎的主要缺口：
+目前只保留一個 Override State。第二次套用不同 Override 時會直接取代第一個；新 Override 解除後不會回到被取代的舊 Override。同 Key 且同目標的重複套用為 No-op。
 
-- 切換 Acting CardData 時，原始 CardData 的 Property 不會自動消失。
-- 新形態 CardData 的 Property 不會自動加入。
-- 系統無法只替換 CardData Property，同時保留 CardInstance Property。
+解除操作會核對 Override State Identity 與 Buff Layer Handle。已排隊的舊解除操作若遇到後來取代的新 State，會安全 No-op，不會誤刪新 Override。
 
-CardBuff 提供的 Property 保存在各 CardBuffEntity 中，並未合併進 CardEntity 的 `_properties`。`CardInfo.Create()` 會在建立畫面資料時，再合併 CardEntity Property 與 CardBuff Property。
+`ObserveAction` 只更新 Override ReactionSession；只有明確的 Timing Dispatch 才會判斷 ReleaseRule 並排入解除操作。
 
-## CardInfo 與畫面資料
+## Property 與 CardBuff Layer
 
-[CardInfo](../Assets/Scripts/GameModel/Info/CardInfo.cs) 會從 CardEntity 讀取：
+### Property
 
-- Acting CardData ID 與分類資料。
-- Acting CardData 的基礎 Cost／Power，再經公式計算最終數值。
-- 主目標資訊。
-- CardBuff 資訊。
-- CardEntity 與 CardBuff 提供的 Property／Keyword。
+CardEntity 將 Property 區分為：
 
-因此，只要 CardEntity 的 Acting CardData 與 Property 來源正確，重新建立 CardInfo 就能得到一致的新形態資料。
+- **CardData Property**：隨 Effective Form 替換。
+- **CardInstance Property**：Self Transform 期間保留。
 
-目前尚未存在專用的 CardTransformedEvent，也沒有已完成的 Presenter／View 變身更新流程。
+External Override 存在時，CardInstance Property 暫停對外生效，只暴露 Override CardData Property；解除後再依恢復的 Effective Form 重建 CardData Property，並重新暴露原有 CardInstance Property。
 
-## TriggeredEffects 現況
+### CardBuff
 
-[CardData](../Assets/Scripts/GameData/Card/CardData.cs) 已有 `TriggeredCardEffect`，資料包含 `CardTriggeredTiming` 與 Effects。
+`CardBuffLayerManager` 管理 Base Layer 與可替換的 Override Layer：
 
-CardEntity 的 `TriggeredEffects` 會讀取 Acting CardData，因此形態切換後，對外暴露的 TriggeredEffects 也會跟著切換。原始 CardData 的 TriggeredEffects 不會跨形態保留。
+- Self Transform 沿用 Base Layer。
+- External Override 期間凍結 Base Layer，讀寫改由 Override Layer 處理。
+- Override 期間新增的 CardBuff 只存在於 Override Layer。
+- Override 被取代或解除時，舊 Override Layer 失效並移除其中 Buff。
+- 已排隊但持有失效 LayerHandle 的 Buff Command 會安全 No-op。
 
-目前程式中尚未找到將 CardData TriggeredEffects 完整送入 Effect Queue 執行的流程。已接入全域 GameTiming Queue 的反應效果主要來自 PlayerBuff、CharacterBuff 與 CardBuff。
+PlayerBuff 不屬於 CardBuff Layer，因此仍可作用於 Override Form。
 
-## CardInstance 現況
+## Timing、事件與 Effect
 
-[CardInstance](../Assets/Scripts/GameModel/Instance/CardInstance.cs) 目前只保存：
+`TimingDispatchPlanner` 依當次 Reaction Snapshot 建立一般 Reaction、Override Session／Release 與 Self Transform QueueItem。形態操作成功後：
 
-- InstanceGuid。
-- 原始 CardDataId。
-- AdditionPropertyDatas。
+1. 先原子更新 CardEntity 的形態狀態與 CardData Property。
+2. 以新 Effective Form 建立最新 `CardInfo`。
+3. 產生 `CardFormChangedEvent`，包含 Identity、前後 CardData ID、Key、Cause 與最新 CardInfo。
+4. 若新 Effective Form 定義 `CardTriggeredTiming.FormChanged`，使用形態更新後的 Context 執行其 Effects。
 
-它沒有目前形態或持久變身狀態欄位，因此戰鬥中的 Acting CardData 無法寫回並於下一場戰鬥恢復。
+沒有實際形態差異的操作不會產生 `CardFormChangedEvent`。
 
-## Clone 現況
+## 區域邊界
 
-CardEntity 的 `Clone()` 目前以 `_mainCardDataId` 建立複製卡，且不複製 `_mutationCardDataIds`。
+`PlayerCardManager.ReactionCards()` 是一般卡片 Update、Buff Timing、Self Transform 與 Override Release 的有效集合，包含：
 
-因此，若來源卡片未來透過既有預留欄位切換形態，Clone 仍會回到來源的原始 CardData，而不是複製當下形態。這與 T-010 討論後的 Clone 規格不同，實作時需要調整。
+- Deck。
+- HandCard。
+- Graveyard。
+- ExclusionZone。
+- PlayingCard。
 
-## 尚未具備的功能
+DisposeZone 保留在全域查找與 CardManager 快照中，但不參與一般 Reaction Update 或 Form Rule。這可避免已銷毀卡片繼續更新 Buff、Session 或形態。
 
-目前變身只是一組預留欄位與 Acting CardData 代理，尚未具備：
+## CardInstance 持久形態
 
-- TransformRule 資料。
-- Apply／Revert 領域操作。
-- 規則 Timing、Condition、Priority 與順序判定。
-- CardData Property 與 CardInstance Property 的來源分離。
-- 專用變身事件與觸發時機。
-- CardInstance 的跨戰鬥形態保存。
-- Clone 當下形態的明確行為。
-- 變身資料驗證與 EditMode 測試。
+`CardInstance` 保留原始 `CardDataId`，並以可選的 `PersistentCardFormState` 記錄跨戰鬥 Self Form。
+
+`CardEntity.CreateFromInstance()` 會以原始 CardData 建立 Base Form，再還原 Persistent Self Form。`CardInstancePersistenceMapper.TryUpdate()` 只有在 `OriginCardInstanceGuid` 與來源 Instance 相符時才寫回：
+
+- `Persistent` Self Form 會寫入 `PersistentFormState`。
+- `BattleOnly`、已 Revert 或沒有 Self Form 時會清除 `PersistentFormState`。
+- External Override 永遠不寫回。
+
+目前已完成單卡 Mapper、round-trip 與批次 `CardInstanceChangeSet` 收集。只有勝利會輸出 ChangeSet；失敗、Retry、Restart、Quit 與生命週期取消都不輸出，也不修改卡片狀態。
+
+## Clone
+
+`Clone()` 以來源卡片當下的 Effective CardData 建立新的 Base Form，但不複製：
+
+- 原卡 Identity 與 `OriginCardInstanceGuid`。
+- Self Form 或 Override State。
+- CardInstance Property。
+- CardBuff Layer 內容。
+- 卡片區域或 Dispose 狀態。
+
+因此 Clone 是以當下形態為基底的獨立 Runtime Card。
+
+## View 更新與互動安全
+
+`GameplayView` 收到 `CardFormChangedEvent` 後，會以事件內的最新 `CardInfo` 更新 `GameViewModel`。View 以卡片 Identity 訂閱資料，不另外把舊 `CardInfo` 當作互動狀態：
+
+- `CardView` 的 pointer、drag、click callback 只傳 Identity。
+- `IGameViewModel.GetCardInfoOrNone()` 提供需要執行規則時的即時查詢。
+- `AllyHandCardView` 的 Focus 與 Drag 狀態只保存 Identity。
+- 拖曳中的卡片只訂閱目前拖曳 Identity；形態更新後立即重新驗證 `MainSelectable` 與合法目標。
+- 舊目標失效時會 Deselect、清除選取並隱藏指向線；放開時再次查詢最新 CardInfo。
+- `FocusCardDetailView` 與 `SingleCardDetailPopupPanel` 會更新 Buff／Keyword 提示。
+- `AiCardView`、一般卡片清單及非手牌詳情使用相同 Identity 更新原則。
+
+單一可替換訂閱使用 `SerialDisposable`；同一 UI scope 內的多個事件訂閱使用區域性 `CompositeDisposable` 聚合。
+
+## 資料驗證
+
+GameData Validator 會檢查 Self Transform 目標存在且為 Standard CardData，並驗證 External Override 的目標存在且為 Override CardData。External Override 另會檢查 Target、OverrideKey、ReleaseRules、可 Dispatch 的 Timing、巢狀 Condition、ReactionSession，以及 ReleaseRule 所引用的 SessionKey。
+
+## 完成狀態與驗證
+
+目前完整 EditMode 222 項全數通過，其中 T-010 74 項。已自動化覆蓋形態操作、持久化、Clone、Override／Buff Layer、ReleaseRule、PlayingCard、DisposeZone、ChangeSet 收集與資料 Validator 邊界，並以 A → B → C → B 整合案例驗證跨層狀態一致性。
+
+T-010 功能與自動化驗收已完成。已知邊界：
+
+- 勝利 ChangeSet 的戰鬥外實際套用與存檔流程（不屬於 T-010 必要範圍）。
+- 專案尚無 Gameplay Prefab 互動測試基礎；拖曳中變形與 Focus 中變形的程式接線已完成，建議在正式內容資產可用時補一次非阻塞的場景人工 smoke test，或未來建立 View 測試 Harness。
 
 ## 相關文件
 
@@ -115,4 +164,6 @@ CardEntity 的 `Clone()` 目前以 `_mainCardDataId` 建立複製卡，且不複
 - [CardBuff 卡牌 Buff 系統](CardBuff.md)
 - [Instance 實例層](Instance.md)
 - [Effect 效果管線](Effect.md)
-- [T-010 待辦事項](TODO.md)
+- [Action 與觸發來源](Action.md)
+- [Target 目標系統](Target.md)
+- [T-010 完成紀錄](TODO_Archive.md)

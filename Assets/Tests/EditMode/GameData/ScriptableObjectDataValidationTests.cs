@@ -61,6 +61,17 @@ namespace MortalGame.Tests
                         TargetCardDataId = "duplicate"
                     }
                 });
+                standard.Data.TransformRules.Add(new CardTransformRule
+                {
+                    RuleId = "apply-missing",
+                    TransformKey = "form",
+                    Timing = GameTiming.BeforeTurnStart,
+                    Conditions = new List<ICondition>(),
+                    Operation = new ApplyCardTransformOperationData
+                    {
+                        TargetCardDataId = "missing-standard"
+                    }
+                });
                 overrideCard.name = "Override Test";
                 overrideCard.Data.ID = "duplicate";
 
@@ -70,11 +81,122 @@ namespace MortalGame.Tests
 
                 Assert.That(errors, Has.Some.Contains("Standard／Override 資產間重複"));
                 Assert.That(errors, Has.Some.Contains("Self Transform Target 必須是 Standard CardData"));
+                Assert.That(errors, Has.Some.Contains("Self Transform Target 指向不存在的 CardData：missing-standard"));
             }
             finally
             {
                 UnityEngine.Object.DestroyImmediate(standard);
                 UnityEngine.Object.DestroyImmediate(overrideCard);
+            }
+        }
+
+        [Test]
+        public void ValidateCardScriptableTypes_WithValidOverrideEffect_ReturnsNoErrors()
+        {
+            var standard = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            var overrideCard = ScriptableObject.CreateInstance<OverrideCardDataScriptable>();
+            try
+            {
+                standard.name = "Override Source";
+                standard.Data.ID = "override-source";
+                standard.Data.Effects.Add(new ApplyCardFormOverrideEffect
+                {
+                    TargetCards = new SingleCardCollection { TargetCard = new TriggeredCard() },
+                    OverrideKey = "negative-form",
+                    TargetCardDataId = "override-target",
+                    ReleaseRules = new List<CardFormOverrideReleaseRule>
+                    {
+                        new()
+                        {
+                            Timing = GameTiming.AfterPlayCardEnd,
+                            Conditions = new List<ICondition>()
+                        }
+                    },
+                    ReactionSessions = new Dictionary<string, IReactionSessionData>()
+                });
+                overrideCard.name = "Override Target";
+                overrideCard.Data.ID = "override-target";
+
+                var errors = GameDataValidator.ValidateCardScriptableTypes(
+                    new CardDataScriptableBase[] { standard, overrideCard },
+                    Array.Empty<DeckScriptable>());
+
+                AssertNoErrors(errors);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(standard);
+                UnityEngine.Object.DestroyImmediate(overrideCard);
+            }
+        }
+
+        [Test]
+        public void ValidateCardScriptableTypes_WithInvalidOverrideEffect_ReturnsDetailedErrors()
+        {
+            var source = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            var standardTarget = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                source.name = "Invalid Override Source";
+                source.Data.ID = "invalid-override-source";
+                source.Data.Effects.Add(new ApplyCardFormOverrideEffect
+                {
+                    OverrideKey = "override",
+                    TargetCardDataId = "standard-target",
+                    ReleaseRules = new List<CardFormOverrideReleaseRule>
+                    {
+                        new()
+                        {
+                            Timing = GameTiming.None,
+                            Conditions = new List<ICondition>
+                            {
+                                new AllCondition
+                                {
+                                    Conditions = new List<ICondition>
+                                    {
+                                        null,
+                                        new CardFormOverrideSessionCondition
+                                        {
+                                            SessionKey = "missing-session"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    ReactionSessions = new Dictionary<string, IReactionSessionData>
+                    {
+                        {
+                            "counter",
+                            new SessionInteger
+                            {
+                                UpdateRules = new List<SessionInteger.TimingRule>
+                                {
+                                    new() { Timing = GameTiming.BeforeTurnEnd },
+                                    new() { Timing = GameTiming.BeforeTurnEnd }
+                                }
+                            }
+                        }
+                    }
+                });
+                standardTarget.name = "Standard Target";
+                standardTarget.Data.ID = "standard-target";
+
+                var errors = GameDataValidator.ValidateCardScriptableTypes(
+                    new CardDataScriptableBase[] { source, standardTarget },
+                    Array.Empty<DeckScriptable>());
+
+                Assert.That(errors, Has.Some.Contains("TargetCards 為空"));
+                Assert.That(errors, Has.Some.Contains("Target 必須是 Override CardData"));
+                Assert.That(errors, Has.Some.Contains("Timing 不可為 None"));
+                Assert.That(errors, Has.Some.Contains("Conditions 含有空值"));
+                Assert.That(errors, Has.Some.Contains("引用不存在的 Override SessionKey：missing-session"));
+                Assert.That(errors, Has.Some.Contains("TimingRule 重複：BeforeTurnEnd"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(source);
+                UnityEngine.Object.DestroyImmediate(standardTarget);
             }
         }
 
