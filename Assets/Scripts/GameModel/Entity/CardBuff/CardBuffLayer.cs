@@ -1,29 +1,16 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Optional;
-using UnityEngine;
 
 namespace MortalGame.GameModel
 {
-
-    public interface ICardBuffManager
-    {
-        IReadOnlyCollection<ICardBuffEntity> Buffs { get; }
-        ModifyCardBuffLevelResult ModifyBuffLevel(string buffId, int level);
-        AddCardBuffResult AddBuff(ICardBuffEntity newBuff);
-        RemoveCardBuffResult RemoveBuff(ICardBuffEntity existBuff);
-
-        bool Update(TriggerContext triggerContext);
-    }
-
-    public class CardBuffManager : ICardBuffManager
+    public sealed class CardBuffLayer
     {
         private readonly List<ICardBuffEntity> _buffs;
 
         public IReadOnlyCollection<ICardBuffEntity> Buffs => _buffs;
 
-        public CardBuffManager(IEnumerable<ICardBuffEntity> buffs)
+        public CardBuffLayer(IEnumerable<ICardBuffEntity> buffs)
         {
             _buffs = new List<ICardBuffEntity>(buffs);
         }
@@ -63,12 +50,12 @@ namespace MortalGame.GameModel
             return new RemoveCardBuffResult(existBuff);
         }
 
-        public bool Update(TriggerContext triggerContext)
+        public bool Update(TriggerContext triggerContext, ICardEntity card)
         {
             var isUpdated = false;
             foreach (var buff in _buffs.ToList())
             {
-                var triggerBuff = new CardBuffTrigger(buff);
+                var triggerBuff = new CardBuffTrigger(card, buff);
                 var updateBuffContext = triggerContext with
                 {
                     Triggered = triggerBuff

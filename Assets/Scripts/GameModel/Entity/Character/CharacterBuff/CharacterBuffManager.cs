@@ -17,7 +17,9 @@ namespace MortalGame.GameModel
         AddCharacterBuffResult AddBuff(ICharacterBuffEntity newBuff);
         RemoveCharacterBuffResult RemoveBuff(ICharacterBuffEntity existBuff);
 
-        IEnumerable<ICharacterBuffEntity> Update(TriggerContext triggerContext);
+        IEnumerable<ICharacterBuffEntity> Update(
+            TriggerContext triggerContext,
+            ICharacterEntity character);
     }
 
     public class CharacterBuffManager : ICharacterBuffManager
@@ -69,12 +71,14 @@ namespace MortalGame.GameModel
             return new RemoveCharacterBuffResult(existBuff);
         }
 
-        public IEnumerable<ICharacterBuffEntity> Update(TriggerContext triggerContext)
+        public IEnumerable<ICharacterBuffEntity> Update(
+            TriggerContext triggerContext,
+            ICharacterEntity character)
         {
             foreach (var buff in _buffs.ToList())
             {
                 var isUpdated = false;
-                var triggeredBuff = new CharacterBuffTrigger(buff);
+                var triggeredBuff = new CharacterBuffTrigger(character, buff);
                 var updateCharacterBuffContext = triggerContext with { Triggered = triggeredBuff };
                 foreach (var session in buff.ReactionSessions.Values)
                 {

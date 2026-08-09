@@ -33,5 +33,15 @@ namespace MortalGame.GameData
             Debug.LogError($"Card ID[{cardId}] 不是 Standard CardData。");
             return null;
         }
+
+        public OverrideCardData GetOverrideCardData(string cardId)
+        {
+            var cardData = GetCardData(cardId);
+            if (cardData is OverrideCardData overrideCardData)
+                return overrideCardData;
+
+            Debug.LogError($"Card ID[{cardId}] 不是 Override CardData。");
+            return null;
+        }
     }
 }

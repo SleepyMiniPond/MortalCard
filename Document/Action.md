@@ -116,11 +116,21 @@ TriggerContext 是貫穿整個效果管線的**不可變上下文物件**。透�
 
 | 觸發來源 | 語義 |
 |----------|------|
-| `SystemTrigger` | 系統觸發（遊戲邏輯） |
 | `CardPlayTrigger` | 卡牌打出觸發 |
 | `CardTrigger` | 卡牌本身觸發（觸發效果） |
 | `PlayerBuffTrigger` | 玩家 Buff 觸發 |
 | `CardBuffTrigger` | 卡牌 Buff 觸發 |
+| `CharacterBuffTrigger` | 角色 Buff 觸發 |
+| `PlayerTrigger` | 玩家實體觀察 Action |
+| `CardFormOverrideTrigger` | 卡牌 External Override 狀態觸發 |
+
+觸發來源依宿主能力實作 `ICardTriggeredSource`、`ICharacterTriggeredSource` 或
+`IPlayerTriggeredSource`。Buff Trigger 會直接保存當次快照中的宿主 Entity，不在
+執行時掃描 `GameStatus` 反查，因此排隊後即使 Buff 已失效，Trigger 視角仍保持穩定。
+
+`Action` 表示發生的事，`Triggered` 表示目前對該 Action 作出反應的 Entity；兩者不可
+混用。`GameContext.Selected*` 則只代表玩家或 AI 在出牌操作中明確選擇的目標，Trigger
+流程不得為了提供反應者視角而覆寫它。
 
 ## 與其他系統的協作
 

@@ -66,5 +66,15 @@ namespace MortalGame.GameModel
             return Target.Eval(triggerContext).ToEnumerable().ToList();
         }
     }
+    [Serializable]
+    public class TriggeredCharacter : ITargetCharacterValue
+    {
+        public Option<ICharacterEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered is ICharacterTriggeredSource source
+                ? source.Character.SomeNotNull()
+                : Option.None<ICharacterEntity>();
+        }
+    }
 
 }

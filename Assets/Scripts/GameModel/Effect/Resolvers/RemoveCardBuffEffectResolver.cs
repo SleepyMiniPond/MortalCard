@@ -26,7 +26,10 @@ namespace MortalGame.GameModel
                     buff => buff.CardBuffDataID == removeCardBuffEffect.BuffId);
                 existBuffOpt.MatchSome(existBuff =>
                 {
-                    effectCommands.Add(new RemoveCardBuffEffectCommand(card, existBuff));
+                    effectCommands.Add(new RemoveCardBuffEffectCommand(
+                        card,
+                        card.BuffManager.ActiveLayerHandle,
+                        existBuff));
                 });
             }
             return new EffectCommandSet(effectCommands);

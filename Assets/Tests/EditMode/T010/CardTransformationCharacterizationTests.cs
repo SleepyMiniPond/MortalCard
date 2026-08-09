@@ -302,7 +302,7 @@ namespace MortalGame.Tests.T010
         }
 
         [Test]
-        public void CardBuffManager_AddSameDataId_RejectsDuplicateBuff()
+        public void CardBuffLayerManager_AddSameDataId_RejectsDuplicateBuff()
         {
             var built = new CardTransformationTestBuilder().Build();
             var firstBuff = BuffTestBuilder.CreateCardBuff(

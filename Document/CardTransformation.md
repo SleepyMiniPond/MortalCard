@@ -32,13 +32,13 @@ CardEntity 以 `_mutationCardDataIds` 的第一筆作為目前生效的 CardData
 
 ### Identity 與執行期元件
 
-CardEntity 的 Identity、OriginCardInstanceGuid、CardBuffManager 與 CardManager 區域歸屬，不是 Acting CardData 的一部分。
+CardEntity 的 Identity、OriginCardInstanceGuid、CardBuffLayerManager 與 CardManager 區域歸屬，不是 Acting CardData 的一部分。
 
 因此，如果未來在同一個 CardEntity 上切換 Acting CardData，而非刪除並重建 CardEntity，既有架構可以保留：
 
 - 戰鬥 Identity。
 - CardInstance 來源關聯。
-- CardBuffManager 及其中的 Buff。
+- CardBuffLayerManager 及其中的 Buff。
 - CardManager 中的物件參考、所在區域與排列位置。
 
 目前尚未存在公開的變身操作，因此上述內容是既有物件結構提供的能力，不代表完整變身流程已完成。

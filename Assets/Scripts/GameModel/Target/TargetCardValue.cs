@@ -31,6 +31,16 @@ namespace MortalGame.GameModel
         }
     }
     [Serializable]
+    public class TriggeredCard : ITargetCardValue
+    {
+        public Option<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered is ICardTriggeredSource source
+                ? source.Card.SomeNotNull()
+                : Option.None<ICardEntity>();
+        }
+    }
+    [Serializable]
     public class PlayingCard : ITargetCardValue
     {
         public Option<ICardEntity> Eval(TriggerContext triggerContext)

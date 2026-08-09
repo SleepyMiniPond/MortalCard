@@ -27,7 +27,7 @@ PlayerEntity（玩家實體）
         └── CharacterBuffEntity[]
 
 CardEntity（卡牌實體）
-├── CardBuffManager        # 卡牌 Buff 管理
+├── CardBuffLayerManager   # 卡牌 Buff Facade
 │   └── CardBuffEntity[]
 └── CardPropertyEntity[]   # 卡牌屬性集合
 ```
@@ -89,7 +89,7 @@ CardEntity（卡牌實體）
 - **身份**：唯一 Guid（`Identity`），跨區域追蹤
 - **資料委派**：效果/選取規則等靜態資訊委派給 CardData（透過 Library 查詢），不在 Entity 中複製
 - **變異支援**：`_mutationCardDataIds` 列表支援卡牌在戰鬥中「變身」為其他卡牌
-- **Buff 管理**：`CardBuffManager` 管理施加在這張卡上的 Buff
+- **Buff 管理**：`CardBuffLayerManager` 管理施加在這張卡上的 Buff
 - **屬性集合**：`CardPropertyEntity[]` 定義卡牌行為（Preserved、Consumable、Sealed 等）
 
 ### 建構方式

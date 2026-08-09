@@ -15,11 +15,20 @@ namespace MortalGame.GameModel
         ICardEntity Card,
         ICardBuffEntity Buff);
 
+    internal sealed record CardFormOverrideReactionCandidate(
+        ICardEntity Card,
+        CardFormOverrideState State);
+
+    internal sealed record PlayerBuffReactionCandidate(
+        IPlayerEntity Player,
+        IPlayerBuffEntity Buff);
+
     internal sealed record TimingReactionSnapshot(
         UpdateTimingAction Action,
-        IReadOnlyList<IPlayerBuffEntity> PlayerBuffs,
+        IReadOnlyList<PlayerBuffReactionCandidate> PlayerBuffs,
         IReadOnlyList<CharacterBuffReactionCandidate> CharacterBuffs,
         IReadOnlyList<CardBuffReactionCandidate> CardBuffs,
+        IReadOnlyList<CardFormOverrideReactionCandidate> CardFormOverrides,
         IReadOnlyList<ICardEntity> Cards);
 
     internal sealed record TimingDispatchPlan(
@@ -70,7 +79,6 @@ namespace MortalGame.GameModel
 
     internal sealed record TriggeredCharacterBuffEffectQueueItem(
         GameplayManager Manager,
-        ICharacterEntity SelectedCharacter,
         TriggerContext Context,
         ICharacterBuffEffect Effect,
         IActionSource TriggerBuffSource) : EffectQueueItem(Context)
@@ -79,9 +87,9 @@ namespace MortalGame.GameModel
         {
             queue.EnqueueImmediate(new EffectQueueItem[]
             {
-                new CharacterTimingQueueItem(Manager, SelectedCharacter, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
-                new CharacterBuffEffectExecutionQueueItem(Manager, SelectedCharacter, Context, Effect),
-                new CharacterTimingQueueItem(Manager, SelectedCharacter, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
+                new TriggerTimingQueueItem(Manager, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
+                new CharacterBuffEffectExecutionQueueItem(Context, Effect),
+                new TriggerTimingQueueItem(Manager, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
             });
             return EffectResult.Empty;
         }
@@ -89,7 +97,6 @@ namespace MortalGame.GameModel
 
     internal sealed record TriggeredCardBuffEffectQueueItem(
         GameplayManager Manager,
-        ICardEntity SelectedCard,
         TriggerContext Context,
         ICardBuffEffect Effect,
         IActionSource TriggerBuffSource) : EffectQueueItem(Context)
@@ -98,9 +105,9 @@ namespace MortalGame.GameModel
         {
             queue.EnqueueImmediate(new EffectQueueItem[]
             {
-                new CardTimingQueueItem(Manager, SelectedCard, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
-                new CardBuffEffectExecutionQueueItem(Manager, SelectedCard, Context, Effect),
-                new CardTimingQueueItem(Manager, SelectedCard, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
+                new TriggerTimingQueueItem(Manager, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
+                new CardBuffEffectExecutionQueueItem(Context, Effect),
+                new TriggerTimingQueueItem(Manager, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
             });
             return EffectResult.Empty;
         }
@@ -118,56 +125,24 @@ namespace MortalGame.GameModel
     }
 
     internal sealed record CharacterBuffEffectExecutionQueueItem(
-        GameplayManager Manager,
-        ICharacterEntity SelectedCharacter,
         TriggerContext Context,
         ICharacterBuffEffect Effect) : EffectQueueItem(Context)
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            using var characterContext = Manager.EffectQueueContextManager.SetSelectedCharacter(SelectedCharacter.Some());
             var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
             return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
         }
     }
 
     internal sealed record CardBuffEffectExecutionQueueItem(
-        GameplayManager Manager,
-        ICardEntity SelectedCard,
         TriggerContext Context,
         ICardBuffEffect Effect) : EffectQueueItem(Context)
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            using var cardContext = Manager.EffectQueueContextManager.SetSelectedCard(SelectedCard.Some());
             var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
             return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
-        }
-    }
-
-    internal sealed record CharacterTimingQueueItem(
-        GameplayManager Manager,
-        ICharacterEntity SelectedCharacter,
-        GameTiming Timing,
-        IActionSource Source) : EffectQueueItem((TriggerContext)null)
-    {
-        public override EffectResult Execute(IEffectQueueContext queue)
-        {
-            using var characterContext = Manager.EffectQueueContextManager.SetSelectedCharacter(SelectedCharacter.Some());
-            return new TriggerTimingQueueItem(Manager, Timing, Source).Execute(queue);
-        }
-    }
-
-    internal sealed record CardTimingQueueItem(
-        GameplayManager Manager,
-        ICardEntity SelectedCard,
-        GameTiming Timing,
-        IActionSource Source) : EffectQueueItem((TriggerContext)null)
-    {
-        public override EffectResult Execute(IEffectQueueContext queue)
-        {
-            using var cardContext = Manager.EffectQueueContextManager.SetSelectedCard(SelectedCard.Some());
-            return new TriggerTimingQueueItem(Manager, Timing, Source).Execute(queue);
         }
     }
 

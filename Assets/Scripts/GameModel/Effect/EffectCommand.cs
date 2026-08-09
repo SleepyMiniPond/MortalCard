@@ -69,14 +69,24 @@ namespace MortalGame.GameModel
         CardCollectionType Destination) : IEffectCommand;
     public record AddCardBuffEffectCommand(
         ICardEntity Target,
+        CardBuffLayerHandle LayerHandle,
         ICardBuffEntity NewBuff) : IEffectCommand;
     public record RemoveCardBuffEffectCommand(
         ICardEntity Target,
+        CardBuffLayerHandle LayerHandle,
         ICardBuffEntity ExistBuff) : IEffectCommand;
     public record ModifyCardBuffLevelEffectCommand(
         ICardEntity Target,
+        CardBuffLayerHandle LayerHandle,
         string BuffId,
         int Level) : IEffectCommand;
+
+    public record ApplyCardFormOverrideEffectCommand(
+        ICardEntity Target,
+        string OverrideKey,
+        string TargetCardDataId,
+        IReadOnlyList<CardFormOverrideReleaseRule> ReleaseRules,
+        IReadOnlyDictionary<string, IReactionSessionData> ReactionSessionDatas) : IEffectCommand;
 
     public record ModifyCardAttributeEffectCommand(
         EffectAttributeAdditionType AdditionType,

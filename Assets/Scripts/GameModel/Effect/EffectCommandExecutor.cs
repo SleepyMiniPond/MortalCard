@@ -15,7 +15,12 @@ namespace MortalGame.GameModel
 
     public record CommandApplyResult(
         IEnumerable<BaseResultAction> Actions,
-        IEnumerable<IGameEvent> Events);
+        IEnumerable<IGameEvent> Events)
+    {
+        public static CommandApplyResult Empty { get; } = new(
+            Array.Empty<BaseResultAction>(),
+            Array.Empty<IGameEvent>());
+    }
 
     public static class EffectCommandExecutor
     {
@@ -39,6 +44,7 @@ namespace MortalGame.GameModel
             [typeof(AddCardBuffEffectCommand)] = new CardBuffEffectCommandHandler(),
             [typeof(RemoveCardBuffEffectCommand)] = new CardBuffEffectCommandHandler(),
             [typeof(ModifyCardBuffLevelEffectCommand)] = new CardBuffEffectCommandHandler(),
+            [typeof(ApplyCardFormOverrideEffectCommand)] = new ApplyCardFormOverrideEffectCommandHandler(),
             [typeof(ModifyCardAttributeEffectCommand)] = new ModifyCardAttributeEffectCommandHandler(),
         };
         #endregion

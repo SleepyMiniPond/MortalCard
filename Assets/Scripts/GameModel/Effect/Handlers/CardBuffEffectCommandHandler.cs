@@ -20,7 +20,13 @@ namespace MortalGame.GameModel
         private static CommandApplyResult _HandleAdd(TriggerContext context, AddCardBuffEffectCommand c)
         {
             var cardTarget = new CardTarget(c.Target);
-            var addResult = c.Target.BuffManager.AddBuff(c.NewBuff);
+            if (!c.Target.BuffManager
+                    .TryAddBuff(c.LayerHandle, c.NewBuff)
+                    .TryGetValue(out var addResult))
+            {
+                return CommandApplyResult.Empty;
+            }
+
             var resultAction = new AddCardBuffResultAction(context.Action.Source, cardTarget, addResult);
             var reactorEvents = context.Model.ObserveAction(resultAction);
             var cardBuffEvent = new AddCardBuffEvent(c.Target.Faction(context.Model), c.Target.Identity);
@@ -30,7 +36,13 @@ namespace MortalGame.GameModel
         private static CommandApplyResult _HandleRemove(TriggerContext context, RemoveCardBuffEffectCommand c)
         {
             var cardTarget = new CardTarget(c.Target);
-            var removeResult = c.Target.BuffManager.RemoveBuff(c.ExistBuff);
+            if (!c.Target.BuffManager
+                    .TryRemoveBuff(c.LayerHandle, c.ExistBuff)
+                    .TryGetValue(out var removeResult))
+            {
+                return CommandApplyResult.Empty;
+            }
+
             var resultAction = new RemoveCardBuffResultAction(context.Action.Source, cardTarget, removeResult);
             var reactorEvents = context.Model.ObserveAction(resultAction);
             var cardBuffEvent = new RemoveCardBuffEvent(c.Target.Faction(context.Model), c.Target.Identity);
@@ -40,7 +52,13 @@ namespace MortalGame.GameModel
         private static CommandApplyResult _HandleModify(TriggerContext context, ModifyCardBuffLevelEffectCommand c)
         {
             var cardTarget = new CardTarget(c.Target);
-            var modifyResult = c.Target.BuffManager.ModifyBuffLevel(c.BuffId, c.Level);
+            if (!c.Target.BuffManager
+                    .TryModifyBuffLevel(c.LayerHandle, c.BuffId, c.Level)
+                    .TryGetValue(out var modifyResult))
+            {
+                return CommandApplyResult.Empty;
+            }
+
             var resultAction = new ModifyCardBuffLevelResultAction(context.Action.Source, cardTarget, modifyResult);
             var reactorEvents = context.Model.ObserveAction(resultAction);
             var cardBuffEvent = new ModifyCardBuffLevelEvent(c.Target.Faction(context.Model), c.Target.Identity);

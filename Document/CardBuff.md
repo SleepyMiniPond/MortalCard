@@ -72,13 +72,18 @@ CardBuff 可以擁有反應會話，追蹤動態狀態：
 
 詳見：[Session 反應會話](Session.md)
 
-## CardBuffManager — 管理器
+## CardBuffLayerManager — 管理器
 
-每張 CardEntity 都擁有一個 CardBuffManager，負責：
+每張 CardEntity 都擁有一個實作 `ICardBuffManager` 的 `CardBuffLayerManager` Facade，負責：
 - **新增 Buff**：防止重複 ID
 - **移除 Buff**：按身份或 Data ID
 - **修改層數**：增減 Buff 的 Level
 - **更新**：每回合更新生命週期和 Session，移除已過期的 Buff
+- **Layer 路由**：External Override 生效時建立空的 Override Layer，凍結 Base Layer 並將所有操作轉送至 Override Layer
+- **最新取代**：再次套用 External Override 時直接丟棄舊 Override Layer，以全新空 Layer 取代；新 Override 解除後不會恢復舊 Override
+- **Layer 還原**：移除目前 Override Layer 時直接丟棄該層 Buff，恢復原 Base Buff 的身份、層數、生命週期與 Session 狀態
+
+`CardBuffLayer` 是 Facade 內部的單層 Buff 容器，只處理該層的集合與生命週期；它不實作 `ICardBuffManager`，也不理解 Active Layer 或 Override 路由。
 
 ## 與 PlayerBuff / CharacterBuff 的比較
 

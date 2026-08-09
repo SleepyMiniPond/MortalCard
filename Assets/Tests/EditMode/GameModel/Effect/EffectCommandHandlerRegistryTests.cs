@@ -27,6 +27,7 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(AddCardBuffEffectCommand));
             yield return new TestCaseData(typeof(RemoveCardBuffEffectCommand));
             yield return new TestCaseData(typeof(ModifyCardBuffLevelEffectCommand));
+            yield return new TestCaseData(typeof(ApplyCardFormOverrideEffectCommand));
             yield return new TestCaseData(typeof(ModifyCardAttributeEffectCommand));
         }
 

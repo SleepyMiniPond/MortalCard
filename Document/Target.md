@@ -14,7 +14,8 @@
 
 ```
 ITargetCardValue（單張卡牌）
-├── SelectedCard         # 當前選取的卡牌
+├── SelectedCard         # 玩家或 AI 明確選取的卡牌
+├── TriggeredCard        # 目前對 Action 作出反應的卡牌
 ├── PlayingCard          # 正在打出的卡牌
 └── IndexOfCardCollection # 卡牌區域中特定位置的卡牌
 
@@ -30,7 +31,8 @@ ITargetPlayerValue（單個玩家）
 ├── OppositePlayer   # 對手玩家
 ├── CardOwner        # 卡牌擁有者
 ├── CharacterOwner   # 角色擁有者
-└── SelectedPlayer   # 當前選取的玩家
+├── SelectedPlayer   # 玩家或 AI 明確選取的玩家
+└── TriggeredPlayer  # 目前對 Action 作出反應的玩家
 
 ITargetPlayerCollectionValue（多個玩家）
 └── SinglePlayerCollection  # 單個玩家包裝為集合
@@ -41,7 +43,8 @@ ITargetPlayerCollectionValue（多個玩家）
 ```
 ITargetCharacterValue（單個角色）
 ├── MainCharacterOfPlayer  # 指定玩家的主角色
-└── SelectedCharacter       # 當前選取的角色
+├── SelectedCharacter       # 玩家或 AI 明確選取的角色
+└── TriggeredCharacter      # 目前對 Action 作出反應的角色
 
 ITargetCharacterCollectionValue（多個角色）
 └── SingleCharacterCollection  # 單個角色包裝為集合
@@ -56,6 +59,12 @@ ITargetPlayerBuffValue（玩家 Buff）
 ITargetCardBuffValue（卡牌 Buff）
 └── TriggeredCardBuff    # 觸發此效果的卡牌 Buff
 ```
+
+### Selected、Triggered 與 Action Target
+
+- `Selected*` 從 `GameContext` 讀取出牌操作的明確選擇，巢狀 Trigger 不得覆寫。
+- `Triggered*` 從 `TriggerContext.Triggered` 讀取目前反應者的宿主 Entity。
+- Action 實際作用目標由 `IActionTargetUnit.Target` 表達，不等同於選取目標或反應者。
 
 ## 選取系統（Selectable）
 

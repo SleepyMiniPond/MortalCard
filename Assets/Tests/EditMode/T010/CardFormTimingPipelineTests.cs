@@ -190,7 +190,7 @@ namespace MortalGame.Tests.T010
                     {
                         Targets = new SinglePlayerCollection
                         {
-                            Target = new CardOwner { Card = new SelectedCard() }
+                            Target = new CardOwner { Card = new TriggeredCard() }
                         },
                         Value = new ConstInteger { Value = value }
                     }

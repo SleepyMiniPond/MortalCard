@@ -14,7 +14,9 @@ namespace MortalGame.GameModel
             var contextManager = manager.EffectQueueContextManager;
             return new TimingDispatchPlan(
                 CreateGeneralReactionQueueItems(manager, contextManager, snapshot),
-                CreateSelfTransformQueueItems(manager, contextManager, snapshot));
+                CreateOverrideReleaseQueueItems(manager, snapshot)
+                    .Concat(CreateSelfTransformQueueItems(manager, contextManager, snapshot))
+                    .ToArray());
         }
 
         private static IReadOnlyList<EffectQueueItem> CreateGeneralReactionQueueItems(
@@ -23,10 +25,11 @@ namespace MortalGame.GameModel
             TimingReactionSnapshot snapshot)
         {
             return snapshot.PlayerBuffs
-                .SelectMany(buff => CreatePlayerBuffQueueItems(
+                .SelectMany(candidate => CreatePlayerBuffQueueItems(
                     manager,
                     contextManager,
-                    buff,
+                    candidate.Player,
+                    candidate.Buff,
                     snapshot.Action))
                 .Concat(snapshot.CharacterBuffs.SelectMany(candidate =>
                     CreateCharacterBuffQueueItems(
@@ -50,7 +53,11 @@ namespace MortalGame.GameModel
             IGameContextManager contextManager,
             TimingReactionSnapshot snapshot)
         {
+            var overrideCardIdentities = snapshot.CardFormOverrides
+                .Select(candidate => candidate.Card.Identity)
+                .ToHashSet();
             return snapshot.Cards
+                .Where(card => !overrideCardIdentities.Contains(card.Identity))
                 .Where(card => contextManager.CardLibrary
                     .GetStandardCardData(card.BaseCardDataId)
                     .TransformRules
@@ -62,13 +69,45 @@ namespace MortalGame.GameModel
                 .ToArray();
         }
 
+        private static IReadOnlyList<EffectQueueItem> CreateOverrideReleaseQueueItems(
+            GameplayManager manager,
+            TimingReactionSnapshot snapshot)
+        {
+            return snapshot.CardFormOverrides
+                .Where(candidate => ShouldReleaseOverride(
+                    manager,
+                    candidate,
+                    snapshot.Action))
+                .Select(candidate => new RemoveCardFormOverrideQueueItem(
+                    manager,
+                    candidate.Card,
+                    candidate.State,
+                    snapshot.Action) as EffectQueueItem)
+                .ToArray();
+
+            static bool ShouldReleaseOverride(
+                GameplayManager manager,
+                CardFormOverrideReactionCandidate candidate,
+                UpdateTimingAction timingAction)
+            {
+                var triggerContext = new TriggerContext(
+                    manager,
+                    new CardFormOverrideTrigger(candidate.Card, candidate.State),
+                    timingAction);
+                return candidate.State.ReleaseRules
+                    .Where(rule => rule.Timing == timingAction.Timing)
+                    .Any(rule => rule.Conditions.All(condition => condition.Eval(triggerContext)));
+            }
+        }
+
         private static IReadOnlyList<EffectQueueItem> CreatePlayerBuffQueueItems(
             GameplayManager manager,
             IGameContextManager contextManager,
+            IPlayerEntity player,
             IPlayerBuffEntity buff,
             UpdateTimingAction timingAction)
         {
-            var buffTrigger = new PlayerBuffTrigger(buff);
+            var buffTrigger = new PlayerBuffTrigger(player, buff);
             var buffTriggerContext = new TriggerContext(manager, buffTrigger, timingAction);
             var conditionalEffectsOption = contextManager.PlayerBuffLibrary
                 .GetBuffEffects(buff.PlayerBuffDataId, timingAction.Timing);
@@ -93,9 +132,7 @@ namespace MortalGame.GameModel
             ICharacterBuffEntity buff,
             UpdateTimingAction timingAction)
         {
-            using var characterContext = contextManager
-                .SetSelectedCharacter(selectedCharacter.Some());
-            var buffTrigger = new CharacterBuffTrigger(buff);
+            var buffTrigger = new CharacterBuffTrigger(selectedCharacter, buff);
             var buffTriggerContext = new TriggerContext(manager, buffTrigger, timingAction);
             var conditionalEffectsOption = contextManager.CharacterBuffLibrary
                 .GetBuffEffects(buff.CharacterBuffDataId, timingAction.Timing);
@@ -106,7 +143,6 @@ namespace MortalGame.GameModel
                     .Select(conditionalEffect =>
                         new TriggeredCharacterBuffEffectQueueItem(
                             manager,
-                            selectedCharacter,
                             buffTriggerContext,
                             conditionalEffect.Effect,
                             new CharacterBuffSource(buff)) as EffectQueueItem)
@@ -121,8 +157,7 @@ namespace MortalGame.GameModel
             ICardBuffEntity buff,
             UpdateTimingAction timingAction)
         {
-            using var cardContext = contextManager.SetSelectedCard(selectedCard.Some());
-            var cardBuffTrigger = new CardBuffTrigger(buff);
+            var cardBuffTrigger = new CardBuffTrigger(selectedCard, buff);
             var buffTriggerContext = new TriggerContext(manager, cardBuffTrigger, timingAction);
             var conditionalEffectsOption = contextManager.CardBuffLibrary
                 .GetBuffEffects(buff.CardBuffDataID, timingAction.Timing);
@@ -133,7 +168,6 @@ namespace MortalGame.GameModel
                     .Select(conditionalEffect =>
                         new TriggeredCardBuffEffectQueueItem(
                             manager,
-                            selectedCard,
                             buffTriggerContext,
                             conditionalEffect.Effect,
                             new CardBuffSource(buff)) as EffectQueueItem)

@@ -101,4 +101,9 @@ namespace MortalGame.GameModel
         IActionTarget Target,
         EffectType EffectType = EffectType.RemoveCardBuff) : BaseIntentTargetAction(Source, Target, EffectType);
 
+    public record ApplyCardFormOverrideIntentTargetAction(
+        IActionSource Source,
+        IActionTarget Target,
+        EffectType EffectType = EffectType.ApplyCardFormOverride) : BaseIntentTargetAction(Source, Target, EffectType);
+
 }

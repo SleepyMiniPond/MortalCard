@@ -18,7 +18,9 @@ namespace MortalGame.GameModel
         RemovePlayerBuffResult RemoveBuff(
             IPlayerBuffEntity existBuff);
 
-        IEnumerable<IPlayerBuffEntity> Update(TriggerContext triggerContext);
+        IEnumerable<IPlayerBuffEntity> Update(
+            TriggerContext triggerContext,
+            IPlayerEntity player);
     }
 
     public class PlayerBuffManager : IPlayerBuffManager
@@ -70,12 +72,14 @@ namespace MortalGame.GameModel
             return new RemovePlayerBuffResult(existBuff);
         }
 
-        public IEnumerable<IPlayerBuffEntity> Update(TriggerContext triggerContext)
+        public IEnumerable<IPlayerBuffEntity> Update(
+            TriggerContext triggerContext,
+            IPlayerEntity player)
         {
             foreach (var buff in _buffs.ToList())
             {
                 var isUpdated = false;
-                var triggerBuff = new PlayerBuffTrigger(buff);
+                var triggerBuff = new PlayerBuffTrigger(player, buff);
                 var updateBuffTriggerContext = triggerContext with { Triggered = triggerBuff };
 
                 foreach (var session in buff.ReactionSessions.Values)

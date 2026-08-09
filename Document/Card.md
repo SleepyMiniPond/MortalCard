@@ -26,7 +26,7 @@ Record 類型的不可變快照，代表牌組中的一張具體卡牌：
 完整的戰鬥運行時物件：
 - **唯一身份**：Identity（戰鬥內 Guid）
 - **動態資料**：支援卡牌「變身」（`_mutationCardDataIds`）
-- **Buff 管理**：CardBuffManager 管理施加在卡上的 Buff
+- **Buff 管理**：CardBuffLayerManager 管理施加在卡上的 Buff
 - **屬性實體**：運行時的 CardPropertyEntity 集合
 
 ## 卡牌效果體系

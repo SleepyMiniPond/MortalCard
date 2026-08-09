@@ -203,13 +203,11 @@ namespace MortalGame.GameModel
 
         public IEnumerable<ICardEntity> Update(TriggerContext triggerContext)
         {
-            foreach (var card in HandCard.Cards
-                .Concat(Deck.Cards)
-                .Concat(Graveyard.Cards)
-                .Concat(ExclusionZone.Cards)
-                .Concat(DisposeZone.Cards))
+            foreach (var card in this.ReactionCards())
             {
-                if (card.BuffManager.Update(triggerContext))
+                var isOverrideSessionUpdated = card.UpdateOverrideFormSessions(triggerContext);
+                var isBuffUpdated = card.BuffManager.Update(triggerContext, card);
+                if (isOverrideSessionUpdated || isBuffUpdated)
                 {
                     yield return card;
                 }
@@ -239,13 +237,14 @@ namespace MortalGame.GameModel
                 { CardCollectionType.DisposeZone, cardManager.DisposeZone.ToCardIdentities() }
                 });
 
-        public static IEnumerable<ICardEntity> AllCards(this IPlayerCardManager cardManager)
+        public static IEnumerable<ICardEntity> ReactionCards(this IPlayerCardManager cardManager)
         {
             return cardManager.Deck.Cards
                 .Concat(cardManager.HandCard.Cards)
                 .Concat(cardManager.Graveyard.Cards)
                 .Concat(cardManager.ExclusionZone.Cards)
-                .Concat(cardManager.DisposeZone.Cards);
+                .Concat(cardManager.PlayingCard.ToEnumerable())
+                .Distinct();
         }
     }
 

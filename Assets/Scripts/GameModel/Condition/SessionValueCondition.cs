@@ -53,4 +53,23 @@ namespace MortalGame.GameModel
         }
     }
 
+    /// <summary>
+    /// 讀取目前卡牌 External Override 所持有的 ReactionSession。
+    /// </summary>
+    [Serializable]
+    public sealed class CardFormOverrideSessionCondition : ICondition
+    {
+        public string SessionKey;
+
+        [ShowInInspector]
+        public List<IReactionSessionValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered is CardFormOverrideTrigger trigger &&
+                trigger.State.ReactionSessions.TryGetValue(SessionKey, out var session) &&
+                Conditions.All(condition => condition.Eval(triggerContext, session));
+        }
+    }
+
 }

@@ -73,39 +73,18 @@ namespace MortalGame.GameModel
         public bool Eval(TriggerContext triggerContext)
         {
 
-            return triggerContext.Triggered switch
+            var triggeredOwner = triggerContext.Triggered switch
             {
-                CardPlayTrigger cardPlayTrigger =>
-                    triggerContext.Model.GameStatus.CurrentPlayer.Value
-                        .Combine(cardPlayTrigger.CardPlay.Card.Owner(triggerContext.Model))
-                        .Map(t => t.Item1 == t.Item2)
-                        .ValueOr(false),
-                CardTrigger cardTrigger =>
-                    triggerContext.Model.GameStatus.CurrentPlayer.Value
-                        .Combine(cardTrigger.Card.Owner(triggerContext.Model))
-                        .Map(t => t.Item1 == t.Item2)
-                        .ValueOr(false),
-                CardBuffTrigger cardBuffTrigger =>
-                    triggerContext.Model.GameStatus.CurrentPlayer.Value
-                        .Combine(cardBuffTrigger.Buff.Owner(triggerContext.Model))
-                        .Map(t => t.Item1 == t.Item2)
-                        .ValueOr(false),
-                PlayerBuffTrigger playerBuffTrigger =>
-                    triggerContext.Model.GameStatus.CurrentPlayer.Value
-                        .Combine(playerBuffTrigger.Buff.Owner(triggerContext.Model))
-                        .Map(t => t.Item1 == t.Item2)
-                        .ValueOr(false),
-                CharacterBuffTrigger characterBuffTrigger =>
-                    triggerContext.Model.GameStatus.CurrentPlayer.Value
-                        .Combine(characterBuffTrigger.Buff.Owner(triggerContext.Model))
-                        .Map(t => t.Item1 == t.Item2)
-                        .ValueOr(false),
-                PlayerTrigger playerTrigger =>
-                    triggerContext.Model.GameStatus.CurrentPlayer.Value
-                        .Map(currentPlayer => currentPlayer == playerTrigger.Player)
-                        .ValueOr(false),
-                _ => false
+                ICardTriggeredSource cardSource => cardSource.Card.Owner(triggerContext.Model),
+                ICharacterTriggeredSource characterSource =>
+                    characterSource.Character.Owner(triggerContext.Model),
+                IPlayerTriggeredSource playerSource => playerSource.Player.Some(),
+                _ => Option.None<IPlayerEntity>()
             };
+            return triggerContext.Model.GameStatus.CurrentPlayer.Value
+                .Combine(triggeredOwner)
+                .Map(pair => pair.Item1 == pair.Item2)
+                .ValueOr(false);
         }
     }
 

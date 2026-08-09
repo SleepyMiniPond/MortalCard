@@ -39,6 +39,7 @@ namespace MortalGame.GameModel
             [typeof(CloneCardEffect)] = new CloneCardEffectResolver(),
             [typeof(AddCardBuffEffect)] = new AddCardBuffEffectResolver(),
             [typeof(RemoveCardBuffEffect)] = new RemoveCardBuffEffectResolver(),
+            [typeof(ApplyCardFormOverrideEffect)] = new ApplyCardFormOverrideEffectResolver(),
         };
 
         private static readonly Dictionary<Type, IPlayerBuffEffectResolver> _playerBuffResolverRegistry = new()

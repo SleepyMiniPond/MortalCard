@@ -67,12 +67,11 @@ namespace MortalGame.GameModel
         public IGameEvent Update(TriggerContext triggerContext)
         {
             var updatedPlayerBuffInfos = _buffManager
-                .Update(triggerContext)
+                .Update(triggerContext, this)
                 .Select(buff => buff.ToInfo(triggerContext.Model));
 
             var updatedCharacterBuffInfos = _characters
-                .Select(character => character.BuffManager)
-                .SelectMany(buffManager => buffManager.Update(triggerContext))
+                .SelectMany(character => character.BuffManager.Update(triggerContext, character))
                 .Select(buff => buff.ToInfo(triggerContext.Model));
 
             var updatedCardInfos = _cardManager
@@ -185,7 +184,7 @@ namespace MortalGame.GameModel
             var value = 0;
             foreach (var playerBuff in player.BuffManager.Buffs)
             {
-                var triggerBuff = new PlayerBuffTrigger(playerBuff);
+                var triggerBuff = new PlayerBuffTrigger(player, playerBuff);
                 var playerBuffTriggerContext = triggerContext with { Triggered = triggerBuff };
                 foreach (var property in playerBuff.Properties)
                 {
@@ -204,7 +203,7 @@ namespace MortalGame.GameModel
             float ratio = 0f;
             foreach (var playerBuff in player.BuffManager.Buffs)
             {
-                var triggerBuff = new PlayerBuffTrigger(playerBuff);
+                var triggerBuff = new PlayerBuffTrigger(player, playerBuff);
                 var playerBuffTriggerContext = triggerContext with { Triggered = triggerBuff };
                 foreach (var property in playerBuff.Properties)
                 {

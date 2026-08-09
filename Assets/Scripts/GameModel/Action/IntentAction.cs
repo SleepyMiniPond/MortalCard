@@ -37,6 +37,9 @@ namespace MortalGame.GameModel
     public record AddCardBuffIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.AddCardBuff);
     public record RemoveCardBuffIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.RemoveCardBuff);
 
+    public record ApplyCardFormOverrideIntentAction(IActionSource Source)
+        : BaseEffectIntentAction(Source, EffectType.ApplyCardFormOverride);
+
     public record CardPlayEffectAttributeIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.CardPlayEffectAttribute);
 
 }

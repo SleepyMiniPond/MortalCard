@@ -121,4 +121,10 @@ namespace MortalGame.GameModel
         ModifyCardBuffLevelResult ModifyResult,
         EffectType EffectType = EffectType.ModifyCardBuffLevel) : BaseResultAction(Source, Target, EffectType);
 
+    public record ApplyCardFormOverrideResultAction(
+        IActionSource Source,
+        IActionTarget Target,
+        ApplyCardFormOverrideResult ApplyResult,
+        EffectType EffectType = EffectType.ApplyCardFormOverride) : BaseResultAction(Source, Target, EffectType);
+
 }

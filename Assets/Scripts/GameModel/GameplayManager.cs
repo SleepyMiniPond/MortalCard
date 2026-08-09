@@ -528,13 +528,14 @@ namespace MortalGame.GameModel
             var timingAction = new UpdateTimingAction(timing, actionSource);
             IPlayerEntity[] players = { _gameStatus.Ally, _gameStatus.Enemy };
             var cards = players
-                .SelectMany(player => player.CardManager.AllCards())
+                .SelectMany(player => player.CardManager.ReactionCards())
                 .ToArray();
 
             return new TimingReactionSnapshot(
                 timingAction,
                 players
-                    .SelectMany(player => player.BuffManager.Buffs)
+                    .SelectMany(player => player.BuffManager.Buffs
+                        .Select(buff => new PlayerBuffReactionCandidate(player, buff)))
                     .ToArray(),
                 players
                     .SelectMany(player => player.Characters)
@@ -544,6 +545,12 @@ namespace MortalGame.GameModel
                 cards
                     .SelectMany(card => card.BuffManager.Buffs
                         .Select(buff => new CardBuffReactionCandidate(card, buff)))
+                    .ToArray(),
+                cards
+                    .SelectMany(card => card.OverrideFormState
+                        .Map(state => new CardFormOverrideReactionCandidate(card, state)
+                            .WrapAsEnumerable())
+                        .ValueOr(Array.Empty<CardFormOverrideReactionCandidate>()))
                     .ToArray(),
                 cards);
         }

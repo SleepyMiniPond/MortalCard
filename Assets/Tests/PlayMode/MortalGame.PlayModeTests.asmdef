@@ -2,7 +2,9 @@
   "name": "MortalGame.PlayModeTests",
   "rootNamespace": "MortalGame.Tests",
   "references": [
-    "MortalGame.Runtime"
+    "MortalGame.Runtime",
+    "MortalGame.GameView",
+    "UniTask"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

@@ -160,6 +160,7 @@ namespace MortalGame.GameData
         RemoveCardBuff,
         ModifyCardBuffLevel,
         CardPlayEffectAttribute,
+        ApplyCardFormOverride,
     }
     public enum GameTiming
     {

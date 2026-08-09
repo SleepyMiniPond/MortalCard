@@ -128,5 +128,15 @@ namespace MortalGame.GameModel
             return Target.Eval(triggerContext).ToEnumerable().ToList();
         }
     }
+    [Serializable]
+    public class TriggeredPlayer : ITargetPlayerValue
+    {
+        public Option<IPlayerEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered is IPlayerTriggeredSource source
+                ? source.Player.SomeNotNull()
+                : Option.None<IPlayerEntity>();
+        }
+    }
 
 }

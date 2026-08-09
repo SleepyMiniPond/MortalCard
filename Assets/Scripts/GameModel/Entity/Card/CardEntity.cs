@@ -16,6 +16,7 @@ namespace MortalGame.GameModel
         string BaseCardDataId { get; }
         string CardDataId { get; }
         Option<CardFormState> SelfFormState { get; }
+        Option<CardFormOverrideState> OverrideFormState { get; }
 
         CardType Type { get; }
         CardRarity Rarity { get; }
@@ -37,6 +38,14 @@ namespace MortalGame.GameModel
             string targetCardDataId,
             CardFormPersistence persistence);
         CardFormOperationResult TryRevertSelfForm(string transformKey);
+        CardFormOperationResult TryApplyOverrideForm(
+            string overrideKey,
+            string targetCardDataId,
+            IActionSource source,
+            IEnumerable<CardFormOverrideReleaseRule> releaseRules,
+            IReadOnlyDictionary<string, IReactionSessionEntity> reactionSessions);
+        CardFormOperationResult TryRemoveOverrideForm(Guid stateIdentity);
+        bool UpdateOverrideFormSessions(TriggerContext triggerContext);
         ICardEntity Clone();
     }
 
@@ -49,6 +58,7 @@ namespace MortalGame.GameModel
 
         // Card runtime data
         private Option<CardFormState> _selfFormState;
+        private Option<CardFormOverrideState> _overrideFormState;
         private IReadOnlyList<ICardPropertyEntity> _cardDataProperties;
         private readonly IReadOnlyList<ICardPropertyEntity> _instanceProperties;
 
@@ -57,11 +67,15 @@ namespace MortalGame.GameModel
         private readonly CardLibrary _cardLibrary;
         private readonly ICardPropertyEntityFactory _cardPropertyEntityFactory;
 
-        private string _effectiveCardDataId => _selfFormState.Map(state => state.CardDataId).ValueOr(_baseCardDataId);
+        private string _effectiveCardDataId => _overrideFormState
+            .Map(state => state.CardDataId)
+            .Else(_selfFormState.Map(state => state.CardDataId))
+            .ValueOr(_baseCardDataId);
         private CardData _effectiveCardData => _cardLibrary.GetCardData(_effectiveCardDataId);
         public string BaseCardDataId => _baseCardDataId;
         public string CardDataId => _effectiveCardDataId;
         public Option<CardFormState> SelfFormState => _selfFormState;
+        public Option<CardFormOverrideState> OverrideFormState => _overrideFormState;
         public CardType Type => _effectiveCardData.Type;
         public CardRarity Rarity => _effectiveCardData.Rarity;
         public int OriginCost => _effectiveCardData.Cost;
@@ -77,7 +91,9 @@ namespace MortalGame.GameModel
 
         public Guid Identity => _indentity;
         public Option<Guid> OriginCardInstanceGuid => _originCardInstanceGuid;
-        public IEnumerable<ICardPropertyEntity> Properties => _cardDataProperties.Concat(_instanceProperties);
+        public IEnumerable<ICardPropertyEntity> Properties => _overrideFormState.HasValue
+            ? _cardDataProperties
+            : _cardDataProperties.Concat(_instanceProperties);
         public ICardBuffManager BuffManager => _buffManager;
         public bool IsDummy => this == DummyCard;
 
@@ -109,9 +125,10 @@ namespace MortalGame.GameModel
             _originCardInstanceGuid = originCardInstanceGuid;
             _baseCardDataId = baseCardDataId;
             _selfFormState = selfFormState;
+            _overrideFormState = Option.None<CardFormOverrideState>();
             _cardDataProperties = cardDataProperties.ToList();
             _instanceProperties = instanceProperties.ToList();
-            _buffManager = new CardBuffManager(buffs);
+            _buffManager = new CardBuffLayerManager(buffs);
             _cardLibrary = cardLibrary;
             _cardPropertyEntityFactory = cardPropertyEntityFactory;
         }
@@ -230,6 +247,120 @@ namespace MortalGame.GameModel
                 transformKey);
         }
 
+        public CardFormOperationResult TryApplyOverrideForm(
+            string overrideKey,
+            string targetCardDataId,
+            IActionSource source,
+            IEnumerable<CardFormOverrideReleaseRule> releaseRules,
+            IReadOnlyDictionary<string, IReactionSessionEntity> reactionSessions)
+        {
+            var beforeCardDataId = CardDataId;
+            if (string.IsNullOrWhiteSpace(overrideKey) ||
+                string.IsNullOrWhiteSpace(targetCardDataId) ||
+                source == null ||
+                releaseRules == null ||
+                reactionSessions == null)
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.Rejected,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    overrideKey,
+                    "OverrideKey、目標 CardDataId、來源、解除規則與 ReactionSessions 不可為空。");
+            }
+
+            if (_overrideFormState.TryGetValue(out var currentState) &&
+                currentState.OverrideKey == overrideKey &&
+                currentState.CardDataId == targetCardDataId)
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.NoOp,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    overrideKey);
+            }
+
+            var targetCardData = _cardLibrary.GetOverrideCardData(targetCardDataId);
+            if (targetCardData == null)
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.Rejected,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    overrideKey,
+                    $"找不到目標 Override CardData：{targetCardDataId}。");
+            }
+
+            var releaseRuleList = releaseRules.ToList();
+            var reactionSessionMap = reactionSessions.ToDictionary(
+                pair => pair.Key,
+                pair => pair.Value);
+            var buffLayerHandle = _buffManager.ReplaceOverrideLayer();
+            _overrideFormState = CardFormOverrideState.Create(
+                overrideKey,
+                targetCardDataId,
+                source,
+                releaseRuleList,
+                reactionSessionMap,
+                buffLayerHandle).Some();
+            _RebuildCardDataProperties(targetCardData);
+
+            return new CardFormOperationResult(
+                CardFormOperationStatus.Applied,
+                beforeCardDataId,
+                CardDataId,
+                overrideKey);
+        }
+
+        public CardFormOperationResult TryRemoveOverrideForm(Guid stateIdentity)
+        {
+            var beforeCardDataId = CardDataId;
+            if (!_overrideFormState.TryGetValue(out var currentState) ||
+                currentState.Identity != stateIdentity)
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.NoOp,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    currentState?.OverrideKey);
+            }
+
+            if (!_buffManager.TryRemoveOverrideLayer(currentState.BuffLayerHandle))
+            {
+                return new CardFormOperationResult(
+                    CardFormOperationStatus.Rejected,
+                    beforeCardDataId,
+                    beforeCardDataId,
+                    currentState.OverrideKey,
+                    "目前 Override State 與 Buff Layer 不一致。");
+            }
+
+            _overrideFormState = Option.None<CardFormOverrideState>();
+            _RebuildCardDataProperties(_effectiveCardData);
+
+            return new CardFormOperationResult(
+                CardFormOperationStatus.Reverted,
+                beforeCardDataId,
+                CardDataId,
+                currentState.OverrideKey);
+        }
+
+        public bool UpdateOverrideFormSessions(TriggerContext triggerContext)
+        {
+            if (!_overrideFormState.TryGetValue(out var currentState))
+            {
+                return false;
+            }
+
+            var overrideContext = triggerContext with
+            {
+                Triggered = new CardFormOverrideTrigger(this, currentState)
+            };
+            return currentState.ReactionSessions.Values.Aggregate(
+                false,
+                (isUpdated, session) => session.Update(overrideContext) || isUpdated);
+        }
+
         public ICardEntity Clone()
         {
             return new CardEntity(
@@ -311,7 +442,7 @@ namespace MortalGame.GameModel
 
             foreach (var buff in card.BuffManager.Buffs)
             {
-                var cardBuffTrigger = new CardBuffTrigger(buff);
+                var cardBuffTrigger = new CardBuffTrigger(card, buff);
                 var cardBuffContext = triggerContext with { Triggered = cardBuffTrigger };
                 foreach (var property in buff.Properties.Where(p => p.Property == targetProperty))
                 {

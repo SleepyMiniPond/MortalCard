@@ -31,6 +31,7 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(CloneCardEffect));
             yield return new TestCaseData(typeof(AddCardBuffEffect));
             yield return new TestCaseData(typeof(RemoveCardBuffEffect));
+            yield return new TestCaseData(typeof(ApplyCardFormOverrideEffect));
         }
 
         public static IEnumerable<TestCaseData> PlayerBuffEffectTypes()

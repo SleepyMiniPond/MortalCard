@@ -72,6 +72,10 @@ namespace MortalGame.GameModel
     public record RemoveCardBuffResult(
         ICardBuffEntity CardBuff) : IEffectResult;
 
+    public record ApplyCardFormOverrideResult(
+        CardFormOperationResult OperationResult,
+        CardFormOverrideState OverrideState) : IEffectResult;
+
     public record MoveCardResult(
         ICardEntity Card,
         CardCollectionType Start,

@@ -53,7 +53,7 @@ namespace MortalGame.Tests
             using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
             var context = new TriggerContext(
                 built.Manager,
-                new PlayerBuffTrigger(BuffTestBuilder.CreatePlayerBuff()),
+                new PlayerBuffTrigger(built.Ally, BuffTestBuilder.CreatePlayerBuff()),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
             var effect = new EffectiveDamagePlayerBuffEffect
@@ -80,7 +80,9 @@ namespace MortalGame.Tests
             using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Enemy);
             var context = new TriggerContext(
                 built.Manager,
-                new CharacterBuffTrigger(BuffTestBuilder.CreateCharacterBuff()),
+                new CharacterBuffTrigger(
+                    built.Enemy.MainCharacter,
+                    BuffTestBuilder.CreateCharacterBuff()),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
             var effect = new EffectiveDamageCharacterBuffEffect
@@ -121,7 +123,7 @@ namespace MortalGame.Tests
             var buff = BuffTestBuilder.CreateCardBuff(createBuffContext, built.ContextManager.CardBuffLibrary);
             var context = new TriggerContext(
                 built.Manager,
-                new CardBuffTrigger(buff),
+                new CardBuffTrigger(CardEntity.DummyCard, buff),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
 

@@ -3,6 +3,7 @@ using MortalGame.GameModel;
 using System.Linq;
 using NUnit.Framework;
 using MortalGame.GameData;
+using Optional;
 
 namespace MortalGame.Tests
 {
@@ -98,12 +99,18 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void TriggerTiming_CardBuffAtMatchingTiming_EvaluatesConditionWithSelectedCardContext()
+        public void TriggerTiming_CardBuffAtMatchingTiming_UsesTriggeredCardAndPreservesSelectedCard()
         {
             ICardEntity observedCard = null;
+            ICardEntity playerSelectedCard = null;
             var conditionalEffect = new ConditionalCardBuffEffect
             {
-                Conditions = { new SelectedCardIsExpectedCondition(() => observedCard.Identity) },
+                Conditions =
+                {
+                    new TriggeredAndSelectedCardCondition(
+                        () => observedCard.Identity,
+                        () => playerSelectedCard.Identity)
+                },
                 Effect = new NoOpCardBuffEffect()
             };
             var cardBuffData = BuffTestBuilder.CreateCardBuffData(
@@ -122,12 +129,22 @@ namespace MortalGame.Tests
                 context,
                 built.ContextManager.CardBuffLibrary,
                 built.ContextManager.CardLibrary);
+            playerSelectedCard = CardEntity.RuntimeCreateFromId(
+                CardTestBuilder.CardId,
+                built.ContextManager.CardLibrary,
+                built.ContextManager.CardPropertyEntityFactory);
             built.Ally.CardManager.HandCard.AddCard(observedCard);
+            built.Ally.CardManager.HandCard.AddCard(playerSelectedCard);
+
+            using var selectedCardScope = built.ContextManager
+                .SetSelectedCard(playerSelectedCard.Some());
 
             var events = built.Manager.TriggerTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance).ToList();
 
             Assert.That(events.OfType<GeneralUpdateEvent>().Count(), Is.EqualTo(6));
-            Assert.AreEqual(GameContext.EMPTY, built.ContextManager.Context);
+            Assert.That(
+                built.ContextManager.Context.SelectedCard,
+                Is.EqualTo(playerSelectedCard.Identity));
         }
 
         [Test]
@@ -239,18 +256,26 @@ namespace MortalGame.Tests
     }
 }
 
-public sealed class SelectedCardIsExpectedCondition : ICardBuffCondition
+public sealed class TriggeredAndSelectedCardCondition : ICardBuffCondition
 {
-    private readonly Func<Guid> _expectedCardId;
+    private readonly Func<Guid> _expectedTriggeredCardId;
+    private readonly Func<Guid> _expectedSelectedCardId;
 
-    public SelectedCardIsExpectedCondition(Func<Guid> expectedCardId)
+    public TriggeredAndSelectedCardCondition(
+        Func<Guid> expectedTriggeredCardId,
+        Func<Guid> expectedSelectedCardId)
     {
-        _expectedCardId = expectedCardId;
+        _expectedTriggeredCardId = expectedTriggeredCardId;
+        _expectedSelectedCardId = expectedSelectedCardId;
     }
 
     public bool Eval(TriggerContext triggerContext)
     {
-        return triggerContext.Model.ContextManager.Context.SelectedCard == _expectedCardId();
+        return new TriggeredCard()
+                .Eval(triggerContext)
+                .Map(card => card.Identity == _expectedTriggeredCardId())
+                .ValueOr(false) &&
+            triggerContext.Model.ContextManager.Context.SelectedCard == _expectedSelectedCardId();
     }
 }
 

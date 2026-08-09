@@ -12,6 +12,11 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
+            if (Card.OverrideFormState.HasValue)
+            {
+                return EffectResult.Empty;
+            }
+
             var ruleContext = new CardFormRuleContext(
                 Manager,
                 Card,
@@ -66,8 +71,6 @@ namespace MortalGame.GameModel
             {
                 queue.EnqueueImmediate(triggeredEffects.Select(effect =>
                     new TriggeredCardEffectQueueItem(
-                        Manager,
-                        Card,
                         formChangedContext,
                         effect)));
             }
@@ -86,16 +89,64 @@ namespace MortalGame.GameModel
 
     }
 
-    internal sealed record TriggeredCardEffectQueueItem(
+    internal sealed record RemoveCardFormOverrideQueueItem(
         GameplayManager Manager,
         ICardEntity Card,
+        CardFormOverrideState State,
+        UpdateTimingAction TimingAction) : EffectQueueItem((TriggerContext)null)
+    {
+        public override EffectResult Execute(IEffectQueueContext queue)
+        {
+            var operationResult = Card.TryRemoveOverrideForm(State.Identity);
+            if (!operationResult.IsSuccess ||
+                operationResult.BeforeCardDataId == operationResult.AfterCardDataId)
+            {
+                return EffectResult.Empty;
+            }
+
+            var source = new CardFormChangedSource(
+                Card,
+                operationResult.BeforeCardDataId,
+                operationResult.AfterCardDataId,
+                operationResult.TransformKey,
+                CardFormChangeCause.OverrideRemoved);
+            var formChangedContext = new TriggerContext(
+                Manager,
+                new CardTrigger(Card),
+                new CardFormChangedAction(source));
+            var cardInfo = CardInfo.Create(Card, formChangedContext);
+
+            if (Card.TriggeredEffects.TryGetValue(
+                    CardTriggeredTiming.FormChanged,
+                    out var triggeredEffects))
+            {
+                queue.EnqueueImmediate(triggeredEffects.Select(effect =>
+                    new TriggeredCardEffectQueueItem(
+                        formChangedContext,
+                        effect)));
+            }
+
+            return new EffectResult(
+                Array.Empty<BaseResultAction>(),
+                new IGameEvent[]
+                {
+                    new CardFormChangedEvent(
+                        Card.Identity,
+                        operationResult.BeforeCardDataId,
+                        operationResult.AfterCardDataId,
+                        operationResult.TransformKey,
+                        CardFormChangeCause.OverrideRemoved,
+                        cardInfo)
+                });
+        }
+    }
+
+    internal sealed record TriggeredCardEffectQueueItem(
         TriggerContext Context,
         ICardEffect Effect) : EffectQueueItem(Context)
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            using var cardContext = Manager.EffectQueueContextManager
-                .SetSelectedCard(Card.Some());
             var commands = EffectDataResolver.ResolveCardEffect(Context, Effect);
             return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
         }

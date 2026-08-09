@@ -29,6 +29,7 @@ namespace MortalGame.GameModel
                     {
                         effectCommands.Add(new ModifyCardBuffLevelEffectCommand(
                             card,
+                            card.BuffManager.ActiveLayerHandle,
                             addCardBuff.CardBuffId,
                             addLevel));
                     }
@@ -51,7 +52,10 @@ namespace MortalGame.GameModel
                             context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
                             context.Model.ContextManager.ReactionSessionEntityFactory);
 
-                        effectCommands.Add(new AddCardBuffEffectCommand(card, newCardBuff));
+                        effectCommands.Add(new AddCardBuffEffectCommand(
+                            card,
+                            card.BuffManager.ActiveLayerHandle,
+                            newCardBuff));
                     }
                 }
             }

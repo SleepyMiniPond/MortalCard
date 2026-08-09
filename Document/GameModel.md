@@ -87,7 +87,10 @@ GameplayManager 在整個回合中不斷累積事件到 `_gameEvents` 列表。�
 
 ### 設計動機
 
-效果計算經常需要知道「當前是誰在觸發」、「目標是哪張卡」等上下文資訊。GameContextManager 使用**堆疊式作用域**來管理這些臨時狀態。
+效果計算需要保存玩家或 AI 在出牌操作中明確選擇的 Player、Character 或 Card。
+GameContextManager 使用**堆疊式作用域**管理這些選取狀態；目前反應者由
+`TriggerContext.Triggered` 表達，Action 的實際作用目標則由 `IActionTargetUnit.Target`
+表達，兩者不寫入 GameContext。
 
 ### 堆疊式作用域
 
@@ -97,7 +100,9 @@ SetSelected*() → 在當前作用域設定選取的 Player/Character/Card
 Pop()         → 彈出作用域（恢復上層狀態）
 ```
 
-這個設計解決了巢狀效果計算的問題——例如「打出卡牌 A 觸發 Buff B 的效果，Buff B 又需要讀取卡牌 A 的目標」。每層計算都有自己的作用域，不會互相干擾。
+這個設計讓巢狀效果仍能讀取原本的玩家選擇。例如卡牌 A 選擇卡牌 X 後觸發
+Buff B，Buff B 的 `SelectedCard` 仍為 X；若要取得 Buff B 所屬卡牌，應改用
+`TriggeredCard`。
 
 ### 資料庫引用
 
