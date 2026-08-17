@@ -13,17 +13,17 @@ namespace MortalGame.Editor
 
     public static class DropdownHelper
     {
-        const string BuffFolderPath = "Assets/ScriptableObjects/PlayerBuff";
-        const string CardBuffFolderPath = "Assets/ScriptableObjects/CardBuff";
         const string AssetExtension = "*.asset";
 
         public static IEnumerable<ValueDropdownItem> PlayerBuffNames
         {
             get
             {
-                if (Directory.Exists(BuffFolderPath))
+                if (Directory.Exists(ProjectAssetPaths.GameContent.PlayerBuffFolder))
                 {
-                    var assetPaths = Directory.GetFiles(BuffFolderPath, AssetExtension);
+                    var assetPaths = Directory.GetFiles(
+                        ProjectAssetPaths.GameContent.PlayerBuffFolder,
+                        AssetExtension);
                     foreach (var assetPath in assetPaths)
                     {
                         var asset = AssetDatabase.LoadAssetAtPath<PlayerBuffDataScriptable>(assetPath);
@@ -40,9 +40,11 @@ namespace MortalGame.Editor
         {
             get
             {
-                if (Directory.Exists(CardBuffFolderPath))
+                if (Directory.Exists(ProjectAssetPaths.GameContent.CardBuffFolder))
                 {
-                    var assetPaths = Directory.GetFiles(CardBuffFolderPath, AssetExtension);
+                    var assetPaths = Directory.GetFiles(
+                        ProjectAssetPaths.GameContent.CardBuffFolder,
+                        AssetExtension);
                     foreach (var assetPath in assetPaths)
                     {
                         var asset = AssetDatabase.LoadAssetAtPath<CardBuffScriptable>(assetPath);

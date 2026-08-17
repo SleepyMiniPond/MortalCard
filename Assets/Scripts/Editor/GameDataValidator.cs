@@ -10,8 +10,6 @@ namespace MortalGame.Editor
 {
     public static class GameDataValidator
     {
-        private static readonly string[] AssetSearchFolders = { "Assets/ScriptableObjects" };
-
         public static IReadOnlyList<string> ValidateAll()
         {
             return ValidateCardScriptableTypes()
@@ -757,7 +755,9 @@ namespace MortalGame.Editor
 
         private static IEnumerable<T> LoadAssets<T>() where T : UnityEngine.Object
         {
-            return AssetDatabase.FindAssets($"t:{typeof(T).Name}", AssetSearchFolders)
+            return AssetDatabase.FindAssets(
+                    $"t:{typeof(T).Name}",
+                    ProjectAssetPaths.GameContent.SearchFolders.ToArray())
                 .Select(AssetDatabase.GUIDToAssetPath)
                 .Select(AssetDatabase.LoadAssetAtPath<T>)
                 .Where(asset => asset != null);

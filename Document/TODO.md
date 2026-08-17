@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-08-10
+> 最後更新：2026-08-17
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -8,26 +8,112 @@
 
 ```text
 現在可開始
-└─ T-011 多步驟目標選取
-
-T-011 完成（T-010 已完成）
+└─ T-018 統一內容目錄與資料驗證
         ↓
-T-012 卡片合成
+    T-019 通用遊戲狀態查詢／Value／Condition
+        ↓
+    T-020 統一 Reaction Effect 執行能力
+        ↓
+    T-017 CardTriggeredTiming 生命週期觸發管線
+        ↓
+    T-011 多步驟目標選取
+        ↓
+    T-012 卡片合成
 
 獨立排期
 ├─ T-013 敵人動態增減
-├─ T-014 Preview / Simulation
-└─ T-017 CardTriggeredTiming 觸發管線
+└─ T-014 Preview / Simulation
 ```
 
-T-010 已完成並封存；T-012 目前只剩 T-011 尚未完成。T-013、T-014 影響面較廣，不與其他大型功能同時進行。T-017 可獨立處理，但開始前需先定義各卡片生命週期時機的精確順序。
+T-010 已完成並封存。接下來先完成內容載入與資料表達基礎，再補齊 Reaction Effect 與卡片生命週期，讓新增卡片能以資料資產完成，而不是持續為單一卡片增加專用程式。T-011 與 T-012 延後至這四項完成後；T-013、T-014 影響面較廣，不與這條主線同時進行。
 
 ---
 
 ## 現在可開始
 
+### T-018：統一內容目錄與資料驗證
+
+- **目標**：讓 Editor 驗證、Runtime Library 與實際可載入內容使用同一份權威資料來源，避免資產存在且通過 Validator，卻因未加入 `AllCard`／`AllBuff` 清單而無法在戰鬥中載入。
+- **現況**：
+  - `GameDataValidator` 直接掃描 `Assets/ScriptableObjects`。
+  - Runtime 由 `AllCardScriptable`、`AllCardBuffScriptable`、`AllPlayerBuffScriptable`、`AllCharacterBuffScriptable` 的手動陣列建立 Library。
+  - 兩套來源可能不同步，且目前未完整驗證 Localization、Target、Value、Condition、LifeTime 與集合覆蓋率。
+- **開始前需決定**：
+  - 保留 `All*Scriptable` 並由工具自動產生，或改用單一內容 Manifest／Catalog。
+  - Editor 掃描結果是否可直接成為建置輸入，以及正式 Build 不可使用 `AssetDatabase` 時的輸出格式。
+  - 哪些錯誤必須阻止內容進入 Runtime，哪些只列為警告。
+- **建議階段**：
+  1. 建立 Card、Override Card、PlayerBuff、CharacterBuff、CardBuff 的統一內容目錄模型。
+  2. 讓 Runtime Library 與 Validator 共用目錄編譯結果。
+  3. 補齊重複 ID、未登錄資產、巢狀空值、跨 Library 引用、Localization 與 LifeTime 驗證。
+  4. 新增 Editor 工具與 EditMode 測試，驗證新增資產不會出現「Validator 看得到、Runtime 看不到」。
+- **完成條件**：所有 Runtime 可用內容都來自同一份可驗證目錄；任何未收錄、重複或引用不完整的資產都會在進入戰鬥前得到明確錯誤。
+- **狀態**：⬜ 未開始
+
+---
+
+## 主線依序完成
+
+### T-019：通用遊戲狀態查詢／Value／Condition
+
+- **目標**：建立可組合、可序列化的 Target／Value／Condition 基礎，使企劃能直接用資料描述回合、區域、角色狀態與集合條件，不必為每張卡新增專用條件類別。
+- **現況**：
+  - 缺少回合數、奇偶數、目前流程階段與卡片所在區域等常用狀態。
+  - 卡牌集合主要只有單張與手牌來源，缺少依玩家、區域、條件進行通用查詢與篩選。
+  - 整數運算只有加法與乘法，缺少減法、除法、餘數、最小／最大值與集合計數。
+  - 玩家／角色／卡牌條件只覆蓋少量欄位，難以描述生命、護盾、好感度、Effective Form 與 Buff 狀態。
+- **設計原則**：優先建立可重用的狀態來源與組合器，不建立「定時炸彈條件」或「刀盾條件」等內容專用型別。
+- **建議階段**：
+  1. 定義 Gameplay、Player、Character、Card、CardZone 的查詢邊界與空值語意。
+  2. 補齊回合、區域、生命／護盾、卡片形態、Buff、集合計數與必要算術 Value。
+  3. 建立集合 Filter／Any／All／Count 與數值比較、集合包含、奇偶等可組合 Condition。
+  4. 為多型巢狀資料補 Validator、序列化 Round Trip 與 Eval EditMode 測試。
+- **完成條件**：至少能完全以資產描述「持有者回合結束且卡片在手牌」、「偶數／奇數回合開始」、「依玩家與區域篩選卡牌」等條件，且錯誤資料能在 Editor 階段被攔截。
+- **狀態**：⬜ 未開始
+
+### T-020：統一 Reaction Effect 執行能力
+
+- **目標**：讓 Card、PlayerBuff、CharacterBuff、CardBuff 的反應效果能重用核心遊戲操作與 Effect Queue，而不必為每種來源複製 Damage、Shield、DrawCard 等效果實作。
+- **現況**：
+  - `ICardEffect` 已有傷害、護盾、抽牌、移牌與 Buff 等主要操作。
+  - `IPlayerBuffEffect` 與 `ICharacterBuffEffect` 只支援少量修正型效果。
+  - `ICardBuffEffect` 沒有任何正式具體型別，Resolver Registry 也是空的；CardBuff 雖能收到 Timing，卻無法執行實際效果。
+- **開始前需決定**：
+  - 採用共用 Gameplay Effect Spec、Reaction 對 CardEffect 的安全轉接，或保留不同介面但共用 Resolver／Command 建構層。
+  - 各來源的 Triggered Owner、Caster、Selected Target 與 Playing Card Context 如何明確對應。
+  - 哪些核心操作允許由所有 Reaction 來源使用，哪些需要限制。
+- **建議階段**：
+  1. 定義 Reaction Effect 到核心 Effect Command 的共用執行契約。
+  2. 先完成 CardBuff 的傷害、護盾、治療、能量、抽牌與 Buff 操作垂直切片。
+  3. 將 PlayerBuff／CharacterBuff 可共用的操作遷移到相同模型，保留來源特有的效果修正能力。
+  4. 補齊 Resolver／Handler 註冊檢查、Context、Queue 順序與失效目標測試。
+- **完成條件**：CardBuff 能在任一支援的 `GameTiming` 執行核心遊戲操作；新增共用操作時不需要為四種來源複製四套 Resolver／Command 流程。
+- **狀態**：⬜ 未開始
+
+### T-017：完成 CardTriggeredTiming 生命週期觸發管線
+
+- **前置**：T-018、T-019、T-020。
+- **目標**：讓 `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 能在抽牌、打出、保留、丟棄、初始化等卡片生命週期中，依明確且唯一的時機進入 Effect Queue。
+- **現況**：
+  - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入，會在形態狀態與最新 `CardInfo` 提交後執行新 Effective Form 的 Effects。
+  - 其餘 `Drawed`、`EffectDrawed`、`Played`、`EffectPlayed`、`Preserved`、`Discarded`、`EffectDiscarded`、`Initialize` 目前只有 enum、資料欄位、Entity 查詢與 Validator，尚未找到正式的 Runtime 觸發入口。
+  - `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 共用 `CardTriggeredTiming`，實作時必須同時處理卡片本體與目前有效的 CardBuff，避免兩套生命週期語意分離。
+- **開始前需決定**：
+  - 一般流程與 Effect 造成的流程如何區分，例如 `Drawed`／`EffectDrawed`、`Played`／`EffectPlayed`、`Discarded`／`EffectDiscarded`。
+  - 每個 timing 位於卡片區域移動、狀態提交、Gameplay Event 與畫面更新之前或之後。
+  - CardData Effect 與 CardBuff Effect 的固定順序、快照範圍、Selected Card Context 與同一 EffectQueueRunner Budget 規則。
+  - `Initialize` 的觸發範圍，以及既有 `Drawed` 命名若調整時的序列化數值與資產遷移策略。
+- **建議階段**：
+  1. 盤點每個 enum 對應的 GameplayManager／CardManager 狀態轉換點，建立唯一的生命週期順序表。
+  2. 建立共用 Card Trigger Dispatch Queue Item，同時快照並執行 CardData 與有效 CardBuff Effects。
+  3. 分批接入抽牌、打出、保留、丟棄與初始化流程，補齊 Effect 造成流程的來源辨識。
+  4. 新增 EditMode 測試與 Validator，確認不重複觸發、Context 正確且新增／移除的 Effect 不回頭參與同一次快照。
+- **完成條件**：除 `None` 外，每個 `CardTriggeredTiming` 都有一個明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。
+- **狀態**：⬜ 未開始
+
 ### T-011：多步驟自訂目標選取
 
+- **前置**：T-017。
 - **目標**：支援卡片依序要求多次不同來源、數量與條件的目標選取。
 - **開始前需決定**：
   - 每一步的識別方式、來源區域、數量、篩選條件與提示文字。
@@ -74,33 +160,10 @@ T-010 已完成並封存；T-012 目前只剩 T-011 尚未完成。T-013、T-014
 - **完成條件**：Preview 不污染正式狀態，且相同輸入能產生穩定、可供 UI 使用的預演資訊。
 - **狀態**：⬜ 未開始
 
-### T-017：完成 CardTriggeredTiming 生命週期觸發管線
-
-- **目標**：讓 `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 能在抽牌、打出、保留、丟棄、初始化等卡片生命週期中，依明確且唯一的時機進入 Effect Queue。
-- **現況**：
-  - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入，會在形態狀態與最新 `CardInfo` 提交後執行新 Effective Form 的 Effects。
-  - 其餘 `Drawed`、`EffectDrawed`、`Played`、`EffectPlayed`、`Preserved`、`Discarded`、`EffectDiscarded`、`Initialize` 目前只有 enum、資料欄位、Entity 查詢與 Validator，尚未找到正式的 Runtime 觸發入口。
-  - `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 共用 `CardTriggeredTiming`，實作時必須同時處理卡片本體與目前有效的 CardBuff，避免兩套生命週期語意分離。
-- **開始前需決定**：
-  - 一般流程與 Effect 造成的流程如何區分，例如 `Drawed`／`EffectDrawed`、`Played`／`EffectPlayed`、`Discarded`／`EffectDiscarded`。
-  - 每個 timing 位於卡片區域移動、狀態提交、Gameplay Event 與畫面更新之前或之後。
-  - CardData Effect 與 CardBuff Effect 的固定順序、快照範圍、Selected Card Context 與同一 EffectQueueRunner Budget 規則。
-  - `Initialize` 的觸發範圍，以及既有 `Drawed` 命名若調整時的序列化數值與資產遷移策略。
-- **建議階段**：
-  1. 盤點每個 enum 對應的 GameplayManager／CardManager 狀態轉換點，建立唯一的生命週期順序表。
-  2. 建立共用 Card Trigger Dispatch Queue Item，同時快照並執行 CardData 與有效 CardBuff Effects。
-  3. 分批接入抽牌、打出、保留、丟棄與初始化流程，補齊 Effect 造成流程的來源辨識。
-  4. 新增 EditMode 測試與 Validator，確認不重複觸發、Context 正確且新增／移除的 Effect 不回頭參與同一次快照。
-- **完成條件**：除 `None` 外，每個 `CardTriggeredTiming` 都有一個明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。
-- **狀態**：⬜ 未開始
-
----
-
 ## 未來可能方向（非待辦）
 
 - Effect Queue 的效果取消／替代。
 - 戰鬥重播與 AI Simulation。
-- GameData 與 GameModel 的 Content Spec → Runtime Compiler 拆分。
-- GameData Validator 的 localize key、Target、LifeTimeData 等延伸規則。
+- GameData 與 GameModel 的完整 Content Spec → Runtime Compiler 程序集拆分；T-018 只先統一內容目錄與驗證來源，不在同一任務內擴張為資料層重寫。
 
 這些項目目前不排入工作順序；等實際需求或風險出現後，再建立新的 T 編號。
