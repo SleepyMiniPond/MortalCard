@@ -208,10 +208,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 12ec2b1500139954d8f84b753e8b322f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _allCardScriptable: {fileID: 11400000, guid: da27346a9e4d3a34eb66cee90bb5935d, type: 2}
-  _allCardBuffScriptable: {fileID: 11400000, guid: 7bae4afbef92de04188088ebbfa11d96, type: 2}
-  _allPlayerBuffScriptable: {fileID: 11400000, guid: 27e3498cc03f5f9469b5e8623b121076, type: 2}
-  _allCharacterBuffScriptable: {fileID: 11400000, guid: 3157f9b8d2f518f44873c2a15d988644, type: 2}
+  _gameContentCatalog: {fileID: 11400000, guid: 5745cc7fefcf4f54cb121fcd98b55de0, type: 2}
   _allPlayerScriptable: {fileID: 11400000, guid: 19bc02b7a7132174891674a2395803e1, type: 2}
   _excelDatasScriptable: {fileID: 11400000, guid: 6cfaf229c8576d047b73984f4849082f, type: 2}
 --- !u!1660057539 &9223372036854775807
