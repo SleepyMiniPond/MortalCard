@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-08-17
+> 最後更新：2026-08-19
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -8,9 +8,7 @@
 
 ```text
 現在可開始
-└─ T-018 統一內容目錄與資料驗證
-        ↓
-    T-019 通用遊戲狀態查詢／Value／Condition
+└─ T-019 通用遊戲狀態查詢／Value／Condition
         ↓
     T-020 統一 Reaction Effect 執行能力
         ↓
@@ -25,34 +23,11 @@
 └─ T-014 Preview / Simulation
 ```
 
-T-010 已完成並封存。接下來先完成內容載入與資料表達基礎，再補齊 Reaction Effect 與卡片生命週期，讓新增卡片能以資料資產完成，而不是持續為單一卡片增加專用程式。T-011 與 T-012 延後至這四項完成後；T-013、T-014 影響面較廣，不與這條主線同時進行。
+T-010 與 T-018 已完成並封存。接下來先完成通用資料表達基礎，再補齊 Reaction Effect 與卡片生命週期，讓新增卡片能以資料資產完成，而不是持續為單一卡片增加專用程式。T-011 與 T-012 延後至這三項完成後；T-013、T-014 影響面較廣，不與這條主線同時進行。
 
 ---
 
 ## 現在可開始
-
-### T-018：統一內容目錄與資料驗證
-
-- **目標**：讓 Editor 驗證、Runtime Library 與實際可載入內容使用同一份權威資料來源，避免資產存在且通過 Validator，卻因未加入 `AllCard`／`AllBuff` 清單而無法在戰鬥中載入。
-- **現況**：
-  - `GameDataValidator` 直接掃描 `Assets/ScriptableObjects`。
-  - Runtime 由 `AllCardScriptable`、`AllCardBuffScriptable`、`AllPlayerBuffScriptable`、`AllCharacterBuffScriptable` 的手動陣列建立 Library。
-  - 兩套來源可能不同步，且目前未完整驗證 Localization、Target、Value、Condition、LifeTime 與集合覆蓋率。
-- **開始前需決定**：
-  - 保留 `All*Scriptable` 並由工具自動產生，或改用單一內容 Manifest／Catalog。
-  - Editor 掃描結果是否可直接成為建置輸入，以及正式 Build 不可使用 `AssetDatabase` 時的輸出格式。
-  - 哪些錯誤必須阻止內容進入 Runtime，哪些只列為警告。
-- **建議階段**：
-  1. 建立 Card、Override Card、PlayerBuff、CharacterBuff、CardBuff 的統一內容目錄模型。
-  2. 讓 Runtime Library 與 Validator 共用目錄編譯結果。
-  3. 補齊重複 ID、未登錄資產、巢狀空值、跨 Library 引用、Localization 與 LifeTime 驗證。
-  4. 新增 Editor 工具與 EditMode 測試，驗證新增資產不會出現「Validator 看得到、Runtime 看不到」。
-- **完成條件**：所有 Runtime 可用內容都來自同一份可驗證目錄；任何未收錄、重複或引用不完整的資產都會在進入戰鬥前得到明確錯誤。
-- **狀態**：⬜ 未開始
-
----
-
-## 主線依序完成
 
 ### T-019：通用遊戲狀態查詢／Value／Condition
 
@@ -70,6 +45,10 @@ T-010 已完成並封存。接下來先完成內容載入與資料表達基礎�
   4. 為多型巢狀資料補 Validator、序列化 Round Trip 與 Eval EditMode 測試。
 - **完成條件**：至少能完全以資產描述「持有者回合結束且卡片在手牌」、「偶數／奇數回合開始」、「依玩家與區域篩選卡牌」等條件，且錯誤資料能在 Editor 階段被攔截。
 - **狀態**：⬜ 未開始
+
+---
+
+## 主線依序完成
 
 ### T-020：統一 Reaction Effect 執行能力
 

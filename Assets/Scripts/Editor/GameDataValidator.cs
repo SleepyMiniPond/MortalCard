@@ -12,21 +12,227 @@ namespace MortalGame.Editor
     {
         public static IReadOnlyList<string> ValidateAll()
         {
-            return ValidateCardScriptableTypes()
+            var catalog = _LoadDefaultCatalog();
+            if (catalog == null)
+            {
+                return new[] { _GetMissingCatalogError() }
+                    .Concat(ValidateEffectCommandHandlers())
+                    .Distinct()
+                    .ToArray();
+            }
+
+            return ValidateCatalogCoverage(
+                    catalog,
+                    ProjectAssetPaths.GameContent.SearchFolders)
+                .Concat(_ValidateContentIntegrity(catalog))
+                .Concat(ValidateCardScriptableTypes(
+                    catalog.CardAssets,
+                    EditorAssetUtility.FindAssets<DeckScriptable>(
+                        ProjectAssetPaths.GameContent.SearchFolders)))
                 .Concat(ValidateEffectCommandHandlers())
-                .Concat(ValidateEffectResolvers())
-                .Concat(ValidateReferenceIds())
-                .Concat(ValidateCardTransformRules())
-                .Concat(ValidateReactionSessionRules())
+                .Concat(_ValidateEffectResolvers(catalog))
+                .Concat(_ValidateCardTransformRules(catalog))
+                .Concat(_ValidateReactionSessionRules(catalog))
                 .Distinct()
                 .ToArray();
         }
 
+        public static IReadOnlyList<string> ValidateContentIntegrity()
+        {
+            var catalog = _LoadDefaultCatalog();
+            return catalog == null
+                ? new[] { _GetMissingCatalogError() }
+                : _ValidateContentIntegrity(catalog);
+        }
+
+        public static IReadOnlyList<string> ValidateNestedContent(
+            GameContentCatalog catalog)
+        {
+            if (catalog == null)
+                return new[] { "GameContentCatalog 為空，無法驗證巢狀內容" };
+
+            var errors = new List<string>();
+
+            foreach (var asset in catalog.CardAssets.Where(asset => asset != null))
+            {
+                var context = $"{AssetDatabase.GetAssetPath(asset)} / CardData";
+                errors.AddRange(
+                    SerializedDataGraphUtility.ValidateRequiredReferences(
+                        asset.CardData,
+                        context));
+                _ValidateCardNestedSemantics(asset.CardData, context, errors);
+            }
+
+            foreach (var asset in catalog.CardBuffAssets.Where(asset => asset != null))
+            {
+                var context = $"{AssetDatabase.GetAssetPath(asset)} / CardBuffData";
+                errors.AddRange(
+                    SerializedDataGraphUtility.ValidateRequiredReferences(
+                        asset.Data,
+                        context));
+                _ValidateCardBuffNestedSemantics(asset.Data, context, errors);
+            }
+
+            foreach (var asset in catalog.PlayerBuffAssets.Where(asset => asset != null))
+            {
+                var context = $"{AssetDatabase.GetAssetPath(asset)} / PlayerBuffData";
+                errors.AddRange(
+                    SerializedDataGraphUtility.ValidateRequiredReferences(
+                        asset.Data,
+                        context));
+                _ValidatePlayerBuffNestedSemantics(asset.Data, context, errors);
+            }
+
+            foreach (var asset in catalog.CharacterBuffAssets.Where(asset => asset != null))
+            {
+                var context = $"{AssetDatabase.GetAssetPath(asset)} / CharacterBuffData";
+                errors.AddRange(
+                    SerializedDataGraphUtility.ValidateRequiredReferences(
+                        asset.Data,
+                        context));
+                _ValidateCharacterBuffNestedSemantics(asset.Data, context, errors);
+            }
+
+            _ValidateContentIds(catalog, errors);
+            return errors.Distinct().ToArray();
+        }
+
+        public static IReadOnlyList<string> ValidateLocalization(
+            GameContentCatalog catalog,
+            ExcelDatas localizationData,
+            IEnumerable<PlayerData> playerDatas)
+        {
+            if (catalog == null)
+                return new[] { "GameContentCatalog 為空，無法驗證 Localization" };
+            if (localizationData == null)
+                return new[] { "ExcelDatas 為空，無法驗證 Localization" };
+
+            var errors = new List<string>();
+            var cardKeys = _ValidateTitleInfoTable(
+                localizationData.LocalizeCard,
+                nameof(ExcelDatas.LocalizeCard),
+                true,
+                errors);
+            var cardBuffKeys = _ValidateTitleInfoTable(
+                localizationData.LocalizeCardBuff,
+                nameof(ExcelDatas.LocalizeCardBuff),
+                true,
+                errors);
+            var playerBuffKeys = _ValidateTitleInfoTable(
+                localizationData.LocalizePlayerBuff,
+                nameof(ExcelDatas.LocalizePlayerBuff),
+                true,
+                errors);
+            var playerKeys = _ValidateTitleInfoTable(
+                localizationData.LocalizePlayer,
+                nameof(ExcelDatas.LocalizePlayer),
+                true,
+                errors);
+            _ValidateTitleInfoTable(
+                localizationData.LocalizeKeyWord,
+                nameof(ExcelDatas.LocalizeKeyWord),
+                false,
+                errors);
+            _ValidateInfoTable(
+                localizationData.LocalizeUI,
+                nameof(ExcelDatas.LocalizeUI),
+                errors);
+
+            _ValidateLocalizationKeys(
+                catalog.CardAssets
+                    .Where(asset => asset != null && asset.CardData != null)
+                    .Select(asset => (
+                        asset.CardData.ID,
+                        $"{AssetDatabase.GetAssetPath(asset)} / CardData[{asset.CardData.ID}]")),
+                cardKeys,
+                nameof(ExcelDatas.LocalizeCard),
+                errors);
+            _ValidateLocalizationKeys(
+                catalog.CardBuffAssets
+                    .Where(asset => asset != null && asset.Data != null)
+                    .Select(asset => (
+                        asset.Data.ID,
+                        $"{AssetDatabase.GetAssetPath(asset)} / CardBuffData[{asset.Data.ID}]")),
+                cardBuffKeys,
+                nameof(ExcelDatas.LocalizeCardBuff),
+                errors);
+            _ValidateLocalizationKeys(
+                catalog.PlayerBuffAssets
+                    .Where(asset => asset != null && asset.Data != null)
+                    .Select(asset => (
+                        asset.Data.ID,
+                        $"{AssetDatabase.GetAssetPath(asset)} / PlayerBuffData[{asset.Data.ID}]")),
+                playerBuffKeys,
+                nameof(ExcelDatas.LocalizePlayerBuff),
+                errors);
+            _ValidateLocalizationKeys(
+                (playerDatas ?? Enumerable.Empty<PlayerData>())
+                    .Where(data => data != null)
+                    .Select(data => (
+                        data.NameKey,
+                        $"PlayerData[{data.ID}].NameKey")),
+                playerKeys,
+                nameof(ExcelDatas.LocalizePlayer),
+                errors);
+
+            return errors.Distinct().ToArray();
+        }
+
+        public static IReadOnlyList<string> ValidateCatalogCoverage()
+        {
+            var catalog = _LoadDefaultCatalog();
+            return catalog == null
+                ? new[] { _GetMissingCatalogError() }
+                : ValidateCatalogCoverage(
+                    catalog,
+                    ProjectAssetPaths.GameContent.SearchFolders);
+        }
+
+        public static IReadOnlyList<string> ValidateCatalogCoverage(
+            GameContentCatalog catalog,
+            IReadOnlyList<string> searchFolders)
+        {
+            if (catalog == null)
+                return new[] { "GameContentCatalog 為空，無法驗證內容覆蓋" };
+
+            var errors = new List<string>();
+            _ValidateCatalogCollection(
+                catalog.CardAssets,
+                EditorAssetUtility.FindAssets<CardDataScriptableBase>(searchFolders),
+                nameof(GameContentCatalog.CardAssets),
+                errors);
+            _ValidateCatalogCollection(
+                catalog.CardBuffAssets,
+                EditorAssetUtility.FindAssets<CardBuffScriptable>(searchFolders),
+                nameof(GameContentCatalog.CardBuffAssets),
+                errors);
+            _ValidateCatalogCollection(
+                catalog.PlayerBuffAssets,
+                EditorAssetUtility.FindAssets<PlayerBuffDataScriptable>(searchFolders),
+                nameof(GameContentCatalog.PlayerBuffAssets),
+                errors);
+            _ValidateCatalogCollection(
+                catalog.CharacterBuffAssets,
+                EditorAssetUtility.FindAssets<CharacterBuffDataScriptable>(searchFolders),
+                nameof(GameContentCatalog.CharacterBuffAssets),
+                errors);
+            return errors;
+        }
+
         public static IReadOnlyList<string> ValidateReactionSessionRules()
+        {
+            var catalog = _LoadDefaultCatalog();
+            return catalog == null
+                ? new[] { _GetMissingCatalogError() }
+                : _ValidateReactionSessionRules(catalog);
+        }
+
+        private static IReadOnlyList<string> _ValidateReactionSessionRules(
+            GameContentCatalog catalog)
         {
             var errors = new List<string>();
 
-            foreach (var asset in LoadAssets<PlayerBuffDataScriptable>())
+            foreach (var asset in catalog.PlayerBuffAssets.Where(asset => asset != null))
             {
                 if (asset.Data == null)
                     continue;
@@ -36,7 +242,7 @@ namespace MortalGame.Editor
                     $"{AssetDatabase.GetAssetPath(asset)} / PlayerBuffData[{asset.Data.ID}].Sessions"));
             }
 
-            foreach (var asset in LoadAssets<CharacterBuffDataScriptable>())
+            foreach (var asset in catalog.CharacterBuffAssets.Where(asset => asset != null))
             {
                 if (asset.Data == null)
                     continue;
@@ -46,7 +252,7 @@ namespace MortalGame.Editor
                     $"{AssetDatabase.GetAssetPath(asset)} / CharacterBuffData[{asset.Data.ID}].Sessions"));
             }
 
-            foreach (var asset in LoadAssets<CardBuffScriptable>())
+            foreach (var asset in catalog.CardBuffAssets.Where(asset => asset != null))
             {
                 if (asset.Data == null)
                     continue;
@@ -75,7 +281,17 @@ namespace MortalGame.Editor
 
         public static IReadOnlyList<string> ValidateCardTransformRules()
         {
-            return LoadAssets<StandardCardDataScriptable>()
+            var catalog = _LoadDefaultCatalog();
+            return catalog == null
+                ? new[] { _GetMissingCatalogError() }
+                : _ValidateCardTransformRules(catalog);
+        }
+
+        private static IReadOnlyList<string> _ValidateCardTransformRules(
+            GameContentCatalog catalog)
+        {
+            return catalog.CardAssets
+                .OfType<StandardCardDataScriptable>()
                 .SelectMany(asset => ValidateCardTransformRules(
                     asset.Data,
                     AssetDatabase.GetAssetPath(asset)))
@@ -84,9 +300,14 @@ namespace MortalGame.Editor
 
         public static IReadOnlyList<string> ValidateCardScriptableTypes()
         {
+            var catalog = _LoadDefaultCatalog();
+            if (catalog == null)
+                return new[] { _GetMissingCatalogError() };
+
             return ValidateCardScriptableTypes(
-                LoadAssets<CardDataScriptableBase>(),
-                LoadAssets<DeckScriptable>());
+                catalog.CardAssets,
+                EditorAssetUtility.FindAssets<DeckScriptable>(
+                    ProjectAssetPaths.GameContent.SearchFolders));
         }
 
         public static IReadOnlyList<string> ValidateCardScriptableTypes(
@@ -385,18 +606,27 @@ namespace MortalGame.Editor
 
         public static IReadOnlyList<string> ValidateEffectResolvers()
         {
+            var catalog = _LoadDefaultCatalog();
+            return catalog == null
+                ? new[] { _GetMissingCatalogError() }
+                : _ValidateEffectResolvers(catalog);
+        }
+
+        private static IReadOnlyList<string> _ValidateEffectResolvers(
+            GameContentCatalog catalog)
+        {
             var errors = new List<string>();
 
-            foreach (var cardAsset in LoadAssets<CardDataScriptableBase>())
+            foreach (var cardAsset in catalog.CardAssets.Where(asset => asset != null))
                 ValidateCardEffects(cardAsset.CardData, AssetDatabase.GetAssetPath(cardAsset), errors);
 
-            foreach (var buffAsset in LoadAssets<PlayerBuffDataScriptable>())
+            foreach (var buffAsset in catalog.PlayerBuffAssets.Where(asset => asset != null))
                 ValidatePlayerBuffEffects(buffAsset.Data, AssetDatabase.GetAssetPath(buffAsset), errors);
 
-            foreach (var buffAsset in LoadAssets<CharacterBuffDataScriptable>())
+            foreach (var buffAsset in catalog.CharacterBuffAssets.Where(asset => asset != null))
                 ValidateCharacterBuffEffects(buffAsset.Data, AssetDatabase.GetAssetPath(buffAsset), errors);
 
-            foreach (var buffAsset in LoadAssets<CardBuffScriptable>())
+            foreach (var buffAsset in catalog.CardBuffAssets.Where(asset => asset != null))
                 ValidateCardBuffEffects(buffAsset.Data, AssetDatabase.GetAssetPath(buffAsset), errors);
 
             return errors;
@@ -404,21 +634,33 @@ namespace MortalGame.Editor
 
         public static IReadOnlyList<string> ValidateReferenceIds()
         {
-            var cardIds = LoadAssets<CardDataScriptableBase>()
+            var catalog = _LoadDefaultCatalog();
+            return catalog == null
+                ? new[] { _GetMissingCatalogError() }
+                : _ValidateReferenceIds(catalog);
+        }
+
+        private static IReadOnlyList<string> _ValidateReferenceIds(
+            GameContentCatalog catalog)
+        {
+            var cardIds = catalog.CardAssets
+                .Where(asset => asset != null)
                 .Where(asset => asset.CardData != null)
                 .Select(asset => asset.CardData.ID)
                 .ToHashSet();
-            var cardBuffIds = LoadAssets<CardBuffScriptable>()
+            var cardBuffIds = catalog.CardBuffAssets
+                .Where(asset => asset != null)
                 .Where(asset => asset.Data != null)
                 .Select(asset => asset.Data.ID)
                 .ToHashSet();
-            var playerBuffIds = LoadAssets<PlayerBuffDataScriptable>()
+            var playerBuffIds = catalog.PlayerBuffAssets
+                .Where(asset => asset != null)
                 .Where(asset => asset.Data != null)
                 .Select(asset => asset.Data.ID)
                 .ToHashSet();
             var errors = new List<string>();
 
-            foreach (var cardAsset in LoadAssets<CardDataScriptableBase>())
+            foreach (var cardAsset in catalog.CardAssets.Where(asset => asset != null))
             {
                 ValidateCardReferenceIds(
                     cardAsset.CardData,
@@ -429,7 +671,7 @@ namespace MortalGame.Editor
                     errors);
             }
 
-            foreach (var playerBuffAsset in LoadAssets<PlayerBuffDataScriptable>())
+            foreach (var playerBuffAsset in catalog.PlayerBuffAssets.Where(asset => asset != null))
             {
                 ValidatePlayerBuffReferenceIds(
                     playerBuffAsset.Data,
@@ -438,7 +680,7 @@ namespace MortalGame.Editor
                     errors);
             }
 
-            foreach (var cardBuffAsset in LoadAssets<CardBuffScriptable>())
+            foreach (var cardBuffAsset in catalog.CardBuffAssets.Where(asset => asset != null))
             {
                 ValidateCardBuffReferenceIds(
                     cardBuffAsset.Data,
@@ -447,13 +689,16 @@ namespace MortalGame.Editor
                     errors);
             }
 
-            foreach (var deckAsset in LoadAssets<DeckScriptable>())
+            foreach (var deckAsset in EditorAssetUtility.FindAssets<DeckScriptable>(
+                ProjectAssetPaths.GameContent.SearchFolders))
                 ValidateDeckReferenceIds(deckAsset, AssetDatabase.GetAssetPath(deckAsset), cardIds, errors);
 
-            foreach (var allyAsset in LoadAssets<AllyScriptable>())
+            foreach (var allyAsset in EditorAssetUtility.FindAssets<AllyScriptable>(
+                ProjectAssetPaths.GameContent.SearchFolders))
                 ValidatePlayerDeck(allyAsset.Ally?.PlayerData, AssetDatabase.GetAssetPath(allyAsset), errors);
 
-            foreach (var enemyAsset in LoadAssets<EnemyScriptable>())
+            foreach (var enemyAsset in EditorAssetUtility.FindAssets<EnemyScriptable>(
+                ProjectAssetPaths.GameContent.SearchFolders))
                 ValidatePlayerDeck(enemyAsset.Enemy?.PlayerData, AssetDatabase.GetAssetPath(enemyAsset), errors);
 
             return errors;
@@ -753,14 +998,517 @@ namespace MortalGame.Editor
                 errors.Add($"{context} 指向不存在的 ID：{id}");
         }
 
-        private static IEnumerable<T> LoadAssets<T>() where T : UnityEngine.Object
+        private static IReadOnlyList<string> _ValidateContentIntegrity(
+            GameContentCatalog catalog)
         {
-            return AssetDatabase.FindAssets(
-                    $"t:{typeof(T).Name}",
-                    ProjectAssetPaths.GameContent.SearchFolders.ToArray())
-                .Select(AssetDatabase.GUIDToAssetPath)
-                .Select(AssetDatabase.LoadAssetAtPath<T>)
-                .Where(asset => asset != null);
+            var localizationData = AssetDatabase.LoadAssetAtPath<ExcelDatas>(
+                ProjectAssetPaths.GameContent.LocalizationData);
+            var playerDatas = EditorAssetUtility.FindAssets<AllyScriptable>(
+                    ProjectAssetPaths.GameContent.SearchFolders)
+                .Select(asset => asset.Ally?.PlayerData)
+                .Concat(EditorAssetUtility.FindAssets<EnemyScriptable>(
+                        ProjectAssetPaths.GameContent.SearchFolders)
+                    .Select(asset => asset.Enemy?.PlayerData))
+                .Where(data => data != null)
+                .ToArray();
+
+            return ValidateNestedContent(catalog)
+                .Concat(_ValidateReferenceIds(catalog))
+                .Concat(ValidateLocalization(catalog, localizationData, playerDatas))
+                .Distinct()
+                .ToArray();
+        }
+
+        private static void _ValidateCardNestedSemantics(
+            CardData cardData,
+            string context,
+            ICollection<string> errors)
+        {
+            if (cardData == null)
+                return;
+
+            var subSelections = cardData.SubSelects ?? new List<ISubSelectionGroup>();
+            foreach (var pair in subSelections
+                .Select((selection, index) => (Selection: selection, Index: index))
+                .Where(pair => pair.Selection != null))
+            {
+                if (string.IsNullOrWhiteSpace(pair.Selection.Id))
+                    errors.Add($"{context}.SubSelects[{pair.Index}].Id 為空");
+            }
+
+            foreach (var duplicateId in subSelections
+                .Where(selection => selection != null)
+                .Select(selection => selection.Id)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .GroupBy(id => id)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key))
+            {
+                errors.Add($"{context}.SubSelects 的 Id 重複：{duplicateId}");
+            }
+
+            var triggeredEffects = cardData.TriggeredEffects ?? new List<TriggeredCardEffect>();
+            for (var index = 0; index < triggeredEffects.Count; index++)
+            {
+                var triggeredEffect = triggeredEffects[index];
+                if (triggeredEffect != null && triggeredEffect.Timing == CardTriggeredTiming.None)
+                {
+                    errors.Add($"{context}.TriggeredEffects[{index}].Timing 不可為 None");
+                }
+            }
+        }
+
+        private static void _ValidateCardBuffNestedSemantics(
+            CardBuffData buffData,
+            string context,
+            ICollection<string> errors)
+        {
+            if (buffData == null)
+                return;
+
+            _ValidateSessionSemantics(buffData.Sessions, $"{context}.Sessions", errors);
+            _ValidateTimingKeys(buffData.Effects, $"{context}.Effects", errors);
+            _ValidateTimingKeys(buffData.BuffEffects, $"{context}.BuffEffects", errors);
+
+            if (buffData.LifeTimeData != null &&
+                buffData.LifeTimeData is not AlwaysLifeTimeCardBuffData &&
+                buffData.LifeTimeData is not TurnLifeTimeCardBuffData &&
+                buffData.LifeTimeData is not HandCardLifeTimeCardBuffData)
+            {
+                errors.Add(
+                    $"{context}.LifeTimeData 使用未註冊型別：{buffData.LifeTimeData.GetType().Name}");
+            }
+        }
+
+        private static void _ValidatePlayerBuffNestedSemantics(
+            PlayerBuffData buffData,
+            string context,
+            ICollection<string> errors)
+        {
+            if (buffData == null)
+                return;
+
+            if (buffData.MaxLevel <= 0)
+                errors.Add($"{context}.MaxLevel 必須大於 0");
+
+            _ValidateSessionSemantics(buffData.Sessions, $"{context}.Sessions", errors);
+            _ValidateTimingKeys(buffData.BuffEffects, $"{context}.BuffEffects", errors);
+
+            if (buffData.LifeTimeData != null &&
+                buffData.LifeTimeData is not AlwaysLifeTimePlayerBuffData &&
+                buffData.LifeTimeData is not PlayerBuffTurnLifeTimeData)
+            {
+                errors.Add(
+                    $"{context}.LifeTimeData 使用未註冊型別：{buffData.LifeTimeData.GetType().Name}");
+            }
+
+            var sessions = buffData.Sessions ??
+                new Dictionary<string, IReactionSessionData>();
+            foreach (var condition in SerializedDataGraphUtility.Find<PlayerBuffSessionCondition>(buffData))
+            {
+                if (string.IsNullOrWhiteSpace(condition.SessionKey))
+                {
+                    errors.Add($"{context} 的 PlayerBuffSessionCondition.SessionKey 為空");
+                }
+                else if (!sessions.ContainsKey(condition.SessionKey))
+                {
+                    errors.Add(
+                        $"{context} 的 PlayerBuffSessionCondition 引用不存在的 Session：{condition.SessionKey}");
+                }
+            }
+
+            foreach (var value in SerializedDataGraphUtility.Find<PlayerBuffSessionInteger>(buffData))
+            {
+                if (string.IsNullOrWhiteSpace(value.SessionIntegerId))
+                {
+                    errors.Add($"{context} 的 PlayerBuffSessionInteger.SessionIntegerId 為空");
+                }
+                else if (!sessions.TryGetValue(value.SessionIntegerId, out var session))
+                {
+                    errors.Add(
+                        $"{context} 的 PlayerBuffSessionInteger 引用不存在的 Session：{value.SessionIntegerId}");
+                }
+                else if (session is not SessionInteger)
+                {
+                    errors.Add(
+                        $"{context} 的 PlayerBuffSessionInteger 必須引用 SessionInteger：{value.SessionIntegerId}");
+                }
+            }
+        }
+
+        private static void _ValidateCharacterBuffNestedSemantics(
+            CharacterBuffData buffData,
+            string context,
+            ICollection<string> errors)
+        {
+            if (buffData == null)
+                return;
+
+            if (buffData.MaxLevel <= 0)
+                errors.Add($"{context}.MaxLevel 必須大於 0");
+
+            _ValidateSessionSemantics(buffData.Sessions, $"{context}.Sessions", errors);
+            _ValidateTimingKeys(buffData.BuffEffects, $"{context}.BuffEffects", errors);
+
+            if (buffData.LifeTimeData != null &&
+                buffData.LifeTimeData is not AlwaysLifeTimeCharacterBuffData &&
+                buffData.LifeTimeData is not TurnLifeTimeCharacterBuffData)
+            {
+                errors.Add(
+                    $"{context}.LifeTimeData 使用未註冊型別：{buffData.LifeTimeData.GetType().Name}");
+            }
+
+            if (buffData.LifeTimeData is TurnLifeTimeCharacterBuffData turnLifeTime &&
+                turnLifeTime.Turn <= 0)
+            {
+                errors.Add($"{context}.LifeTimeData.Turn 必須大於 0");
+            }
+        }
+
+        private static void _ValidateSessionSemantics(
+            IReadOnlyDictionary<string, IReactionSessionData> sessions,
+            string context,
+            ICollection<string> errors)
+        {
+            if (sessions == null)
+                return;
+
+            foreach (var pair in sessions)
+            {
+                if (string.IsNullOrWhiteSpace(pair.Key))
+                    errors.Add($"{context} 含有空 Session Key");
+
+                switch (pair.Value)
+                {
+                    case SessionBoolean booleanSession:
+                        _ValidateSessionTimings(
+                            booleanSession.UpdateRules,
+                            $"{context}[{pair.Key}].UpdateRules",
+                            rule => rule.Timing,
+                            errors);
+                        break;
+                    case SessionInteger integerSession:
+                        _ValidateSessionTimings(
+                            integerSession.UpdateRules,
+                            $"{context}[{pair.Key}].UpdateRules",
+                            rule => rule.Timing,
+                            errors);
+                        break;
+                    case null:
+                        break;
+                    default:
+                        errors.Add(
+                            $"{context}[{pair.Key}] 使用未註冊型別：{pair.Value.GetType().Name}");
+                        break;
+                }
+            }
+        }
+
+        private static void _ValidateSessionTimings<T>(
+            IReadOnlyList<T> rules,
+            string context,
+            Func<T, GameTiming> getTiming,
+            ICollection<string> errors)
+            where T : class
+        {
+            if (rules == null)
+                return;
+
+            for (var index = 0; index < rules.Count; index++)
+            {
+                var rule = rules[index];
+                if (rule != null && getTiming(rule) == GameTiming.None)
+                    errors.Add($"{context}[{index}].Timing 不可為 None");
+            }
+        }
+
+        private static void _ValidateTimingKeys<T>(
+            IReadOnlyDictionary<T, ConditionalCardBuffEffect[]> effects,
+            string context,
+            ICollection<string> errors)
+            where T : struct, Enum
+        {
+            if (effects == null)
+                return;
+
+            foreach (var timing in effects.Keys)
+            {
+                if (Convert.ToInt32(timing) == 0)
+                    errors.Add($"{context} 的 Timing 不可為 None");
+            }
+        }
+
+        private static void _ValidateTimingKeys<T>(
+            IReadOnlyDictionary<T, ConditionalPlayerBuffEffect[]> effects,
+            string context,
+            ICollection<string> errors)
+            where T : struct, Enum
+        {
+            if (effects == null)
+                return;
+
+            foreach (var timing in effects.Keys)
+            {
+                if (Convert.ToInt32(timing) == 0)
+                    errors.Add($"{context} 的 Timing 不可為 None");
+            }
+        }
+
+        private static void _ValidateTimingKeys<T>(
+            IReadOnlyDictionary<T, ConditionalCharacterBuffEffect[]> effects,
+            string context,
+            ICollection<string> errors)
+            where T : struct, Enum
+        {
+            if (effects == null)
+                return;
+
+            foreach (var timing in effects.Keys)
+            {
+                if (Convert.ToInt32(timing) == 0)
+                    errors.Add($"{context} 的 Timing 不可為 None");
+            }
+        }
+
+        private static void _ValidateContentIds(
+            GameContentCatalog catalog,
+            ICollection<string> errors)
+        {
+            _ValidateIdCollection(
+                catalog.CardAssets
+                    .Where(asset => asset != null && asset.CardData != null)
+                    .Select(asset => (
+                        asset.CardData.ID,
+                        AssetDatabase.GetAssetPath(asset))),
+                "CardData",
+                errors);
+            _ValidateIdCollection(
+                catalog.CardBuffAssets
+                    .Where(asset => asset != null && asset.Data != null)
+                    .Select(asset => (
+                        asset.Data.ID,
+                        AssetDatabase.GetAssetPath(asset))),
+                "CardBuffData",
+                errors);
+            _ValidateIdCollection(
+                catalog.PlayerBuffAssets
+                    .Where(asset => asset != null && asset.Data != null)
+                    .Select(asset => (
+                        asset.Data.ID,
+                        AssetDatabase.GetAssetPath(asset))),
+                "PlayerBuffData",
+                errors);
+            _ValidateIdCollection(
+                catalog.CharacterBuffAssets
+                    .Where(asset => asset != null && asset.Data != null)
+                    .Select(asset => (
+                        asset.Data.ID,
+                        AssetDatabase.GetAssetPath(asset))),
+                "CharacterBuffData",
+                errors);
+        }
+
+        private static void _ValidateIdCollection(
+            IEnumerable<(string Id, string Context)> entries,
+            string dataType,
+            ICollection<string> errors)
+        {
+            var values = entries.ToArray();
+            foreach (var entry in values.Where(entry => string.IsNullOrWhiteSpace(entry.Id)))
+                errors.Add($"{entry.Context} 的 {dataType}.ID 為空");
+
+            foreach (var duplicateId in values
+                .Where(entry => !string.IsNullOrWhiteSpace(entry.Id))
+                .GroupBy(entry => entry.Id)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key))
+            {
+                errors.Add($"{dataType}.ID 重複：{duplicateId}");
+            }
+        }
+
+        private static HashSet<string> _ValidateTitleInfoTable(
+            IReadOnlyList<LocalizeExcelTitleData> rows,
+            string tableName,
+            bool requireInfo,
+            ICollection<string> errors)
+        {
+            if (rows == null)
+            {
+                errors.Add($"ExcelDatas.{tableName} 為空");
+                return new HashSet<string>();
+            }
+
+            for (var index = 0; index < rows.Count; index++)
+            {
+                var row = rows[index];
+                if (row == null)
+                {
+                    errors.Add($"ExcelDatas.{tableName}[{index}] 為空");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(row.Id))
+                    errors.Add($"ExcelDatas.{tableName}[{index}].Id 為空");
+                if (string.IsNullOrWhiteSpace(row.Title))
+                    errors.Add($"ExcelDatas.{tableName}[{index}].Title 為空");
+                if (requireInfo && string.IsNullOrWhiteSpace(row.Info))
+                    errors.Add($"ExcelDatas.{tableName}[{index}].Info 為空");
+            }
+
+            foreach (var duplicateId in rows
+                .Where(row => row != null && !string.IsNullOrWhiteSpace(row.Id))
+                .GroupBy(row => row.Id)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key))
+            {
+                errors.Add($"ExcelDatas.{tableName} 的 Id 重複：{duplicateId}");
+            }
+
+            return rows
+                .Where(row => row != null && !string.IsNullOrWhiteSpace(row.Id))
+                .Select(row => row.Id)
+                .ToHashSet();
+        }
+
+        private static void _ValidateInfoTable(
+            IReadOnlyList<LocalizeExcelData> rows,
+            string tableName,
+            ICollection<string> errors)
+        {
+            if (rows == null)
+            {
+                errors.Add($"ExcelDatas.{tableName} 為空");
+                return;
+            }
+
+            for (var index = 0; index < rows.Count; index++)
+            {
+                var row = rows[index];
+                if (row == null)
+                {
+                    errors.Add($"ExcelDatas.{tableName}[{index}] 為空");
+                    continue;
+                }
+
+                if (string.IsNullOrWhiteSpace(row.Id))
+                    errors.Add($"ExcelDatas.{tableName}[{index}].Id 為空");
+                if (string.IsNullOrWhiteSpace(row.Info))
+                    errors.Add($"ExcelDatas.{tableName}[{index}].Info 為空");
+            }
+
+            foreach (var duplicateId in rows
+                .Where(row => row != null && !string.IsNullOrWhiteSpace(row.Id))
+                .GroupBy(row => row.Id)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key))
+            {
+                errors.Add($"ExcelDatas.{tableName} 的 Id 重複：{duplicateId}");
+            }
+        }
+
+        private static void _ValidateLocalizationKeys(
+            IEnumerable<(string Key, string Context)> references,
+            ISet<string> validKeys,
+            string tableName,
+            ICollection<string> errors)
+        {
+            foreach (var reference in references)
+            {
+                if (string.IsNullOrWhiteSpace(reference.Key))
+                {
+                    errors.Add($"{reference.Context} 為空");
+                }
+                else if (!validKeys.Contains(reference.Key))
+                {
+                    errors.Add(
+                        $"{reference.Context} 在 ExcelDatas.{tableName} 找不到 Localization Key");
+                }
+            }
+        }
+
+        private static void _ValidateCatalogCollection<T>(
+            IReadOnlyList<T> catalogAssets,
+            IReadOnlyList<T> scannedAssets,
+            string collectionName,
+            ICollection<string> errors)
+            where T : UnityEngine.Object
+        {
+            var catalogItems = catalogAssets ?? Array.Empty<T>();
+            var scannedItems = scannedAssets ?? Array.Empty<T>();
+            var catalogPaths = new List<string>();
+
+            for (var index = 0; index < catalogItems.Count; index++)
+            {
+                var asset = catalogItems[index];
+                if (asset == null)
+                {
+                    errors.Add($"GameContentCatalog.{collectionName}[{index}] 是空資產引用");
+                    continue;
+                }
+
+                var assetPath = AssetDatabase.GetAssetPath(asset);
+                if (string.IsNullOrWhiteSpace(assetPath))
+                {
+                    errors.Add(
+                        $"GameContentCatalog.{collectionName}[{index}] 不是已儲存的專案資產：{asset.name}");
+                    continue;
+                }
+
+                catalogPaths.Add(assetPath);
+            }
+
+            foreach (var duplicatePath in catalogPaths
+                .GroupBy(path => path, StringComparer.Ordinal)
+                .Where(group => group.Count() > 1)
+                .Select(group => group.Key))
+            {
+                errors.Add(
+                    $"GameContentCatalog.{collectionName} 重複收錄資產：{duplicatePath}");
+            }
+
+            var scannedPaths = scannedItems
+                .Where(asset => asset != null)
+                .Select(AssetDatabase.GetAssetPath)
+                .Where(path => !string.IsNullOrWhiteSpace(path))
+                .ToArray();
+            var catalogPathSet = catalogPaths.ToHashSet(StringComparer.Ordinal);
+            var scannedPathSet = scannedPaths.ToHashSet(StringComparer.Ordinal);
+
+            foreach (var missingPath in scannedPaths.Where(path => !catalogPathSet.Contains(path)))
+            {
+                errors.Add(
+                    $"GameContentCatalog.{collectionName} 未收錄掃描到的資產：{missingPath}");
+            }
+
+            foreach (var extraPath in catalogPaths
+                .Distinct(StringComparer.Ordinal)
+                .Where(path => !scannedPathSet.Contains(path)))
+            {
+                errors.Add(
+                    $"GameContentCatalog.{collectionName} 收錄了掃描範圍外的資產：{extraPath}");
+            }
+
+            var hasValidSet = catalogPaths.Count == catalogPathSet.Count &&
+                catalogPathSet.SetEquals(scannedPathSet);
+            if (hasValidSet && !catalogPaths.SequenceEqual(scannedPaths, StringComparer.Ordinal))
+            {
+                errors.Add(
+                    $"GameContentCatalog.{collectionName} 的順序與資產路徑排序不一致，請重新產生內容目錄");
+            }
+        }
+
+        private static GameContentCatalog _LoadDefaultCatalog()
+        {
+            return AssetDatabase.LoadAssetAtPath<GameContentCatalog>(
+                ProjectAssetPaths.GameContent.Catalog);
+        }
+
+        private static string _GetMissingCatalogError()
+        {
+            return
+                $"找不到遊戲內容目錄：{ProjectAssetPaths.GameContent.Catalog}，" +
+                "請執行 MortalGame/遊戲內容/重新產生內容目錄";
         }
 
         private static string GetAssetContext(UnityEngine.Object asset)

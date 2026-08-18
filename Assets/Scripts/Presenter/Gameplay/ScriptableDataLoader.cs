@@ -10,16 +10,7 @@ namespace MortalGame.Presenter
     public class ScriptableDataLoader : MonoBehaviour
     {
         [SerializeField]
-        private AllCardScriptable _allCardScriptable;
-
-        [SerializeField]
-        private AllCardBuffScriptable _allCardBuffScriptable;
-
-        [SerializeField]
-        private AllPlayerBuffScriptable _allPlayerBuffScriptable;
-
-        [SerializeField]
-        private AllCharacterBuffScriptable _allCharacterBuffScriptable;
+        private GameContentCatalog _gameContentCatalog;
 
         [SerializeField]
         private AllPlayerScriptable _allPlayerScriptable;
@@ -27,10 +18,18 @@ namespace MortalGame.Presenter
         [SerializeField]
         private ExcelDatas _excelDatasScriptable;
 
-        public CardData[] AllCards => _allCardScriptable.AllCardData.Select(c => c.CardData).ToArray();
-        public CardBuffData[] AllCardBuffs => _allCardBuffScriptable.AllCardBuffData.Select(c => c.Data).ToArray();
-        public PlayerBuffData[] AllPlayerBuffs => _allPlayerBuffScriptable.AllBuffData.Select(b => b.Data).ToArray();
-        public CharacterBuffData[] AllCharacterBuffs => _allCharacterBuffScriptable.AllBuffData.Select(b => b.Data).ToArray();
+        public CardData[] AllCards => _gameContentCatalog.CardAssets
+            .Select(asset => asset.CardData)
+            .ToArray();
+        public CardBuffData[] AllCardBuffs => _gameContentCatalog.CardBuffAssets
+            .Select(asset => asset.Data)
+            .ToArray();
+        public PlayerBuffData[] AllPlayerBuffs => _gameContentCatalog.PlayerBuffAssets
+            .Select(asset => asset.Data)
+            .ToArray();
+        public CharacterBuffData[] AllCharacterBuffs => _gameContentCatalog.CharacterBuffAssets
+            .Select(asset => asset.Data)
+            .ToArray();
         public AllyData Ally => _allPlayerScriptable.AllyObject.Ally;
         public EnemyData[] AllEnemies => _allPlayerScriptable.EnemyObjects.Select(p => p.Enemy).ToArray();
 

@@ -19,6 +19,8 @@ namespace MortalGame.Editor
                 ScriptableObjectsRoot + "/PlayerBuff";
             public const string CardBuffFolder =
                 ScriptableObjectsRoot + "/CardBuff";
+            public const string LocalizationData =
+                ScriptableObjectsRoot + "/ExcelDatas.asset";
 
             public static IReadOnlyList<string> SearchFolders { get; } =
                 Array.AsReadOnly(new[] { ScriptableObjectsRoot });
@@ -29,6 +31,11 @@ namespace MortalGame.Editor
             public const string EditModeRoot = "Assets/Tests/EditMode";
             public const string GameContentCatalogRoot =
                 EditModeRoot + "/GameContentCatalog";
+        }
+
+        public static class Scenes
+        {
+            public const string Main = "Assets/Scenes/Main.unity";
         }
     }
 }

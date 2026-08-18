@@ -1,6 +1,6 @@
 # 專案已完成任務封存
 
-> 封存日期：2026-08-10
+> 封存日期：2026-08-19
 > 本文件保留已完成任務的設計、實作與驗證紀錄；目前工作請查看 [TODO.md](TODO.md)。
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
@@ -246,3 +246,24 @@
 - **已知邊界**：專案尚無 Gameplay Prefab View 測試 Harness；拖曳中與 Focus 中變形的程式接線已完成，保留正式內容資產下的非阻塞人工 smoke test。
 - **正式文件**：[CardTransformation.md](CardTransformation.md)
 - **狀態**：✅ 已完成（2026-08-10）
+
+---
+
+### T-018：統一內容目錄與資料驗證
+
+- **目標**：讓 Editor 驗證、Runtime Library 與實際可載入內容使用同一份權威資料來源，避免資產存在卻因手動清單不同步而無法在戰鬥中載入。
+- **完成內容**：
+  - 建立 `GameContentCatalog`，統一收錄 Card、Override Card、CardBuff、PlayerBuff 與 CharacterBuff 資產。
+  - 建立 Editor 掃描、Catalog 編譯與手動選單；搜尋與輸出路徑集中在 Editor 專用的 `ProjectAssetPaths`，不洩漏至 Runtime。
+  - Runtime `ScriptableDataLoader` 改由 Catalog 建立各 Library，移除四套舊 `All*Scriptable` 類別與對應資產。
+  - Validator 補齊 Catalog 覆蓋率、重複 ID、巢狀必要引用、Target／Value／Condition、跨 Library 引用、Localization、LifeTime 與 Session 語意檢查。
+  - 新增 Build Gate；建置前使用同一個 `GameDataValidator.ValidateAll()`，錯誤時停止建置並完整列出原因，不在建置期間偷偷修改 Catalog。
+  - 新增 Play Mode Gate；日常按下 Play 時先執行相同驗證，錯誤時取消進入 Play Mode、輸出所有原因並顯示提示。
+  - 新增 Catalog 編譯、Runtime 載入、完整內容驗證與 Build Gate EditMode 測試。
+- **驗證結果**：
+  - Unity 編譯：0 error。
+  - 正式內容 `GameDataValidator.ValidateAll()`：通過，0 error。
+  - 完整 EditMode：242 passed / 0 failed / 0 skipped。
+  - Play Mode Gate smoke test：有效資料可正常進入 Play Mode，並已正常退出。
+  - 測試保留 2 筆既有 `NoOpCardBuffEffect` 未知 Resolver warning，屬測試用空效果案例。
+- **狀態**：✅ 已完成（2026-08-19）

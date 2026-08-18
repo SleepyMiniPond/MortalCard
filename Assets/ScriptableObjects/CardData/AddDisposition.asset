@@ -103,10 +103,16 @@ MonoBehaviour:
       Data: 
     - Name: Value
       Entry: 7
-      Data: 9|MortalGame.GameModel.ConstInteger, MortalGame.Runtime
-    - Name: Value
+      Data: 9|MortalGame.GameModel.CardIntegerProperty, MortalGame.Runtime
+    - Name: Card
+      Entry: 7
+      Data: 10|MortalGame.GameModel.PlayingCard, MortalGame.Runtime
+    - Name: 
+      Entry: 8
+      Data: 
+    - Name: Property
       Entry: 3
-      Data: 3
+      Data: 0
     - Name: 
       Entry: 8
       Data: 
@@ -121,7 +127,7 @@ MonoBehaviour:
       Data: 
     - Name: TriggeredEffects
       Entry: 7
-      Data: 10|System.Collections.Generic.List`1[[MortalGame.GameData.TriggeredCardEffect,
+      Data: 11|System.Collections.Generic.List`1[[MortalGame.GameData.TriggeredCardEffect,
         MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
@@ -134,7 +140,7 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 11|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
+      Data: 12|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
         MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12
@@ -147,7 +153,7 @@ MonoBehaviour:
       Data: 
     - Name: TransformRules
       Entry: 7
-      Data: 12|System.Collections.Generic.List`1[[MortalGame.GameData.CardTransformRule,
+      Data: 13|System.Collections.Generic.List`1[[MortalGame.GameData.CardTransformRule,
         MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12

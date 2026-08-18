@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Constant:
   - Id: version
-    Value: 1.0.1
+    Value: 1.0.2
   Disposition:
   - Id: Coward
     Range: 2
@@ -40,6 +40,21 @@ MonoBehaviour:
   - Id: Attack
     Title: "\u653B\u64CA"
     Info: "{:power}\u57FA\u790E\u50B7\u5BB3"
+  - Id: Attack_Defense
+    Title: "\u653B\u64CA"
+    Info: "{:power}\u57FA\u790E\u50B7\u5BB3"
+  - Id: Attack_Sneak
+    Title: "\u653B\u64CA"
+    Info: "{:power}\u57FA\u790E\u50B7\u5BB3"
+  - Id: Attack_Special
+    Title: "\u653B\u64CA"
+    Info: "{:power}\u57FA\u790E\u50B7\u5BB3"
+  - Id: Attack_Speech
+    Title: "\u653B\u64CA"
+    Info: "{:power}\u57FA\u790E\u50B7\u5BB3"
+  - Id: AddDisposition
+    Title: "\u4FEE\u8EAB\u990A\u6027"
+    Info: "\u4F11\u990A+{:power}"
   - Id: BuffPoison
     Title: "\u4E0A\u6BD2"
     Info: "\u8CE6\u4E88{:power}\u4E2D\u6BD2"
@@ -79,6 +94,9 @@ MonoBehaviour:
   - Id: BuffFollowAttack
     Title: "\u8FFD\u64CA"
     Info: "\u7372\u5F97{:power}\u8FFD\u64CA"
+  - Id: BuffCounterAttack
+    Title: "\u53CD\u64CA"
+    Info: "\u7372\u5F97{:power}\u53CD\u64CA"
   LocalizeCardBuff:
   - Id: QuickPower
     Title: "\u8FC5\u64CA"
@@ -173,6 +191,10 @@ MonoBehaviour:
     Title: "\u9023\u64CA"
     Info: "\u5C64\u6578 : {:level}\n\u672C\u56DE\u5408\u9023\u7E8C2\u6B21\u4EE5\u4E0A\u6253\u51FA\u6345\u4EBA/\u7D55\u62DB\u6642\uFF0C\u6345\u4EBA/\u7D55\u62DB\u7684\u50B7\u5BB3\u589E\u52A0
       {:level}+\u9023\u64CA\u6578{:combo}"
+  - Id: CounterAttack
+    Title: "\u53CD\u64CA"
+    Info: "\u5C64\u6578 : {:level}\n\u53D7\u5230\u6575\u65B9\u6253\u51FA\u5361\u724C\u7684\u50B7\u5BB3\u5F8C\uFF0C\u5C0D\u767C\u52D5\u8005\u9020\u6210
+      {:level} \u9EDE\u6548\u679C\u50B7\u5BB3"
   - Id: FollowAttack
     Title: "\u8FFD\u64CA"
     Info: "\u5C64\u6578 : {:level}\n\u6253\u51FA\u5634\u653B/\u6697\u5668/\u7D55\u62DB\u9020\u6210\u50B7\u5BB3\u5F8C\uFF0C\u5411\u6307\u5B9A\u55AE\u4F4D\u9020\u6210\u8FFD\u52A0\u50B7\u5BB3
@@ -185,6 +207,10 @@ MonoBehaviour:
     Title: "\u4E2D\u6BD2"
     Info: "\u5C64\u6578 : {:level}\n\u81EA\u8EAB\u884C\u52D5\u7D50\u675F\u6642\u53D7\u5230\u50B7\u5BB3
       {:level}"
+  - Id: Palsy
+    Title: "\u9EBB\u75FA"
+    Info: "\u5C64\u6578 : {:level}\n\u81EA\u8EAB\u884C\u52D5\u958B\u59CB\u6642\u5C01\u9396\u96A8\u6A5F
+      {:level} \u5F35\u624B\u724C"
   - Id: QuickAttack
     Title: "\u8FC5\u64CA"
     Info: "\u5C64\u6578 : {:level}\n\u6253\u51FA\u6700\u53F3\u5074\u7684\u6345\u4EBA/\u6697\u5668/\u7D55\u62DB\u5F8C\uFF0C\u6700\u53F3\u5074\u624B\u724C\u7684\u6578\u503C\u63D0\u5347
