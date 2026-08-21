@@ -40,17 +40,26 @@ namespace MortalGame.GameModel
                         PlayerBuffSource playerBuffSource => playerBuffSource.Buff.Caster,
                         _ => Option.None<IPlayerEntity>()
                     };
-                    cloneCardEffect.AddCardBuffDatas
-                        .Select(addCardBuffData => CardBuffEntity.CreateFromData(
+                    foreach (var addCardBuffData in cloneCardEffect.AddCardBuffDatas)
+                    {
+                        if (!addCardBuffData.Level
+                                .Eval(targetTriggerContext)
+                                .TryGetValue(out var level))
+                        {
+                            continue;
+                        }
+
+                        var cardBuff = CardBuffEntity.CreateFromData(
                             addCardBuffData.CardBuffId,
-                            addCardBuffData.Level.Eval(targetTriggerContext),
+                            level,
                             cloneCardCaster,
                             targetTriggerContext,
                             context.Model.ContextManager.CardBuffLibrary,
                             context.Model.ContextManager.CardBuffPropertyEntityFactory,
                             context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
-                            context.Model.ContextManager.ReactionSessionEntityFactory))
-                        .ForEach(cardBuff => cloneCard.BuffManager.AddBuff(cardBuff));
+                            context.Model.ContextManager.ReactionSessionEntityFactory);
+                        cardBuff.MatchSome(buff => cloneCard.BuffManager.AddBuff(buff));
+                    }
 
                     effectCommands.Add(new CloneCardEffectCommand(
                         targetPlayer,

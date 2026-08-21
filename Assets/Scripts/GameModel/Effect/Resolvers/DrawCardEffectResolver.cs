@@ -22,7 +22,10 @@ namespace MortalGame.GameModel
                 var playerTarget = new PlayerTarget(target);
                 var targetIntent = new DrawCardIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
-                var drawCount = drawCardEffect.Value.Eval(targetTriggerContext);
+                if (!drawCardEffect.Value.Eval(targetTriggerContext).TryGetValue(out var drawCount))
+                {
+                    continue;
+                }
 
                 effectCommands.Add(new DrawCardEffectCommand(target, drawCount));
             }

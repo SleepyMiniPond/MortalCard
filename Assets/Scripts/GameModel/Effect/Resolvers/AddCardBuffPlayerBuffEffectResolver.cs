@@ -23,7 +23,10 @@ namespace MortalGame.GameModel
                     var cardTarget = new CardTarget(card);
                     var targetIntent = new AddCardBuffIntentTargetAction(context.Action.Source, cardTarget);
                     var targetTriggerContext = triggerContext with { Action = targetIntent };
-                    var addLevel = addCardBuff.Level.Eval(targetTriggerContext);
+                    if (!addCardBuff.Level.Eval(targetTriggerContext).TryGetValue(out var addLevel))
+                    {
+                        continue;
+                    }
 
                     if (card.BuffManager.Buffs.Any(buff => buff.CardBuffDataID == addCardBuff.CardBuffId))
                     {
@@ -52,10 +55,11 @@ namespace MortalGame.GameModel
                             context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
                             context.Model.ContextManager.ReactionSessionEntityFactory);
 
-                        effectCommands.Add(new AddCardBuffEffectCommand(
-                            card,
-                            card.BuffManager.ActiveLayerHandle,
-                            newCardBuff));
+                        newCardBuff.MatchSome(buff =>
+                            effectCommands.Add(new AddCardBuffEffectCommand(
+                                card,
+                                card.BuffManager.ActiveLayerHandle,
+                                buff)));
                     }
                 }
             }

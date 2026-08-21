@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MortalGame.GameData;
 using System.Linq;
+using Optional;
 using UnityEngine;
 
 namespace MortalGame.GameModel
@@ -11,7 +12,7 @@ namespace MortalGame.GameModel
         CardProperty Property { get; }
         IEnumerable<string> Keywords { get; }
 
-        int Eval(TriggerContext triggerContext);
+        Option<int> Eval(TriggerContext triggerContext);
 
         ICardBuffPropertyEntity Clone();
     }
@@ -22,7 +23,7 @@ namespace MortalGame.GameModel
         public IEnumerable<string> Keywords => Property.ToString().WrapAsEnumerable();
 
         public SealedCardBuffPropertyEntity() { }
-        public int Eval(TriggerContext triggerContext) => 0;
+        public Option<int> Eval(TriggerContext triggerContext) => 0.Some();
 
         public ICardBuffPropertyEntity Clone() => new SealedCardBuffPropertyEntity();
     }
@@ -38,7 +39,7 @@ namespace MortalGame.GameModel
         {
             _value = value;
         }
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
             var cardBuffPropertyContext = triggerContext with { Action = new CardBuffPropertyLookAction(this) };
             return _value.Eval(cardBuffPropertyContext);

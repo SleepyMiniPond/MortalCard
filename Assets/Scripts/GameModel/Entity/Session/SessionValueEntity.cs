@@ -92,11 +92,16 @@ namespace MortalGame.GameModel
             {
                 if (rule.Conditions.All(condition => condition.Eval(triggerContext)))
                 {
-                    var newVal = rule.NewValue.Eval(triggerContext);
+                    if (!rule.NewValue.Eval(triggerContext).TryGetValue(out var newValue))
+                    {
+                        return false;
+                    }
+
                     Value = rule.Operation switch
                     {
-                        ConditionIntegerUpdateRule.UpdateType.AddOrigin => Value + newVal,
-                        ConditionIntegerUpdateRule.UpdateType.Overwrite => newVal,
+                        ConditionIntegerUpdateRule.UpdateType.AddOrigin =>
+                            GameplayIntegerMath.Add(Value, newValue).ValueOr(Value),
+                        ConditionIntegerUpdateRule.UpdateType.Overwrite => newValue,
                         _ => Value
                     };
                     return true;

@@ -2,6 +2,7 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
+using Optional;
 using Optional.Collections;
 using UniRx;
 using UnityEngine;
@@ -49,39 +50,41 @@ namespace MortalGame.GameModel
             };
         }
 
-        public static SelectSubTargetsResult SelectSubTargets(
+        public static Option<SelectSubTargetsResult> SelectSubTargets(
             IGameplayModel gameplayWatcher,
             ICardEntity cardEntity)
         {
             var subSelectionActions = new Dictionary<string, ISubSelectionAction>();
 
             var subSelectionInfoOpt = gameplayWatcher.QueryCardSubSelectionInfos(cardEntity.Identity);
-            if (subSelectionInfoOpt.TryGetValue(out var subSelectionInfo))
+            if (!subSelectionInfoOpt.TryGetValue(out var subSelectionInfo))
             {
-                foreach (var kvp in subSelectionInfo.SelectionInfos)
+                return Option.None<SelectSubTargetsResult>();
+            }
+
+            foreach (var kvp in subSelectionInfo.SelectionInfos)
+            {
+                switch (kvp.Value)
                 {
-                    switch (kvp.Value)
-                    {
-                        case ExistCardSelectionInfo existCardGroup:
-                            subSelectionActions[kvp.Key] =
-                                RandomSelectExistCardSubSelection(
-                                    existCardGroup,
-                                    gameplayWatcher.ContextManager.GameRandom);
-                            break;
-                        case NewCardSelectionInfo:
-                            subSelectionActions[kvp.Key] = new NewCardSubSelectionAction();
-                            break;
-                        case NewPartialCardSelectionInfo:
-                            subSelectionActions[kvp.Key] = new NewPartialCardSubSelectionAction();
-                            break;
-                        case NewEffectSelectionInfo:
-                            subSelectionActions[kvp.Key] = new NewEffectSubSelectionAction();
-                            break;
-                    }
+                    case ExistCardSelectionInfo existCardGroup:
+                        subSelectionActions[kvp.Key] =
+                            RandomSelectExistCardSubSelection(
+                                existCardGroup,
+                                gameplayWatcher.ContextManager.GameRandom);
+                        break;
+                    case NewCardSelectionInfo:
+                        subSelectionActions[kvp.Key] = new NewCardSubSelectionAction();
+                        break;
+                    case NewPartialCardSelectionInfo:
+                        subSelectionActions[kvp.Key] = new NewPartialCardSubSelectionAction();
+                        break;
+                    case NewEffectSelectionInfo:
+                        subSelectionActions[kvp.Key] = new NewEffectSubSelectionAction();
+                        break;
                 }
             }
 
-            return new SelectSubTargetsResult(subSelectionActions);
+            return new SelectSubTargetsResult(subSelectionActions).Some();
         }
 
         private static SelectMainTargetResult SelectCharacterWithLogic(IGameplayModel gameplayWatcher, TargetLogicTag logicTag)

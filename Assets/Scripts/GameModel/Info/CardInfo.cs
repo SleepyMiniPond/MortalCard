@@ -3,6 +3,7 @@ using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using Optional;
 using UnityEngine;
 
 namespace MortalGame.GameModel
@@ -15,9 +16,9 @@ namespace MortalGame.GameModel
         CardRarity Rarity,
         IEnumerable<CardTheme> Themes,
         int OriginCost,
-        int Cost,
+        Option<int> Cost,
         int OriginPower,
-        int Power,
+        Option<int> Power,
         MainSelectionInfo MainSelectable,
         IReadOnlyList<CardBuffInfo> BuffInfos,
         IReadOnlyList<CardProperty> Properties,
@@ -65,8 +66,8 @@ namespace MortalGame.GameModel
         {
             return new Dictionary<string, string>()
         {
-            { KEY_COST, Cost.ToString() },
-            { KEY_POWER, Power.ToString() },
+            { KEY_COST, Cost.Map(value => value.ToString()).ValueOr(string.Empty) },
+            { KEY_POWER, Power.Map(value => value.ToString()).ValueOr(string.Empty) },
         };
         }
     }

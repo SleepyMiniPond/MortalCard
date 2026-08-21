@@ -23,7 +23,10 @@ namespace MortalGame.GameModel
                 var targetIntent = new HealIntentTargetAction(context.Action.Source, characterTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                var healPoint = healEffect.Value.Eval(targetTriggerContext);
+                if (!healEffect.Value.Eval(targetTriggerContext).TryGetValue(out var healPoint))
+                {
+                    continue;
+                }
 
                 effectCommands.Add(new HealEffectCommand(target, healPoint));
             }

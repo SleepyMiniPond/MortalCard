@@ -12,6 +12,7 @@ using UnityEngine;
 using UnityEngine.UI;
 using MortalGame.UI;
 using MortalGame.GameModel;
+using Optional;
 
 namespace MortalGame.GameView
 {
@@ -193,16 +194,22 @@ namespace MortalGame.GameView
             var templateValue = cardInfo.GetTemplateValues();
 
             _cardIdentity = cardInfo.Identity;
-            _cost.text = cardInfo.Cost.ToString();
-            _costColorSwitch.Value =
-                cardInfo.Cost > cardInfo.OriginCost ? 1 :
-                cardInfo.Cost < cardInfo.OriginCost ? 2 : 0;
+            _cost.text = cardInfo.Cost
+                .Map(cost => cost.ToString())
+                .ValueOr(string.Empty);
+            _costColorSwitch.Value = cardInfo.Cost
+                .Map(cost =>
+                    cost > cardInfo.OriginCost ? 1 :
+                    cost < cardInfo.OriginCost ? 2 : 0)
+                .ValueOr(0);
 
             var originPowerString = templateValue[CardInfo.KEY_POWER];
-            templateValue[CardInfo.KEY_POWER] =
-                cardInfo.Power > cardInfo.OriginPower ? $"<color=#{_powerColorMapping.GetHtmlColor(1)}>{originPowerString}</color>" :
-                cardInfo.Power < cardInfo.OriginPower ? $"<color=#{_powerColorMapping.GetHtmlColor(2)}>{originPowerString}</color>" :
-                originPowerString;
+            templateValue[CardInfo.KEY_POWER] = cardInfo.Power
+                .Map(power =>
+                    power > cardInfo.OriginPower ? $"<color=#{_powerColorMapping.GetHtmlColor(1)}>{originPowerString}</color>" :
+                    power < cardInfo.OriginPower ? $"<color=#{_powerColorMapping.GetHtmlColor(2)}>{originPowerString}</color>" :
+                    originPowerString)
+                .ValueOr(string.Empty);
 
             _title.text = cardLocalizeData.Title;
             _info.text = cardLocalizeData.Info.ReplaceTemplateKeys(templateValue);

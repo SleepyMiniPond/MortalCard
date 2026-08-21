@@ -178,10 +178,10 @@ namespace MortalGame.GameModel
 
     public static class PlayerEntityExtensions
     {
-        public static int GetPlayerBuffAdditionProperty(
+        public static Option<int> GetPlayerBuffAdditionProperty(
             this IPlayerEntity player, TriggerContext triggerContext, PlayerBuffProperty targetProperty)
         {
-            var value = 0;
+            var value = 0.Some();
             foreach (var playerBuff in player.BuffManager.Buffs)
             {
                 var triggerBuff = new PlayerBuffTrigger(player, playerBuff);
@@ -191,7 +191,9 @@ namespace MortalGame.GameModel
                     if (property is IPlayerBuffIntegerPropertyEntity integerEntity &&
                         property.Property == targetProperty)
                     {
-                        value += integerEntity.Eval(playerBuffTriggerContext);
+                        value = value
+                            .Combine(integerEntity.Eval(playerBuffTriggerContext))
+                            .FlatMap(values => GameplayIntegerMath.Add(values.Item1, values.Item2));
                     }
                 }
             }

@@ -1,5 +1,6 @@
 using Rayark.Mast;
 using MortalGame.GameData;
+using Optional;
 using UnityEngine;
 
 namespace MortalGame.GameModel
@@ -11,7 +12,7 @@ namespace MortalGame.GameModel
     }
     public interface IPlayerBuffIntegerPropertyEntity : IPlayerBuffPropertyEntity
     {
-        int Eval(TriggerContext triggerContext);
+        Option<int> Eval(TriggerContext triggerContext);
     }
     public interface IPlayerBuffRatioPropertyEntity : IPlayerBuffPropertyEntity
     {
@@ -28,7 +29,7 @@ namespace MortalGame.GameModel
             _value = value;
         }
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
             => _value.Eval(triggerContext with { Action = new PlayerBuffPropertyLookAction(this) });
     }
 
@@ -42,7 +43,7 @@ namespace MortalGame.GameModel
             _value = value;
         }
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
             => _value.Eval(triggerContext with { Action = new PlayerBuffPropertyLookAction(this) });
     }
     public class NormalDamageAdditionPlayerBuffPropertyEntity : IPlayerBuffIntegerPropertyEntity
@@ -55,7 +56,7 @@ namespace MortalGame.GameModel
             _value = value;
         }
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
             => _value.Eval(triggerContext with { Action = new PlayerBuffPropertyLookAction(this) });
     }
     public class NormalDamageRatioPlayerBuffPropertyEntity : IPlayerBuffRatioPropertyEntity
@@ -80,7 +81,7 @@ namespace MortalGame.GameModel
         {
             _value = value;
         }
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
             => _value.Eval(triggerContext with { Action = new PlayerBuffPropertyLookAction(this) });
     }
     public class MaxEnergyPlayerBuffPropertyEntity : IPlayerBuffIntegerPropertyEntity
@@ -92,7 +93,7 @@ namespace MortalGame.GameModel
         {
             _value = value;
         }
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
             => _value.Eval(triggerContext with { Action = new PlayerBuffPropertyLookAction(this) });
     }
 

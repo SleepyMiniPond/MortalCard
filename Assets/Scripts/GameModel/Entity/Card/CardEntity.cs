@@ -428,16 +428,17 @@ namespace MortalGame.GameModel
                 card.BuffManager.Buffs.Any(b => b.Properties.Any(p => p.Property == property));
         }
 
-        public static int GetCardProperty(
+        public static Option<int> GetCardProperty(
             this ICardEntity card, TriggerContext triggerContext, CardProperty targetProperty)
         {
-            var value = 0;
+            var value = 0.Some();
 
             var cardTrigger = new CardTrigger(card);
             var propertyContext = triggerContext with { Triggered = cardTrigger };
             foreach (var property in card.Properties.Where(p => p.Property == targetProperty))
             {
-                value += property.Eval(propertyContext);
+                value = value.FlatMap(current =>
+                    GameplayIntegerMath.Add(current, property.Eval(propertyContext)));
             }
 
             foreach (var buff in card.BuffManager.Buffs)
@@ -446,7 +447,9 @@ namespace MortalGame.GameModel
                 var cardBuffContext = triggerContext with { Triggered = cardBuffTrigger };
                 foreach (var property in buff.Properties.Where(p => p.Property == targetProperty))
                 {
-                    value += property.Eval(cardBuffContext);
+                    value = value
+                        .Combine(property.Eval(cardBuffContext))
+                        .FlatMap(values => GameplayIntegerMath.Add(values.Item1, values.Item2));
                 }
             }
 

@@ -100,8 +100,10 @@ namespace MortalGame.GameModel
 
         public bool Eval(TriggerContext triggerContext)
         {
-            var value = Value.Eval(triggerContext);
-            return Conditions.All(c => c.Eval(triggerContext, value));
+            return Value
+                .Eval(triggerContext)
+                .Map(value => Conditions.All(condition => condition.Eval(triggerContext, value)))
+                .ValueOr(false);
         }
     }
 

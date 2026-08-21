@@ -46,7 +46,8 @@ namespace MortalGame.Tests
 
             var entity = _lifeTimeFactory.Create(data, null);
 
-            Assert.That(entity, Is.TypeOf(expectedEntityType));
+            Assert.That(entity.TryGetValue(out var value), Is.True);
+            Assert.That(value, Is.TypeOf(expectedEntityType));
         }
 
         [Test]
@@ -59,7 +60,8 @@ namespace MortalGame.Tests
 
             var entity = _lifeTimeFactory.Create(data, null);
 
-            Assert.That(entity.IsExpired(), Is.False);
+            Assert.That(entity.TryGetValue(out var value), Is.True);
+            Assert.That(value.IsExpired(), Is.False);
         }
 
         [Test]

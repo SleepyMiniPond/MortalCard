@@ -12,7 +12,10 @@ namespace MortalGame.GameModel
             var effectCommands = new List<IEffectCommand>();
             var intent = new CardPlayEffectAttributeIntentAction(context.Action.Source);
             var triggerContext = context with { Action = intent };
-            var value = attributeEffect.Value.Eval(triggerContext);
+            if (!attributeEffect.Value.Eval(triggerContext).TryGetValue(out var value))
+            {
+                return new EffectCommandSet(effectCommands);
+            }
 
             effectCommands.Add(new ModifyCardAttributeEffectCommand(
                 attributeEffect.Type,

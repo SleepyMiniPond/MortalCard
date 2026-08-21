@@ -77,10 +77,10 @@ namespace MortalGame.GameModel
                 OrderType.Descending => cards.Reverse().ToList(),
                 _ => cards.ToList()
             };
-            var index = Index.Eval(triggerContext);
-            return cards.Count > index && index >= 0 ?
-                orderedCards.ElementAt(index).SomeNotNull() :
-                Option.None<ICardEntity>();
+            return Index
+                .Eval(triggerContext)
+                .Filter(index => cards.Count > index && index >= 0)
+                .FlatMap(index => orderedCards.ElementAt(index).SomeNotNull());
         }
     }
 

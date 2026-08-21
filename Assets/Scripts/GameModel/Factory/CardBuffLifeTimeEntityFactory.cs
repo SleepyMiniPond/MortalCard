@@ -2,6 +2,7 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
+using Optional;
 
 namespace MortalGame.GameModel
 {
@@ -9,12 +10,12 @@ namespace MortalGame.GameModel
     public interface ICardBuffLifeTimeEntityCreator
     {
         Type DataType { get; }
-        ICardBuffLifeTimeEntity Create(ICardBuffLifeTimeData data, TriggerContext triggerContext);
+        Option<ICardBuffLifeTimeEntity> Create(ICardBuffLifeTimeData data, TriggerContext triggerContext);
     }
 
     public interface ICardBuffLifeTimeEntityFactory
     {
-        ICardBuffLifeTimeEntity Create(ICardBuffLifeTimeData data, TriggerContext triggerContext);
+        Option<ICardBuffLifeTimeEntity> Create(ICardBuffLifeTimeData data, TriggerContext triggerContext);
     }
 
     public sealed class CardBuffLifeTimeEntityFactory : ICardBuffLifeTimeEntityFactory
@@ -36,7 +37,7 @@ namespace MortalGame.GameModel
             });
         }
 
-        public ICardBuffLifeTimeEntity Create(ICardBuffLifeTimeData data, TriggerContext triggerContext)
+        public Option<ICardBuffLifeTimeEntity> Create(ICardBuffLifeTimeData data, TriggerContext triggerContext)
         {
             if (data == null)
             {
@@ -56,20 +57,24 @@ namespace MortalGame.GameModel
         private sealed class AlwaysLifeTimeCardBuffEntityCreator : ICardBuffLifeTimeEntityCreator
         {
             public Type DataType => typeof(AlwaysLifeTimeCardBuffData);
-            public ICardBuffLifeTimeEntity Create(ICardBuffLifeTimeData data, TriggerContext triggerContext) => new AlwaysLifeTimeCardBuffEntity();
+            public Option<ICardBuffLifeTimeEntity> Create(ICardBuffLifeTimeData data, TriggerContext triggerContext) =>
+                ((ICardBuffLifeTimeEntity)new AlwaysLifeTimeCardBuffEntity()).Some();
         }
 
         private sealed class TurnLifeTimeCardBuffEntityCreator : ICardBuffLifeTimeEntityCreator
         {
             public Type DataType => typeof(TurnLifeTimeCardBuffData);
-            public ICardBuffLifeTimeEntity Create(ICardBuffLifeTimeData data, TriggerContext triggerContext) =>
-                new TurnLifeTimeCardBuffEntity(((TurnLifeTimeCardBuffData)data).Turn.Eval(triggerContext));
+            public Option<ICardBuffLifeTimeEntity> Create(ICardBuffLifeTimeData data, TriggerContext triggerContext) =>
+                ((TurnLifeTimeCardBuffData)data).Turn
+                    .Eval(triggerContext)
+                    .Map(turn => (ICardBuffLifeTimeEntity)new TurnLifeTimeCardBuffEntity(turn));
         }
 
         private sealed class HandCardLifeTimeCardBuffEntityCreator : ICardBuffLifeTimeEntityCreator
         {
             public Type DataType => typeof(HandCardLifeTimeCardBuffData);
-            public ICardBuffLifeTimeEntity Create(ICardBuffLifeTimeData data, TriggerContext triggerContext) => new HandCardLifeTimeCardBuffEntity();
+            public Option<ICardBuffLifeTimeEntity> Create(ICardBuffLifeTimeData data, TriggerContext triggerContext) =>
+                ((ICardBuffLifeTimeEntity)new HandCardLifeTimeCardBuffEntity()).Some();
         }
     }
 

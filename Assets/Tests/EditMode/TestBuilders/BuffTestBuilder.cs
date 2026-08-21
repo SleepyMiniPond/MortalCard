@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using MortalGame.GameData;
 using MortalGame.GameModel;
+using Optional;
 
 namespace MortalGame.Tests
 {
@@ -47,7 +48,7 @@ namespace MortalGame.Tests
             string buffId = CardBuffId,
             IPlayerEntity caster = null)
         {
-            return (CardBuffEntity)typeof(CardBuffEntity)
+            var result = (Option<CardBuffEntity>)typeof(CardBuffEntity)
                 .GetMethod(nameof(CardBuffEntity.CreateFromData))
                 .Invoke(null, new[]
                 {
@@ -60,6 +61,13 @@ namespace MortalGame.Tests
                 context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
                 context.Model.ContextManager.ReactionSessionEntityFactory
                 });
+
+            if (!result.TryGetValue(out var buff))
+            {
+                throw new InvalidOperationException("測試 CardBuff 資料應能建立有效的 Runtime Entity。");
+            }
+
+            return buff;
         }
 
         public static PlayerBuffData CreatePlayerBuffData(

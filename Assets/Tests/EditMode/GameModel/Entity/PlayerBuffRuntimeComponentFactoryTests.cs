@@ -42,7 +42,10 @@ namespace MortalGame.Tests
         {
             var data = (IPlayerBuffLifeTimeData)Activator.CreateInstance(dataType);
 
-            Assert.That(_lifeTimeFactory.Create(data, null), Is.TypeOf(expectedEntityType));
+            var entity = _lifeTimeFactory.Create(data, null);
+
+            Assert.That(entity.TryGetValue(out var value), Is.True);
+            Assert.That(value, Is.TypeOf(expectedEntityType));
         }
 
         [Test]
@@ -50,7 +53,10 @@ namespace MortalGame.Tests
         {
             var data = new PlayerBuffTurnLifeTimeData { Turn = new ConstInteger { Value = 1 } };
 
-            Assert.That(_lifeTimeFactory.Create(data, null).IsExpired(), Is.False);
+            var entity = _lifeTimeFactory.Create(data, null);
+
+            Assert.That(entity.TryGetValue(out var value), Is.True);
+            Assert.That(value.IsExpired(), Is.False);
         }
 
         [Test]

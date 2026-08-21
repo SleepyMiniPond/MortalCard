@@ -11,7 +11,7 @@ namespace MortalGame.Tests
         [TestCase(int.MinValue, -1, int.MinValue)]
         public void Add_UsesSaturatingArithmetic(int left, int right, int expected)
         {
-            AssertSome(GameplayIntegerMath.Add(left, right), expected);
+            _AssertSome(GameplayIntegerMath.Add(left, right), expected);
         }
 
         [TestCase(5, 3, 2)]
@@ -19,7 +19,7 @@ namespace MortalGame.Tests
         [TestCase(int.MinValue, 1, int.MinValue)]
         public void Subtract_UsesSaturatingArithmetic(int left, int right, int expected)
         {
-            AssertSome(GameplayIntegerMath.Subtract(left, right), expected);
+            _AssertSome(GameplayIntegerMath.Subtract(left, right), expected);
         }
 
         [TestCase(3, -4, -12)]
@@ -28,7 +28,7 @@ namespace MortalGame.Tests
         [TestCase(int.MinValue, -1, int.MaxValue)]
         public void Multiply_UsesSaturatingArithmetic(int left, int right, int expected)
         {
-            AssertSome(GameplayIntegerMath.Multiply(left, right), expected);
+            _AssertSome(GameplayIntegerMath.Multiply(left, right), expected);
         }
 
         [TestCase(5, 2, 2)]
@@ -41,7 +41,7 @@ namespace MortalGame.Tests
             int divisor,
             int expected)
         {
-            AssertSome(GameplayIntegerMath.Divide(dividend, divisor), expected);
+            _AssertSome(GameplayIntegerMath.Divide(dividend, divisor), expected);
         }
 
         [Test]
@@ -59,7 +59,7 @@ namespace MortalGame.Tests
             int divisor,
             int expected)
         {
-            AssertSome(GameplayIntegerMath.Remainder(dividend, divisor), expected);
+            _AssertSome(GameplayIntegerMath.Remainder(dividend, divisor), expected);
         }
 
         [Test]
@@ -68,7 +68,7 @@ namespace MortalGame.Tests
             Assert.That(GameplayIntegerMath.Remainder(5, 0).HasValue, Is.False);
         }
 
-        private static void AssertSome(Option<int> result, int expected)
+        private static void _AssertSome(Option<int> result, int expected)
         {
             Assert.That(result.TryGetValue(out var value), Is.True);
             Assert.That(value, Is.EqualTo(expected));

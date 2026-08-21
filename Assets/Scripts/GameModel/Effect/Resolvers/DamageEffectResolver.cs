@@ -1,6 +1,7 @@
 using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
+using Optional;
 
 namespace MortalGame.GameModel
 {
@@ -24,7 +25,7 @@ namespace MortalGame.GameModel
             ITargetCharacterCollectionValue targets,
             IIntegerValue value,
             DamageType damageType,
-            Func<TriggerContext, int, int> formulaFunc)
+            Func<TriggerContext, int, Option<int>> formulaFunc)
         {
             var effectCommands = new List<IEffectCommand>();
             var intent = new DamageIntentAction(context.Action.Source, damageType);
@@ -37,8 +38,12 @@ namespace MortalGame.GameModel
                 var targetIntent = new DamageIntentTargetAction(context.Action.Source, characterTarget, damageType);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                var damagePoint = value.Eval(targetTriggerContext);
-                var damageFormulaPoint = formulaFunc(targetTriggerContext, damagePoint);
+                if (!value.Eval(targetTriggerContext)
+                        .FlatMap(damagePoint => formulaFunc(targetTriggerContext, damagePoint))
+                        .TryGetValue(out var damageFormulaPoint))
+                {
+                    continue;
+                }
 
                 effectCommands.Add(new DamageEffectCommand(target, damageFormulaPoint, damageType));
             }

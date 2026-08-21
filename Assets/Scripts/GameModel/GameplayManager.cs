@@ -118,7 +118,7 @@ namespace MortalGame.GameModel
         {
             return CardEntityExtensions
                 .GetCard(this, cardIdentity)
-                .Map(cardEntity =>
+                .FlatMap(cardEntity =>
                 {
                     var cardData = _contextMgr.CardLibrary.GetCardData(cardEntity.CardDataId);
                     return cardData.SubSelects.ToInfo(this, cardEntity);
@@ -420,7 +420,14 @@ namespace MortalGame.GameModel
                 var useCardEvents = new List<IGameEvent>();
 
                 var useCardContext = new TriggerContext(this, new CardTrigger(usedCard), new CardLookIntentAction(usedCard));
-                var cardRuntimCost = GameFormula.CardCost(useCardContext, usedCard);
+                if (!GameFormula.CardCost(useCardContext, usedCard)
+                        .TryGetValue(out var cardRuntimCost) ||
+                    !usedCard.GetCardProperty(useCardContext, CardProperty.EffectRepeat)
+                        .TryGetValue(out var effectRepeat))
+                {
+                    return;
+                }
+
                 if (cardRuntimCost <= player.CurrentEnergy)
                 {
                     var loseEnergyCommand = new LoseEnergyEffectCommand(player, cardRuntimCost);
@@ -454,7 +461,7 @@ namespace MortalGame.GameModel
                             var effectActionResults = new List<BaseResultAction>();
 
                             var repeatTimes = usedCard.HasProperty(CardProperty.EffectRepeat) ?
-                                1 : Math.Max(1, usedCard.GetCardProperty(cardPlayTriggerContext, CardProperty.EffectRepeat));
+                                1 : Math.Max(1, effectRepeat);
                             for (int i = 0; i < repeatTimes; i++)
                             {
                                 var effectQueueRunner = new EffectQueueRunner();

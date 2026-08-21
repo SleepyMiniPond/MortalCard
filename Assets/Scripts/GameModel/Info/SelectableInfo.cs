@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using MortalGame.GameData;
 using System.Linq;
+using Optional;
 using UnityEngine;
 
 namespace MortalGame.GameModel
@@ -30,7 +31,10 @@ namespace MortalGame.GameModel
                 mainTargetLogic.MainSelectable.SelectType, mainTargetLogic.LogicTag);
         }
 
-        public static SubSelectionInfo ToInfo(this IEnumerable<ISubSelectionGroup> subSelectionGroups, IGameplayModel model, ICardEntity cardEntity)
+        public static Option<SubSelectionInfo> ToInfo(
+            this IEnumerable<ISubSelectionGroup> subSelectionGroups,
+            IGameplayModel model,
+            ICardEntity cardEntity)
         {
             var selectionInfos = new Dictionary<string, ISubSelectionGroupInfo>();
             foreach (var group in subSelectionGroups)
@@ -42,11 +46,17 @@ namespace MortalGame.GameModel
                             model,
                             new CardTrigger(cardEntity),
                             new CardLookIntentAction(cardEntity));
+                        if (!existCardGroup.SelectCount
+                                .Eval(cardLookTriggerContext)
+                                .TryGetValue(out var selectCount))
+                        {
+                            return Option.None<SubSelectionInfo>();
+                        }
 
                         selectionInfos[group.Id] =
                             new ExistCardSelectionInfo(
                                 existCardGroup.CardCandidates.Eval(cardLookTriggerContext).Select(c => c.ToInfo(model)).ToList(),
-                                existCardGroup.SelectCount.Eval(cardLookTriggerContext),
+                                selectCount,
                                 existCardGroup.IsMustSelect.Eval(cardLookTriggerContext));
                         break;
                     case NewCardSelectionGroup:
@@ -61,7 +71,7 @@ namespace MortalGame.GameModel
                 }
             }
 
-            return new SubSelectionInfo(selectionInfos);
+            return new SubSelectionInfo(selectionInfos).Some();
         }
 
         public static bool IsSelectable(this SelectType selectType, TargetType targetType)

@@ -14,22 +14,28 @@ namespace MortalGame.GameModel
             out ICardEntity cardEntity
         )
         {
-            var totalSelectedCost = enemy.SelectedCards.Cards
-                .Sum(card => GameFormula.CardCost(
-                    new TriggerContext(model, new CardTrigger(card), new CardLookIntentAction(card)),
-                    card));
+            if (!enemy.SelectedCards
+                    .EvalTotalCost(model)
+                    .TryGetValue(out var totalSelectedCost))
+            {
+                cardEntity = null;
+                return false;
+            }
+
             var remainCost = enemy.CurrentEnergy - totalSelectedCost;
 
             var candidateCards = enemy.CardManager.HandCard.Cards
                 .Where(card => !enemy.SelectedCards.Cards.Contains(card))
-                .Select(card => (
-                    Card: card,
-                    Cost: GameFormula.CardCost(
-                        new TriggerContext(model, new CardTrigger(card), new CardLookIntentAction(card)), card)
-                ))
-                .Where(c => c.Cost <= remainCost);
+                .Select(card => GameFormula.CardCost(
+                        new TriggerContext(model, new CardTrigger(card), new CardLookIntentAction(card)),
+                        card)
+                    .Map(cost => (Card: card, Cost: cost)))
+                .Values()
+                .Where(candidate => candidate.Cost <= remainCost);
 
-            var highestCard = candidateCards.OrderByDescending(c => c.Cost).FirstOrDefault();
+            var highestCard = candidateCards
+                .OrderByDescending(candidate => candidate.Cost)
+                .FirstOrDefault();
             if (highestCard != default)
             {
                 cardEntity = highestCard.Card;
@@ -50,10 +56,17 @@ namespace MortalGame.GameModel
                 var selectResult = SelectTargetLogic.SelectMainTarget(model, selectedCard);
                 if (!selectResult.IsValid) continue;
 
-                var subSelectResult = SelectTargetLogic.SelectSubTargets(model, selectedCard);
+                if (!SelectTargetLogic.SelectSubTargets(model, selectedCard)
+                        .TryGetValue(out var subSelectResult))
+                {
+                    continue;
+                }
 
-                var cardRuntimeCost = GameFormula.CardCost(new TriggerContext(model, new CardTrigger(selectedCard), new CardLookIntentAction(selectedCard)), selectedCard);
-                if (cardRuntimeCost <= enemy.CurrentEnergy)
+                if (GameFormula.CardCost(
+                            new TriggerContext(model, new CardTrigger(selectedCard), new CardLookIntentAction(selectedCard)),
+                            selectedCard)
+                        .TryGetValue(out var cardRuntimeCost) &&
+                    cardRuntimeCost <= enemy.CurrentEnergy)
                 {
                     useCardAction = new UseCardAction(
                         selectedCard.Identity,

@@ -2,7 +2,7 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
-using Optional.Collections;
+using Optional;
 using Sirenix.OdinInspector;
 
 namespace MortalGame.GameModel
@@ -10,7 +10,7 @@ namespace MortalGame.GameModel
 
     public interface IIntegerValue
     {
-        int Eval(TriggerContext triggerContext);
+        Option<int> Eval(TriggerContext triggerContext);
     }
 
     [Serializable]
@@ -18,9 +18,9 @@ namespace MortalGame.GameModel
     {
         public int Value;
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
-            return Value;
+            return Value.Some();
         }
     }
 
@@ -31,17 +31,17 @@ namespace MortalGame.GameModel
         public IIntegerValue Left;
         public IIntegerValue Right;
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
-            var leftValue = Left.Eval(triggerContext);
-            var rightValue = Right.Eval(triggerContext);
-
-            return Operation switch
-            {
-                ArithmeticType.Add => leftValue + rightValue,
-                ArithmeticType.Multiply => leftValue * rightValue,
-                _ => 0
-            };
+            return Left
+                .Eval(triggerContext)
+                .Combine(Right.Eval(triggerContext))
+                .FlatMap(values => Operation switch
+                {
+                    ArithmeticType.Add => GameplayIntegerMath.Add(values.Item1, values.Item2),
+                    ArithmeticType.Multiply => GameplayIntegerMath.Multiply(values.Item1, values.Item2),
+                    _ => Option.None<int>()
+                });
         }
     }
 
@@ -58,20 +58,19 @@ namespace MortalGame.GameModel
         public ITargetCardValue Card;
         public CardIntegerValueType Property;
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
             return Card
                 .Eval(triggerContext)
-                .Map(
+                .FlatMap(
                     card => Property switch
                     {
                         // TODO: Apply EffectAttribute.Power adjust
                         CardIntegerValueType.Power => GameFormula.CardPower(triggerContext, card),
                         // TODO: Apply EffectAttribute.Cost adjust
                         CardIntegerValueType.Cost => GameFormula.CardCost(triggerContext, card),
-                        _ => 0
-                    })
-                .ValueOr(0);
+                        _ => Option.None<int>()
+                    });
         }
     }
 
@@ -88,19 +87,17 @@ namespace MortalGame.GameModel
         public ITargetPlayerValue Player;
         public PlayerIntegerValueType Property;
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
-            var playerOpt = Player.Eval(triggerContext);
             return Player
                 .Eval(triggerContext)
-                .Map(player =>
+                .FlatMap(player =>
                     Property switch
                     {
-                        PlayerIntegerValueType.MaxEnergy => player.MaxEnergy,
-                        PlayerIntegerValueType.CurrentEnergy => player.CurrentEnergy,
-                        _ => 0
-                    })
-                .ValueOr(0);
+                        PlayerIntegerValueType.MaxEnergy => player.MaxEnergy.Some(),
+                        PlayerIntegerValueType.CurrentEnergy => player.CurrentEnergy.Some(),
+                        _ => Option.None<int>()
+                    });
         }
     }
 
@@ -116,17 +113,16 @@ namespace MortalGame.GameModel
         public ITargetCardBuffValue CardBuff;
         public CardBuffIntegerValueType Property;
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
-            var cardBuffOpt = CardBuff.Eval(triggerContext);
-            return cardBuffOpt
-                .Map(
+            return CardBuff
+                .Eval(triggerContext)
+                .FlatMap(
                     cardBuff => Property switch
                     {
-                        CardBuffIntegerValueType.Level => cardBuff.Level,
-                        _ => 0
-                    })
-                .ValueOr(0);
+                        CardBuffIntegerValueType.Level => cardBuff.Level.Some(),
+                        _ => Option.None<int>()
+                    });
         }
     }
 
@@ -142,17 +138,16 @@ namespace MortalGame.GameModel
         public ITargetPlayerBuffValue PlayerBuff;
         public PlayerBuffIntegerValueType Property;
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
             return PlayerBuff
                 .Eval(triggerContext)
-                .Map(
+                .FlatMap(
                     playerBuff => Property switch
                     {
-                        PlayerBuffIntegerValueType.Level => playerBuff.Level,
-                        _ => 0
-                    })
-                .ValueOr(0);
+                        PlayerBuffIntegerValueType.Level => playerBuff.Level.Some(),
+                        _ => Option.None<int>()
+                    });
         }
     }
 
@@ -163,12 +158,11 @@ namespace MortalGame.GameModel
         public ITargetPlayerBuffValue PlayerBuff;
         public string SessionIntegerId;
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
             return PlayerBuff
                 .Eval(triggerContext)
-                .FlatMap(playerBuff => playerBuff.GetSessionInteger(SessionIntegerId))
-                .ValueOr(0);
+                .FlatMap(playerBuff => playerBuff.GetSessionInteger(SessionIntegerId));
         }
     }
 
@@ -190,7 +184,7 @@ namespace MortalGame.GameModel
         [HorizontalGroup("1")]
         public List<ConditionPair> Pairs = new();
 
-        public int Eval(TriggerContext triggerContext)
+        public Option<int> Eval(TriggerContext triggerContext)
         {
             foreach (var pair in Pairs)
             {
@@ -199,7 +193,7 @@ namespace MortalGame.GameModel
                     return pair.Value.Eval(triggerContext);
                 }
             }
-            return 0;
+            return Option.None<int>();
         }
     }
 

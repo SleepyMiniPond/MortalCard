@@ -22,17 +22,19 @@ namespace MortalGame.GameModel
 
         public bool Eval(TriggerContext triggerContext, int value)
         {
-            var compareValue = CompareValue.Eval(triggerContext);
-            return Arithmetic switch
-            {
-                ArithmeticConditionType.Equal => value == compareValue,
-                ArithmeticConditionType.NotEqual => value != compareValue,
-                ArithmeticConditionType.GreaterThan => value > compareValue,
-                ArithmeticConditionType.LessThan => value < compareValue,
-                ArithmeticConditionType.GreaterThanOrEqual => value >= compareValue,
-                ArithmeticConditionType.LessThanOrEqual => value <= compareValue,
-                _ => false
-            };
+            return CompareValue
+                .Eval(triggerContext)
+                .Map(compareValue => Arithmetic switch
+                {
+                    ArithmeticConditionType.Equal => value == compareValue,
+                    ArithmeticConditionType.NotEqual => value != compareValue,
+                    ArithmeticConditionType.GreaterThan => value > compareValue,
+                    ArithmeticConditionType.LessThan => value < compareValue,
+                    ArithmeticConditionType.GreaterThanOrEqual => value >= compareValue,
+                    ArithmeticConditionType.LessThanOrEqual => value <= compareValue,
+                    _ => false
+                })
+                .ValueOr(false);
         }
     }
 

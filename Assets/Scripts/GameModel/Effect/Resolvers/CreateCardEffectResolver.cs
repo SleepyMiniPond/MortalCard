@@ -38,17 +38,26 @@ namespace MortalGame.GameModel
                         PlayerBuffSource playerBuffSource => playerBuffSource.Buff.Caster,
                         _ => Option.None<IPlayerEntity>()
                     };
-                    createCardEffect.AddCardBuffDatas
-                        .Select(addCardBuffData => CardBuffEntity.CreateFromData(
+                    foreach (var addCardBuffData in createCardEffect.AddCardBuffDatas)
+                    {
+                        if (!addCardBuffData.Level
+                                .Eval(targetTriggerContext)
+                                .TryGetValue(out var level))
+                        {
+                            continue;
+                        }
+
+                        var cardBuff = CardBuffEntity.CreateFromData(
                             addCardBuffData.CardBuffId,
-                            addCardBuffData.Level.Eval(targetTriggerContext),
+                            level,
                             createCardCaster,
                             targetTriggerContext,
                             context.Model.ContextManager.CardBuffLibrary,
                             context.Model.ContextManager.CardBuffPropertyEntityFactory,
                             context.Model.ContextManager.CardBuffLifeTimeEntityFactory,
-                            context.Model.ContextManager.ReactionSessionEntityFactory))
-                        .ForEach(cardBuff => newCard.BuffManager.AddBuff(cardBuff));
+                            context.Model.ContextManager.ReactionSessionEntityFactory);
+                        cardBuff.MatchSome(buff => newCard.BuffManager.AddBuff(buff));
+                    }
 
                     effectCommands.Add(new CreateCardEffectCommand(
                         targetPlayer,

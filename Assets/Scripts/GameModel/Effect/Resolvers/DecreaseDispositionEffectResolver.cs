@@ -25,7 +25,10 @@ namespace MortalGame.GameModel
                 var targetIntent = new DecreaseDispositionIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                var decreasePoint = decreaseDispositionEffect.Value.Eval(targetTriggerContext);
+                if (!decreaseDispositionEffect.Value.Eval(targetTriggerContext).TryGetValue(out var decreasePoint))
+                {
+                    continue;
+                }
 
                 effectCommands.Add(new DecreaseDispositionEffectCommand(ally, decreasePoint));
             }

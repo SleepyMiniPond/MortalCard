@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Optional;
 
 namespace MortalGame.GameModel
 {
@@ -12,6 +13,7 @@ namespace MortalGame.GameModel
         bool TryGetCard(Guid cardIdentity, out ICardEntity card);
         bool TryAddCard(ICardEntity card);
         bool RemoveCard(ICardEntity card);
+        Option<int> EvalTotalCost(IGameplayModel model);
 
         IReadOnlyCollection<ICardEntity> UnSelectAllCards();
     }
@@ -49,6 +51,28 @@ namespace MortalGame.GameModel
         public bool RemoveCard(ICardEntity card)
         {
             return _cards.Remove(card);
+        }
+
+        public Option<int> EvalTotalCost(IGameplayModel model)
+        {
+            var totalCost = 0;
+            foreach (var card in _cards)
+            {
+                var triggerContext = new TriggerContext(
+                    model,
+                    new CardTrigger(card),
+                    new CardLookIntentAction(card));
+                if (!GameFormula.CardCost(triggerContext, card)
+                        .FlatMap(cost => GameplayIntegerMath.Add(totalCost, cost))
+                        .TryGetValue(out var newTotalCost))
+                {
+                    return Option.None<int>();
+                }
+
+                totalCost = newTotalCost;
+            }
+
+            return totalCost.Some();
         }
 
         public IReadOnlyCollection<ICardEntity> UnSelectAllCards()

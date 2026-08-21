@@ -6,6 +6,7 @@ using UnityEngine;
 using MortalGame.UI;
 using MortalGame.Presentation.Abstractions;
 using MortalGame.GameModel;
+using Optional;
 
 namespace MortalGame.GameView
 {
@@ -66,8 +67,12 @@ namespace MortalGame.GameView
             _cardIdentity = cardInfo.Identity;
             _title.text = cardLocalizeData.Title;
             _info.text = cardLocalizeData.Info.ReplaceTemplateKeys(templateValue);
-            _cost.text = cardInfo.Cost.ToString();
-            _power.text = cardInfo.Power.ToString();
+            _cost.text = cardInfo.Cost
+                .Map(cost => cost.ToString())
+                .ValueOr(string.Empty);
+            _power.text = cardInfo.Power
+                .Map(power => power.ToString())
+                .ValueOr(string.Empty);
         }
         public void SetPositionAndRotation(Vector3 position, Quaternion rotation)
         {

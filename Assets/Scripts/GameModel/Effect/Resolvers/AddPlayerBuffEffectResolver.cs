@@ -23,7 +23,10 @@ namespace MortalGame.GameModel
                 var playerTarget = new PlayerTarget(target);
                 var targetIntent = new AddPlayerBuffIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
-                var level = addBuffEffect.Level.Eval(targetTriggerContext);
+                if (!addBuffEffect.Level.Eval(targetTriggerContext).TryGetValue(out var level))
+                {
+                    continue;
+                }
 
                 if (target.BuffManager.Buffs.Any(buff => buff.PlayerBuffDataId == addBuffEffect.BuffId))
                 {
@@ -42,6 +45,14 @@ namespace MortalGame.GameModel
                     };
 
                     var buffLibrary = triggerContext.Model.ContextManager.PlayerBuffLibrary;
+                    var lifeTime = context.Model.ContextManager.PlayerBuffLifeTimeEntityFactory.Create(
+                        buffLibrary.GetBuffLifeTime(addBuffEffect.BuffId),
+                        triggerContext);
+                    if (!lifeTime.TryGetValue(out var lifeTimeEntity))
+                    {
+                        continue;
+                    }
+
                     var resultBuff = new PlayerBuffEntity(
                         addBuffEffect.BuffId,
                         Guid.NewGuid(),
@@ -49,9 +60,7 @@ namespace MortalGame.GameModel
                         caster,
                         buffLibrary.GetBuffProperties(addBuffEffect.BuffId)
                             .Select(context.Model.ContextManager.PlayerBuffPropertyEntityFactory.Create),
-                        context.Model.ContextManager.PlayerBuffLifeTimeEntityFactory.Create(
-                            buffLibrary.GetBuffLifeTime(addBuffEffect.BuffId),
-                            triggerContext),
+                        lifeTimeEntity,
                         buffLibrary.GetBuffSessions(addBuffEffect.BuffId)
                             .ToDictionary(
                                 kvp => kvp.Key,

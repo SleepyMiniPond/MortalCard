@@ -74,7 +74,7 @@ namespace MortalGame.GameModel
             _cardBuffLibrary = cardBuffLibrary;
         }
 
-        public static CardBuffEntity CreateFromData(
+        public static Option<CardBuffEntity> CreateFromData(
             string cardBuffDataID,
             int level,
             Option<IPlayerEntity> caster,
@@ -93,16 +93,15 @@ namespace MortalGame.GameModel
                 kvp => reactionSessionEntityFactory.Create(kvp.Value)
             );
 
-            return new CardBuffEntity(
+            return lifeTime.Map(value => new CardBuffEntity(
                 cardBuffDataID: cardBuffDataID,
                 identity: Guid.NewGuid(),
                 level: level,
                 caster: caster,
                 properties: properties,
-                lifeTime: lifeTime,
+                lifeTime: value,
                 reactionSessions: reactionSessions,
-                cardBuffLibrary: cardBuffLibrary
-            );
+                cardBuffLibrary: cardBuffLibrary));
         }
 
         public bool IsExpired()

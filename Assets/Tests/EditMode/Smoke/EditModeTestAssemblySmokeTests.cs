@@ -9,7 +9,7 @@ namespace MortalGame.Tests
         [Test]
         public void EditModeTestAssembly_CanReferenceRuntimeTypes()
         {
-            var commandSet = new EffectCommandSet(System.Array.Empty<IEffectCommand>());
+            var commandSet = EffectCommandSet.Empty;
 
             Assert.IsNotNull(commandSet);
             Assert.IsEmpty(commandSet.Commands);
