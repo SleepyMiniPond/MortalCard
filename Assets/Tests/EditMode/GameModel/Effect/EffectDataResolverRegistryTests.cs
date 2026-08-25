@@ -20,6 +20,7 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(GainEnergyEffect));
             yield return new TestCaseData(typeof(LoseEnegyEffect));
             yield return new TestCaseData(typeof(AddPlayerBuffEffect));
+            yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffect));
             yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
             yield return new TestCaseData(typeof(IncreaseDispositionEffect));
             yield return new TestCaseData(typeof(DecreaseDispositionEffect));

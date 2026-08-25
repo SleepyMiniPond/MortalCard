@@ -820,6 +820,9 @@ namespace MortalGame.Editor
                     case AddPlayerBuffEffect addPlayerBuff:
                         ValidateId(playerBuffIds, addPlayerBuff.BuffId, $"{assetPath} / CardData[{cardData.ID}] 的 AddPlayerBuffEffect.BuffId", errors);
                         break;
+                    case ModifyPlayerBuffLevelEffect modifyPlayerBuffLevel:
+                        ValidateId(playerBuffIds, modifyPlayerBuffLevel.BuffId, $"{assetPath} / CardData[{cardData.ID}] 的 ModifyPlayerBuffLevelEffect.BuffId", errors);
+                        break;
                     case RemovePlayerBuffEffect removePlayerBuff:
                         ValidateId(playerBuffIds, removePlayerBuff.BuffId, $"{assetPath} / CardData[{cardData.ID}] 的 RemovePlayerBuffEffect.BuffId", errors);
                         break;

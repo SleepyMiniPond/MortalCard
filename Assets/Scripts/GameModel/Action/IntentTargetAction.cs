@@ -86,6 +86,11 @@ namespace MortalGame.GameModel
         IActionTarget Target,
         EffectType EffectType = EffectType.AddPlayerBuff) : BaseIntentTargetAction(Source, Target, EffectType);
 
+    public record ModifyPlayerBuffLevelIntentTargetAction(
+        IActionSource Source,
+        IActionTarget Target,
+        EffectType EffectType = EffectType.ModifyPlayerBuffLevel) : BaseIntentTargetAction(Source, Target, EffectType);
+
     public record RemovePlayerBuffIntentTargetAction(
         IActionSource Source,
         IActionTarget Target,

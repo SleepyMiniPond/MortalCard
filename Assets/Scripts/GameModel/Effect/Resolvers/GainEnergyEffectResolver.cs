@@ -23,7 +23,8 @@ namespace MortalGame.GameModel
                 var targetIntent = new GainEnergyIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                if (!gainEnergyEffect.Value.Eval(targetTriggerContext).TryGetValue(out var gainEnergyPoint))
+                if (!gainEnergyEffect.Value.Eval(targetTriggerContext).TryGetValue(out var gainEnergyPoint) ||
+                    gainEnergyPoint < 0)
                 {
                     continue;
                 }

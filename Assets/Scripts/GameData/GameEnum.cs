@@ -6,9 +6,12 @@ namespace MortalGame.GameData
     public enum ArithmeticType
     {
         None = 0,
-        Add,
-        Multiply,
-        Overwrite
+        Add = 1,
+        Multiply = 2,
+        Overwrite = 3,
+        Subtract = 4,
+        Divide = 5,
+        Remainder = 6,
     }
     public enum ArithmeticConditionType
     {

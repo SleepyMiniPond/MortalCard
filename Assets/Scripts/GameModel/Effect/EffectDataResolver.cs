@@ -34,6 +34,7 @@ namespace MortalGame.GameModel
             [typeof(IncreaseDispositionEffect)] = new IncreaseDispositionEffectResolver(),
             [typeof(DecreaseDispositionEffect)] = new DecreaseDispositionEffectResolver(),
             [typeof(AddPlayerBuffEffect)] = new AddPlayerBuffEffectResolver(),
+            [typeof(ModifyPlayerBuffLevelEffect)] = new ModifyPlayerBuffLevelEffectResolver(),
             [typeof(RemovePlayerBuffEffect)] = new RemovePlayerBuffEffectResolver(),
             [typeof(DrawCardEffect)] = new DrawCardEffectResolver(),
             [typeof(DiscardCardEffect)] = new DiscardCardEffectResolver(),

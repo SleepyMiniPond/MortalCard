@@ -47,6 +47,321 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void RunToCompletion_WithNegativeDamage_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var initialHealth = built.Ally.MainCharacter.CurrentHealth;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DamageIntentAction(SystemSource.Instance, DamageType.Normal));
+            var effect = new DamageEffect
+            {
+                Targets = new SingleCharacterCollection
+                {
+                    Target = new MainCharacterOfPlayer { Player = new CurrentPlayer() }
+                },
+                Value = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.MainCharacter.CurrentHealth, Is.EqualTo(initialHealth));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativeHeal_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            built.Ally.MainCharacter.HealthManager.TakeDamage(
+                10,
+                built.ContextManager.Context,
+                DamageType.Penetrate);
+            var initialHealth = built.Ally.MainCharacter.CurrentHealth;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new HealIntentAction(SystemSource.Instance));
+            var effect = new HealEffect
+            {
+                Targets = new SingleCharacterCollection
+                {
+                    Target = new MainCharacterOfPlayer { Player = new CurrentPlayer() }
+                },
+                Value = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.MainCharacter.CurrentHealth, Is.EqualTo(initialHealth));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativeShield_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            built.Ally.MainCharacter.HealthManager.GetShield(
+                10,
+                built.ContextManager.Context);
+            var initialShield = built.Ally.MainCharacter.CurrentArmor;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new ShieldIntentAction(SystemSource.Instance));
+            var effect = new ShieldEffect
+            {
+                Targets = new SingleCharacterCollection
+                {
+                    Target = new MainCharacterOfPlayer { Player = new CurrentPlayer() }
+                },
+                Value = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.MainCharacter.CurrentArmor, Is.EqualTo(initialShield));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativeEnergyGain_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            built.Ally.EnergyManager.GainEnergy(1);
+            var initialEnergy = built.Ally.CurrentEnergy;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new GainEnergyIntentAction(SystemSource.Instance));
+            var effect = new GainEnergyEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                Value = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.CurrentEnergy, Is.EqualTo(initialEnergy));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativeEnergyLoss_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            built.Ally.EnergyManager.GainEnergy(1);
+            var initialEnergy = built.Ally.CurrentEnergy;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new LoseEnergyIntentAction(SystemSource.Instance));
+            var effect = new LoseEnegyEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                Value = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.CurrentEnergy, Is.EqualTo(initialEnergy));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativePlayerBuffAddition_DoesNotModifyExistingBuff()
+        {
+            var buffData = new PlayerBuffData
+            {
+                ID = BuffTestBuilder.PlayerBuffId,
+                MaxLevel = 99,
+                LifeTimeData = new AlwaysLifeTimePlayerBuffData()
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithPlayerBuff(buffData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var buff = BuffTestBuilder.CreatePlayerBuff();
+            built.Ally.BuffManager.AddBuff(buff);
+            var initialLevel = buff.Level;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new AddPlayerBuffIntentAction(SystemSource.Instance));
+            var effect = new AddPlayerBuffEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                BuffId = BuffTestBuilder.PlayerBuffId,
+                Level = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(buff.Level, Is.EqualTo(initialLevel));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WhenPlayerBuffAdditionExceedsMaximum_CreatesBuffAtMaximumLevel()
+        {
+            var buffData = new PlayerBuffData
+            {
+                ID = BuffTestBuilder.PlayerBuffId,
+                MaxLevel = 3,
+                LifeTimeData = new AlwaysLifeTimePlayerBuffData()
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithPlayerBuff(buffData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new AddPlayerBuffIntentAction(SystemSource.Instance));
+            var effect = new AddPlayerBuffEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                BuffId = BuffTestBuilder.PlayerBuffId,
+                Level = new ConstInteger { Value = 5 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.BuffManager.Buffs.Single().Level, Is.EqualTo(3));
+            Assert.That(result.Actions.Single(), Is.TypeOf<AddPlayerBuffResultAction>());
+            Assert.That(result.Events.OfType<AddPlayerBuffEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativePlayerBuffLevelDelta_ClampsExistingBuffToZero()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var buff = BuffTestBuilder.CreatePlayerBuff();
+            built.Ally.BuffManager.AddBuff(buff);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new ModifyPlayerBuffLevelIntentAction(SystemSource.Instance));
+            var effect = new ModifyPlayerBuffLevelEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                BuffId = BuffTestBuilder.PlayerBuffId,
+                DeltaLevel = new ConstInteger { Value = -2 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(buff.Level, Is.Zero);
+            Assert.That(built.Ally.BuffManager.Buffs, Does.Contain(buff));
+            Assert.That(result.Actions.Single(), Is.TypeOf<ModifyPlayerBuffLevelResultAction>());
+            Assert.That(result.Events.OfType<ModifyPlayerBuffLevelEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RunToCompletion_WithMissingPlayerBuffToModify_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new ModifyPlayerBuffLevelIntentAction(SystemSource.Instance));
+            var effect = new ModifyPlayerBuffLevelEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                BuffId = BuffTestBuilder.PlayerBuffId,
+                DeltaLevel = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativeDispositionIncrease_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var initialDisposition = built.Ally.DispositionManager.CurrentDisposition;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new IncreaseDispositionIntentAction(SystemSource.Instance));
+            var effect = new IncreaseDispositionEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                Value = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.DispositionManager.CurrentDisposition, Is.EqualTo(initialDisposition));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithNegativeDispositionDecrease_DoesNotCreateGameplayResult()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            built.Ally.DispositionManager.IncreaseDisposition(1);
+            var initialDisposition = built.Ally.DispositionManager.CurrentDisposition;
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DecreaseDispositionIntentAction(SystemSource.Instance));
+            var effect = new DecreaseDispositionEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                Value = new ConstInteger { Value = -1 }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.DispositionManager.CurrentDisposition, Is.EqualTo(initialDisposition));
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
         public void RunToCompletion_WithPlayerBuffEffect_AppliesCommands()
         {
             var built = new GameplayManagerTestBuilder().Build();

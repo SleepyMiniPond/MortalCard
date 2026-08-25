@@ -23,7 +23,8 @@ namespace MortalGame.GameModel
                 var targetIntent = new ShieldIntentTargetAction(context.Action.Source, characterTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                if (!shieldEffect.Value.Eval(targetTriggerContext).TryGetValue(out var shieldPoint))
+                if (!shieldEffect.Value.Eval(targetTriggerContext).TryGetValue(out var shieldPoint) ||
+                    shieldPoint < 0)
                 {
                     continue;
                 }

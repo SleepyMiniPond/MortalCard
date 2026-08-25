@@ -25,7 +25,8 @@ namespace MortalGame.GameModel
                 var targetIntent = new IncreaseDispositionIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                if (!increaseDispositionEffect.Value.Eval(targetTriggerContext).TryGetValue(out var increasePoint))
+                if (!increaseDispositionEffect.Value.Eval(targetTriggerContext).TryGetValue(out var increasePoint) ||
+                    increasePoint < 0)
                 {
                     continue;
                 }

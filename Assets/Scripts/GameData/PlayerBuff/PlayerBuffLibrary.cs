@@ -41,6 +41,17 @@ namespace MortalGame.GameData
             return _buffs[buffId].Sessions;
         }
 
+        public int GetBuffMaxLevel(string buffId)
+        {
+            if (!_buffs.ContainsKey(buffId))
+            {
+                Debug.LogError($"PlayerBuff ID[{buffId}] not found in library.");
+                return 0;
+            }
+
+            return _buffs[buffId].MaxLevel;
+        }
+
         public IPlayerBuffLifeTimeData GetBuffLifeTime(string buffId)
         {
             if (!_buffs.ContainsKey(buffId))

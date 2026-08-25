@@ -41,7 +41,7 @@ namespace MortalGame.GameModel
         private static CommandApplyResult _HandleModify(TriggerContext context, ModifyPlayerBuffLevelEffectCommand c)
         {
             var playerTarget = new PlayerTarget(c.Target);
-            var modifyResult = c.Target.BuffManager.ModifyBuffLevel(c.BuffId, c.Level);
+            var modifyResult = c.Target.BuffManager.ModifyBuffLevel(c.BuffId, c.DeltaLevel);
             var resultAction = new ModifyPlayerBuffLevelResultAction(context.Action.Source, playerTarget, modifyResult);
             var reactorEvents = context.Model.ObserveAction(resultAction);
             var buffEvent = new ModifyPlayerBuffLevelEvent(

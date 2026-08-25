@@ -51,6 +51,13 @@
 
 ## 📋 程式碼品質標準
 
+### 遊戲數值責任邊界
+
+- **通用數值層保持純粹**：`IIntegerValue`、公式組合與基礎算術支援完整整數範圍，不在此層套用傷害、Buff 等領域限制。
+- **Effect 層驗證效果語意**：Resolver 建立 Command 前，應判斷運算結果是否符合該效果的合法範圍；不合法的效果不得以反向狀態變更或虛假 Result／Event 表達。
+- **Entity／Manager 維護最終不變量**：狀態寫入端仍須保證 HP、護盾、能量、Buff Level 等數值落在各自的合法範圍，不能只依賴上游輸入正確。
+- **Buff Level 下限為 0**：增減量可以是負數，但運算後的 Level 不得低於 `0`；Level 為 `0` 的 Buff 仍然存在，不自動移除。具有 `MaxLevel` 定義的 Buff，Level 亦不得超過該上限。
+
 ### Validator 與 Runtime 責任邊界
 
 - **遊戲機制允許的失效必須由 Runtime 表達**：若目標可能因同一批次中較早執行的 Effect 而消失，例如第一個 Effect 已移除 Buff，導致第二個 Effect 找不到原目標，應視為正常遊戲流程並安全地 No-op／Rejected。

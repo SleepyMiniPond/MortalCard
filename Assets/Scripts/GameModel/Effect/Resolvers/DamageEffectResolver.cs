@@ -40,7 +40,8 @@ namespace MortalGame.GameModel
 
                 if (!value.Eval(targetTriggerContext)
                         .FlatMap(damagePoint => formulaFunc(targetTriggerContext, damagePoint))
-                        .TryGetValue(out var damageFormulaPoint))
+                        .TryGetValue(out var damageFormulaPoint) ||
+                    damageFormulaPoint < 0)
                 {
                     continue;
                 }

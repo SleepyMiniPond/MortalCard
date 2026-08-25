@@ -32,6 +32,7 @@ namespace MortalGame.GameModel
     public record CloneCardIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.CreateCard);
 
     public record AddPlayerBuffIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.AddPlayerBuff);
+    public record ModifyPlayerBuffLevelIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.ModifyPlayerBuffLevel);
     public record RemovePlayerBuffIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.RemovePlayerBuff);
 
     public record AddCardBuffIntentAction(IActionSource Source) : BaseEffectIntentAction(Source, EffectType.AddCardBuff);

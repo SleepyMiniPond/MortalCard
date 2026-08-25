@@ -39,7 +39,10 @@ namespace MortalGame.GameModel
                 .FlatMap(values => Operation switch
                 {
                     ArithmeticType.Add => GameplayIntegerMath.Add(values.Item1, values.Item2),
+                    ArithmeticType.Subtract => GameplayIntegerMath.Subtract(values.Item1, values.Item2),
                     ArithmeticType.Multiply => GameplayIntegerMath.Multiply(values.Item1, values.Item2),
+                    ArithmeticType.Divide => GameplayIntegerMath.Divide(values.Item1, values.Item2),
+                    ArithmeticType.Remainder => GameplayIntegerMath.Remainder(values.Item1, values.Item2),
                     _ => Option.None<int>()
                 });
         }

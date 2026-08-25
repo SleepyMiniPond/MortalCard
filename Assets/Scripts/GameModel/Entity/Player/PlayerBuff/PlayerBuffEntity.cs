@@ -26,6 +26,7 @@ namespace MortalGame.GameModel
         private readonly string _playerBuffDataId;
         private readonly Guid _identity;
         private int _level;
+        private readonly int _maxLevel;
         private readonly Option<IPlayerEntity> _caster;
         private readonly IReadOnlyList<IPlayerBuffPropertyEntity> _properties;
         private readonly IPlayerBuffLifeTimeEntity _lifeTime;
@@ -46,6 +47,7 @@ namespace MortalGame.GameModel
             string playerBuffDataId,
             Guid identity,
             int level,
+            int maxLevel,
             Option<IPlayerEntity> caster,
             IEnumerable<IPlayerBuffPropertyEntity> properties,
             IPlayerBuffLifeTimeEntity lifeTime,
@@ -53,7 +55,8 @@ namespace MortalGame.GameModel
         {
             _playerBuffDataId = playerBuffDataId;
             _identity = identity;
-            _level = level;
+            _maxLevel = Math.Max(0, maxLevel);
+            _level = Math.Min(_maxLevel, Math.Max(0, level));
             _caster = caster;
             _properties = properties.ToList();
             _lifeTime = lifeTime;
@@ -67,7 +70,12 @@ namespace MortalGame.GameModel
 
         public void AddLevel(int level)
         {
-            _level += level;
+            if (!GameplayIntegerMath.Add(_level, level).TryGetValue(out var newLevel))
+            {
+                return;
+            }
+
+            _level = Math.Min(_maxLevel, Math.Max(0, newLevel));
         }
     }
 
@@ -76,6 +84,7 @@ namespace MortalGame.GameModel
         public DummyPlayerBuff() : base(
             string.Empty,
             Guid.Empty,
+            1,
             1,
             Option.None<IPlayerEntity>(),
             Enumerable.Empty<IPlayerBuffPropertyEntity>(),

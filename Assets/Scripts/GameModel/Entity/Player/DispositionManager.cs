@@ -1,4 +1,5 @@
-using UnityEngine;
+using System;
+
 namespace MortalGame.GameModel
 {
 
@@ -23,44 +24,48 @@ namespace MortalGame.GameModel
 
         public DispositionManager(int initialDisposition, int maxDisposition)
         {
-            _disposition = initialDisposition;
-            _maxDisposition = maxDisposition;
+            _maxDisposition = Math.Max(0, maxDisposition);
+            _disposition = Math.Min(_maxDisposition, Math.Max(0, initialDisposition));
         }
 
         public IncreaseDispositionResult IncreaseDisposition(int deltaValue)
         {
+            var validDeltaValue = Math.Max(0, deltaValue);
             var previousDisposition = _disposition;
-            _disposition += deltaValue;
-
-            int overDisposition = 0;
-            if (_disposition > _maxDisposition)
+            if (!GameplayIntegerMath.Add(previousDisposition, validDeltaValue)
+                    .TryGetValue(out var calculatedDisposition))
             {
-                overDisposition = _disposition - _maxDisposition;
-                _disposition = _maxDisposition;
+                return new IncreaseDispositionResult(0, 0, 0);
             }
 
+            _disposition = Math.Min(_maxDisposition, calculatedDisposition);
+            var deltaDisposition = _disposition - previousDisposition;
+            var overDisposition = validDeltaValue - deltaDisposition;
+
             return new IncreaseDispositionResult(
-                DispositionPoint: deltaValue,
-                DeltaDisposition: _disposition - previousDisposition,
+                DispositionPoint: validDeltaValue,
+                DeltaDisposition: deltaDisposition,
                 OverDisposition: overDisposition
             );
         }
 
         public DecreaseDispositionResult DecreaseDisposition(int deltaValue)
         {
+            var validDeltaValue = Math.Max(0, deltaValue);
             var previousDisposition = _disposition;
-            _disposition -= deltaValue;
-
-            int overDisposition = 0;
-            if (_disposition < 0)
+            if (!GameplayIntegerMath.Subtract(previousDisposition, validDeltaValue)
+                    .TryGetValue(out var calculatedDisposition))
             {
-                overDisposition = -_disposition;
-                _disposition = 0;
+                return new DecreaseDispositionResult(0, 0, 0);
             }
 
+            _disposition = Math.Max(0, calculatedDisposition);
+            var deltaDisposition = previousDisposition - _disposition;
+            var overDisposition = validDeltaValue - deltaDisposition;
+
             return new DecreaseDispositionResult(
-                DispositionPoint: deltaValue,
-                DeltaDisposition: previousDisposition - _disposition,
+                DispositionPoint: validDeltaValue,
+                DeltaDisposition: deltaDisposition,
                 OverDisposition: overDisposition
             );
         }

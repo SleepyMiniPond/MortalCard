@@ -77,6 +77,14 @@ namespace MortalGame.GameData
         public IIntegerValue Level;
     }
     [Serializable]
+    public class ModifyPlayerBuffLevelEffect : ICardEffect
+    {
+        public ITargetPlayerCollectionValue Targets;
+        [ValueDropdown("@DropdownHelper.PlayerBuffNames")]
+        public string BuffId;
+        public IIntegerValue DeltaLevel;
+    }
+    [Serializable]
     public class RemovePlayerBuffEffect : ICardEffect
     {
         public ITargetPlayerCollectionValue Targets;

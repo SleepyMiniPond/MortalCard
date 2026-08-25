@@ -46,7 +46,7 @@ namespace MortalGame.GameModel
     public record ModifyPlayerBuffLevelEffectCommand(
         IPlayerEntity Target,
         string BuffId,
-        int Level) : IEffectCommand;
+        int DeltaLevel) : IEffectCommand;
 
     public record DrawCardEffectCommand(
         IPlayerEntity Target,

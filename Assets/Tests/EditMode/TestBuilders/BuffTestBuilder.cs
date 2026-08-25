@@ -16,13 +16,16 @@ namespace MortalGame.Tests
         public static PlayerBuffEntity CreatePlayerBuff(
             string buffId = PlayerBuffId,
             IPlayerEntity caster = null,
-            IReadOnlyDictionary<string, IReactionSessionEntity> reactionSessions = null)
+            IReadOnlyDictionary<string, IReactionSessionEntity> reactionSessions = null,
+            int level = 1,
+            int maxLevel = int.MaxValue)
         {
             return (PlayerBuffEntity)Activator.CreateInstance(
                 typeof(PlayerBuffEntity),
                 buffId,
                 Guid.NewGuid(),
-                1,
+                level,
+                maxLevel,
                 PlayerCasterOption(caster),
                 Array.Empty<IPlayerBuffPropertyEntity>(),
                 new AlwaysLifeTimePlayerBuffEntity(),

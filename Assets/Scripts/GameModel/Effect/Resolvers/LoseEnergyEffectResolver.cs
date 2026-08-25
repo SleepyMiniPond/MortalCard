@@ -23,7 +23,8 @@ namespace MortalGame.GameModel
                 var targetIntent = new LoseEnergyIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
 
-                if (!loseEnergyEffect.Value.Eval(targetTriggerContext).TryGetValue(out var loseEnergyPoint))
+                if (!loseEnergyEffect.Value.Eval(targetTriggerContext).TryGetValue(out var loseEnergyPoint) ||
+                    loseEnergyPoint < 0)
                 {
                     continue;
                 }

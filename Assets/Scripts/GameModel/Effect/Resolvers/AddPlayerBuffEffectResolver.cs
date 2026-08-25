@@ -23,7 +23,8 @@ namespace MortalGame.GameModel
                 var playerTarget = new PlayerTarget(target);
                 var targetIntent = new AddPlayerBuffIntentTargetAction(context.Action.Source, playerTarget);
                 var targetTriggerContext = triggerContext with { Action = targetIntent };
-                if (!addBuffEffect.Level.Eval(targetTriggerContext).TryGetValue(out var level))
+                if (!addBuffEffect.Level.Eval(targetTriggerContext).TryGetValue(out var level) ||
+                    level < 0)
                 {
                     continue;
                 }
@@ -57,6 +58,7 @@ namespace MortalGame.GameModel
                         addBuffEffect.BuffId,
                         Guid.NewGuid(),
                         level,
+                        buffLibrary.GetBuffMaxLevel(addBuffEffect.BuffId),
                         caster,
                         buffLibrary.GetBuffProperties(addBuffEffect.BuffId)
                             .Select(context.Model.ContextManager.PlayerBuffPropertyEntityFactory.Create),
