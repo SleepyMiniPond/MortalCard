@@ -49,14 +49,15 @@ namespace MortalGame.Tests
             TriggerContext context,
             CardBuffLibrary cardBuffLibrary,
             string buffId = CardBuffId,
-            IPlayerEntity caster = null)
+            IPlayerEntity caster = null,
+            int level = 1)
         {
             var result = (Option<CardBuffEntity>)typeof(CardBuffEntity)
                 .GetMethod(nameof(CardBuffEntity.CreateFromData))
                 .Invoke(null, new[]
                 {
                 buffId,
-                (object)1,
+                (object)level,
                 PlayerCasterOption(caster),
                 context,
                 cardBuffLibrary,

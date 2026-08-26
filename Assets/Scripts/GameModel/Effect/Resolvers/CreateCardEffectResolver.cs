@@ -42,7 +42,8 @@ namespace MortalGame.GameModel
                     {
                         if (!addCardBuffData.Level
                                 .Eval(targetTriggerContext)
-                                .TryGetValue(out var level))
+                                .TryGetValue(out var level) ||
+                            level < 0)
                         {
                             continue;
                         }

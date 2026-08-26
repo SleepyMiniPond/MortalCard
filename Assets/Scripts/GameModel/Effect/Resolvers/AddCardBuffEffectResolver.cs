@@ -27,7 +27,8 @@ namespace MortalGame.GameModel
                     var cardTarget = new CardTarget(card);
                     var targetIntent = new AddCardBuffIntentTargetAction(context.Action.Source, cardTarget);
                     var targetTriggerContext = triggerContext with { Action = targetIntent };
-                    if (!addCardBuff.Level.Eval(targetTriggerContext).TryGetValue(out var addLevel))
+                    if (!addCardBuff.Level.Eval(targetTriggerContext).TryGetValue(out var addLevel) ||
+                        addLevel < 0)
                     {
                         continue;
                     }

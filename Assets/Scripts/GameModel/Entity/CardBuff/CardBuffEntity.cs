@@ -66,7 +66,7 @@ namespace MortalGame.GameModel
         {
             _cardBuffDataId = cardBuffDataID;
             _identity = identity;
-            _level = level;
+            _level = Math.Max(0, level);
             _caster = caster;
             _properties = properties.ToList();
             _lifeTime = lifeTime;
@@ -111,7 +111,12 @@ namespace MortalGame.GameModel
 
         public void AddLevel(int level)
         {
-            _level += level;
+            if (!GameplayIntegerMath.Add(_level, level).TryGetValue(out var newLevel))
+            {
+                return;
+            }
+
+            _level = Math.Max(0, newLevel);
         }
 
         public ICardBuffEntity Clone()

@@ -1,6 +1,5 @@
 using System;
 using MortalGame.GameData;
-using UnityEngine;
 
 namespace MortalGame.GameModel
 {
@@ -26,13 +25,14 @@ namespace MortalGame.GameModel
 
         public HealthManager(int currentHealth, int maxHealth)
         {
-            _maxHp = maxHealth;
-            _hp = currentHealth;
+            _maxHp = Math.Max(0, maxHealth);
+            _hp = Math.Min(_maxHp, Math.Max(0, currentHealth));
             _dp = 0;
         }
 
         public TakeDamageResult TakeDamage(int amount, GameContext context, DamageType damageType)
         {
+            var validAmount = Math.Max(0, amount);
             int deltaDp = 0;
             int deltaHp = 0;
             int damageOver = 0;
@@ -42,27 +42,27 @@ namespace MortalGame.GameModel
                 case DamageType.Normal:
                 case DamageType.Additional:
                     // Normal and Additional damage: first apply to armor, then to health
-                    deltaDp = _AcceptArmorDamage(amount, out var damageRemain);
+                    deltaDp = _AcceptArmorDamage(validAmount, out var damageRemain);
                     deltaHp = _AcceptHealthDamage(damageRemain, out damageOver);
                     break;
 
                 case DamageType.Penetrate:
                 case DamageType.Effective:
                     // Penetrate and Effective damage: directly apply to health, bypassing armor
-                    deltaHp = _AcceptHealthDamage(amount, out damageOver);
+                    deltaHp = _AcceptHealthDamage(validAmount, out damageOver);
                     deltaDp = 0;
                     break;
 
                 default:
                     // Default to normal damage behavior
-                    deltaDp = _AcceptArmorDamage(amount, out var remainingDamage);
+                    deltaDp = _AcceptArmorDamage(validAmount, out var remainingDamage);
                     deltaHp = _AcceptHealthDamage(remainingDamage, out damageOver);
                     break;
             }
 
             return new TakeDamageResult(
                 Type: damageType,
-                DamagePoint: amount,
+                DamagePoint: validAmount,
                 DeltaHp: deltaHp,
                 DeltaDp: deltaDp,
                 OverHp: damageOver
@@ -71,20 +71,22 @@ namespace MortalGame.GameModel
 
         public GetHealResult GetHeal(int amount, GameContext context)
         {
-            var deltaHp = _AcceptHealthHeal(amount, out var hpOver);
+            var validAmount = Math.Max(0, amount);
+            var deltaHp = _AcceptHealthHeal(validAmount, out var hpOver);
 
             return new GetHealResult(
-                HealPoint: amount,
+                HealPoint: validAmount,
                 DeltaHp: deltaHp,
                 OverHp: hpOver
             );
         }
         public GetShieldResult GetShield(int amount, GameContext context)
         {
-            var deltaDp = _AcceptArmorGain(amount, out var dpOver);
+            var validAmount = Math.Max(0, amount);
+            var deltaDp = _AcceptArmorGain(validAmount, out var dpOver);
 
             return new GetShieldResult(
-                ShieldPoint: amount,
+                ShieldPoint: validAmount,
                 DeltaDp: deltaDp,
                 OverDp: dpOver
             );
@@ -93,18 +95,30 @@ namespace MortalGame.GameModel
         private int _AcceptArmorDamage(int amount, out int damageRemain)
         {
             var originDp = _dp;
-            _dp = Mathf.Clamp(_dp - amount, 0, originDp);
+            if (!GameplayIntegerMath.Subtract(_dp, amount).TryGetValue(out var calculatedDp))
+            {
+                damageRemain = amount;
+                return 0;
+            }
+
+            _dp = Math.Min(originDp, Math.Max(0, calculatedDp));
             var deltaDp = originDp - _dp;
-            damageRemain = Mathf.Max(amount - deltaDp, 0);
+            damageRemain = Math.Max(amount - deltaDp, 0);
 
             return deltaDp;
         }
         private int _AcceptHealthDamage(int amount, out int damageRemain)
         {
             var originHp = _hp;
-            _hp = Mathf.Clamp(_hp - amount, 0, originHp);
+            if (!GameplayIntegerMath.Subtract(_hp, amount).TryGetValue(out var calculatedHp))
+            {
+                damageRemain = amount;
+                return 0;
+            }
+
+            _hp = Math.Min(originHp, Math.Max(0, calculatedHp));
             var deltaHp = originHp - _hp;
-            damageRemain = Mathf.Max(amount - deltaHp, 0);
+            damageRemain = Math.Max(amount - deltaHp, 0);
 
             return deltaHp;
         }
@@ -112,18 +126,30 @@ namespace MortalGame.GameModel
         private int _AcceptArmorGain(int amount, out int dpOver)
         {
             var originDp = _dp;
-            _dp = Mathf.Clamp(_dp + amount, originDp, _maxHp);
+            if (!GameplayIntegerMath.Add(_dp, amount).TryGetValue(out var calculatedDp))
+            {
+                dpOver = amount;
+                return 0;
+            }
+
+            _dp = Math.Min(_maxHp, Math.Max(originDp, calculatedDp));
             var deltaDp = _dp - originDp;
-            dpOver = Mathf.Max(amount - deltaDp, 0);
+            dpOver = Math.Max(amount - deltaDp, 0);
 
             return deltaDp;
         }
         private int _AcceptHealthHeal(int amount, out int hpOver)
         {
             var originHp = _hp;
-            _hp = Mathf.Clamp(_hp + amount, originHp, _maxHp);
+            if (!GameplayIntegerMath.Add(_hp, amount).TryGetValue(out var calculatedHp))
+            {
+                hpOver = amount;
+                return 0;
+            }
+
+            _hp = Math.Min(_maxHp, Math.Max(originHp, calculatedHp));
             var deltaHp = _hp - originHp;
-            hpOver = Mathf.Max(amount - deltaHp, 0);
+            hpOver = Math.Max(amount - deltaHp, 0);
 
             return deltaHp;
         }

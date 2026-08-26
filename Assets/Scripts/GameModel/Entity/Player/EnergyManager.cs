@@ -1,4 +1,4 @@
-using UnityEngine;
+using System;
 using MortalGame.GameData;
 
 namespace MortalGame.GameModel
@@ -20,37 +20,39 @@ namespace MortalGame.GameModel
     public class EnergyManager : IEnergyManager
     {
         private int _energy;
-        private int _maxEnergy;
+        private readonly int _maxEnergy;
 
         public int Energy => _energy;
         public int MaxEnergy => _maxEnergy;
 
         public EnergyManager(int energy, int maxEnergy)
         {
-            _energy = energy;
-            _maxEnergy = maxEnergy;
+            _maxEnergy = Math.Max(0, maxEnergy);
+            _energy = Math.Min(_maxEnergy, Math.Max(0, energy));
         }
 
         public EnergyInfo ToInfo() => new EnergyInfo(_energy, _maxEnergy);
 
         public GainEnergyResult RecoverEnergy(int amount)
         {
-            var deltaEp = _AcceptEnergyGain(amount, out var energyOver);
+            var validAmount = Math.Max(0, amount);
+            var deltaEp = _AcceptEnergyGain(validAmount, out var energyOver);
 
             return new GainEnergyResult(
                 Type: EnergyGainType.RoundStartRecover,
-                EnergyPoint: amount,
+                EnergyPoint: validAmount,
                 DeltaEp: deltaEp,
                 OverEp: energyOver
             );
         }
         public LoseEnergyResult ConsumeEnergy(int amount)
         {
-            var deltaEp = _AcceptEnergyLoss(amount, out var energyOver);
+            var validAmount = Math.Max(0, amount);
+            var deltaEp = _AcceptEnergyLoss(validAmount, out var energyOver);
 
             return new LoseEnergyResult(
                 Type: EnergyLoseType.PlayCardConsume,
-                EnergyPoint: amount,
+                EnergyPoint: validAmount,
                 DeltaEp: deltaEp,
                 OverEp: energyOver
             );
@@ -58,22 +60,24 @@ namespace MortalGame.GameModel
 
         public GainEnergyResult GainEnergy(int amount)
         {
-            var deltaEp = _AcceptEnergyGain(amount, out var energyOver);
+            var validAmount = Math.Max(0, amount);
+            var deltaEp = _AcceptEnergyGain(validAmount, out var energyOver);
 
             return new GainEnergyResult(
                 Type: EnergyGainType.GainEffect,
-                EnergyPoint: amount,
+                EnergyPoint: validAmount,
                 DeltaEp: deltaEp,
                 OverEp: energyOver
             );
         }
         public LoseEnergyResult LoseEnergy(int amount)
         {
-            var deltaEp = _AcceptEnergyLoss(amount, out var energyOver);
+            var validAmount = Math.Max(0, amount);
+            var deltaEp = _AcceptEnergyLoss(validAmount, out var energyOver);
 
             return new LoseEnergyResult(
                 Type: EnergyLoseType.LoseEffect,
-                EnergyPoint: amount,
+                EnergyPoint: validAmount,
                 DeltaEp: deltaEp,
                 OverEp: energyOver
             );
@@ -82,18 +86,30 @@ namespace MortalGame.GameModel
         private int _AcceptEnergyGain(int amount, out int energyOver)
         {
             var originEnergy = _energy;
-            _energy = Mathf.Clamp(_energy + amount, originEnergy, _maxEnergy);
+            if (!GameplayIntegerMath.Add(_energy, amount).TryGetValue(out var calculatedEnergy))
+            {
+                energyOver = amount;
+                return 0;
+            }
+
+            _energy = Math.Min(_maxEnergy, Math.Max(originEnergy, calculatedEnergy));
             var deltaEnergy = _energy - originEnergy;
-            energyOver = Mathf.Max(amount - deltaEnergy, 0);
+            energyOver = Math.Max(amount - deltaEnergy, 0);
 
             return deltaEnergy;
         }
         private int _AcceptEnergyLoss(int amount, out int energyOver)
         {
             var originEnergy = _energy;
-            _energy = Mathf.Clamp(_energy - amount, 0, originEnergy);
+            if (!GameplayIntegerMath.Subtract(_energy, amount).TryGetValue(out var calculatedEnergy))
+            {
+                energyOver = amount;
+                return 0;
+            }
+
+            _energy = Math.Min(originEnergy, Math.Max(0, calculatedEnergy));
             var deltaEnergy = originEnergy - _energy;
-            energyOver = Mathf.Max(amount - deltaEnergy, 0);
+            energyOver = Math.Max(amount - deltaEnergy, 0);
 
             return deltaEnergy;
         }

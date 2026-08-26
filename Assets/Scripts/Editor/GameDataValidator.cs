@@ -1050,6 +1050,8 @@ namespace MortalGame.Editor
                 errors.Add($"{context}.SubSelects 的 Id 重複：{duplicateId}");
             }
 
+            _ValidateAddCardBuffDataSemantics(cardData, context, errors);
+
             var triggeredEffects = cardData.TriggeredEffects ?? new List<TriggeredCardEffect>();
             for (var index = 0; index < triggeredEffects.Count; index++)
             {
@@ -1072,6 +1074,7 @@ namespace MortalGame.Editor
             _ValidateSessionSemantics(buffData.Sessions, $"{context}.Sessions", errors);
             _ValidateTimingKeys(buffData.Effects, $"{context}.Effects", errors);
             _ValidateTimingKeys(buffData.BuffEffects, $"{context}.BuffEffects", errors);
+            _ValidateAddCardBuffDataSemantics(buffData, context, errors);
 
             if (buffData.LifeTimeData != null &&
                 buffData.LifeTimeData is not AlwaysLifeTimeCardBuffData &&
@@ -1096,6 +1099,7 @@ namespace MortalGame.Editor
 
             _ValidateSessionSemantics(buffData.Sessions, $"{context}.Sessions", errors);
             _ValidateTimingKeys(buffData.BuffEffects, $"{context}.BuffEffects", errors);
+            _ValidateAddCardBuffDataSemantics(buffData, context, errors);
 
             if (buffData.LifeTimeData != null &&
                 buffData.LifeTimeData is not AlwaysLifeTimePlayerBuffData &&
@@ -1165,6 +1169,18 @@ namespace MortalGame.Editor
                 turnLifeTime.Turn <= 0)
             {
                 errors.Add($"{context}.LifeTimeData.Turn 必須大於 0");
+            }
+        }
+
+        private static void _ValidateAddCardBuffDataSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var addCardBuffData in SerializedDataGraphUtility.Find<AddCardBuffData>(data))
+            {
+                if (addCardBuffData.Level is ConstInteger { Value: < 0 })
+                    errors.Add($"{context} 的 AddCardBuffData.Level 不可為負數");
             }
         }
 

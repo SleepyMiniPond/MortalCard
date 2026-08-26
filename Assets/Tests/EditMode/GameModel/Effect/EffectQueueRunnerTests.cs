@@ -362,6 +362,223 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void RunToCompletion_WithMixedCardBuffAdditions_SkipsNegativeLevelOnly()
+        {
+            const string negativeBuffId = "negative-card-buff";
+            const string validBuffId = "valid-card-buff";
+            var negativeBuffData = new CardBuffData
+            {
+                ID = negativeBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var validBuffData = new CardBuffData
+            {
+                ID = validBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCardBuff(negativeBuffData)
+                .WithCardBuff(validBuffData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new AddCardBuffIntentAction(SystemSource.Instance));
+            var effect = new AddCardBuffEffect
+            {
+                TargetCards = new AllyHandCards { Player = new CurrentPlayer() },
+                AddCardBuffDatas =
+                {
+                    new AddCardBuffData
+                    {
+                        CardBuffId = negativeBuffId,
+                        Level = new ConstInteger { Value = -1 }
+                    },
+                    new AddCardBuffData
+                    {
+                        CardBuffId = validBuffId,
+                        Level = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(card.BuffManager.Buffs.Single().CardBuffDataID, Is.EqualTo(validBuffId));
+            Assert.That(result.Actions.Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<AddCardBuffEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RunToCompletion_WithCreateCardMixedBuffAdditions_CreatesCardWithValidBuffOnly()
+        {
+            const string negativeBuffId = "create-negative-card-buff";
+            const string validBuffId = "create-valid-card-buff";
+            var negativeBuffData = new CardBuffData
+            {
+                ID = negativeBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var validBuffData = new CardBuffData
+            {
+                ID = validBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCardBuff(negativeBuffData)
+                .WithCardBuff(validBuffData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new CreateCardIntentAction(SystemSource.Instance));
+            var effect = new CreateCardEffect
+            {
+                Target = new CurrentPlayer(),
+                CardDataIds = { CardTestBuilder.CardId },
+                CreateDestination = CardCollectionType.HandCard,
+                AddCardBuffDatas =
+                {
+                    new AddCardBuffData
+                    {
+                        CardBuffId = negativeBuffId,
+                        Level = new ConstInteger { Value = -1 }
+                    },
+                    new AddCardBuffData
+                    {
+                        CardBuffId = validBuffId,
+                        Level = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            var createdCard = built.Ally.CardManager.HandCard.Cards.Single();
+            Assert.That(createdCard.BuffManager.Buffs.Single().CardBuffDataID, Is.EqualTo(validBuffId));
+            Assert.That(result.Actions.Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<AddCardEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RunToCompletion_WithCloneCardMixedBuffAdditions_ClonesCardWithValidBuffOnly()
+        {
+            const string negativeBuffId = "clone-negative-card-buff";
+            const string validBuffId = "clone-valid-card-buff";
+            var negativeBuffData = new CardBuffData
+            {
+                ID = negativeBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var validBuffData = new CardBuffData
+            {
+                ID = validBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCardBuff(negativeBuffData)
+                .WithCardBuff(validBuffData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var originCard = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Ally.CardManager.HandCard.AddCard(originCard);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new CloneCardIntentAction(SystemSource.Instance));
+            var effect = new CloneCardEffect
+            {
+                Target = new CurrentPlayer(),
+                ClonedCards = new AllyHandCards { Player = new CurrentPlayer() },
+                CloneDestination = CardCollectionType.HandCard,
+                AddCardBuffDatas =
+                {
+                    new AddCardBuffData
+                    {
+                        CardBuffId = negativeBuffId,
+                        Level = new ConstInteger { Value = -1 }
+                    },
+                    new AddCardBuffData
+                    {
+                        CardBuffId = validBuffId,
+                        Level = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new CardEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            var clonedCard = built.Ally.CardManager.HandCard.Cards.Single(card => card != originCard);
+            Assert.That(originCard.BuffManager.Buffs, Is.Empty);
+            Assert.That(clonedCard.BuffManager.Buffs.Single().CardBuffDataID, Is.EqualTo(validBuffId));
+            Assert.That(result.Actions.Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<AddCardEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RunToCompletion_WithPlayerBuffMixedCardBuffAdditions_SkipsNegativeLevelOnly()
+        {
+            const string negativeBuffId = "player-buff-negative-card-buff";
+            const string validBuffId = "player-buff-valid-card-buff";
+            var negativeBuffData = new CardBuffData
+            {
+                ID = negativeBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var validBuffData = new CardBuffData
+            {
+                ID = validBuffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData()
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCardBuff(negativeBuffData)
+                .WithCardBuff(validBuffData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerBuffTrigger(built.Ally, BuffTestBuilder.CreatePlayerBuff()),
+                new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
+            var effect = new AddCardBuffPlayerBuffEffect
+            {
+                Targets = new AllyHandCards { Player = new CurrentPlayer() },
+                AddCardBuffDatas =
+                {
+                    new AddCardBuffData
+                    {
+                        CardBuffId = negativeBuffId,
+                        Level = new ConstInteger { Value = -1 }
+                    },
+                    new AddCardBuffData
+                    {
+                        CardBuffId = validBuffId,
+                        Level = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var runner = new EffectQueueRunner();
+
+            runner.Enqueue(new PlayerBuffEffectQueueItem(context, effect));
+            var result = runner.RunToCompletion();
+
+            Assert.That(card.BuffManager.Buffs.Single().CardBuffDataID, Is.EqualTo(validBuffId));
+            Assert.That(result.Actions.Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<AddCardBuffEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [Test]
         public void RunToCompletion_WithPlayerBuffEffect_AppliesCommands()
         {
             var built = new GameplayManagerTestBuilder().Build();

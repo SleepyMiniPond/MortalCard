@@ -108,6 +108,40 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void ValidateNestedContent_WithNegativeAddCardBuffConstantLevel_ReportsError()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "negative-add-card-buff-level";
+                card.Data.Effects.Add(new AddCardBuffEffect
+                {
+                    TargetCards = new SingleCardCollection { TargetCard = new TriggeredCard() },
+                    AddCardBuffDatas =
+                    {
+                        new AddCardBuffData
+                        {
+                            CardBuffId = "test-card-buff",
+                            Level = new ConstInteger { Value = -1 }
+                        }
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Has.Some.Contains("AddCardBuffData.Level 不可為負數"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
         public void ValidateLocalization_ReportsMissingAndDuplicateKeys()
         {
             var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
