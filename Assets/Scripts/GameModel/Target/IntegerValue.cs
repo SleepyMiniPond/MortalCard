@@ -25,6 +25,15 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
+    public class TurnCountInteger : IIntegerValue
+    {
+        public Option<int> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Model.GameStatus.TurnCount.Some();
+        }
+    }
+
+    [Serializable]
     public class ArithmeticInteger : IIntegerValue
     {
         public ArithmeticType Operation;
@@ -45,6 +54,74 @@ namespace MortalGame.GameModel
                     ArithmeticType.Remainder => GameplayIntegerMath.Remainder(values.Item1, values.Item2),
                     _ => Option.None<int>()
                 });
+        }
+    }
+
+    [Serializable]
+    public class MinimumInteger : IIntegerValue
+    {
+        [ShowInInspector]
+        public List<IIntegerValue> Values = new();
+
+        public Option<int> Eval(TriggerContext triggerContext)
+        {
+            if (Values.Count == 0)
+            {
+                return Option.None<int>();
+            }
+
+            var firstValue = Values[0].Eval(triggerContext);
+            if (!firstValue.TryGetValue(out var minimum))
+            {
+                return Option.None<int>();
+            }
+
+            foreach (var value in Values.Skip(1))
+            {
+                var evaluatedValue = value.Eval(triggerContext);
+                if (!evaluatedValue.TryGetValue(out var currentValue))
+                {
+                    return Option.None<int>();
+                }
+
+                minimum = Math.Min(minimum, currentValue);
+            }
+
+            return minimum.Some();
+        }
+    }
+
+    [Serializable]
+    public class MaximumInteger : IIntegerValue
+    {
+        [ShowInInspector]
+        public List<IIntegerValue> Values = new();
+
+        public Option<int> Eval(TriggerContext triggerContext)
+        {
+            if (Values.Count == 0)
+            {
+                return Option.None<int>();
+            }
+
+            var firstValue = Values[0].Eval(triggerContext);
+            if (!firstValue.TryGetValue(out var maximum))
+            {
+                return Option.None<int>();
+            }
+
+            foreach (var value in Values.Skip(1))
+            {
+                var evaluatedValue = value.Eval(triggerContext);
+                if (!evaluatedValue.TryGetValue(out var currentValue))
+                {
+                    return Option.None<int>();
+                }
+
+                maximum = Math.Max(maximum, currentValue);
+            }
+
+            return maximum.Some();
         }
     }
 

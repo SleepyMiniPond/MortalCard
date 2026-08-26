@@ -229,9 +229,9 @@ namespace MortalGame.GameModel
 
         private void _TurnStart()
         {
+            _gameStatus.SetNewTurn();
             _gameEvents.AddRange(_RunTiming(GameTiming.BeforeTurnStart, SystemSource.Instance));
 
-            _gameStatus.SetNewTurn();
             _gameEvents.Add(new RoundStartEvent(
                 Round: _gameStatus.TurnCount,
                 Player: _gameStatus.Ally,

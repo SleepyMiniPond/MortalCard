@@ -60,6 +60,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.CardData,
                         context));
+                _ValidateIntegerValueSemantics(asset.CardData, context, errors);
                 _ValidateCardNestedSemantics(asset.CardData, context, errors);
             }
 
@@ -70,6 +71,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.Data,
                         context));
+                _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -80,6 +82,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.Data,
                         context));
+                _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidatePlayerBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -90,6 +93,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.Data,
                         context));
+                _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCharacterBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -1181,6 +1185,24 @@ namespace MortalGame.Editor
             {
                 if (addCardBuffData.Level is ConstInteger { Value: < 0 })
                     errors.Add($"{context} 的 AddCardBuffData.Level 不可為負數");
+            }
+        }
+
+        private static void _ValidateIntegerValueSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var minimum in SerializedDataGraphUtility.Find<MinimumInteger>(data))
+            {
+                if (minimum.Values == null || minimum.Values.Count == 0)
+                    errors.Add($"{context} 的 MinimumInteger.Values 至少需要一項");
+            }
+
+            foreach (var maximum in SerializedDataGraphUtility.Find<MaximumInteger>(data))
+            {
+                if (maximum.Values == null || maximum.Values.Count == 0)
+                    errors.Add($"{context} 的 MaximumInteger.Values 至少需要一項");
             }
         }
 

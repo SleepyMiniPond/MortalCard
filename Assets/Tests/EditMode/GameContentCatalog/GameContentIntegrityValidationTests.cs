@@ -142,6 +142,73 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void ValidateNestedContent_WithInvalidExtremumIntegerValues_ReportsErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "invalid-extremum-integer";
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new MinimumInteger()
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new MinimumInteger
+                    {
+                        Values =
+                        {
+                            new ConstInteger { Value = 1 },
+                            null
+                        }
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new MaximumInteger()
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new MaximumInteger
+                    {
+                        Values =
+                        {
+                            new ConstInteger { Value = 1 },
+                            null
+                        }
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("MinimumInteger.Values 至少需要一項"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("Effects[1].Value.Values[1] 為空"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("MaximumInteger.Values 至少需要一項"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("Effects[3].Value.Values[1] 為空"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
         public void ValidateLocalization_ReportsMissingAndDuplicateKeys()
         {
             var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
