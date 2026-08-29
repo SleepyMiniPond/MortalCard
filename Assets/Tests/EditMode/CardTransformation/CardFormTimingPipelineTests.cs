@@ -131,6 +131,61 @@ namespace MortalGame.Tests.T010
         }
 
         [Test]
+        public void TriggerTiming_FormChangedEffect_PreservesReactionOriginTiming()
+        {
+            var baseCard = CreateCardWithApplyRule(
+                CardTransformationTestBuilder.BaseCardId,
+                CardTransformationTestBuilder.AlternateCardId);
+            var alternateCard = CardTransformationTestBuilder.CreateCardData(
+                CardTransformationTestBuilder.AlternateCardId,
+                cost: 5,
+                power: 8);
+            alternateCard.TriggeredEffects.Add(new TriggeredCardEffect
+            {
+                Timing = CardTriggeredTiming.FormChanged,
+                Effects = new ICardEffect[]
+                {
+                    new GainEnergyEffect
+                    {
+                        Targets = new SinglePlayerCollection
+                        {
+                            Target = new CardOwner { Card = new TriggeredCard() }
+                        },
+                        Value = new ConditionalValue
+                        {
+                            Pairs =
+                            {
+                                new ConditionalValue.ConditionPair
+                                {
+                                    Conditions =
+                                    {
+                                        new GameTimingCondition
+                                        {
+                                            Timing = GameTiming.BeforeTurnEnd
+                                        }
+                                    },
+                                    Value = new ConstInteger { Value = 2 }
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            var built = new CardTransformationTestBuilder()
+                .WithCard(baseCard)
+                .WithCard(alternateCard)
+                .Build();
+            built.Gameplay.Ally.CardManager.HandCard.AddCard(built.Card);
+
+            var events = built.Gameplay.Manager
+                .TriggerTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance)
+                .ToList();
+
+            Assert.That(events.OfType<GainEnergyEvent>().Count(), Is.EqualTo(1));
+            Assert.That(built.Gameplay.Ally.CurrentEnergy, Is.EqualTo(2));
+        }
+
+        [Test]
         public void CardFormChangedEvent_CanUpdateViewModelWithoutGeneralUpdate()
         {
             var baseCard = CreateCardWithApplyRule(

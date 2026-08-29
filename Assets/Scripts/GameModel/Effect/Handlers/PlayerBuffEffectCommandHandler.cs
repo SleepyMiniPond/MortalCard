@@ -23,7 +23,7 @@ namespace MortalGame.GameModel
             var playerTarget = new PlayerTarget(c.Target);
             var addResult = c.Target.BuffManager.AddBuff(c.NewBuff);
             var resultAction = new AddPlayerBuffResultAction(context.Action.Source, playerTarget, addResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var buffEvent = new AddPlayerBuffEvent(c.Target.Faction, addResult.PlayerBuff.ToInfo(context.Model));
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(buffEvent));
         }
@@ -33,7 +33,7 @@ namespace MortalGame.GameModel
             var playerTarget = new PlayerTarget(c.Target);
             var removeResult = c.Target.BuffManager.RemoveBuff(c.ExistBuff);
             var resultAction = new RemovePlayerBuffResultAction(context.Action.Source, playerTarget, removeResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var buffEvent = new RemovePlayerBuffEvent(c.Target.Faction, c.ExistBuff.ToInfo(context.Model));
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(buffEvent));
         }
@@ -43,7 +43,7 @@ namespace MortalGame.GameModel
             var playerTarget = new PlayerTarget(c.Target);
             var modifyResult = c.Target.BuffManager.ModifyBuffLevel(c.BuffId, c.DeltaLevel);
             var resultAction = new ModifyPlayerBuffLevelResultAction(context.Action.Source, playerTarget, modifyResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var buffEvent = new ModifyPlayerBuffLevelEvent(
                 c.Target.Faction,
                 c.Target.BuffManager.Buffs.First(b => b.PlayerBuffDataId == c.BuffId).ToInfo(context.Model));

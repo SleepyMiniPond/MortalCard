@@ -203,7 +203,7 @@ namespace MortalGame.Tests
             var snapshot = built.Manager.CreateTimingReactionSnapshot(
                 GameTiming.BeforeTurnEnd,
                 SystemSource.Instance);
-            built.Manager.ObserveAction(snapshot.Action).ToList();
+            built.Manager.ObserveRootAction(snapshot.Action).ToList();
             var items = TimingDispatchPlanner
                 .Create(built.Manager, snapshot)
                 .GeneralReactionItems;

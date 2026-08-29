@@ -28,7 +28,7 @@ namespace MortalGame.GameModel
             }
 
             var resultAction = new AddCardBuffResultAction(context.Action.Source, cardTarget, addResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var cardBuffEvent = new AddCardBuffEvent(c.Target.Faction(context.Model), c.Target.Identity);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cardBuffEvent));
         }
@@ -44,7 +44,7 @@ namespace MortalGame.GameModel
             }
 
             var resultAction = new RemoveCardBuffResultAction(context.Action.Source, cardTarget, removeResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var cardBuffEvent = new RemoveCardBuffEvent(c.Target.Faction(context.Model), c.Target.Identity);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cardBuffEvent));
         }
@@ -60,7 +60,7 @@ namespace MortalGame.GameModel
             }
 
             var resultAction = new ModifyCardBuffLevelResultAction(context.Action.Source, cardTarget, modifyResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var cardBuffEvent = new ModifyCardBuffLevelEvent(c.Target.Faction(context.Model), c.Target.Identity);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(cardBuffEvent));
         }

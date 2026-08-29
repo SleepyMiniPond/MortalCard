@@ -62,7 +62,10 @@ namespace MortalGame.GameModel
             var formChangedContext = new TriggerContext(
                 Manager,
                 new CardTrigger(Card),
-                new CardFormChangedAction(source));
+                TimingAction) with
+            {
+                Action = new CardFormChangedAction(source)
+            };
             var cardInfo = CardInfo.Create(Card, formChangedContext);
 
             if (Card.TriggeredEffects.TryGetValue(
@@ -113,7 +116,10 @@ namespace MortalGame.GameModel
             var formChangedContext = new TriggerContext(
                 Manager,
                 new CardTrigger(Card),
-                new CardFormChangedAction(source));
+                TimingAction) with
+            {
+                Action = new CardFormChangedAction(source)
+            };
             var cardInfo = CardInfo.Create(Card, formChangedContext);
 
             if (Card.TriggeredEffects.TryGetValue(

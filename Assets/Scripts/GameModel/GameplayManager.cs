@@ -449,7 +449,7 @@ namespace MortalGame.GameModel
                                 GameTiming.BeforePlayCardStart,
                                 cardPlaySource));
 
-                            useCardEvents.AddRange(ObserveAction(cardPlayIntent));
+                            useCardEvents.AddRange(ObserveRootAction(cardPlayIntent));
 
                             //TODO: check and remove expired buffs
                             //      trigger events while remove buffs
@@ -484,7 +484,7 @@ namespace MortalGame.GameModel
                             useCardEvents.Add(usedCardEvent);
 
                             useCardEvents.AddRange(
-                                ObserveAction(new CardPlayResultAction(cardPlayResultSource)));
+                                ObserveRootAction(new CardPlayResultAction(cardPlayResultSource)));
                             useCardEvents.AddRange(_RunTiming(
                                 GameTiming.BeforePlayCardEnd,
                                 cardPlayResultSource));
@@ -508,10 +508,34 @@ namespace MortalGame.GameModel
             }
         }
 
-        public IEnumerable<IGameEvent> ObserveAction(IActionUnit actionUnit)
+        public IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit)
         {
-            var allyEvt = _gameStatus.Ally.Update(new TriggerContext(this, new PlayerTrigger(_gameStatus.Ally), actionUnit));
-            var enemyEvt = _gameStatus.Enemy.Update(new TriggerContext(this, new PlayerTrigger(_gameStatus.Enemy), actionUnit));
+            return _ObserveAction(
+                new TriggerContext(
+                    this,
+                    new PlayerTrigger(_gameStatus.Ally),
+                    actionUnit));
+        }
+
+        public IEnumerable<IGameEvent> ObserveDerivedAction(
+            TriggerContext parentContext,
+            IActionUnit actionUnit)
+        {
+            return _ObserveAction(parentContext with { Action = actionUnit });
+        }
+
+        private IEnumerable<IGameEvent> _ObserveAction(TriggerContext context)
+        {
+            var allyEvt = _gameStatus.Ally.Update(context with
+            {
+                Model = this,
+                Triggered = new PlayerTrigger(_gameStatus.Ally)
+            });
+            var enemyEvt = _gameStatus.Enemy.Update(context with
+            {
+                Model = this,
+                Triggered = new PlayerTrigger(_gameStatus.Enemy)
+            });
 
             return new List<IGameEvent> { allyEvt, enemyEvt };
         }

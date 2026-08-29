@@ -14,7 +14,7 @@ namespace MortalGame.GameModel
                 context.Model.ContextManager.Context);
 
             var resultAction = new ShieldResultAction(context.Action.Source, new CharacterTarget(c.Target), shieldResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var shieldEvent = new GetShieldEvent(c.Target.Faction(context.Model), c.Target, shieldResult);
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(shieldEvent));
         }

@@ -35,14 +35,14 @@ namespace MortalGame.Tests.T010
         }
 
         [Test]
-        public void ObserveAction_WithMatchingTiming_UpdatesSessionWithoutReleasingOverride()
+        public void ObserveRootAction_WithMatchingTiming_UpdatesSessionWithoutReleasingOverride()
         {
             var built = _Build();
             built.Gameplay.Ally.CardManager.HandCard.AddCard(built.Card);
             _ApplyOverride(built, OverrideCardId, _CreateCounterReleaseRule());
 
             built.Gameplay.Manager
-                .ObserveAction(new UpdateTimingAction(
+                .ObserveRootAction(new UpdateTimingAction(
                     GameTiming.AfterTurnEnd,
                     SystemSource.Instance))
                 .ToList();

@@ -12,7 +12,7 @@ namespace MortalGame.GameModel
 
             var resultAction = new MoveCardResultAction(
                 context.Action.Source, new CardTarget(c.Card), moveResult, c.MoveType);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var moveCardEvent = new MoveCardEvent(
                 c.Target.Faction,
                 moveResult.Card.Identity,

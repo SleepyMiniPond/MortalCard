@@ -243,6 +243,161 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void TurnCountInteger_AssetRoundTrip_PreservesPolymorphicType()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/TurnCountIntegerRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "turn-count-integer-round-trip";
+                asset.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new TurnCountInteger()
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedEffect = loaded.Data.Effects[0] as DamageEffect;
+
+                Assert.That(loadedEffect, Is.Not.Null);
+                Assert.That(loadedEffect.Value, Is.TypeOf<TurnCountInteger>());
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
+        public void MinimumInteger_AssetRoundTrip_PreservesPolymorphicValues()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/MinimumIntegerRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "minimum-integer-round-trip";
+                asset.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new MinimumInteger
+                    {
+                        Values =
+                        {
+                            new ConstInteger { Value = 8 },
+                            new MinimumInteger
+                            {
+                                Values =
+                                {
+                                    new ConstInteger { Value = -3 },
+                                    new ConstInteger { Value = 5 }
+                                }
+                            }
+                        }
+                    }
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedEffect = loaded.Data.Effects[0] as DamageEffect;
+                var loadedMinimum = loadedEffect?.Value as MinimumInteger;
+
+                Assert.That(loadedMinimum, Is.Not.Null);
+                Assert.That(loadedMinimum.Values, Has.Count.EqualTo(2));
+                Assert.That(loadedMinimum.Values[0], Is.TypeOf<ConstInteger>());
+                Assert.That(
+                    ((ConstInteger)loadedMinimum.Values[0]).Value,
+                    Is.EqualTo(8));
+
+                var loadedNestedMinimum = loadedMinimum.Values[1] as MinimumInteger;
+                Assert.That(loadedNestedMinimum, Is.Not.Null);
+                Assert.That(loadedNestedMinimum.Values, Has.Count.EqualTo(2));
+                Assert.That(loadedNestedMinimum.Values[0], Is.TypeOf<ConstInteger>());
+                Assert.That(loadedNestedMinimum.Values[1], Is.TypeOf<ConstInteger>());
+                Assert.That(
+                    ((ConstInteger)loadedNestedMinimum.Values[0]).Value,
+                    Is.EqualTo(-3));
+                Assert.That(
+                    ((ConstInteger)loadedNestedMinimum.Values[1]).Value,
+                    Is.EqualTo(5));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
+        public void MaximumInteger_AssetRoundTrip_PreservesPolymorphicValues()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/MaximumIntegerRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "maximum-integer-round-trip";
+                asset.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new MaximumInteger
+                    {
+                        Values =
+                        {
+                            new ConstInteger { Value = -8 },
+                            new MaximumInteger
+                            {
+                                Values =
+                                {
+                                    new ConstInteger { Value = 3 },
+                                    new ConstInteger { Value = -5 }
+                                }
+                            }
+                        }
+                    }
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedEffect = loaded.Data.Effects[0] as DamageEffect;
+                var loadedMaximum = loadedEffect?.Value as MaximumInteger;
+
+                Assert.That(loadedMaximum, Is.Not.Null);
+                Assert.That(loadedMaximum.Values, Has.Count.EqualTo(2));
+                Assert.That(loadedMaximum.Values[0], Is.TypeOf<ConstInteger>());
+                Assert.That(
+                    ((ConstInteger)loadedMaximum.Values[0]).Value,
+                    Is.EqualTo(-8));
+
+                var loadedNestedMaximum = loadedMaximum.Values[1] as MaximumInteger;
+                Assert.That(loadedNestedMaximum, Is.Not.Null);
+                Assert.That(loadedNestedMaximum.Values, Has.Count.EqualTo(2));
+                Assert.That(loadedNestedMaximum.Values[0], Is.TypeOf<ConstInteger>());
+                Assert.That(loadedNestedMaximum.Values[1], Is.TypeOf<ConstInteger>());
+                Assert.That(
+                    ((ConstInteger)loadedNestedMaximum.Values[0]).Value,
+                    Is.EqualTo(3));
+                Assert.That(
+                    ((ConstInteger)loadedNestedMaximum.Values[1]).Value,
+                    Is.EqualTo(-5));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
         public void ValidateReactionSessionRules_WithDuplicateBooleanAndIntegerTimings_ReturnsErrors()
         {
             var sessions = new Dictionary<string, IReactionSessionData>

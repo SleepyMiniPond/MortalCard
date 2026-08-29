@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using MortalGame.GameData;
 using Optional;
 using Sirenix.OdinInspector;
 using UniRx;
@@ -26,6 +27,20 @@ namespace MortalGame.GameModel
         public bool Eval(TriggerContext triggerContext)
         {
             return Value;
+        }
+    }
+
+    [Serializable]
+    public class GameTimingCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    {
+        public GameTiming Timing;
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return Timing != GameTiming.None &&
+                triggerContext.ReactionOriginTiming
+                    .Map(timing => timing == Timing)
+                    .ValueOr(false);
         }
     }
 

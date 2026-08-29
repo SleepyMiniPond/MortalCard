@@ -35,7 +35,7 @@ namespace MortalGame.GameModel
                 context.Action.Source,
                 target,
                 applyResult);
-            var events = context.Model.ObserveAction(resultAction).ToList();
+            var events = context.Model.ObserveDerivedAction(context, resultAction).ToList();
 
             if (operationResult.BeforeCardDataId != operationResult.AfterCardDataId)
             {

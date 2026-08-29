@@ -48,7 +48,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var snapshot = Manager.CreateTimingReactionSnapshot(Timing, Source);
-            var events = new List<IGameEvent>(Manager.ObserveAction(snapshot.Action));
+            var events = new List<IGameEvent>(Manager.ObserveRootAction(snapshot.Action));
             var items = TimingDispatchPlanner.Create(Manager, snapshot).OrderedItems;
             for (var i = items.Count - 1; i >= 0; i--)
             {

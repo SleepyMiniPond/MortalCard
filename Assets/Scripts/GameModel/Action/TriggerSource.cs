@@ -1,3 +1,5 @@
+using MortalGame.GameData;
+using Optional;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -7,7 +9,13 @@ namespace MortalGame.GameModel
     public record TriggerContext(
         IGameplayModel Model,
         ITriggeredSource Triggered,
-        IActionUnit Action);
+        IActionUnit Action)
+    {
+        public Option<GameTiming> ReactionOriginTiming { get; init; } =
+            Action is UpdateTimingAction { Timing: not GameTiming.None } timingAction
+                ? timingAction.Timing.Some()
+                : Option.None<GameTiming>();
+    }
 
     public interface ITriggeredSource
     {

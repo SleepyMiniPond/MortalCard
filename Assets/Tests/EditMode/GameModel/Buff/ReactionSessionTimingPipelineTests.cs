@@ -32,7 +32,7 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void ObserveAction_ResultAction_OnlyUpdatesSessionWithoutDispatchingBuffEffect()
+        public void ObserveRootAction_ResultAction_OnlyUpdatesSessionWithoutDispatchingBuffEffect()
         {
             var session = new RecordingReactionSessionEntity();
             var conditionalEffect = new ConditionalPlayerBuffEffect
@@ -61,7 +61,7 @@ namespace MortalGame.Tests
                 CreatePlayerBuff(BuffTestBuilder.PlayerBuffId, session));
 
             built.Manager
-                .ObserveAction(new ObservedResultAction())
+                .ObserveRootAction(new ObservedResultAction())
                 .ToList();
 
             Assert.That(session.ReceivedTimings, Is.EqualTo(new[]
@@ -69,6 +69,37 @@ namespace MortalGame.Tests
                 GameTiming.EffectTargetResult
             }));
             Assert.That(built.Ally.MainCharacter.CurrentHealth, Is.EqualTo(100));
+        }
+
+        [Test]
+        public void EffectResultReaction_PreservesReactionOriginTimingFromParentContext()
+        {
+            var session = new RecordingReactionSessionEntity();
+            var built = new GameplayManagerTestBuilder().Build();
+            built.Ally.BuffManager.AddBuff(
+                CreatePlayerBuff(BuffTestBuilder.PlayerBuffId, session));
+            var runner = new EffectQueueRunner();
+            var timingContext = CreateTimingContext(
+                built.Manager,
+                GameTiming.BeforeTurnEnd);
+            var effect = new GainEnergyEffect
+            {
+                Targets = new SinglePlayerCollection
+                {
+                    Target = new TriggeredPlayer()
+                },
+                Value = new ConstInteger { Value = 1 }
+            };
+
+            runner.Enqueue(new CardEffectQueueItem(timingContext, effect));
+            runner.RunToCompletion();
+
+            Assert.That(session.ReceivedTimings, Does.Contain(GameTiming.EffectTargetResult));
+            Assert.That(
+                session.ReceivedReactionOriginTimings
+                    .Single()
+                    .ValueOr(GameTiming.None),
+                Is.EqualTo(GameTiming.BeforeTurnEnd));
         }
 
         [Test]
@@ -400,6 +431,7 @@ namespace MortalGame.Tests
     internal sealed class RecordingReactionSessionEntity : IReactionSessionEntity
     {
         public List<GameTiming> ReceivedTimings { get; } = new();
+        public List<Option<GameTiming>> ReceivedReactionOriginTimings { get; } = new();
         public bool IsSessionValueUpdated => ReceivedTimings.Count > 0;
         public Option<bool> BooleanValue => Option.None<bool>();
         public Option<int> IntegerValue => Option.None<int>();
@@ -407,6 +439,7 @@ namespace MortalGame.Tests
         public bool Update(TriggerContext triggerContext)
         {
             ReceivedTimings.Add(triggerContext.Action.Timing);
+            ReceivedReactionOriginTimings.Add(triggerContext.ReactionOriginTiming);
             return true;
         }
 

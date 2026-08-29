@@ -11,7 +11,10 @@ namespace MortalGame.GameModel
         GameStatus GameStatus { get; }
         IGameContextManager ContextManager { get; }
         Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity);
-        IEnumerable<IGameEvent> ObserveAction(IActionUnit actionUnit);
+        IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit);
+        IEnumerable<IGameEvent> ObserveDerivedAction(
+            TriggerContext parentContext,
+            IActionUnit actionUnit);
         IEnumerable<IGameEvent> TriggerTiming(GameTiming timing, IActionSource actionSource);
     }
 
@@ -34,9 +37,16 @@ namespace MortalGame.GameModel
             return _baseModel.QueryCardSubSelectionInfos(cardIdentity);
         }
 
-        public IEnumerable<IGameEvent> ObserveAction(IActionUnit actionUnit)
+        public IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit)
         {
-            return _baseModel.ObserveAction(actionUnit);
+            return _baseModel.ObserveRootAction(actionUnit);
+        }
+
+        public IEnumerable<IGameEvent> ObserveDerivedAction(
+            TriggerContext parentContext,
+            IActionUnit actionUnit)
+        {
+            return _baseModel.ObserveDerivedAction(parentContext, actionUnit);
         }
 
         public IEnumerable<IGameEvent> TriggerTiming(GameTiming timing, IActionSource actionSource)

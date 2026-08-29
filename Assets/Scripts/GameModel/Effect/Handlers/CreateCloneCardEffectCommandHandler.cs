@@ -20,7 +20,7 @@ namespace MortalGame.GameModel
         {
             var createResult = c.Target.CardManager.CreateNewCard(c.NewCard, c.Destination);
             var resultAction = new CreateCardResultAction(context.Action.Source, new PlayerTarget(c.Target), createResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var createCardEvent = new AddCardEvent(
                 c.Target.Faction,
                 createResult.Card.ToInfo(context.Model),
@@ -34,7 +34,7 @@ namespace MortalGame.GameModel
             var cloneResult = c.Target.CardManager.CreateNewCard(c.ClonedCard, c.Destination);
             var resultAction = new CloneCardResultAction(
                 context.Action.Source, new PlayerAndCardTarget(c.Target, c.ClonedCard), c.OriginCard, cloneResult);
-            var reactorEvents = context.Model.ObserveAction(resultAction);
+            var reactorEvents = context.Model.ObserveDerivedAction(context, resultAction);
             var cloneCardEvent = new AddCardEvent(
                 c.Target.Faction,
                 cloneResult.Card.ToInfo(context.Model),
