@@ -209,6 +209,272 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void ValidateNestedContent_WithValidTurnParityComposition_ReturnsNoErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "valid-turn-parity";
+                card.Data.TransformRules.Add(new CardTransformRule
+                {
+                    RuleId = "even-turn",
+                    TransformKey = "form",
+                    Timing = GameTiming.AfterTurnStart,
+                    Conditions =
+                    {
+                        new IntegerCondition
+                        {
+                            Value = new ArithmeticInteger
+                            {
+                                Operation = ArithmeticType.Remainder,
+                                Left = new TurnCountInteger(),
+                                Right = new ConstInteger { Value = 2 }
+                            },
+                            Conditions =
+                            {
+                                new IntegerCompare
+                                {
+                                    Arithmetic = ArithmeticConditionType.Equal,
+                                    CompareValue = new ConstInteger { Value = 0 }
+                                }
+                            }
+                        }
+                    },
+                    Operation = new ApplyCardTransformOperationData
+                    {
+                        TargetCardDataId = "shield-form"
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithInvalidArithmeticInteger_ReportsErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "invalid-arithmetic-integer";
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.None,
+                        Left = new ConstInteger { Value = 1 },
+                        Right = new ConstInteger { Value = 1 }
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Overwrite,
+                        Left = new ConstInteger { Value = 1 },
+                        Right = new ConstInteger { Value = 1 }
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Remainder,
+                        Left = new TurnCountInteger(),
+                        Right = new ConstInteger { Value = 0 }
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Divide,
+                        Left = new TurnCountInteger(),
+                        Right = new ConstInteger { Value = 0 }
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("ArithmeticInteger.Operation 不可為 None"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("ArithmeticInteger.Operation 不支援 Overwrite"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("ArithmeticInteger.Remainder 除數不可為 0"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("ArithmeticInteger.Divide 除數不可為 0"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithValidCardTargetComposition_ReturnsNoErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "valid-card-target-composition";
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new CardIntegerProperty
+                    {
+                        Card = new PlayingCardOfPlayer
+                        {
+                            Player = new CardOwner { Card = new ActionCard() }
+                        },
+                        Property = CardIntegerProperty.CardIntegerValueType.Power
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithMissingCardTargetDependencies_ReportsErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "invalid-card-target-composition";
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new CardIntegerProperty
+                    {
+                        Card = new PlayingCardOfPlayer()
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new PlayerIntegerProperty
+                    {
+                        Player = new CardOwner()
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("Effects[0].Value.Card.Player 為空"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("Effects[1].Value.Player.Card 為空"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithValidCardsOfPlayer_ReturnsNoErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "valid-cards-of-player";
+                card.Data.Effects.Add(new DiscardCardEffect
+                {
+                    TargetCards = new CardsOfPlayer
+                    {
+                        Player = new CurrentPlayer(),
+                        Zone = CardCollectionType.DisposeZone
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithInvalidCardsOfPlayer_ReportsErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "invalid-cards-of-player";
+                card.Data.Effects.Add(new DiscardCardEffect
+                {
+                    TargetCards = new CardsOfPlayer
+                    {
+                        Player = null,
+                        Zone = CardCollectionType.None
+                    }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Has.Some.Contains("Effects[0].TargetCards.Player 為空"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "CardsOfPlayer.Zone 必須是有效的一般卡片區域：None"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
         public void ValidateLocalization_ReportsMissingAndDuplicateKeys()
         {
             var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();

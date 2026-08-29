@@ -106,7 +106,7 @@ MonoBehaviour:
       Data: 9|MortalGame.GameModel.CardIntegerProperty, MortalGame.Runtime
     - Name: Card
       Entry: 7
-      Data: 10|MortalGame.GameModel.PlayingCard, MortalGame.Runtime
+      Data: 10|MortalGame.GameModel.ActionCard, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

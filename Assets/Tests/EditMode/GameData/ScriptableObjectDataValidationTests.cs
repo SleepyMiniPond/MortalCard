@@ -274,6 +274,156 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void TurnParityCondition_AssetRoundTrip_PreservesPolymorphicComposition()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/TurnParityConditionRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "turn-parity-condition-round-trip";
+                asset.Data.TransformRules.Add(new CardTransformRule
+                {
+                    RuleId = "even-turn",
+                    TransformKey = "form",
+                    Timing = GameTiming.AfterTurnStart,
+                    Conditions =
+                    {
+                        new IntegerCondition
+                        {
+                            Value = new ArithmeticInteger
+                            {
+                                Operation = ArithmeticType.Remainder,
+                                Left = new TurnCountInteger(),
+                                Right = new ConstInteger { Value = 2 }
+                            },
+                            Conditions =
+                            {
+                                new IntegerCompare
+                                {
+                                    Arithmetic = ArithmeticConditionType.Equal,
+                                    CompareValue = new ConstInteger { Value = 0 }
+                                }
+                            }
+                        }
+                    },
+                    Operation = new ApplyCardTransformOperationData
+                    {
+                        TargetCardDataId = "shield-form"
+                    }
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedCondition = loaded.Data.TransformRules[0].Conditions[0]
+                    as IntegerCondition;
+                var loadedRemainder = loadedCondition?.Value as ArithmeticInteger;
+                var loadedCompare = loadedCondition?.Conditions[0] as IntegerCompare;
+
+                Assert.That(loadedCondition, Is.Not.Null);
+                Assert.That(loadedRemainder, Is.Not.Null);
+                Assert.That(loadedRemainder.Operation, Is.EqualTo(ArithmeticType.Remainder));
+                Assert.That(loadedRemainder.Left, Is.TypeOf<TurnCountInteger>());
+                Assert.That(loadedRemainder.Right, Is.TypeOf<ConstInteger>());
+                Assert.That(((ConstInteger)loadedRemainder.Right).Value, Is.EqualTo(2));
+                Assert.That(loadedCompare, Is.Not.Null);
+                Assert.That(
+                    loadedCompare.Arithmetic,
+                    Is.EqualTo(ArithmeticConditionType.Equal));
+                Assert.That(loadedCompare.CompareValue, Is.TypeOf<ConstInteger>());
+                Assert.That(((ConstInteger)loadedCompare.CompareValue).Value, Is.EqualTo(0));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
+        public void CardTargetComposition_AssetRoundTrip_PreservesExplicitTargetTypes()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/CardTargetCompositionRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "card-target-composition-round-trip";
+                asset.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new CardIntegerProperty
+                    {
+                        Card = new PlayingCardOfPlayer
+                        {
+                            Player = new CardOwner
+                            {
+                                Card = new ActionCard()
+                            }
+                        },
+                        Property = CardIntegerProperty.CardIntegerValueType.Power
+                    }
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedEffect = loaded.Data.Effects[0] as DamageEffect;
+                var loadedProperty = loadedEffect?.Value as CardIntegerProperty;
+                var loadedPlayingCard = loadedProperty?.Card as PlayingCardOfPlayer;
+                var loadedOwner = loadedPlayingCard?.Player as CardOwner;
+
+                Assert.That(loadedPlayingCard, Is.Not.Null);
+                Assert.That(loadedOwner, Is.Not.Null);
+                Assert.That(loadedOwner.Card, Is.TypeOf<ActionCard>());
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
+        public void CardsOfPlayer_AssetRoundTrip_PreservesPlayerAndZone()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/CardsOfPlayerRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "cards-of-player-round-trip";
+                asset.Data.Effects.Add(new DiscardCardEffect
+                {
+                    TargetCards = new CardsOfPlayer
+                    {
+                        Player = new CurrentPlayer(),
+                        Zone = CardCollectionType.DisposeZone
+                    }
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedEffect = loaded.Data.Effects[0] as DiscardCardEffect;
+                var loadedCards = loadedEffect?.TargetCards as CardsOfPlayer;
+
+                Assert.That(loadedCards, Is.Not.Null);
+                Assert.That(loadedCards.Player, Is.TypeOf<CurrentPlayer>());
+                Assert.That(loadedCards.Zone, Is.EqualTo(CardCollectionType.DisposeZone));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
         public void MinimumInteger_AssetRoundTrip_PreservesPolymorphicValues()
         {
             var assetPath = AssetDatabase.GenerateUniqueAssetPath(

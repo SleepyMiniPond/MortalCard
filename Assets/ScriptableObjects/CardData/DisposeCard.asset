@@ -130,7 +130,7 @@ MonoBehaviour:
       Data: 13|MortalGame.GameModel.CardIntegerProperty, MortalGame.Runtime
     - Name: Card
       Entry: 7
-      Data: 14|MortalGame.GameModel.PlayingCard, MortalGame.Runtime
+      Data: 14|MortalGame.GameModel.ActionCard, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

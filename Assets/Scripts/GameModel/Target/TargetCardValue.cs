@@ -41,7 +41,7 @@ namespace MortalGame.GameModel
         }
     }
     [Serializable]
-    public class PlayingCard : ITargetCardValue
+    public class ActionCard : ITargetCardValue
     {
         public Option<ICardEntity> Eval(TriggerContext triggerContext)
         {
@@ -53,6 +53,19 @@ namespace MortalGame.GameModel
                     cardPlayResultSource.CardPlaySource.Card.SomeNotNull(),
                 _ => Option.None<ICardEntity>()
             };
+        }
+    }
+    [Serializable]
+    public class PlayingCardOfPlayer : ITargetCardValue
+    {
+        [HorizontalGroup("1")]
+        public ITargetPlayerValue Player;
+
+        public Option<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            return Player
+                .Eval(triggerContext)
+                .FlatMap(player => player.CardManager.PlayingCard);
         }
     }
     [Serializable]
@@ -103,16 +116,19 @@ namespace MortalGame.GameModel
         }
     }
     [Serializable]
-    public class AllyHandCards : ITargetCardCollectionValue
+    public class CardsOfPlayer : ITargetCardCollectionValue
     {
         [HorizontalGroup("1")]
         public ITargetPlayerValue Player;
 
+        [HorizontalGroup("1")]
+        public CardCollectionType Zone = CardCollectionType.HandCard;
+
         public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
         {
-            var playerOpt = Player.Eval(triggerContext);
-            return playerOpt
-                .Map(player => player.CardManager.HandCard.Cards)
+            return Player
+                .Eval(triggerContext)
+                .Map(player => player.CardManager.GetCardCollectionZone(Zone).Cards)
                 .ValueOr(Array.Empty<ICardEntity>());
         }
     }

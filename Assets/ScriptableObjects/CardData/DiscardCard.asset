@@ -91,13 +91,16 @@ MonoBehaviour:
       Data: 6|MortalGame.GameData.DiscardCardEffect, MortalGame.Runtime
     - Name: TargetCards
       Entry: 7
-      Data: 7|MortalGame.GameModel.AllyHandCards, MortalGame.Runtime
+      Data: 7|MortalGame.GameModel.CardsOfPlayer, MortalGame.Runtime
     - Name: Player
       Entry: 7
       Data: 8|MortalGame.GameModel.CurrentPlayer, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
+    - Name: Zone
+      Entry: 3
+      Data: 2
     - Name: 
       Entry: 8
       Data: 
@@ -124,7 +127,7 @@ MonoBehaviour:
       Data: 12|MortalGame.GameModel.CardIntegerProperty, MortalGame.Runtime
     - Name: Card
       Entry: 7
-      Data: 13|MortalGame.GameModel.PlayingCard, MortalGame.Runtime
+      Data: 13|MortalGame.GameModel.ActionCard, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

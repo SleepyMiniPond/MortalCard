@@ -288,7 +288,7 @@ MonoBehaviour:
       Data: 28|MortalGame.GameModel.CardIntegerProperty, MortalGame.Runtime
     - Name: Card
       Entry: 7
-      Data: 29|MortalGame.GameModel.PlayingCard, MortalGame.Runtime
+      Data: 29|MortalGame.GameModel.ActionCard, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 

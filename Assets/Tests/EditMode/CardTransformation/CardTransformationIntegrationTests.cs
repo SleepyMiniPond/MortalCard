@@ -158,7 +158,11 @@ namespace MortalGame.Tests.T010
                     Conditions = { new ConstCondition { Value = true } },
                     Effect = new AddCardBuffPlayerBuffEffect
                     {
-                        Targets = new AllyHandCards { Player = new TriggeredPlayer() },
+                        Targets = new CardsOfPlayer
+                        {
+                            Player = new TriggeredPlayer(),
+                            Zone = CardCollectionType.HandCard
+                        },
                         AddCardBuffDatas = new List<AddCardBuffData>
                         {
                             new()

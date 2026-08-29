@@ -61,6 +61,7 @@ namespace MortalGame.Editor
                         asset.CardData,
                         context));
                 _ValidateIntegerValueSemantics(asset.CardData, context, errors);
+                _ValidateCardCollectionSemantics(asset.CardData, context, errors);
                 _ValidateCardNestedSemantics(asset.CardData, context, errors);
             }
 
@@ -72,6 +73,7 @@ namespace MortalGame.Editor
                         asset.Data,
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
+                _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -83,6 +85,7 @@ namespace MortalGame.Editor
                         asset.Data,
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
+                _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidatePlayerBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -94,6 +97,7 @@ namespace MortalGame.Editor
                         asset.Data,
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
+                _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCharacterBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -1067,6 +1071,22 @@ namespace MortalGame.Editor
             }
         }
 
+        private static void _ValidateCardCollectionSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var cards in SerializedDataGraphUtility.Find<CardsOfPlayer>(data))
+            {
+                if (cards.Zone == CardCollectionType.None ||
+                    !Enum.IsDefined(typeof(CardCollectionType), cards.Zone))
+                {
+                    errors.Add(
+                        $"{context} 的 CardsOfPlayer.Zone 必須是有效的一般卡片區域：{cards.Zone}");
+                }
+            }
+        }
+
         private static void _ValidateCardBuffNestedSemantics(
             CardBuffData buffData,
             string context,
@@ -1193,6 +1213,26 @@ namespace MortalGame.Editor
             string context,
             ICollection<string> errors)
         {
+            foreach (var arithmetic in SerializedDataGraphUtility.Find<ArithmeticInteger>(data))
+            {
+                if (arithmetic.Operation == ArithmeticType.None)
+                {
+                    errors.Add($"{context} 的 ArithmeticInteger.Operation 不可為 None");
+                }
+                else if (arithmetic.Operation == ArithmeticType.Overwrite)
+                {
+                    errors.Add(
+                        $"{context} 的 ArithmeticInteger.Operation 不支援 Overwrite");
+                }
+
+                if (arithmetic.Operation is ArithmeticType.Divide or ArithmeticType.Remainder &&
+                    arithmetic.Right is ConstInteger { Value: 0 })
+                {
+                    errors.Add(
+                        $"{context} 的 ArithmeticInteger.{arithmetic.Operation} 除數不可為 0");
+                }
+            }
+
             foreach (var minimum in SerializedDataGraphUtility.Find<MinimumInteger>(data))
             {
                 if (minimum.Values == null || minimum.Values.Count == 0)

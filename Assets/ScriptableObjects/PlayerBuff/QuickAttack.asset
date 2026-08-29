@@ -194,13 +194,16 @@ MonoBehaviour:
       Data: 18|MortalGame.GameModel.IndexOfCardCollection, MortalGame.Runtime
     - Name: CardCollection
       Entry: 7
-      Data: 19|MortalGame.GameModel.AllyHandCards, MortalGame.Runtime
+      Data: 19|MortalGame.GameModel.CardsOfPlayer, MortalGame.Runtime
     - Name: Player
       Entry: 7
       Data: 20|MortalGame.GameModel.CurrentPlayer, MortalGame.Runtime
     - Name: 
       Entry: 8
       Data: 
+    - Name: Zone
+      Entry: 3
+      Data: 2
     - Name: 
       Entry: 8
       Data: 

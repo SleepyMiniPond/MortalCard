@@ -389,7 +389,11 @@ namespace MortalGame.Tests
                 new AddCardBuffIntentAction(SystemSource.Instance));
             var effect = new AddCardBuffEffect
             {
-                TargetCards = new AllyHandCards { Player = new CurrentPlayer() },
+                TargetCards = new CardsOfPlayer
+                {
+                    Player = new CurrentPlayer(),
+                    Zone = CardCollectionType.HandCard
+                },
                 AddCardBuffDatas =
                 {
                     new AddCardBuffData
@@ -497,7 +501,11 @@ namespace MortalGame.Tests
             var effect = new CloneCardEffect
             {
                 Target = new CurrentPlayer(),
-                ClonedCards = new AllyHandCards { Player = new CurrentPlayer() },
+                ClonedCards = new CardsOfPlayer
+                {
+                    Player = new CurrentPlayer(),
+                    Zone = CardCollectionType.HandCard
+                },
                 CloneDestination = CardCollectionType.HandCard,
                 AddCardBuffDatas =
                 {
@@ -553,7 +561,11 @@ namespace MortalGame.Tests
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var effect = new AddCardBuffPlayerBuffEffect
             {
-                Targets = new AllyHandCards { Player = new CurrentPlayer() },
+                Targets = new CardsOfPlayer
+                {
+                    Player = new CurrentPlayer(),
+                    Zone = CardCollectionType.HandCard
+                },
                 AddCardBuffDatas =
                 {
                     new AddCardBuffData
