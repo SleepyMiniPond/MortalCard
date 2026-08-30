@@ -42,7 +42,7 @@ namespace MortalGame.GameView
         {
             _nameText.text = _localizeLibrary.Get(LocalizeTitleInfoType.Player, enemy.MainCharacter.NameKey).Title;
             _healthBarView.SetHealth(enemy.MainCharacter.CurrentHealth, enemy.MainCharacter.MaxHealth);
-            _healthBarView.SetShield(enemy.MainCharacter.CurrentArmor);
+            _healthBarView.SetShield(enemy.MainCharacter.CurrentShield);
             _energyBarView.SetEnergy(enemy.CurrentEnergy, enemy.MaxEnergy);
         }
 
@@ -58,7 +58,7 @@ namespace MortalGame.GameView
         public void UpdateHealth(HealthEvent healthEvent)
         {
             _healthBarView.SetHealth(healthEvent.Hp, healthEvent.MaxHp);
-            _healthBarView.SetShield(healthEvent.Dp);
+            _healthBarView.SetShield(healthEvent.Shield);
         }
 
         public void AddBuff(AddPlayerBuffEvent addBuffEvent)

@@ -114,7 +114,7 @@ namespace MortalGame.Tests
             built.Ally.MainCharacter.HealthManager.GetShield(
                 10,
                 built.ContextManager.Context);
-            var initialShield = built.Ally.MainCharacter.CurrentArmor;
+            var initialShield = built.Ally.MainCharacter.CurrentShield;
             var context = new TriggerContext(
                 built.Manager,
                 new PlayerTrigger(built.Ally),
@@ -132,7 +132,7 @@ namespace MortalGame.Tests
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
 
-            Assert.That(built.Ally.MainCharacter.CurrentArmor, Is.EqualTo(initialShield));
+            Assert.That(built.Ally.MainCharacter.CurrentShield, Is.EqualTo(initialShield));
             Assert.That(result.Actions, Is.Empty);
             Assert.That(result.Events, Is.Empty);
         }

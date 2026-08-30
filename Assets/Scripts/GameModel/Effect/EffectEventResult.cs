@@ -14,7 +14,7 @@ namespace MortalGame.GameModel
         DamageType Type,
         int DamagePoint,
         int DeltaHp,
-        int DeltaDp,
+        int DeltaShield,
         int OverHp) : IEffectResult;
     public record GetHealResult(
         int HealPoint,
@@ -22,8 +22,8 @@ namespace MortalGame.GameModel
         int OverHp) : IEffectResult;
     public record GetShieldResult(
         int ShieldPoint,
-        int DeltaDp,
-        int OverDp) : IEffectResult;
+        int DeltaShield,
+        int OverShield) : IEffectResult;
 
     public record GainEnergyResult(
         EnergyGainType Type,

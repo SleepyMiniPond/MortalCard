@@ -62,6 +62,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.CardData, context, errors);
                 _ValidateCardCollectionSemantics(asset.CardData, context, errors);
+                _ValidateTargetSemantics(asset.CardData, context, errors);
                 _ValidateCardNestedSemantics(asset.CardData, context, errors);
             }
 
@@ -74,6 +75,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
+                _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidateCardBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -86,6 +88,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
+                _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidatePlayerBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -98,6 +101,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
+                _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidateCharacterBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -1083,6 +1087,22 @@ namespace MortalGame.Editor
                 {
                     errors.Add(
                         $"{context} 的 CardsOfPlayer.Zone 必須是有效的一般卡片區域：{cards.Zone}");
+                }
+            }
+        }
+
+        private static void _ValidateTargetSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var player in SerializedDataGraphUtility.Find<PlayerByFaction>(data))
+            {
+                if (player.Faction == Faction.None ||
+                    !Enum.IsDefined(typeof(Faction), player.Faction))
+                {
+                    errors.Add(
+                        $"{context} 的 PlayerByFaction.Faction 必須是 Ally 或 Enemy：{player.Faction}");
                 }
             }
         }

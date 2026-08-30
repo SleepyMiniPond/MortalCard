@@ -2,6 +2,7 @@ using System;
 using MortalGame.GameModel;
 using MortalGame.GameData;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace MortalGame.Tests
 {
@@ -12,6 +13,38 @@ namespace MortalGame.Tests
         private readonly Dictionary<string, PlayerBuffData> _playerBuffs = new();
         private readonly Dictionary<string, CharacterBuffData> _characterBuffs = new();
         private readonly Dictionary<string, CardBuffData> _cardBuffs = new();
+        private IReadOnlyList<CharacterParameter> _allyCharacters = new[]
+        {
+            new CharacterParameter
+            {
+                NameKey = "ally",
+                CurrentHealth = 100,
+                MaxHealth = 100
+            }
+        };
+        private IReadOnlyList<CharacterParameter> _enemyCharacters = new[]
+        {
+            new CharacterParameter
+            {
+                NameKey = "enemy",
+                CurrentHealth = 100,
+                MaxHealth = 100
+            }
+        };
+
+        public GameplayManagerTestBuilder WithAllyCharacters(
+            params CharacterParameter[] characters)
+        {
+            _allyCharacters = characters;
+            return this;
+        }
+
+        public GameplayManagerTestBuilder WithEnemyCharacters(
+            params CharacterParameter[] characters)
+        {
+            _enemyCharacters = characters;
+            return this;
+        }
 
         public GameplayManagerTestBuilder WithCard(StandardCardData cardData)
         {
@@ -62,7 +95,7 @@ namespace MortalGame.Tests
 
             var ally = new AllyEntity(
                 Guid.NewGuid(),
-                new[] { new CharacterParameter { NameKey = "ally", CurrentHealth = 100, MaxHealth = 100 } },
+                _allyCharacters.ToArray(),
                 currentEnergy: 0,
                 maxEnergy: 3,
                 handCardMaxCount: 5,
@@ -70,7 +103,7 @@ namespace MortalGame.Tests
                 maxDisposition: 10,
                 gameContext: contextManager);
             var enemy = new EnemyEntity(
-                new[] { new CharacterParameter { NameKey = "enemy", CurrentHealth = 100, MaxHealth = 100 } },
+                _enemyCharacters.ToArray(),
                 currentEnergy: 0,
                 maxEnergy: 3,
                 handCardMaxCount: 5,

@@ -32,6 +32,23 @@ namespace MortalGame.GameModel
         }
     }
     [Serializable]
+    public class PlayerByFaction : ITargetPlayerValue
+    {
+        public Faction Faction;
+
+        public Option<IPlayerEntity> Eval(TriggerContext triggerContext)
+        {
+            return Faction switch
+            {
+                Faction.Ally => (triggerContext.Model.GameStatus.Ally as IPlayerEntity)
+                    .SomeNotNull(),
+                Faction.Enemy => (triggerContext.Model.GameStatus.Enemy as IPlayerEntity)
+                    .SomeNotNull(),
+                _ => Option.None<IPlayerEntity>()
+            };
+        }
+    }
+    [Serializable]
     public class OppositePlayer : ITargetPlayerValue
     {
         [HorizontalGroup("1")]
@@ -84,7 +101,7 @@ namespace MortalGame.GameModel
             });
         }
     }
-    [SerializeField]
+    [Serializable]
     public class CharacterOwner : ITargetPlayerValue
     {
         [HorizontalGroup("1")]

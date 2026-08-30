@@ -468,6 +468,122 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void ValidateNestedContent_WithValidEntityRelationshipTargets_ReturnsNoErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "valid-entity-relationship-targets";
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new CharactersOfPlayer
+                    {
+                        Player = new CharacterOwner
+                        {
+                            Character = new MainCharacterOfPlayer
+                            {
+                                Player = new PlayerByFaction
+                                {
+                                    Faction = Faction.Enemy
+                                }
+                            }
+                        }
+                    },
+                    Value = new ConstInteger { Value = 1 }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithInvalidEntityRelationshipTargets_ReportsErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "invalid-entity-relationship-targets";
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new CharactersOfPlayer
+                    {
+                        Player = new PlayerByFaction { Faction = Faction.None }
+                    },
+                    Value = new ConstInteger { Value = 1 }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new CharactersOfPlayer(),
+                    Value = new ConstInteger { Value = 1 }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new CharactersOfPlayer
+                    {
+                        Player = new CharacterOwner()
+                    },
+                    Value = new ConstInteger { Value = 1 }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new CharactersOfPlayer
+                    {
+                        Player = new CharacterOwner
+                        {
+                            Character = new MainCharacterOfPlayer()
+                        }
+                    },
+                    Value = new ConstInteger { Value = 1 }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new CharactersOfPlayer
+                    {
+                        Player = new PlayerByFaction { Faction = (Faction)999 }
+                    },
+                    Value = new ConstInteger { Value = 1 }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "PlayerByFaction.Faction 必須是 Ally 或 Enemy：None"));
+                Assert.That(errors, Has.Some.Contains("Effects[1].Targets.Player 為空"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains("Effects[2].Targets.Player.Character 為空"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "Effects[3].Targets.Player.Character.Player 為空"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "PlayerByFaction.Faction 必須是 Ally 或 Enemy：999"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
         public void ValidateNestedContent_WithValidCardsOfPlayer_ReturnsNoErrors()
         {
             var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();

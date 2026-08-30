@@ -17,7 +17,7 @@ namespace MortalGame.GameModel
 
         int CurrentHealth { get; }
         int MaxHealth { get; }
-        int CurrentArmor { get; }
+        int CurrentShield { get; }
         bool IsDead { get; }
     }
 
@@ -41,7 +41,7 @@ namespace MortalGame.GameModel
         public ICharacterBuffManager BuffManager => _buffManager;
         public int CurrentHealth => HealthManager.Hp;
         public int MaxHealth => HealthManager.MaxHp;
-        public int CurrentArmor => HealthManager.Dp;
+        public int CurrentShield => HealthManager.Shield;
         public bool IsDead => CurrentHealth <= 0;
 
         public bool IsDummy => this == DummyCharacter.Instance;

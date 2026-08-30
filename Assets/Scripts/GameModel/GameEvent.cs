@@ -68,22 +68,22 @@ namespace MortalGame.GameModel
     public record IncreaseDispositionEvent(DispositionInfo Info, int DeltaDisposition) : IGameEvent, IAnimationNumberEvent;
     public record DecreaseDispositionEvent(DispositionInfo Info, int DeltaDisposition) : IGameEvent, IAnimationNumberEvent;
 
-    public abstract record HealthEvent(Faction Faction, Guid CharacterIdentity, int Hp, int Dp, int MaxHp) : IGameEvent, IAnimationNumberEvent;
+    public abstract record HealthEvent(Faction Faction, Guid CharacterIdentity, int Hp, int Shield, int MaxHp) : IGameEvent, IAnimationNumberEvent;
     public record DamageEvent(
         Faction Faction,
         ICharacterEntity Character,
         TakeDamageResult TakeDamageResult) : HealthEvent(
-            Faction, Character.Identity, Character.CurrentHealth, Character.CurrentArmor, Character.MaxHealth);
+            Faction, Character.Identity, Character.CurrentHealth, Character.CurrentShield, Character.MaxHealth);
     public record GetHealEvent(
         Faction Faction,
         ICharacterEntity Character,
         GetHealResult GetHealResult) : HealthEvent(
-            Faction, Character.Identity, Character.CurrentHealth, Character.CurrentArmor, Character.MaxHealth);
+            Faction, Character.Identity, Character.CurrentHealth, Character.CurrentShield, Character.MaxHealth);
     public record GetShieldEvent(
         Faction Faction,
         ICharacterEntity Character,
         GetShieldResult GetShieldResult) : HealthEvent(
-            Faction, Character.Identity, Character.CurrentHealth, Character.CurrentArmor, Character.MaxHealth);
+            Faction, Character.Identity, Character.CurrentHealth, Character.CurrentShield, Character.MaxHealth);
 
     public record AddPlayerBuffEvent(Faction Faction, PlayerBuffInfo Buff) : IGameEvent;
     public record RemovePlayerBuffEvent(Faction Faction, PlayerBuffInfo Buff) : IGameEvent;

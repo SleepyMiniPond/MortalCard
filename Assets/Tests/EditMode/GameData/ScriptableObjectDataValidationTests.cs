@@ -388,6 +388,56 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void EntityRelationshipTargets_AssetRoundTrip_PreserveCompleteChain()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/EntityRelationshipTargetsRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "entity-relationship-targets-round-trip";
+                asset.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new CharactersOfPlayer
+                    {
+                        Player = new CharacterOwner
+                        {
+                            Character = new MainCharacterOfPlayer
+                            {
+                                Player = new PlayerByFaction
+                                {
+                                    Faction = Faction.Enemy
+                                }
+                            }
+                        }
+                    },
+                    Value = new ConstInteger { Value = 1 }
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedEffect = loaded.Data.Effects[0] as DamageEffect;
+                var loadedCharacters = loadedEffect?.Targets as CharactersOfPlayer;
+                var loadedOwner = loadedCharacters?.Player as CharacterOwner;
+                var loadedMainCharacter = loadedOwner?.Character as MainCharacterOfPlayer;
+                var loadedPlayer = loadedMainCharacter?.Player as PlayerByFaction;
+
+                Assert.That(loadedCharacters, Is.Not.Null);
+                Assert.That(loadedOwner, Is.Not.Null);
+                Assert.That(loadedMainCharacter, Is.Not.Null);
+                Assert.That(loadedPlayer, Is.Not.Null);
+                Assert.That(loadedPlayer.Faction, Is.EqualTo(Faction.Enemy));
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
         public void CardsOfPlayer_AssetRoundTrip_PreservesPlayerAndZone()
         {
             var assetPath = AssetDatabase.GenerateUniqueAssetPath(

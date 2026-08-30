@@ -19,7 +19,7 @@ namespace MortalGame.Tests
 
             Assert.That(manager.Hp, Is.EqualTo(expectedHealth));
             Assert.That(manager.MaxHp, Is.EqualTo(expectedMaximum));
-            Assert.That(manager.Dp, Is.Zero);
+            Assert.That(manager.Shield, Is.Zero);
         }
 
         [TestCase(DamageType.Normal)]
@@ -34,10 +34,10 @@ namespace MortalGame.Tests
             var result = manager.TakeDamage(-1, default, damageType);
 
             Assert.That(manager.Hp, Is.EqualTo(10));
-            Assert.That(manager.Dp, Is.EqualTo(5));
+            Assert.That(manager.Shield, Is.EqualTo(5));
             Assert.That(result.DamagePoint, Is.Zero);
             Assert.That(result.DeltaHp, Is.Zero);
-            Assert.That(result.DeltaDp, Is.Zero);
+            Assert.That(result.DeltaShield, Is.Zero);
             Assert.That(result.OverHp, Is.Zero);
         }
 
@@ -62,10 +62,10 @@ namespace MortalGame.Tests
 
             var result = manager.GetShield(-1, default);
 
-            Assert.That(manager.Dp, Is.EqualTo(5));
+            Assert.That(manager.Shield, Is.EqualTo(5));
             Assert.That(result.ShieldPoint, Is.Zero);
-            Assert.That(result.DeltaDp, Is.Zero);
-            Assert.That(result.OverDp, Is.Zero);
+            Assert.That(result.DeltaShield, Is.Zero);
+            Assert.That(result.OverShield, Is.Zero);
         }
 
         [Test]
@@ -88,9 +88,9 @@ namespace MortalGame.Tests
 
             var result = manager.GetShield(int.MaxValue, default);
 
-            Assert.That(manager.Dp, Is.EqualTo(int.MaxValue));
-            Assert.That(result.DeltaDp, Is.EqualTo(int.MaxValue - 1));
-            Assert.That(result.OverDp, Is.EqualTo(1));
+            Assert.That(manager.Shield, Is.EqualTo(int.MaxValue));
+            Assert.That(result.DeltaShield, Is.EqualTo(int.MaxValue - 1));
+            Assert.That(result.OverShield, Is.EqualTo(1));
         }
     }
 }

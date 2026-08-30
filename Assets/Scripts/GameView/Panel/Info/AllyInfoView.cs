@@ -49,7 +49,7 @@ namespace MortalGame.GameView
             _topBarInfoView.UpdateTurnInfo(round);
             _nameText.text = _localizeLibrary.Get(LocalizeTitleInfoType.Player, ally.MainCharacter.NameKey).Title;
             _healthBarView.SetHealth(ally.MainCharacter.CurrentHealth, ally.MainCharacter.MaxHealth);
-            _healthBarView.SetShield(ally.MainCharacter.CurrentArmor);
+            _healthBarView.SetShield(ally.MainCharacter.CurrentShield);
             _energyBarView.SetEnergy(ally.CurrentEnergy, ally.MaxEnergy);
         }
 
@@ -65,7 +65,7 @@ namespace MortalGame.GameView
         public void UpdateHealth(HealthEvent healthEvent)
         {
             _healthBarView.SetHealth(healthEvent.Hp, healthEvent.MaxHp);
-            _healthBarView.SetShield(healthEvent.Dp);
+            _healthBarView.SetShield(healthEvent.Shield);
         }
 
         public void AddBuff(AddPlayerBuffEvent addBuffEvent)

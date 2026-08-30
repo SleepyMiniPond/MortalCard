@@ -666,7 +666,7 @@ MonoBehaviour:
   _image: {fileID: 7348291915559728754}
   _hpText: {fileID: 9185843172753724035}
   _maxHpText: {fileID: 2400494155045048541}
-  _dpText: {fileID: 5200481882575245253}
+  _shieldText: {fileID: 5200481882575245253}
   _shieldObjects:
   - {fileID: 1202368630068189626}
   - {fileID: 8523365967016234453}

@@ -67,6 +67,20 @@ namespace MortalGame.GameModel
         }
     }
     [Serializable]
+    public class CharactersOfPlayer : ITargetCharacterCollectionValue
+    {
+        [HorizontalGroup("1")]
+        public ITargetPlayerValue Player;
+
+        public IReadOnlyCollection<ICharacterEntity> Eval(TriggerContext triggerContext)
+        {
+            return Player
+                .Eval(triggerContext)
+                .Map(player => player.Characters)
+                .ValueOr(Array.Empty<ICharacterEntity>());
+        }
+    }
+    [Serializable]
     public class TriggeredCharacter : ITargetCharacterValue
     {
         public Option<ICharacterEntity> Eval(TriggerContext triggerContext)
