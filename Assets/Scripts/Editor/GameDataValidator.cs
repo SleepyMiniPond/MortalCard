@@ -1231,6 +1231,12 @@ namespace MortalGame.Editor
                     errors.Add(
                         $"{context} 的 ArithmeticInteger.{arithmetic.Operation} 除數不可為 0");
                 }
+
+                if (_HasStaticArithmeticOverflow(arithmetic))
+                {
+                    errors.Add(
+                        $"{context} 的 ArithmeticInteger.{arithmetic.Operation} 常數運算結果超出 Int32 範圍");
+                }
             }
 
             foreach (var minimum in SerializedDataGraphUtility.Find<MinimumInteger>(data))
@@ -1244,6 +1250,90 @@ namespace MortalGame.Editor
                 if (maximum.Values == null || maximum.Values.Count == 0)
                     errors.Add($"{context} 的 MaximumInteger.Values 至少需要一項");
             }
+        }
+
+        private static bool _HasStaticArithmeticOverflow(ArithmeticInteger arithmetic)
+        {
+            if (!_TryEvaluateStaticInteger(arithmetic.Left, out var left) ||
+                !_TryEvaluateStaticInteger(arithmetic.Right, out var right))
+            {
+                return false;
+            }
+
+            return arithmetic.Operation switch
+            {
+                ArithmeticType.Add => (long)left + right is > int.MaxValue or < int.MinValue,
+                ArithmeticType.Subtract => (long)left - right is > int.MaxValue or < int.MinValue,
+                ArithmeticType.Multiply => (long)left * right is > int.MaxValue or < int.MinValue,
+                ArithmeticType.Divide => left == int.MinValue && right == -1,
+                _ => false
+            };
+        }
+
+        private static bool _TryEvaluateStaticInteger(IIntegerValue value, out int result)
+        {
+            switch (value)
+            {
+                case ConstInteger constant:
+                    result = constant.Value;
+                    return true;
+                case ArithmeticInteger arithmetic
+                    when _TryEvaluateStaticInteger(arithmetic.Left, out var left) &&
+                         _TryEvaluateStaticInteger(arithmetic.Right, out var right):
+                    return _TryEvaluateStaticArithmetic(
+                        arithmetic.Operation,
+                        left,
+                        right,
+                        out result);
+                case MinimumInteger minimum
+                    when minimum.Values != null && minimum.Values.Count > 0:
+                    return _TryEvaluateStaticExtremum(minimum.Values, true, out result);
+                case MaximumInteger maximum
+                    when maximum.Values != null && maximum.Values.Count > 0:
+                    return _TryEvaluateStaticExtremum(maximum.Values, false, out result);
+                default:
+                    result = default;
+                    return false;
+            }
+        }
+
+        private static bool _TryEvaluateStaticArithmetic(
+            ArithmeticType operation,
+            int left,
+            int right,
+            out int result)
+        {
+            var evaluated = operation switch
+            {
+                ArithmeticType.Add => GameplayIntegerMath.Add(left, right),
+                ArithmeticType.Subtract => GameplayIntegerMath.Subtract(left, right),
+                ArithmeticType.Multiply => GameplayIntegerMath.Multiply(left, right),
+                ArithmeticType.Divide => GameplayIntegerMath.Divide(left, right),
+                ArithmeticType.Remainder => GameplayIntegerMath.Remainder(left, right),
+                _ => Optional.Option.None<int>()
+            };
+            return evaluated.TryGetValue(out result);
+        }
+
+        private static bool _TryEvaluateStaticExtremum(
+            IReadOnlyList<IIntegerValue> values,
+            bool minimum,
+            out int result)
+        {
+            if (!_TryEvaluateStaticInteger(values[0], out result))
+                return false;
+
+            for (var index = 1; index < values.Count; index++)
+            {
+                if (!_TryEvaluateStaticInteger(values[index], out var current))
+                    return false;
+
+                result = minimum
+                    ? Math.Min(result, current)
+                    : Math.Max(result, current);
+            }
+
+            return true;
         }
 
         private static void _ValidateSessionSemantics(

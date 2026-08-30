@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using MortalGame.Editor;
 using MortalGame.GameData;
 using MortalGame.GameModel;
@@ -309,6 +310,46 @@ namespace MortalGame.Tests
                         Right = new ConstInteger { Value = 0 }
                     }
                 });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Add,
+                        Left = new ConstInteger { Value = int.MaxValue },
+                        Right = new ConstInteger { Value = 1 }
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Subtract,
+                        Left = new ConstInteger { Value = int.MinValue },
+                        Right = new ConstInteger { Value = 1 }
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Multiply,
+                        Left = new ConstInteger { Value = int.MaxValue },
+                        Right = new ConstInteger { Value = 2 }
+                    }
+                });
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Divide,
+                        Left = new ConstInteger { Value = int.MinValue },
+                        Right = new ConstInteger { Value = -1 }
+                    }
+                });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
                 var errors = GameDataValidator.ValidateNestedContent(catalog);
@@ -325,6 +366,22 @@ namespace MortalGame.Tests
                 Assert.That(
                     errors,
                     Has.Some.Contains("ArithmeticInteger.Divide 除數不可為 0"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "ArithmeticInteger.Add 常數運算結果超出 Int32 範圍"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "ArithmeticInteger.Subtract 常數運算結果超出 Int32 範圍"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "ArithmeticInteger.Multiply 常數運算結果超出 Int32 範圍"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "ArithmeticInteger.Divide 常數運算結果超出 Int32 範圍"));
             }
             finally
             {
@@ -466,6 +523,130 @@ namespace MortalGame.Tests
                     errors,
                     Has.Some.Contains(
                         "CardsOfPlayer.Zone 必須是有效的一般卡片區域：None"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithValidCardIdentityConditions_ReturnsNoErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "valid-card-identity-conditions";
+                card.Data.TransformRules.Add(new CardTransformRule
+                {
+                    Conditions =
+                    {
+                        new CardCollectionContainsCondition
+                        {
+                            CardCollection = new CardsOfPlayer
+                            {
+                                Player = new CardOwner { Card = new TriggeredCard() },
+                                Zone = CardCollectionType.HandCard
+                            },
+                            Card = new TriggeredCard()
+                        },
+                        new CardCondition
+                        {
+                            Card = new PlayingCardOfPlayer
+                            {
+                                Player = new CardOwner { Card = new TriggeredCard() }
+                            },
+                            Conditions =
+                            {
+                                new CardIdentityCondition
+                                {
+                                    CompareCard = new TriggeredCard()
+                                }
+                            }
+                        }
+                    },
+                    Operation = new RevertCardTransformOperationData()
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithCompleteSwordShieldRules_ReturnsNoErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var sword = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            var shield = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                sword.Data = T010.T019SliceOneIntegrationTests.CreateSwordWithTransformRules();
+                shield.Data = T010.CardTransformationTestBuilder.CreateCardData(
+                    T010.CardTransformationTestBuilder.AlternateCardId,
+                    cost: 2,
+                    power: 5);
+                _SetCatalogArray(catalog, "_cardAssets", sword);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog)
+                    .Concat(GameDataValidator.ValidateCardTransformRules(
+                        sword.Data,
+                        "T-019 刀與盾"))
+                    .Concat(GameDataValidator.ValidateCardScriptableTypes(
+                        new CardDataScriptableBase[] { sword, shield },
+                        System.Array.Empty<DeckScriptable>()))
+                    .ToArray();
+
+                Assert.That(errors, Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(sword);
+                UnityEngine.Object.DestroyImmediate(shield);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_WithMissingCardIdentityConditionTargets_ReportsErrors()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+
+            try
+            {
+                card.Data.ID = "invalid-card-identity-conditions";
+                card.Data.TransformRules.Add(new CardTransformRule
+                {
+                    Conditions =
+                    {
+                        new CardCollectionContainsCondition()
+                    },
+                    Operation = new RevertCardTransformOperationData()
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "TransformRules[0].Conditions[0].CardCollection 為空"));
+                Assert.That(
+                    errors,
+                    Has.Some.Contains(
+                        "TransformRules[0].Conditions[0].Card 為空"));
             }
             finally
             {

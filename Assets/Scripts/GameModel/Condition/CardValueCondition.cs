@@ -15,7 +15,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class CardEqualCondition : ICardValueCondition
+    public class CardIdentityCondition : ICardValueCondition
     {
         [HorizontalGroup("1")]
         public ITargetCardValue CompareCard;

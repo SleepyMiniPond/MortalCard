@@ -424,6 +424,132 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void CardIdentityConditions_AssetRoundTrip_PreserveZoneAndPlayingCompositions()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/CardIdentityConditionsRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data.ID = "card-identity-conditions-round-trip";
+                asset.Data.TransformRules.Add(new CardTransformRule
+                {
+                    RuleId = "identity-condition-round-trip",
+                    TransformKey = "identity-condition-round-trip",
+                    Timing = GameTiming.AfterTurnStart,
+                    Conditions =
+                    {
+                        new CardCollectionContainsCondition
+                        {
+                            CardCollection = new CardsOfPlayer
+                            {
+                                Player = new CardOwner { Card = new TriggeredCard() },
+                                Zone = CardCollectionType.HandCard
+                            },
+                            Card = new TriggeredCard()
+                        },
+                        new CardCondition
+                        {
+                            Card = new PlayingCardOfPlayer
+                            {
+                                Player = new CardOwner { Card = new TriggeredCard() }
+                            },
+                            Conditions =
+                            {
+                                new CardIdentityCondition
+                                {
+                                    CompareCard = new TriggeredCard()
+                                }
+                            }
+                        }
+                    },
+                    Operation = new RevertCardTransformOperationData()
+                });
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var loadedContains = loaded.Data.TransformRules[0].Conditions[0]
+                    as CardCollectionContainsCondition;
+                var loadedCards = loadedContains?.CardCollection as CardsOfPlayer;
+                var loadedOwner = loadedCards?.Player as CardOwner;
+                var loadedPlayingCondition = loaded.Data.TransformRules[0].Conditions[1]
+                    as CardCondition;
+                var loadedPlayingCard = loadedPlayingCondition?.Card
+                    as PlayingCardOfPlayer;
+                var loadedPlayingOwner = loadedPlayingCard?.Player as CardOwner;
+                var loadedIdentityCompare = loadedPlayingCondition?.Conditions[0]
+                    as CardIdentityCondition;
+
+                Assert.That(loadedContains, Is.Not.Null);
+                Assert.That(loadedCards, Is.Not.Null);
+                Assert.That(loadedCards.Zone, Is.EqualTo(CardCollectionType.HandCard));
+                Assert.That(loadedOwner?.Card, Is.TypeOf<TriggeredCard>());
+                Assert.That(loadedContains.Card, Is.TypeOf<TriggeredCard>());
+                Assert.That(loadedPlayingCondition, Is.Not.Null);
+                Assert.That(loadedPlayingCard, Is.Not.Null);
+                Assert.That(loadedPlayingOwner?.Card, Is.TypeOf<TriggeredCard>());
+                Assert.That(loadedIdentityCompare?.CompareCard, Is.TypeOf<TriggeredCard>());
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
+        public void SwordShieldRules_AssetRoundTrip_PreserveCompleteSliceOneComposition()
+        {
+            var assetPath = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameData/SwordShieldRulesRoundTrip.asset");
+            var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                asset.Data = T010.T019SliceOneIntegrationTests.CreateSwordWithTransformRules();
+                AssetDatabase.CreateAsset(asset, assetPath);
+                AssetDatabase.SaveAssets();
+                Resources.UnloadAsset(asset);
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
+                var applyRule = loaded.Data.TransformRules[0];
+                var revertRule = loaded.Data.TransformRules[1];
+                var handCondition = applyRule.Conditions[0]
+                    as CardCollectionContainsCondition;
+                var handCards = handCondition?.CardCollection as CardsOfPlayer;
+                var parityCondition = applyRule.Conditions[1] as IntegerCondition;
+                var remainder = parityCondition?.Value as ArithmeticInteger;
+                var evenCompare = parityCondition?.Conditions[0] as IntegerCompare;
+                var oddCondition = revertRule.Conditions[1] as IntegerCondition;
+                var oddCompare = oddCondition?.Conditions[0] as IntegerCompare;
+
+                Assert.That(loaded.Data.TransformRules, Has.Count.EqualTo(2));
+                Assert.That(applyRule.Timing, Is.EqualTo(GameTiming.AfterTurnStart));
+                Assert.That(revertRule.Timing, Is.EqualTo(GameTiming.AfterTurnStart));
+                Assert.That(handCondition?.Card, Is.TypeOf<TriggeredCard>());
+                Assert.That(handCards?.Zone, Is.EqualTo(CardCollectionType.HandCard));
+                Assert.That(handCards?.Player, Is.TypeOf<CardOwner>());
+                Assert.That(remainder?.Operation, Is.EqualTo(ArithmeticType.Remainder));
+                Assert.That(remainder?.Left, Is.TypeOf<TurnCountInteger>());
+                Assert.That((remainder?.Right as ConstInteger)?.Value, Is.EqualTo(2));
+                Assert.That(
+                    evenCompare?.Arithmetic,
+                    Is.EqualTo(ArithmeticConditionType.Equal));
+                Assert.That(
+                    oddCompare?.Arithmetic,
+                    Is.EqualTo(ArithmeticConditionType.NotEqual));
+                Assert.That(applyRule.Operation, Is.TypeOf<ApplyCardTransformOperationData>());
+                Assert.That(revertRule.Operation, Is.TypeOf<RevertCardTransformOperationData>());
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(assetPath);
+            }
+        }
+
+        [Test]
         public void MinimumInteger_AssetRoundTrip_PreservesPolymorphicValues()
         {
             var assetPath = AssetDatabase.GenerateUniqueAssetPath(

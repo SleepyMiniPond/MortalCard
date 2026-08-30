@@ -346,7 +346,7 @@ namespace MortalGame.Tests.T010
                     {
                         Conditions =
                         {
-                            new CardEqualCondition
+                            new CardIdentityCondition
                             {
                                 CompareCard = new TriggeredCard()
                             }

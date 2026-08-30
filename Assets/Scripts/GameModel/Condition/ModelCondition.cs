@@ -141,6 +141,27 @@ namespace MortalGame.GameModel
             );
         }
     }
+
+    [Serializable]
+    public class CardCollectionContainsCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardCollectionValue CardCollection;
+
+        [HorizontalGroup("2")]
+        public ITargetCardValue Card;
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return Card
+                .Eval(triggerContext)
+                .Map(card => CardCollection
+                    .Eval(triggerContext)
+                    .Any(collectionCard => collectionCard.Identity == card.Identity))
+                .ValueOr(false);
+        }
+    }
+
     [SerializeField]
     public class CardPlayCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
     {
