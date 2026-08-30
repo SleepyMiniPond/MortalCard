@@ -23,7 +23,7 @@ namespace MortalGame.Tests
             var value = new CardIntegerProperty
             {
                 Card = new NoneCard(),
-                Property = CardIntegerProperty.CardIntegerValueType.Power
+                Property = CardIntegerProperty.CardIntegerValueType.CardPower
             };
 
             Assert.That(value.Eval(null).HasValue, Is.False);

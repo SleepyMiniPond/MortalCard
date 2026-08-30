@@ -130,8 +130,10 @@ namespace MortalGame.GameModel
     {
         public enum CardIntegerValueType
         {
-            Power,
-            Cost,
+            CardPower = 0,
+            CardCost = 1,
+            CardBasePower = 2,
+            CardBaseCost = 3,
         }
 
         [HorizontalGroup("1")]
@@ -145,10 +147,10 @@ namespace MortalGame.GameModel
                 .FlatMap(
                     card => Property switch
                     {
-                        // TODO: Apply EffectAttribute.Power adjust
-                        CardIntegerValueType.Power => GameFormula.CardPower(triggerContext, card),
-                        // TODO: Apply EffectAttribute.Cost adjust
-                        CardIntegerValueType.Cost => GameFormula.CardCost(triggerContext, card),
+                        CardIntegerValueType.CardPower => GameFormula.CardPower(triggerContext, card),
+                        CardIntegerValueType.CardCost => GameFormula.CardCost(triggerContext, card),
+                        CardIntegerValueType.CardBasePower => card.OriginPower.Some(),
+                        CardIntegerValueType.CardBaseCost => card.OriginCost.Some(),
                         _ => Option.None<int>()
                     });
         }
@@ -161,6 +163,7 @@ namespace MortalGame.GameModel
         {
             MaxEnergy,
             CurrentEnergy,
+            CurrentDisposition
         }
 
         [HorizontalGroup("1")]
@@ -176,6 +179,39 @@ namespace MortalGame.GameModel
                     {
                         PlayerIntegerValueType.MaxEnergy => player.MaxEnergy.Some(),
                         PlayerIntegerValueType.CurrentEnergy => player.CurrentEnergy.Some(),
+                        PlayerIntegerValueType.CurrentDisposition =>
+                            player is IPlayerDispositionEntity dispositionPlayer
+                                ? dispositionPlayer.DispositionManager.CurrentDisposition.Some()
+                                : Option.None<int>(),
+                        _ => Option.None<int>()
+                    });
+        }
+    }
+
+    [Serializable]
+    public class CharacterIntegerProperty : IIntegerValue
+    {
+        public enum CharacterIntegerValueType
+        {
+            CurrentHealth,
+            MaxHealth,
+            CurrentShield
+        }
+
+        [HorizontalGroup("1")]
+        public ITargetCharacterValue Character;
+        public CharacterIntegerValueType Property;
+
+        public Option<int> Eval(TriggerContext triggerContext)
+        {
+            return Character
+                .Eval(triggerContext)
+                .FlatMap(character =>
+                    Property switch
+                    {
+                        CharacterIntegerValueType.CurrentHealth => character.CurrentHealth.Some(),
+                        CharacterIntegerValueType.MaxHealth => character.MaxHealth.Some(),
+                        CharacterIntegerValueType.CurrentShield => character.CurrentShield.Some(),
                         _ => Option.None<int>()
                     });
         }

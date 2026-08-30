@@ -62,6 +62,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.CardData, context, errors);
                 _ValidateCardCollectionSemantics(asset.CardData, context, errors);
+                _ValidateCardStateSemantics(asset.CardData, context, errors);
                 _ValidateTargetSemantics(asset.CardData, context, errors);
                 _ValidateCardNestedSemantics(asset.CardData, context, errors);
             }
@@ -75,6 +76,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
+                _ValidateCardStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidateCardBuffNestedSemantics(asset.Data, context, errors);
             }
@@ -88,6 +90,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
+                _ValidateCardStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidatePlayerBuffNestedSemantics(asset.Data, context, errors);
             }
@@ -101,6 +104,7 @@ namespace MortalGame.Editor
                         context));
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
+                _ValidateCardStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidateCharacterBuffNestedSemantics(asset.Data, context, errors);
             }
@@ -1091,6 +1095,55 @@ namespace MortalGame.Editor
             }
         }
 
+        private static void _ValidateCardStateSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var condition in SerializedDataGraphUtility.Find<CardTypesCondition>(data))
+                _ValidateCardStateSet(
+                    condition.CardTypes, condition.Condition, nameof(CardTypesCondition), context, errors);
+
+            foreach (var condition in SerializedDataGraphUtility.Find<CardThemesCondition>(data))
+                _ValidateCardStateSet(
+                    condition.CardThemes, condition.Condition, nameof(CardThemesCondition), context, errors);
+
+            foreach (var condition in SerializedDataGraphUtility.Find<CardRaritiesCondition>(data))
+                _ValidateCardStateSet(
+                    condition.CardRarities, condition.Condition, nameof(CardRaritiesCondition), context, errors);
+
+            foreach (var condition in SerializedDataGraphUtility.Find<CardPropertiesCondition>(data))
+                _ValidateCardStateSet(
+                    condition.CardProperties, condition.Condition, nameof(CardPropertiesCondition), context, errors);
+        }
+
+        private static void _ValidateCardStateSet<T>(
+            IReadOnlyCollection<T> values,
+            SetConditionType setCondition,
+            string conditionName,
+            string context,
+            ICollection<string> errors)
+            where T : Enum
+        {
+            if (setCondition == SetConditionType.None ||
+                !Enum.IsDefined(typeof(SetConditionType), setCondition))
+            {
+                errors.Add($"{context} 的 {conditionName}.Condition 無效：{setCondition}");
+            }
+
+            if (values == null || values.Count == 0)
+            {
+                errors.Add($"{context} 的 {conditionName} 比較值至少需要一項");
+                return;
+            }
+
+            foreach (var value in values)
+            {
+                if (!Enum.IsDefined(typeof(T), value) || Convert.ToInt64(value) == 0)
+                    errors.Add($"{context} 的 {conditionName} 比較值無效：{value}");
+            }
+        }
+
         private static void _ValidateTargetSemantics(
             object data,
             string context,
@@ -1269,6 +1322,46 @@ namespace MortalGame.Editor
             {
                 if (maximum.Values == null || maximum.Values.Count == 0)
                     errors.Add($"{context} 的 MaximumInteger.Values 至少需要一項");
+            }
+
+            foreach (var cardValue in SerializedDataGraphUtility.Find<CardIntegerProperty>(data))
+            {
+                if (!Enum.IsDefined(
+                    typeof(CardIntegerProperty.CardIntegerValueType),
+                    cardValue.Property))
+                {
+                    errors.Add(
+                        $"{context} 的 CardIntegerProperty.Property 無效：{cardValue.Property}");
+                }
+            }
+
+            foreach (var characterValue in SerializedDataGraphUtility.Find<CharacterIntegerProperty>(data))
+            {
+                if (!Enum.IsDefined(
+                    typeof(CharacterIntegerProperty.CharacterIntegerValueType),
+                    characterValue.Property))
+                {
+                    errors.Add(
+                        $"{context} 的 CharacterIntegerProperty.Property 無效：{characterValue.Property}");
+                }
+            }
+
+            foreach (var playerValue in SerializedDataGraphUtility.Find<PlayerIntegerProperty>(data))
+            {
+                if (!Enum.IsDefined(
+                    typeof(PlayerIntegerProperty.PlayerIntegerValueType),
+                    playerValue.Property))
+                {
+                    errors.Add(
+                        $"{context} 的 PlayerIntegerProperty.Property 無效：{playerValue.Property}");
+                }
+                else if (playerValue.Property ==
+                         PlayerIntegerProperty.PlayerIntegerValueType.CurrentDisposition &&
+                         playerValue.Player is PlayerByFaction { Faction: Faction.Enemy })
+                {
+                    errors.Add(
+                        $"{context} 的 PlayerIntegerProperty.CurrentDisposition 不可指定 Enemy");
+                }
             }
         }
 

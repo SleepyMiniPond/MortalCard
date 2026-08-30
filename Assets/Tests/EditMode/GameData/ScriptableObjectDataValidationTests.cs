@@ -363,7 +363,7 @@ namespace MortalGame.Tests
                                 Card = new ActionCard()
                             }
                         },
-                        Property = CardIntegerProperty.CardIntegerValueType.Power
+                        Property = CardIntegerProperty.CardIntegerValueType.CardPower
                     }
                 });
                 AssetDatabase.CreateAsset(asset, assetPath);

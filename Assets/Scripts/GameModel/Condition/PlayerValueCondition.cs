@@ -87,4 +87,13 @@ namespace MortalGame.GameModel
         }
     }
 
+    [Serializable]
+    public class PlayerIsDeadCondition : IPlayerValueCondition
+    {
+        public bool Eval(TriggerContext triggerContext, IPlayerEntity player)
+        {
+            return player.IsDead;
+        }
+    }
+
 }

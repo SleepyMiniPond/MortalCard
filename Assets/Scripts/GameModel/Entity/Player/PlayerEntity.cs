@@ -25,6 +25,11 @@ namespace MortalGame.GameModel
         IGameEvent Update(TriggerContext triggerContext);
     }
 
+    public interface IPlayerDispositionEntity : IPlayerEntity
+    {
+        IDispositionManager DispositionManager { get; }
+    }
+
     public abstract class PlayerEntity : IPlayerEntity
     {
         private readonly Guid _identity;
@@ -45,7 +50,7 @@ namespace MortalGame.GameModel
         public IReadOnlyCollection<ICharacterEntity> Characters => _characters;
         public IPlayerCardManager CardManager => _cardManager;
 
-        public bool IsDead => Characters.All(character => character.IsDead);
+        public bool IsDead => MainCharacter.IsDead;
 
         // TODO: Implement main character with skills/assistant character
         public ICharacterEntity MainCharacter => Characters.First();
@@ -84,9 +89,9 @@ namespace MortalGame.GameModel
         }
     }
 
-    public class AllyEntity : PlayerEntity
+    public class AllyEntity : PlayerEntity, IPlayerDispositionEntity
     {
-        public IDispositionManager DispositionManager;
+        public IDispositionManager DispositionManager { get; }
 
         public AllyEntity(
             Guid originPlayerInstanceGuid,

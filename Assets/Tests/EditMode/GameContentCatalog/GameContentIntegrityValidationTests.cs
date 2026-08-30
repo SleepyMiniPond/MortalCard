@@ -408,7 +408,7 @@ namespace MortalGame.Tests
                         {
                             Player = new CardOwner { Card = new ActionCard() }
                         },
-                        Property = CardIntegerProperty.CardIntegerValueType.Power
+                        Property = CardIntegerProperty.CardIntegerValueType.CardPower
                     }
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);

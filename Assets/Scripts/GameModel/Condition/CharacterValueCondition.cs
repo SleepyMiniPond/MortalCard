@@ -41,4 +41,13 @@ namespace MortalGame.GameModel
         }
     }
 
+    [Serializable]
+    public class CharacterIsDeadCondition : ICharacterValueCondition
+    {
+        public bool Eval(TriggerContext triggerContext, ICharacterEntity character)
+        {
+            return character.IsDead;
+        }
+    }
+
 }
