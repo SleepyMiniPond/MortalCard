@@ -63,6 +63,7 @@ namespace MortalGame.Editor
                 _ValidateIntegerValueSemantics(asset.CardData, context, errors);
                 _ValidateCardCollectionSemantics(asset.CardData, context, errors);
                 _ValidateCardStateSemantics(asset.CardData, context, errors);
+                _ValidateBuffStateSemantics(asset.CardData, context, errors);
                 _ValidateTargetSemantics(asset.CardData, context, errors);
                 _ValidateCardNestedSemantics(asset.CardData, context, errors);
             }
@@ -77,6 +78,7 @@ namespace MortalGame.Editor
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
+                _ValidateBuffStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidateCardBuffNestedSemantics(asset.Data, context, errors);
             }
@@ -91,6 +93,7 @@ namespace MortalGame.Editor
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
+                _ValidateBuffStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidatePlayerBuffNestedSemantics(asset.Data, context, errors);
             }
@@ -105,6 +108,7 @@ namespace MortalGame.Editor
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
+                _ValidateBuffStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
                 _ValidateCharacterBuffNestedSemantics(asset.Data, context, errors);
             }
@@ -674,6 +678,11 @@ namespace MortalGame.Editor
                 .Where(asset => asset.Data != null)
                 .Select(asset => asset.Data.ID)
                 .ToHashSet();
+            var characterBuffIds = catalog.CharacterBuffAssets
+                .Where(asset => asset != null)
+                .Where(asset => asset.Data != null)
+                .Select(asset => asset.Data.ID)
+                .ToHashSet();
             var errors = new List<string>();
 
             foreach (var cardAsset in catalog.CardAssets.Where(asset => asset != null))
@@ -705,6 +714,42 @@ namespace MortalGame.Editor
                     errors);
             }
 
+            foreach (var asset in catalog.CardAssets.Where(asset => asset != null))
+                _ValidateBuffQueryReferenceIds(
+                    asset.CardData,
+                    AssetDatabase.GetAssetPath(asset),
+                    playerBuffIds,
+                    characterBuffIds,
+                    cardBuffIds,
+                    errors);
+
+            foreach (var asset in catalog.PlayerBuffAssets.Where(asset => asset != null))
+                _ValidateBuffQueryReferenceIds(
+                    asset.Data,
+                    AssetDatabase.GetAssetPath(asset),
+                    playerBuffIds,
+                    characterBuffIds,
+                    cardBuffIds,
+                    errors);
+
+            foreach (var asset in catalog.CharacterBuffAssets.Where(asset => asset != null))
+                _ValidateBuffQueryReferenceIds(
+                    asset.Data,
+                    AssetDatabase.GetAssetPath(asset),
+                    playerBuffIds,
+                    characterBuffIds,
+                    cardBuffIds,
+                    errors);
+
+            foreach (var asset in catalog.CardBuffAssets.Where(asset => asset != null))
+                _ValidateBuffQueryReferenceIds(
+                    asset.Data,
+                    AssetDatabase.GetAssetPath(asset),
+                    playerBuffIds,
+                    characterBuffIds,
+                    cardBuffIds,
+                    errors);
+
             foreach (var deckAsset in EditorAssetUtility.FindAssets<DeckScriptable>(
                 ProjectAssetPaths.GameContent.SearchFolders))
                 ValidateDeckReferenceIds(deckAsset, AssetDatabase.GetAssetPath(deckAsset), cardIds, errors);
@@ -718,6 +763,54 @@ namespace MortalGame.Editor
                 ValidatePlayerDeck(enemyAsset.Enemy?.PlayerData, AssetDatabase.GetAssetPath(enemyAsset), errors);
 
             return errors;
+        }
+
+        private static void _ValidateBuffQueryReferenceIds(
+            object data,
+            string assetPath,
+            ISet<string> playerBuffIds,
+            ISet<string> characterBuffIds,
+            ISet<string> cardBuffIds,
+            ICollection<string> errors)
+        {
+            _ValidateBuffQueryIds(
+                SerializedDataGraphUtility.Find<PlayerBuffById>(data).Select(value => value.BuffId)
+                    .Concat(SerializedDataGraphUtility.Find<PlayerBuffDataIdCondition>(data).Select(value => value.BuffId))
+                    .Concat(SerializedDataGraphUtility.Find<PlayerBuffCollectionContainsIdCondition>(data).Select(value => value.BuffId)),
+                playerBuffIds,
+                "PlayerBuff",
+                assetPath,
+                errors);
+            _ValidateBuffQueryIds(
+                SerializedDataGraphUtility.Find<CharacterBuffById>(data).Select(value => value.BuffId)
+                    .Concat(SerializedDataGraphUtility.Find<CharacterBuffDataIdCondition>(data).Select(value => value.BuffId))
+                    .Concat(SerializedDataGraphUtility.Find<CharacterBuffCollectionContainsIdCondition>(data).Select(value => value.BuffId)),
+                characterBuffIds,
+                "CharacterBuff",
+                assetPath,
+                errors);
+            _ValidateBuffQueryIds(
+                SerializedDataGraphUtility.Find<CardBuffById>(data).Select(value => value.BuffId)
+                    .Concat(SerializedDataGraphUtility.Find<CardBuffDataIdCondition>(data).Select(value => value.BuffId))
+                    .Concat(SerializedDataGraphUtility.Find<CardBuffCollectionContainsIdCondition>(data).Select(value => value.BuffId)),
+                cardBuffIds,
+                "CardBuff",
+                assetPath,
+                errors);
+        }
+
+        private static void _ValidateBuffQueryIds(
+            IEnumerable<string> queryIds,
+            ISet<string> validIds,
+            string buffType,
+            string assetPath,
+            ICollection<string> errors)
+        {
+            foreach (var queryId in queryIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
+            {
+                if (!validIds.Contains(queryId))
+                    errors.Add($"{assetPath} 的 {buffType} 查詢引用不存在的 Buff ID：{queryId}");
+            }
         }
 
         private static void ValidateCardEffects(CardData cardData, string assetPath, ICollection<string> errors)
@@ -1141,6 +1234,80 @@ namespace MortalGame.Editor
             {
                 if (!Enum.IsDefined(typeof(T), value) || Convert.ToInt64(value) == 0)
                     errors.Add($"{context} 的 {conditionName} 比較值無效：{value}");
+            }
+        }
+
+        private static void _ValidateBuffStateSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var value in SerializedDataGraphUtility.Find<PlayerBuffIntegerProperty>(data))
+            {
+                if (!Enum.IsDefined(
+                    typeof(PlayerBuffIntegerProperty.PlayerBuffIntegerValueType),
+                    value.Property))
+                {
+                    errors.Add(
+                        $"{context} 的 PlayerBuffIntegerProperty.Property 無效：{value.Property}");
+                }
+            }
+
+            foreach (var value in SerializedDataGraphUtility.Find<CharacterBuffIntegerProperty>(data))
+            {
+                if (!Enum.IsDefined(
+                    typeof(CharacterBuffIntegerProperty.CharacterBuffIntegerValueType),
+                    value.Property))
+                {
+                    errors.Add(
+                        $"{context} 的 CharacterBuffIntegerProperty.Property 無效：{value.Property}");
+                }
+            }
+
+            foreach (var value in SerializedDataGraphUtility.Find<CardBuffIntegerProperty>(data))
+            {
+                if (!Enum.IsDefined(
+                    typeof(CardBuffIntegerProperty.CardBuffIntegerValueType),
+                    value.Property))
+                {
+                    errors.Add(
+                        $"{context} 的 CardBuffIntegerProperty.Property 無效：{value.Property}");
+                }
+            }
+
+            _ValidateBuffIds(
+                SerializedDataGraphUtility.Find<PlayerBuffById>(data).Select(value => value.BuffId)
+                    .Concat(SerializedDataGraphUtility.Find<PlayerBuffDataIdCondition>(data).Select(value => value.BuffId))
+                    .Concat(SerializedDataGraphUtility.Find<PlayerBuffCollectionContainsIdCondition>(data).Select(value => value.BuffId)),
+                "PlayerBuff",
+                context,
+                errors);
+            _ValidateBuffIds(
+                SerializedDataGraphUtility.Find<CharacterBuffById>(data).Select(value => value.BuffId)
+                    .Concat(SerializedDataGraphUtility.Find<CharacterBuffDataIdCondition>(data).Select(value => value.BuffId))
+                    .Concat(SerializedDataGraphUtility.Find<CharacterBuffCollectionContainsIdCondition>(data).Select(value => value.BuffId)),
+                "CharacterBuff",
+                context,
+                errors);
+            _ValidateBuffIds(
+                SerializedDataGraphUtility.Find<CardBuffById>(data).Select(value => value.BuffId)
+                    .Concat(SerializedDataGraphUtility.Find<CardBuffDataIdCondition>(data).Select(value => value.BuffId))
+                    .Concat(SerializedDataGraphUtility.Find<CardBuffCollectionContainsIdCondition>(data).Select(value => value.BuffId)),
+                "CardBuff",
+                context,
+                errors);
+        }
+
+        private static void _ValidateBuffIds(
+            IEnumerable<string> buffIds,
+            string buffType,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var buffId in buffIds)
+            {
+                if (string.IsNullOrWhiteSpace(buffId))
+                    errors.Add($"{context} 的 {buffType} 查詢 BuffId 為空");
             }
         }
 

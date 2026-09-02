@@ -16,12 +16,8 @@ namespace MortalGame.GameModel
         bool Eval(TriggerContext triggerContext);
     }
 
-    public interface ICardBuffCondition : ICondition { }
-    public interface IPlayerBuffCondition : ICondition { }
-    public interface ICharacterBuffCondition : ICondition { }
-
     [Serializable]
-    public class ConstCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class ConstCondition : ICondition
     {
         public bool Value;
         public bool Eval(TriggerContext triggerContext)
@@ -31,7 +27,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class GameTimingCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class GameTimingCondition : ICondition
     {
         public GameTiming Timing;
 
@@ -45,7 +41,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class AllCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class AllCondition : ICondition
     {
         [ShowInInspector]
         [HorizontalGroup("1")]
@@ -58,7 +54,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class AnyCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class AnyCondition : ICondition
     {
         [ShowInInspector]
         [HorizontalGroup("1")]
@@ -71,7 +67,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class InverseCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class InverseCondition : ICondition
     {
         [HorizontalGroup("1")]
         public ICondition Condition;
@@ -83,7 +79,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class IsTriggeredOwnerTurnCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class IsTriggeredOwnerTurnCondition : ICondition
     {
         public bool Eval(TriggerContext triggerContext)
         {
@@ -104,7 +100,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class IntegerCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class IntegerCondition : ICondition
     {
         [HorizontalGroup("1")]
         public IIntegerValue Value;
@@ -123,7 +119,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class CardCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class CardCondition : ICondition
     {
         [HorizontalGroup("1")]
         public ITargetCardValue Card;
@@ -143,7 +139,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class CardCollectionContainsCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class CardCollectionContainsCondition : ICondition
     {
         [HorizontalGroup("1")]
         public ITargetCardCollectionValue CardCollection;
@@ -163,7 +159,7 @@ namespace MortalGame.GameModel
     }
 
     [SerializeField]
-    public class CardPlayCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class CardPlayCondition : ICondition
     {
         [ShowInInspector]
         [HorizontalGroup("1")]
@@ -183,7 +179,7 @@ namespace MortalGame.GameModel
     }
 
     [SerializeField]
-    public class CardPlayResultCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class CardPlayResultCondition : ICondition
     {
         [ShowInInspector]
         [HorizontalGroup("1")]
@@ -201,7 +197,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class PlayerCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class PlayerCondition : ICondition
     {
         [HorizontalGroup("1")]
         public ITargetPlayerValue Player;
@@ -221,7 +217,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class CharacterCondition : ICardBuffCondition, IPlayerBuffCondition, ICharacterBuffCondition
+    public class CharacterCondition : ICondition
     {
         [HorizontalGroup("1")]
         public ITargetCharacterValue Character;
@@ -241,7 +237,7 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
-    public class PlayerBuffCondition : IPlayerBuffCondition
+    public class PlayerBuffCondition : ICondition
     {
         [HorizontalGroup("1")]
         public ITargetPlayerBuffValue PlayerBuff;
@@ -256,6 +252,97 @@ namespace MortalGame.GameModel
                 playerBuff => Conditions.All(c => c.Eval(triggerContext, playerBuff)),
                 () => false
             );
+        }
+    }
+
+    [Serializable]
+    public class CharacterBuffCondition : ICondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetCharacterBuffValue CharacterBuff;
+
+        [ShowInInspector]
+        [HorizontalGroup("2")]
+        public List<ICharacterBuffValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return CharacterBuff
+                .Eval(triggerContext)
+                .Map(characterBuff => Conditions.All(
+                    condition => condition.Eval(triggerContext, characterBuff)))
+                .ValueOr(false);
+        }
+    }
+
+    [Serializable]
+    public class CardBuffCondition : ICondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardBuffValue CardBuff;
+
+        [ShowInInspector]
+        [HorizontalGroup("2")]
+        public List<ICardBuffValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return CardBuff
+                .Eval(triggerContext)
+                .Map(cardBuff => Conditions.All(
+                    condition => condition.Eval(triggerContext, cardBuff)))
+                .ValueOr(false);
+        }
+    }
+
+    [Serializable]
+    public class PlayerBuffCollectionContainsIdCondition : ICondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetPlayerBuffCollectionValue PlayerBuffs;
+
+        [HorizontalGroup("2")]
+        public string BuffId;
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return PlayerBuffs
+                .Eval(triggerContext)
+                .Any(buff => buff.PlayerBuffDataId == BuffId);
+        }
+    }
+
+    [Serializable]
+    public class CharacterBuffCollectionContainsIdCondition : ICondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetCharacterBuffCollectionValue CharacterBuffs;
+
+        [HorizontalGroup("2")]
+        public string BuffId;
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return CharacterBuffs
+                .Eval(triggerContext)
+                .Any(buff => buff.CharacterBuffDataId == BuffId);
+        }
+    }
+
+    [Serializable]
+    public class CardBuffCollectionContainsIdCondition : ICondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardBuffCollectionValue CardBuffs;
+
+        [HorizontalGroup("2")]
+        public string BuffId;
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            return CardBuffs
+                .Eval(triggerContext)
+                .Any(buff => buff.CardBuffDataID == BuffId);
         }
     }
 

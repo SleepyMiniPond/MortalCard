@@ -27,4 +27,15 @@ namespace MortalGame.GameModel
         }
     }
 
+    [Serializable]
+    public class PlayerBuffDataIdCondition : IPlayerBuffValueCondition
+    {
+        public string BuffId;
+
+        public bool Eval(TriggerContext triggerContext, IPlayerBuffEntity playerBuff)
+        {
+            return playerBuff.PlayerBuffDataId == BuffId;
+        }
+    }
+
 }

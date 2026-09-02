@@ -77,7 +77,7 @@ namespace MortalGame.Tests
         {
             var conditionalEffect = new ConditionalCharacterBuffEffect
             {
-                Conditions = new ICharacterBuffCondition[] { new ConstCondition { Value = true } },
+                Conditions = new ICondition[] { new ConstCondition { Value = true } },
                 Effect = new EffectiveDamageCharacterBuffEffect
                 {
                     Targets = new NoneCharacters(),
@@ -167,7 +167,7 @@ namespace MortalGame.Tests
                 GameTiming.BeforeTurnEnd,
                 new ConditionalCharacterBuffEffect
                 {
-                    Conditions = new ICharacterBuffCondition[] { new ConstCondition { Value = true } },
+                    Conditions = new ICondition[] { new ConstCondition { Value = true } },
                     Effect = new EffectiveDamageCharacterBuffEffect
                     {
                         Targets = new NoneCharacters(),
@@ -256,7 +256,7 @@ namespace MortalGame.Tests
     }
 }
 
-public sealed class TriggeredAndSelectedCardCondition : ICardBuffCondition
+public sealed class TriggeredAndSelectedCardCondition : ICondition
 {
     private readonly Func<Guid> _expectedTriggeredCardId;
     private readonly Func<Guid> _expectedSelectedCardId;
@@ -283,7 +283,7 @@ public sealed class NoOpCardBuffEffect : ICardBuffEffect
 {
 }
 
-public sealed class PlayerBuffSourceIdCondition : IPlayerBuffCondition
+public sealed class PlayerBuffSourceIdCondition : ICondition
 {
     private readonly string _buffId;
 

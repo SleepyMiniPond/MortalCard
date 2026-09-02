@@ -12,7 +12,7 @@ namespace MortalGame.GameData
     {
         [ShowInInspector]
         [HorizontalGroup("1")]
-        public List<ICardBuffCondition> Conditions = new();
+        public List<ICondition> Conditions = new();
 
         [Space(20)]
         [HorizontalGroup("2")]

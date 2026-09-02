@@ -12,7 +12,7 @@ namespace MortalGame.GameData
     {
         [ShowInInspector]
         [HorizontalGroup("1")]
-        public ICharacterBuffCondition[] Conditions = new ICharacterBuffCondition[0];
+        public ICondition[] Conditions = Array.Empty<ICondition>();
 
         [Space(20)]
         [HorizontalGroup("2")]

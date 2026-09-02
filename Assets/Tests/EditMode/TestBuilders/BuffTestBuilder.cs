@@ -32,13 +32,16 @@ namespace MortalGame.Tests
                 reactionSessions ?? new Dictionary<string, IReactionSessionEntity>());
         }
 
-        public static CharacterBuffEntity CreateCharacterBuff(string buffId = CharacterBuffId, IPlayerEntity caster = null)
+        public static CharacterBuffEntity CreateCharacterBuff(
+            string buffId = CharacterBuffId,
+            IPlayerEntity caster = null,
+            int level = 1)
         {
             return (CharacterBuffEntity)Activator.CreateInstance(
                 typeof(CharacterBuffEntity),
                 buffId,
                 Guid.NewGuid(),
-                1,
+                level,
                 PlayerCasterOption(caster),
                 Array.Empty<ICharacterBuffPropertyEntity>(),
                 new AlwaysLifeTimeCharacterBuffEntity(),

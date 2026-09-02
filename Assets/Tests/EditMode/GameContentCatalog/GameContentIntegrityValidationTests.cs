@@ -67,7 +67,7 @@ namespace MortalGame.Tests
                 {
                     new ConditionalPlayerBuffEffect
                     {
-                        Conditions = new List<IPlayerBuffCondition>
+                        Conditions = new List<ICondition>
                         {
                             new PlayerBuffCondition
                             {

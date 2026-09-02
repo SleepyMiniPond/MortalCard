@@ -268,6 +268,31 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
+    public class CharacterBuffIntegerProperty : IIntegerValue
+    {
+        public enum CharacterBuffIntegerValueType
+        {
+            Level,
+        }
+
+        [HorizontalGroup("1")]
+        public ITargetCharacterBuffValue CharacterBuff;
+        public CharacterBuffIntegerValueType Property;
+
+        public Option<int> Eval(TriggerContext triggerContext)
+        {
+            return CharacterBuff
+                .Eval(triggerContext)
+                .FlatMap(
+                    characterBuff => Property switch
+                    {
+                        CharacterBuffIntegerValueType.Level => characterBuff.Level.Some(),
+                        _ => Option.None<int>()
+                    });
+        }
+    }
+
+    [Serializable]
     public class PlayerBuffSessionInteger : IIntegerValue
     {
         [HorizontalGroup("1")]
@@ -290,7 +315,7 @@ namespace MortalGame.GameModel
         {
             [ShowInInspector]
             [HorizontalGroup("1")]
-            public List<IPlayerBuffCondition> Conditions = new();
+            public List<ICondition> Conditions = new();
 
             [HorizontalGroup("2")]
             public IIntegerValue Value;

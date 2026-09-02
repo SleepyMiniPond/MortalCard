@@ -347,7 +347,7 @@ MonoBehaviour:
       Data: 30|MortalGame.GameData.ConditionalPlayerBuffEffect, MortalGame.Runtime
     - Name: Conditions
       Entry: 7
-      Data: 31|System.Collections.Generic.List`1[[MortalGame.GameModel.IPlayerBuffCondition,
+      Data: 31|System.Collections.Generic.List`1[[MortalGame.GameModel.ICondition,
         MortalGame.Runtime]], mscorlib
     - Name: 
       Entry: 12

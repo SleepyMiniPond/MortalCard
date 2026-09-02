@@ -315,7 +315,7 @@ namespace MortalGame.Tests
         private static PlayerBuffData CreatePlayerBuffData(
             string buffId,
             GameTiming timing,
-            params IPlayerBuffCondition[] conditions)
+            params ICondition[] conditions)
         {
             var conditionalEffect = new ConditionalPlayerBuffEffect
             {
@@ -392,7 +392,7 @@ namespace MortalGame.Tests
         }
     }
 
-    internal sealed class SessionReceivedTimingCondition : IPlayerBuffCondition
+    internal sealed class SessionReceivedTimingCondition : ICondition
     {
         private readonly string _sessionKey;
         private readonly GameTiming _expectedTiming;
@@ -412,7 +412,7 @@ namespace MortalGame.Tests
         }
     }
 
-    internal sealed class PlayerBuffSourceCondition : IPlayerBuffCondition
+    internal sealed class PlayerBuffSourceCondition : ICondition
     {
         private readonly string _expectedBuffId;
 
