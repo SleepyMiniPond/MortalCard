@@ -158,6 +158,42 @@ namespace MortalGame.GameModel
         }
     }
 
+    [Serializable]
+    public class CardCollectionAnyCondition : ICondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardCollectionValue CardCollection;
+
+        [ShowInInspector]
+        [HorizontalGroup("2")]
+        public List<ICardValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            var cards = CardCollection.Eval(triggerContext);
+            return cards.Count > 0 && cards.Any(card => Conditions.All(
+                condition => condition.Eval(triggerContext, card)));
+        }
+    }
+
+    [Serializable]
+    public class CardCollectionAllCondition : ICondition
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardCollectionValue CardCollection;
+
+        [ShowInInspector]
+        [HorizontalGroup("2")]
+        public List<ICardValueCondition> Conditions = new();
+
+        public bool Eval(TriggerContext triggerContext)
+        {
+            var cards = CardCollection.Eval(triggerContext);
+            return cards.Count > 0 && cards.All(card => Conditions.All(
+                condition => condition.Eval(triggerContext, card)));
+        }
+    }
+
     [SerializeField]
     public class CardPlayCondition : ICondition
     {

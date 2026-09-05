@@ -557,7 +557,7 @@ namespace MortalGame.Tests
             var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
             try
             {
-                asset.Data = T010.T019SliceOneIntegrationTests.CreateSwordWithTransformRules();
+                asset.Data = CardTransformation.SwordShieldTransformationIntegrationTests.CreateSwordWithTransformRules();
                 AssetDatabase.CreateAsset(asset, assetPath);
                 AssetDatabase.SaveAssets();
                 Resources.UnloadAsset(asset);

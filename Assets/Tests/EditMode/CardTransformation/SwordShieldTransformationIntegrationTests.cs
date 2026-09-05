@@ -3,9 +3,9 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
-    public sealed class T019SliceOneIntegrationTests
+    public sealed class SwordShieldTransformationIntegrationTests
     {
         [Test]
         public void SwordShieldRules_InOwnersHand_AlternateOnEvenAndOddTurnStarts()

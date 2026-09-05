@@ -8,7 +8,7 @@ using Optional;
 using UnityEngine;
 using UnityEngine.TestTools;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     public class CardTransformationCharacterizationTests
     {
@@ -16,7 +16,7 @@ namespace MortalGame.Tests.T010
         public void CardInstance_Create_DefaultsToNoPersistentForm()
         {
             var cardData = CardTransformationTestBuilder.CreateCardData(
-                "t010-card-instance-base",
+                "card-instance-base",
                 cost: 1,
                 power: 1);
 
@@ -131,7 +131,7 @@ namespace MortalGame.Tests.T010
         [Test]
         public void CardInstancePersistenceMapper_PersistentReplacedByBattleOnly_DoesNotRestorePreviousForm()
         {
-            const string battleOnlyCardId = "t010-battle-only-persistence-card";
+            const string battleOnlyCardId = "battle-only-persistence-card";
             var built = new CardTransformationTestBuilder()
                 .WithCard(CardTransformationTestBuilder.CreateCardData(battleOnlyCardId, 1, 1))
                 .BuildFromInstance();
@@ -154,7 +154,7 @@ namespace MortalGame.Tests.T010
         [Test]
         public void CardInstancePersistenceMapper_PersistentReplacedByPersistent_ReturnsLatestForm()
         {
-            const string latestCardId = "t010-latest-persistent-card";
+            const string latestCardId = "latest-persistent-card";
             var built = new CardTransformationTestBuilder()
                 .WithCard(CardTransformationTestBuilder.CreateCardData(latestCardId, 1, 1))
                 .BuildFromInstance();
@@ -213,7 +213,7 @@ namespace MortalGame.Tests.T010
             var previousForm = new PersistentCardFormState(
                 "alternate",
                 CardTransformationTestBuilder.AlternateCardId);
-            const string battleOnlyCardId = "t010-writeback-battle-only-card";
+            const string battleOnlyCardId = "writeback-battle-only-card";
             var built = new CardTransformationTestBuilder()
                 .WithCard(CardTransformationTestBuilder.CreateCardData(battleOnlyCardId, 1, 1))
                 .BuildFromInstance(previousForm);
@@ -389,7 +389,7 @@ namespace MortalGame.Tests.T010
         public void TryApplySelfForm_ReplacingPersistentFormWithBattleOnlyFormKeepsOnlyCurrentFormState()
         {
             var built = new CardTransformationTestBuilder()
-                .WithCard(CardTransformationTestBuilder.CreateCardData("t010-battle-only-card", 1, 1))
+                .WithCard(CardTransformationTestBuilder.CreateCardData("battle-only-card", 1, 1))
                 .Build();
             built.Card.TryApplySelfForm(
                 "alternate",
@@ -398,11 +398,11 @@ namespace MortalGame.Tests.T010
 
             built.Card.TryApplySelfForm(
                 "alternate",
-                "t010-battle-only-card",
+                "battle-only-card",
                 CardFormPersistence.BattleOnly);
 
             var currentForm = built.Card.SelfFormState.ValueOr((CardFormState)null);
-            Assert.That(currentForm.CardDataId, Is.EqualTo("t010-battle-only-card"));
+            Assert.That(currentForm.CardDataId, Is.EqualTo("battle-only-card"));
             Assert.That(currentForm.Persistence, Is.EqualTo(CardFormPersistence.BattleOnly));
         }
 

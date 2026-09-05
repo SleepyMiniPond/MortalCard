@@ -5,7 +5,7 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     public class CardTransformRuleEvaluatorTests
     {

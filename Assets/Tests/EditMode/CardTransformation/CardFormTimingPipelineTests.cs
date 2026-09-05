@@ -5,7 +5,7 @@ using MortalGame.GameModel;
 using MortalGame.Presenter;
 using NUnit.Framework;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     public sealed class CardFormTimingPipelineTests
     {

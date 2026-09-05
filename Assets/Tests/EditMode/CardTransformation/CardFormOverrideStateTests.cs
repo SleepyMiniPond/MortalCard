@@ -5,15 +5,15 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     /// <summary>
     /// 驗證 External Override 單一 Slot 的狀態、取代與安全移除語意。
     /// </summary>
     public class CardFormOverrideStateTests
     {
-        private const string FirstOverrideId = "t010-first-override";
-        private const string SecondOverrideId = "t010-second-override";
+        private const string FirstOverrideId = "first-override";
+        private const string SecondOverrideId = "second-override";
 
         [Test]
         public void ApplyOverride_CreatesStateAndActivatesMatchingBuffLayer()

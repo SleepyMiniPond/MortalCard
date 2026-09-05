@@ -5,15 +5,15 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     /// <summary>
     /// 驗證 External Override 的 Session 更新、Timing 解除與快照安全性。
     /// </summary>
     public sealed class CardFormOverrideReleaseRuleTests
     {
-        private const string OverrideCardId = "t010-release-override";
-        private const string SecondOverrideCardId = "t010-release-second-override";
+        private const string OverrideCardId = "release-override";
+        private const string SecondOverrideCardId = "release-second-override";
 
         [Test]
         public void TriggerTiming_UpdatesSessionBeforeEvaluatingReleaseRule()

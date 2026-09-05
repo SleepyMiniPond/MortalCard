@@ -6,7 +6,7 @@ using MortalGame.GameModel;
 using NUnit.Framework;
 using Optional;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     /// <summary>
     /// 鎖定 CardBuff 分層導入前的單層行為，作為後續 Facade 重構的回歸基準。
@@ -50,7 +50,7 @@ namespace MortalGame.Tests.T010
         [Test]
         public void SingleLayer_Update_UpdatesSessionAndLifeTimeThenRemovesExpiredBuff()
         {
-            const string expiringBuffId = "t010-expiring-layer-baseline-buff";
+            const string expiringBuffId = "expiring-layer-baseline-buff";
             var buffData = _CreateExpiringBuffData(expiringBuffId);
             var built = new CardTransformationTestBuilder()
                 .WithCardBuff(buffData)
@@ -223,7 +223,7 @@ namespace MortalGame.Tests.T010
         [Test]
         public void BaseFacade_Update_ForwardsSessionAndLifeTimeUpdateToBaseLayer()
         {
-            const string expiringBuffId = "t010-expiring-base-facade-buff";
+            const string expiringBuffId = "expiring-base-facade-buff";
             var buffData = _CreateExpiringBuffData(expiringBuffId);
             var built = new CardTransformationTestBuilder()
                 .WithCardBuff(buffData)
@@ -269,7 +269,7 @@ namespace MortalGame.Tests.T010
         [Test]
         public void OverrideLayer_BaseLayerRemainsFrozenUntilRemove()
         {
-            const string expiringBuffId = "t010-frozen-base-layer-buff";
+            const string expiringBuffId = "frozen-base-layer-buff";
             var buffData = _CreateExpiringBuffData(expiringBuffId);
             var built = new CardTransformationTestBuilder()
                 .WithCardBuff(buffData)

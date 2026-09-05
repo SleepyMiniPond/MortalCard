@@ -60,6 +60,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.CardData,
                         context));
+                _ValidateConditionSemantics(asset.CardData, context, errors);
                 _ValidateIntegerValueSemantics(asset.CardData, context, errors);
                 _ValidateCardCollectionSemantics(asset.CardData, context, errors);
                 _ValidateCardStateSemantics(asset.CardData, context, errors);
@@ -75,6 +76,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.Data,
                         context));
+                _ValidateConditionSemantics(asset.Data, context, errors);
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
@@ -90,6 +92,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.Data,
                         context));
+                _ValidateConditionSemantics(asset.Data, context, errors);
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
@@ -105,6 +108,7 @@ namespace MortalGame.Editor
                     SerializedDataGraphUtility.ValidateRequiredReferences(
                         asset.Data,
                         context));
+                _ValidateConditionSemantics(asset.Data, context, errors);
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
@@ -1186,6 +1190,33 @@ namespace MortalGame.Editor
                         $"{context} 的 CardsOfPlayer.Zone 必須是有效的一般卡片區域：{cards.Zone}");
                 }
             }
+
+            foreach (var cards in SerializedDataGraphUtility.Find<FilteredCardCollection>(data))
+            {
+                if (cards.Conditions == null || cards.Conditions.Count == 0)
+                {
+                    errors.Add(
+                        $"{context} 的 FilteredCardCollection.Conditions 至少需要一項");
+                }
+            }
+
+            foreach (var condition in SerializedDataGraphUtility.Find<CardCollectionAnyCondition>(data))
+            {
+                if (condition.Conditions == null || condition.Conditions.Count == 0)
+                {
+                    errors.Add(
+                        $"{context} 的 CardCollectionAnyCondition.Conditions 至少需要一項");
+                }
+            }
+
+            foreach (var condition in SerializedDataGraphUtility.Find<CardCollectionAllCondition>(data))
+            {
+                if (condition.Conditions == null || condition.Conditions.Count == 0)
+                {
+                    errors.Add(
+                        $"{context} 的 CardCollectionAllCondition.Conditions 至少需要一項");
+                }
+            }
         }
 
         private static void _ValidateCardStateSemantics(
@@ -1445,6 +1476,44 @@ namespace MortalGame.Editor
             {
                 if (addCardBuffData.Level is ConstInteger { Value: < 0 })
                     errors.Add($"{context} 的 AddCardBuffData.Level 不可為負數");
+            }
+        }
+
+        private static void _ValidateConditionSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var condition in SerializedDataGraphUtility.Find<AllCondition>(data))
+            {
+                if (condition.Conditions == null || condition.Conditions.Count == 0)
+                    errors.Add($"{context} 的 AllCondition.Conditions 至少需要一項");
+            }
+
+            foreach (var condition in SerializedDataGraphUtility.Find<AnyCondition>(data))
+            {
+                if (condition.Conditions == null || condition.Conditions.Count == 0)
+                    errors.Add($"{context} 的 AnyCondition.Conditions 至少需要一項");
+            }
+
+            foreach (var condition in SerializedDataGraphUtility.Find<GameTimingCondition>(data))
+            {
+                if (condition.Timing == GameTiming.None ||
+                    !Enum.IsDefined(typeof(GameTiming), condition.Timing))
+                {
+                    errors.Add(
+                        $"{context} 的 GameTimingCondition.Timing 必須是有效 Timing：{condition.Timing}");
+                }
+            }
+
+            foreach (var condition in SerializedDataGraphUtility.Find<IntegerCompare>(data))
+            {
+                if (condition.Arithmetic == ArithmeticConditionType.None ||
+                    !Enum.IsDefined(typeof(ArithmeticConditionType), condition.Arithmetic))
+                {
+                    errors.Add(
+                        $"{context} 的 IntegerCompare.Arithmetic 必須是有效比較運算：{condition.Arithmetic}");
+                }
             }
         }
 

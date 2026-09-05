@@ -2,7 +2,7 @@ using System.Collections.Generic;
 using MortalGame.Editor;
 using MortalGame.GameData;
 using MortalGame.GameModel;
-using MortalGame.Tests.T010;
+using MortalGame.Tests.CardTransformation;
 using NUnit.Framework;
 using Optional;
 using UnityEditor;

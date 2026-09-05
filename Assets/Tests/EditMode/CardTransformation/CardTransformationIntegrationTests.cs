@@ -5,15 +5,15 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     /// <summary>
     /// 驗證 Self Form、External Override、Buff Layer、PlayerBuff 與 Clone 的跨層整合邊界。
     /// </summary>
     public sealed class CardTransformationIntegrationTests
     {
-        private const string OverrideCardId = "t010-integration-override";
-        private const string PlayerBuffId = "t010-integration-player-buff";
+        private const string OverrideCardId = "integration-override";
+        private const string PlayerBuffId = "integration-player-buff";
 
         [Test]
         public void FullFlow_AtoBtoCThenRelease_PreservesUnderlyingStateAndKeepsCloneIndependent()

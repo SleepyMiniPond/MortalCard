@@ -5,14 +5,14 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     /// <summary>
     /// 驗證 External Override 從 GameData、Resolver、Command 到 Handler 的完整套用流程。
     /// </summary>
     public class CardFormOverrideEffectPipelineTests
     {
-        private const string OverrideCardId = "t010-pipeline-override";
+        private const string OverrideCardId = "pipeline-override";
 
         [Test]
         public void Resolver_CopiesConfiguredPayloadIntoApplyCommand()

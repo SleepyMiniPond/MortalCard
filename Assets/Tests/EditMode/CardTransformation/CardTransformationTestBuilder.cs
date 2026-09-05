@@ -4,16 +4,16 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using Optional;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     /// <summary>
     /// 提供 T-010 形態系統測試共用的最小戰鬥與卡片組裝。
     /// </summary>
     public sealed class CardTransformationTestBuilder
     {
-        public const string BaseCardId = "t010-base-card";
-        public const string AlternateCardId = "t010-alternate-card";
-        public const string CardBuffId = "t010-card-buff";
+        public const string BaseCardId = "base-card";
+        public const string AlternateCardId = "alternate-card";
+        public const string CardBuffId = "card-buff";
 
         private readonly Dictionary<string, CardData> _cards = new();
         private readonly Dictionary<string, PlayerBuffData> _playerBuffs = new();

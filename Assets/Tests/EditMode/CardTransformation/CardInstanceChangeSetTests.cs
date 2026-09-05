@@ -5,11 +5,11 @@ using MortalGame.GameModel;
 using NUnit.Framework;
 using Optional;
 
-namespace MortalGame.Tests.T010
+namespace MortalGame.Tests.CardTransformation
 {
     public sealed class CardInstanceChangeSetTests
     {
-        private const string OverrideCardId = "t010-change-set-override";
+        private const string OverrideCardId = "change-set-override";
 
         [Test]
         public void Collect_PersistentSelfForm_SetsCurrentFormAndClearsOverride()

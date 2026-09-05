@@ -133,5 +133,25 @@ namespace MortalGame.GameModel
         }
     }
 
+    [Serializable]
+    public class FilteredCardCollection : ITargetCardCollectionValue
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardCollectionValue CardCollection;
+
+        [ShowInInspector]
+        [HorizontalGroup("2")]
+        public List<ICardValueCondition> Conditions = new();
+
+        public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            return CardCollection
+                .Eval(triggerContext)
+                .Where(card => Conditions.All(
+                    condition => condition.Eval(triggerContext, card)))
+                .ToArray();
+        }
+    }
+
 
 }

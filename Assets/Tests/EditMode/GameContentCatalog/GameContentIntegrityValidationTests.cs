@@ -708,9 +708,9 @@ namespace MortalGame.Tests
 
             try
             {
-                sword.Data = T010.T019SliceOneIntegrationTests.CreateSwordWithTransformRules();
-                shield.Data = T010.CardTransformationTestBuilder.CreateCardData(
-                    T010.CardTransformationTestBuilder.AlternateCardId,
+                sword.Data = CardTransformation.SwordShieldTransformationIntegrationTests.CreateSwordWithTransformRules();
+                shield.Data = CardTransformation.CardTransformationTestBuilder.CreateCardData(
+                    CardTransformation.CardTransformationTestBuilder.AlternateCardId,
                     cost: 2,
                     power: 5);
                 _SetCatalogArray(catalog, "_cardAssets", sword);
