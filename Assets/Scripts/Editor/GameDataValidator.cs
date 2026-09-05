@@ -1356,6 +1356,15 @@ namespace MortalGame.Editor
                         $"{context} 的 PlayerByFaction.Faction 必須是 Ally 或 Enemy：{player.Faction}");
                 }
             }
+
+            foreach (var index in SerializedDataGraphUtility.Find<IndexOfCardCollection>(data))
+            {
+                if (index.Order is not (OrderType.Ascending or OrderType.Descending))
+                {
+                    errors.Add(
+                        $"{context} 的 IndexOfCardCollection.Order 必須是 Ascending 或 Descending：{index.Order}");
+                }
+            }
         }
 
         private static void _ValidateCardBuffNestedSemantics(

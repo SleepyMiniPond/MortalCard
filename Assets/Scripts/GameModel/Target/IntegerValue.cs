@@ -34,6 +34,18 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
+    public class CardCollectionCountInteger : IIntegerValue
+    {
+        [HorizontalGroup("1")]
+        public ITargetCardCollectionValue CardCollection;
+
+        public Option<int> Eval(TriggerContext triggerContext)
+        {
+            return CardCollection.Eval(triggerContext).Count.Some();
+        }
+    }
+
+    [Serializable]
     public class ArithmeticInteger : IIntegerValue
     {
         public ArithmeticType Operation;

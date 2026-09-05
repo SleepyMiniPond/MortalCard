@@ -84,15 +84,21 @@ namespace MortalGame.GameModel
         public Option<ICardEntity> Eval(TriggerContext triggerContext)
         {
             var cards = CardCollection.Eval(triggerContext);
-            var orderedCards = Order switch
+            return Order switch
             {
-                OrderType.Ascending => cards.ToList(),
-                OrderType.Descending => cards.Reverse().ToList(),
-                _ => cards.ToList()
+                OrderType.Ascending => _EvalIndexed(cards.ToList(), triggerContext),
+                OrderType.Descending => _EvalIndexed(cards.Reverse().ToList(), triggerContext),
+                _ => Option.None<ICardEntity>()
             };
+        }
+
+        private Option<ICardEntity> _EvalIndexed(
+            IReadOnlyList<ICardEntity> orderedCards,
+            TriggerContext triggerContext)
+        {
             return Index
                 .Eval(triggerContext)
-                .Filter(index => cards.Count > index && index >= 0)
+                .Filter(index => orderedCards.Count > index && index >= 0)
                 .FlatMap(index => orderedCards.ElementAt(index).SomeNotNull());
         }
     }
