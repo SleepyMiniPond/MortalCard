@@ -1,6 +1,6 @@
 # 專案已完成任務封存
 
-> 封存日期：2026-08-19
+> 封存日期：2026-09-07
 > 本文件保留已完成任務的設計、實作與驗證紀錄；目前工作請查看 [TODO.md](TODO.md)。
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 
@@ -267,3 +267,26 @@
   - Play Mode Gate smoke test：有效資料可正常進入 Play Mode，並已正常退出。
   - 測試保留 2 筆既有 `NoOpCardBuffEffect` 未知 Resolver warning，屬測試用空效果案例。
 - **狀態**：✅ 已完成（2026-08-19）
+
+---
+
+### T-019：通用遊戲狀態查詢／Value／Condition
+
+- **目標**：建立可組合、可序列化的 Target／Value／Condition 基礎，讓企劃能以資料資產描述回合、區域、角色狀態與集合規則，而不為單一卡牌新增專用條件類別。
+- **完成內容**：
+  - `IIntegerValue` 改以 `Option<int>` 表達缺值；補齊回合數、加減乘除、餘數、最小／最大值、條件 Value 與集合計數，且 Effect 遇到缺值安全 No-op。
+  - 建立 `GameTimingCondition`、反應鏈起因 Timing 傳遞，以及奇偶回合的通用算術組合。
+  - 補齊 Card Owner、Action Card、暫態 Playing Card、指定玩家一般區域、Player／Character 關係鏈，以及 Player／Character／Card 與三種 Buff 的 Target、狀態與數值查詢。
+  - 建立卡片集合 Filter、Contains、Any、All、Count 與合法索引查詢；空集合 Any／All／Contains 為 `false`、Count 為 `0`，純查詢不消耗亂數。
+  - 擴充 `GameDataValidator`，攔截無效列舉、空條件、必要巢狀引用、常數零除與可確定溢位等資產錯誤；沿用 Play Mode Gate 與 Build Gate。
+  - 完成刀／盾變形與定時炸彈 Target／Value／Condition 的資料組合驗收；定時炸彈實際傷害執行屬於後續 T-020。
+  - 更新 [Target.md](Target.md)、[Condition.md](Condition.md) 與 [AI_Notes_Index.md](AI_Notes_Index.md)，並新增 [Value.md](Value.md)。
+- **驗證結果**：
+  - Unity 編譯：0 error。
+  - 刀／盾整合測試：2 passed / 0 failed。
+  - 定時炸彈查詢整合測試：3 passed / 0 failed。
+  - 集合查詢整合測試：4 passed / 0 failed。
+  - GameData Play Mode Gate：3 passed / 0 failed。
+  - 完整 EditMode：486 passed / 0 failed / 0 skipped。
+  - 測試保留 2 筆既有 `NoOpCardBuffEffect` 未知 Resolver warning，屬測試用空效果案例。
+- **狀態**：✅ 已完成（2026-09-07）

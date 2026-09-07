@@ -1,6 +1,6 @@
 # AI 筆記索引 — MortalGame 文件系統
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-06 | 版本：v2.1
 
 ## 文件總覽
 
@@ -46,8 +46,9 @@
 | [GameModel.md](GameModel.md) | 邏輯層總覽、狀態機、管理器 | ✅ 2026-04-20 |
 | [Action.md](Action.md) | 三層動作管線（Intent→TargetIntent→Result） | ✅ 2026-04-20 |
 | [Effect.md](Effect.md) | 效果管線（Resolver→Command→Executor） | ✅ 2026-04-20 |
-| [Condition.md](Condition.md) | 組合式條件系統 | ✅ 2026-04-20 |
-| [Target.md](Target.md) | 目標解析系統 | ✅ 2026-04-20 |
+| [Condition.md](Condition.md) | 組合式條件系統 | ✅ 2026-09-06 |
+| [Target.md](Target.md) | 目標解析系統 | ✅ 2026-09-06 |
+| [Value.md](Value.md) | 整數 Value、算術、缺值與集合計數契約 | ✅ 2026-09-06 |
 | [Entity.md](Entity.md) | 實體系統（組合式設計） | ✅ 2026-04-20 |
 | [Card.md](Card.md) | 卡牌系統（三層流轉） | ✅ 2026-04-20 |
 | [CardTransformation.md](CardTransformation.md) | 卡片變身的現有代理結構、資料流與實作缺口 | ✅ 2026-07-24 |
@@ -107,14 +108,15 @@
 4. **GameData.md** → **Instance.md** → **Entity.md** — 理解三層資料架構
 5. **GameModel.md** → **Action.md** → **Effect.md** — 理解邏輯管線
 6. **GameView.md** → 各子視圖文件 — 理解視覺系統
-7. **Presenter.md** → **Scene.md** — 理解協調與場景流程
+7. **Target.md** → **Value.md** → **Condition.md** — 理解可組合查詢與資料條件
+8. **Presenter.md** → **Scene.md** — 理解協調與場景流程
 
 ---
 
 ## 文件系統統計
 
-- **總文件數**：34 個
+- **總文件數**：35 個
 - **必讀文件**：4 個
 - **系統文件**：25 個
-- **全面重寫日期**：2026-04-20
+- **最近索引更新**：2026-09-06
 - **目前核心腳本數**：243 個 .cs 檔案（`Assets/Scripts/`，2026-06-22）
