@@ -10,13 +10,23 @@ namespace MortalGame.GameModel
     {
         public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
         {
-            return effect switch
+            if (effect is not DamageEffect damageEffect)
             {
-                DamageEffect e => _Resolve(context, e.Targets, e.Value, DamageType.Normal, GameFormula.NormalDamagePoint),
-                PenetrateDamageEffect e => _Resolve(context, e.Targets, e.Value, DamageType.Penetrate, GameFormula.PenetrateDamagePoint),
-                AdditionalAttackEffect e => _Resolve(context, e.Targets, e.Value, DamageType.Additional, GameFormula.AdditionalDamagePoint),
-                EffectiveAttackEffect e => _Resolve(context, e.Targets, e.Value, DamageType.Effective, GameFormula.EffectiveDamagePoint),
-                _ => throw new InvalidOperationException($"DamageEffectResolver 不支援的效果類型：{effect.GetType().Name}")
+                throw new InvalidOperationException($"DamageEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+            }
+
+            if (damageEffect.Targets == null || damageEffect.Value == null)
+            {
+                return EffectCommandSet.Empty;
+            }
+
+            return damageEffect.Type switch
+            {
+                DamageType.Normal => _Resolve(context, damageEffect.Targets, damageEffect.Value, DamageType.Normal, GameFormula.NormalDamagePoint),
+                DamageType.Penetrate => _Resolve(context, damageEffect.Targets, damageEffect.Value, DamageType.Penetrate, GameFormula.PenetrateDamagePoint),
+                DamageType.Additional => _Resolve(context, damageEffect.Targets, damageEffect.Value, DamageType.Additional, GameFormula.AdditionalDamagePoint),
+                DamageType.Effective => _Resolve(context, damageEffect.Targets, damageEffect.Value, DamageType.Effective, GameFormula.EffectiveDamagePoint),
+                _ => EffectCommandSet.Empty
             };
         }
 

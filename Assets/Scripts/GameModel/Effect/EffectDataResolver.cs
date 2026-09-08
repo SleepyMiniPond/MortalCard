@@ -24,9 +24,6 @@ namespace MortalGame.GameModel
         {
 
             [typeof(DamageEffect)] = new DamageEffectResolver(),
-            [typeof(PenetrateDamageEffect)] = new DamageEffectResolver(),
-            [typeof(AdditionalAttackEffect)] = new DamageEffectResolver(),
-            [typeof(EffectiveAttackEffect)] = new DamageEffectResolver(),
             [typeof(HealEffect)] = new HealEffectResolver(),
             [typeof(ShieldEffect)] = new ShieldEffectResolver(),
             [typeof(GainEnergyEffect)] = new GainEnergyEffectResolver(),
@@ -49,17 +46,12 @@ namespace MortalGame.GameModel
 
         private static readonly Dictionary<Type, IPlayerBuffEffectResolver> _playerBuffResolverRegistry = new()
         {
-            [typeof(AdditionalDamagePlayerBuffEffect)] = new DamagePlayerBuffEffectResolver(),
-            [typeof(EffectiveDamagePlayerBuffEffect)] = new DamagePlayerBuffEffectResolver(),
             [typeof(AddCardBuffPlayerBuffEffect)] = new AddCardBuffPlayerBuffEffectResolver(),
             [typeof(RemoveCardBuffPlayerBuffEffect)] = new RemoveCardBuffPlayerBuffEffectResolver(),
             [typeof(CardPlayEffectAttributeAdditionPlayerBuffEffect)] = new CardPlayEffectAttributeAdditionPlayerBuffEffectResolver(),
         };
 
-        private static readonly Dictionary<Type, ICharacterBuffEffectResolver> _characterBuffResolverRegistry = new()
-        {
-            [typeof(EffectiveDamageCharacterBuffEffect)] = new DamageCharacterBuffEffectResolver(),
-        };
+        private static readonly Dictionary<Type, ICharacterBuffEffectResolver> _characterBuffResolverRegistry = new();
 
         private static readonly Dictionary<Type, ICardBuffEffectResolver> _cardBuffResolverRegistry = new()
         {
@@ -75,17 +67,20 @@ namespace MortalGame.GameModel
 
         public static bool HasPlayerBuffEffectResolver(Type effectType)
         {
-            return _playerBuffResolverRegistry.ContainsKey(effectType);
+            return _HasCoreEffectResolver<IPlayerBuffEffect>(effectType) ||
+                _playerBuffResolverRegistry.ContainsKey(effectType);
         }
 
         public static bool HasCharacterBuffEffectResolver(Type effectType)
         {
-            return _characterBuffResolverRegistry.ContainsKey(effectType);
+            return _HasCoreEffectResolver<ICharacterBuffEffect>(effectType) ||
+                _characterBuffResolverRegistry.ContainsKey(effectType);
         }
 
         public static bool HasCardBuffEffectResolver(Type effectType)
         {
-            return _cardBuffResolverRegistry.ContainsKey(effectType);
+            return _HasCoreEffectResolver<ICardBuffEffect>(effectType) ||
+                _cardBuffResolverRegistry.ContainsKey(effectType);
         }
 
         #region CardEffect
@@ -106,6 +101,9 @@ namespace MortalGame.GameModel
             TriggerContext context,
             IPlayerBuffEffect buffEffect)
         {
+            if (buffEffect is ICardEffect coreEffect)
+                return ResolveCardEffect(context, coreEffect);
+
             if (_playerBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
@@ -119,6 +117,9 @@ namespace MortalGame.GameModel
             TriggerContext context,
             ICharacterBuffEffect buffEffect)
         {
+            if (buffEffect is ICardEffect coreEffect)
+                return ResolveCardEffect(context, coreEffect);
+
             if (_characterBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
@@ -132,6 +133,9 @@ namespace MortalGame.GameModel
             TriggerContext context,
             ICardBuffEffect buffEffect)
         {
+            if (buffEffect is ICardEffect coreEffect)
+                return ResolveCardEffect(context, coreEffect);
+
             if (_cardBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
@@ -139,6 +143,15 @@ namespace MortalGame.GameModel
             return EffectCommandSet.Empty;
         }
         #endregion
+
+        private static bool _HasCoreEffectResolver<TReactionEffect>(Type effectType)
+            where TReactionEffect : IReactionEffect
+        {
+            return effectType != null &&
+                typeof(TReactionEffect).IsAssignableFrom(effectType) &&
+                typeof(ICardEffect).IsAssignableFrom(effectType) &&
+                HasCardEffectResolver(effectType);
+        }
     }
 
 }

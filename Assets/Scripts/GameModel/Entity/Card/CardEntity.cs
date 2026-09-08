@@ -399,10 +399,10 @@ namespace MortalGame.GameModel
         public static Option<IPlayerEntity> Owner(this ICardEntity card, IGameplayModel model)
         {
             var gameStatus = model.GameStatus;
-            var allyCardOpt = gameStatus.Ally.CardManager.GetCardOrNone(card => card.Identity == card.Identity);
+            var allyCardOpt = gameStatus.Ally.CardManager.GetCardOrNone(candidate => candidate.Identity == card.Identity);
             if (allyCardOpt.HasValue)
                 return (gameStatus.Ally as IPlayerEntity).Some();
-            var enemyCardOpt = gameStatus.Enemy.CardManager.GetCardOrNone(card => card.Identity == card.Identity);
+            var enemyCardOpt = gameStatus.Enemy.CardManager.GetCardOrNone(candidate => candidate.Identity == card.Identity);
             if (enemyCardOpt.HasValue)
                 return (gameStatus.Enemy as IPlayerEntity).Some();
             return Option.None<IPlayerEntity>();

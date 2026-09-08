@@ -61,6 +61,7 @@ namespace MortalGame.Editor
                         asset.CardData,
                         context));
                 _ValidateConditionSemantics(asset.CardData, context, errors);
+                _ValidateDamageEffectSemantics(asset.CardData, context, errors);
                 _ValidateIntegerValueSemantics(asset.CardData, context, errors);
                 _ValidateCardCollectionSemantics(asset.CardData, context, errors);
                 _ValidateCardStateSemantics(asset.CardData, context, errors);
@@ -77,6 +78,7 @@ namespace MortalGame.Editor
                         asset.Data,
                         context));
                 _ValidateConditionSemantics(asset.Data, context, errors);
+                _ValidateDamageEffectSemantics(asset.Data, context, errors);
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
@@ -93,6 +95,7 @@ namespace MortalGame.Editor
                         asset.Data,
                         context));
                 _ValidateConditionSemantics(asset.Data, context, errors);
+                _ValidateDamageEffectSemantics(asset.Data, context, errors);
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
@@ -109,6 +112,7 @@ namespace MortalGame.Editor
                         asset.Data,
                         context));
                 _ValidateConditionSemantics(asset.Data, context, errors);
+                _ValidateDamageEffectSemantics(asset.Data, context, errors);
                 _ValidateIntegerValueSemantics(asset.Data, context, errors);
                 _ValidateCardCollectionSemantics(asset.Data, context, errors);
                 _ValidateCardStateSemantics(asset.Data, context, errors);
@@ -636,6 +640,14 @@ namespace MortalGame.Editor
                 : _ValidateEffectResolvers(catalog);
         }
 
+        public static IReadOnlyList<string> ValidateEffectResolvers(
+            GameContentCatalog catalog)
+        {
+            return catalog == null
+                ? new[] { "GameContentCatalog 為空，無法驗證 Effect Resolver" }
+                : _ValidateEffectResolvers(catalog);
+        }
+
         private static IReadOnlyList<string> _ValidateEffectResolvers(
             GameContentCatalog catalog)
         {
@@ -1049,6 +1061,18 @@ namespace MortalGame.Editor
         {
             if (effect != null && !EffectDataResolver.HasCardBuffEffectResolver(effect.GetType()))
                 errors.Add($"{context} 的 {effect.GetType().Name} 缺少 ICardBuffEffectResolver 註冊");
+        }
+
+        private static void _ValidateDamageEffectSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var effect in SerializedDataGraphUtility.Find<DamageEffect>(data))
+            {
+                if (!Enum.IsDefined(typeof(DamageType), effect.Type))
+                    errors.Add($"{context} 的 DamageEffect.Type 無效：{effect.Type}");
+            }
         }
 
         private static IEnumerable<ICardEffect> EnumerateCardEffects(CardData cardData)

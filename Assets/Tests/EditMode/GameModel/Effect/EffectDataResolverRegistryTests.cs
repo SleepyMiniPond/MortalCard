@@ -12,9 +12,6 @@ namespace MortalGame.Tests
         public static IEnumerable<TestCaseData> CardEffectTypes()
         {
             yield return new TestCaseData(typeof(DamageEffect));
-            yield return new TestCaseData(typeof(PenetrateDamageEffect));
-            yield return new TestCaseData(typeof(AdditionalAttackEffect));
-            yield return new TestCaseData(typeof(EffectiveAttackEffect));
             yield return new TestCaseData(typeof(ShieldEffect));
             yield return new TestCaseData(typeof(HealEffect));
             yield return new TestCaseData(typeof(GainEnergyEffect));
@@ -37,8 +34,7 @@ namespace MortalGame.Tests
 
         public static IEnumerable<TestCaseData> PlayerBuffEffectTypes()
         {
-            yield return new TestCaseData(typeof(AdditionalDamagePlayerBuffEffect));
-            yield return new TestCaseData(typeof(EffectiveDamagePlayerBuffEffect));
+            yield return new TestCaseData(typeof(DamageEffect));
             yield return new TestCaseData(typeof(AddCardBuffPlayerBuffEffect));
             yield return new TestCaseData(typeof(RemoveCardBuffPlayerBuffEffect));
             yield return new TestCaseData(typeof(CardPlayEffectAttributeAdditionPlayerBuffEffect));
@@ -46,7 +42,12 @@ namespace MortalGame.Tests
 
         public static IEnumerable<TestCaseData> CharacterBuffEffectTypes()
         {
-            yield return new TestCaseData(typeof(EffectiveDamageCharacterBuffEffect));
+            yield return new TestCaseData(typeof(DamageEffect));
+        }
+
+        public static IEnumerable<TestCaseData> CardBuffEffectTypes()
+        {
+            yield return new TestCaseData(typeof(DamageEffect));
         }
 
         [TestCaseSource(nameof(CardEffectTypes))]
@@ -73,10 +74,20 @@ namespace MortalGame.Tests
                 $"{effectType.Name} 缺少 ICharacterBuffEffectResolver 註冊");
         }
 
-        [Test]
-        public void CardBuffEffectRegistry_CurrentlyHasNoConcreteEffectTypes()
+        [TestCaseSource(nameof(CardBuffEffectTypes))]
+        public void CardBuffEffectType_HasResolver(Type effectType)
         {
-            Assert.Pass("目前 CardBuffEffect.cs 尚未定義具體 ICardBuffEffect 型別，因此此 registry 暫無必填註冊。");
+            Assert.IsTrue(
+                EffectDataResolver.HasCardBuffEffectResolver(effectType),
+                $"{effectType.Name} 缺少 ICardBuffEffectResolver 註冊");
+        }
+
+        [Test]
+        public void CardOnlyEffect_DoesNotClaimBuffSourceSupport()
+        {
+            Assert.IsFalse(EffectDataResolver.HasPlayerBuffEffectResolver(typeof(HealEffect)));
+            Assert.IsFalse(EffectDataResolver.HasCharacterBuffEffectResolver(typeof(HealEffect)));
+            Assert.IsFalse(EffectDataResolver.HasCardBuffEffectResolver(typeof(HealEffect)));
         }
     }
 }

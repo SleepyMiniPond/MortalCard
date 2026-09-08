@@ -88,7 +88,10 @@ MonoBehaviour:
       Data: 1
     - Name: 
       Entry: 7
-      Data: 6|MortalGame.GameData.PenetrateDamageEffect, MortalGame.Runtime
+      Data: 6|MortalGame.GameData.DamageEffect, MortalGame.Runtime
+    - Name: Type
+      Entry: 3
+      Data: 1
     - Name: Targets
       Entry: 7
       Data: 7|MortalGame.GameModel.SingleCharacterCollection, MortalGame.Runtime

@@ -238,7 +238,10 @@ MonoBehaviour:
       Data: 
     - Name: Effect
       Entry: 7
-      Data: 21|MortalGame.GameData.EffectiveDamagePlayerBuffEffect, MortalGame.Runtime
+      Data: 21|MortalGame.GameData.DamageEffect, MortalGame.Runtime
+    - Name: Type
+      Entry: 3
+      Data: 3
     - Name: Targets
       Entry: 7
       Data: 22|MortalGame.GameModel.SingleCharacterCollection, MortalGame.Runtime

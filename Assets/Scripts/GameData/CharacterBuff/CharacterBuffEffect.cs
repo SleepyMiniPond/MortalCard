@@ -19,10 +19,4 @@ namespace MortalGame.GameData
         public ICharacterBuffEffect Effect;
     }
 
-    public class EffectiveDamageCharacterBuffEffect : ICharacterBuffEffect
-    {
-        public ITargetCharacterCollectionValue Targets;
-        public IIntegerValue Value;
-    }
-
 }

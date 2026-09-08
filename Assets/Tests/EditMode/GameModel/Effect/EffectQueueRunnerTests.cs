@@ -600,8 +600,9 @@ namespace MortalGame.Tests
                 new PlayerBuffTrigger(built.Ally, BuffTestBuilder.CreatePlayerBuff()),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
-            var effect = new EffectiveDamagePlayerBuffEffect
+            var effect = new DamageEffect
             {
+                Type = DamageType.Effective,
                 Targets = new SingleCharacterCollection
                 {
                     Target = new MainCharacterOfPlayer { Player = new CurrentPlayer() }
@@ -629,8 +630,9 @@ namespace MortalGame.Tests
                     BuffTestBuilder.CreateCharacterBuff()),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
             var runner = new EffectQueueRunner();
-            var effect = new EffectiveDamageCharacterBuffEffect
+            var effect = new DamageEffect
             {
+                Type = DamageType.Effective,
                 Targets = new SingleCharacterCollection
                 {
                     Target = new MainCharacterOfPlayer { Player = new CurrentPlayer() }

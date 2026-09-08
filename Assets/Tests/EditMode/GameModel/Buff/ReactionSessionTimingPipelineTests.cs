@@ -38,8 +38,9 @@ namespace MortalGame.Tests
             var conditionalEffect = new ConditionalPlayerBuffEffect
             {
                 Conditions = { new ConstCondition { Value = true } },
-                Effect = new EffectiveDamagePlayerBuffEffect
+                Effect = new DamageEffect
                 {
+                    Type = DamageType.Effective,
                     Targets = new SingleCharacterCollection
                     {
                         Target = new MainCharacterOfPlayer
@@ -141,8 +142,9 @@ namespace MortalGame.Tests
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
-                    Effect = new EffectiveDamagePlayerBuffEffect
+                    Effect = new DamageEffect
                     {
+                        Type = DamageType.Effective,
                         Targets = new SingleCharacterCollection
                         {
                             Target = new MainCharacterOfPlayer

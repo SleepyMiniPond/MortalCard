@@ -156,4 +156,47 @@ namespace MortalGame.GameModel
         }
     }
 
+    /// <summary>
+    /// 取得目前 Reaction 來源的持有者。卡牌與卡牌 Buff 的持有者由卡片所在玩家決定；
+    /// CharacterBuff 的持有者則是掛載該 Buff 角色所屬的玩家。
+    /// </summary>
+    [Serializable]
+    public class ReactionOwnerPlayer : ITargetPlayerValue
+    {
+        public Option<IPlayerEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered switch
+            {
+                ICardTriggeredSource cardSource =>
+                    cardSource.Card.Owner(triggerContext.Model),
+                ICharacterTriggeredSource characterSource =>
+                    characterSource.Character.Owner(triggerContext.Model),
+                IPlayerTriggeredSource playerSource =>
+                    playerSource.Player.SomeNotNull(),
+                _ => Option.None<IPlayerEntity>()
+            };
+        }
+    }
+
+    /// <summary>
+    /// 取得目前 Reaction 的施放者。沒有可追溯施放者時保留 None，
+    /// 不以 CurrentPlayer 偽造施放者。
+    /// </summary>
+    [Serializable]
+    public class ReactionCasterPlayer : ITargetPlayerValue
+    {
+        public Option<IPlayerEntity> Eval(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered switch
+            {
+                PlayerBuffTrigger playerBuffTrigger => playerBuffTrigger.Buff.Caster,
+                CharacterBuffTrigger characterBuffTrigger => characterBuffTrigger.Buff.Caster,
+                CardBuffTrigger cardBuffTrigger => cardBuffTrigger.Buff.Caster,
+                ICardTriggeredSource cardSource =>
+                    cardSource.Card.Owner(triggerContext.Model),
+                _ => Option.None<IPlayerEntity>()
+            };
+        }
+    }
+
 }

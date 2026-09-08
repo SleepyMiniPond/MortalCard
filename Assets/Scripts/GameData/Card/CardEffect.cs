@@ -15,30 +15,17 @@ namespace MortalGame.GameData
     // Target-Character Effect
     // ==============================
     [Serializable]
-    public class DamageEffect : ICardEffect
+    public class DamageEffect :
+        ICardEffect,
+        IPlayerBuffEffect,
+        ICharacterBuffEffect,
+        ICardBuffEffect
     {
+        /// <summary>傷害計算公式的種類。</summary>
+        public DamageType Type = DamageType.Normal;
         public ITargetCharacterCollectionValue Targets;
         public IIntegerValue Value;
     }
-    [Serializable]
-    public class PenetrateDamageEffect : ICardEffect
-    {
-        public ITargetCharacterCollectionValue Targets;
-        public IIntegerValue Value;
-    }
-    [Serializable]
-    public class AdditionalAttackEffect : ICardEffect
-    {
-        public ITargetCharacterCollectionValue Targets;
-        public IIntegerValue Value;
-    }
-    [Serializable]
-    public class EffectiveAttackEffect : ICardEffect
-    {
-        public ITargetCharacterCollectionValue Targets;
-        public IIntegerValue Value;
-    }
-
     [Serializable]
     public class ShieldEffect : ICardEffect
     {
