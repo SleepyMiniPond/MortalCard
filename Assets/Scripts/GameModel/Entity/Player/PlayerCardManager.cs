@@ -217,6 +217,36 @@ namespace MortalGame.GameModel
 
     public static class PlayerCardManagerExtensions
     {
+        public static bool IsNormalCardZone(this CardCollectionType zone)
+        {
+            return zone is CardCollectionType.Deck
+                or CardCollectionType.HandCard
+                or CardCollectionType.Graveyard
+                or CardCollectionType.ExclusionZone
+                or CardCollectionType.DisposeZone;
+        }
+
+        public static Option<(ICardEntity Card, CardCollectionType Zone)> GetCardAndZoneOrNone(
+            this IPlayerCardManager cardManager,
+            ICardEntity targetCard,
+            IReadOnlyCollection<CardCollectionType> zones)
+        {
+            if (cardManager == null || targetCard == null)
+                return Option.None<(ICardEntity Card, CardCollectionType Zone)>();
+
+            foreach (var zoneType in zones)
+            {
+                var card = cardManager
+                    .GetCardCollectionZone(zoneType)
+                    .GetCardOrNone(candidate => candidate.Identity == targetCard.Identity);
+                if (card.TryGetValue(out var foundCard))
+                    return Option.Some((foundCard, zoneType));
+            }
+
+            // PlayingCard 是出牌期間的暫態，不屬於可由移牌效果操作的一般區域。
+            return Option.None<(ICardEntity Card, CardCollectionType Zone)>();
+        }
+
         public static Option<IPlayerEntity> Owner(this IPlayerCardManager cardManager, IGameplayModel watcher)
         {
             if (watcher.GameStatus.Ally.CardManager == cardManager)

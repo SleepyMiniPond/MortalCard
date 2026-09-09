@@ -113,22 +113,26 @@ namespace MortalGame.GameData
         public IIntegerValue Value;
     }
     [Serializable]
-    public class DiscardCardEffect : ICardEffect
+    public class DiscardCardEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetCardCollectionValue TargetCards;
     }
     [Serializable]
-    public class ConsumeCardEffect : ICardEffect
+    public class ConsumeCardEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetCardCollectionValue TargetCards;
     }
     [Serializable]
-    public class DisposeCardEffect : ICardEffect
+    public class DisposeCardEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetCardCollectionValue TargetCards;
     }
     [Serializable]
-    public class CreateCardEffect : ICardEffect
+    public class CreateCardEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerValue Target;
         [ShowInInspector]
@@ -138,7 +142,8 @@ namespace MortalGame.GameData
         public CardCollectionType CreateDestination;
     }
     [Serializable]
-    public class CloneCardEffect : ICardEffect
+    public class CloneCardEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerValue Target;
         public ITargetCardCollectionValue ClonedCards;

@@ -23,32 +23,69 @@ namespace MortalGame.GameModel
         private static readonly ModifyCardPlayAttributeEffectResolver
             _modifyCardPlayAttributeResolver = new();
 
+        private static readonly DamageEffectResolver _damageResolver = new();
+        private static readonly ShieldEffectResolver _shieldResolver = new();
+        private static readonly HealEffectResolver _healResolver = new();
+        private static readonly GainEnergyEffectResolver _gainEnergyResolver = new();
+        private static readonly LoseEnergyEffectResolver _loseEnergyResolver = new();
+        private static readonly IncreaseDispositionEffectResolver _increaseDispositionResolver = new();
+        private static readonly DecreaseDispositionEffectResolver _decreaseDispositionResolver = new();
+        private static readonly AddPlayerBuffEffectResolver _addPlayerBuffResolver = new();
+        private static readonly ModifyPlayerBuffLevelEffectResolver _modifyPlayerBuffLevelResolver = new();
+        private static readonly RemovePlayerBuffEffectResolver _removePlayerBuffResolver = new();
+        private static readonly DrawCardEffectResolver _drawCardResolver = new();
+        private static readonly AddCardBuffEffectResolver _addCardBuffResolver = new();
+        private static readonly RemoveCardBuffEffectResolver _removeCardBuffResolver = new();
+        private static readonly DiscardCardEffectResolver _discardCardResolver = new();
+        private static readonly ConsumeCardEffectResolver _consumeCardResolver = new();
+        private static readonly DisposeCardEffectResolver _disposeCardResolver = new();
+        private static readonly CreateCardEffectResolver _createCardResolver = new();
+        private static readonly CloneCardEffectResolver _cloneCardResolver = new();
+
         private static readonly Dictionary<Type, ICardEffectResolver> _resolverRegistry = new()
         {
 
-            [typeof(DamageEffect)] = new DamageEffectResolver(),
-            [typeof(HealEffect)] = new HealEffectResolver(),
-            [typeof(ShieldEffect)] = new ShieldEffectResolver(),
-            [typeof(GainEnergyEffect)] = new GainEnergyEffectResolver(),
-            [typeof(LoseEnegyEffect)] = new LoseEnergyEffectResolver(),
-            [typeof(IncreaseDispositionEffect)] = new IncreaseDispositionEffectResolver(),
-            [typeof(DecreaseDispositionEffect)] = new DecreaseDispositionEffectResolver(),
-            [typeof(AddPlayerBuffEffect)] = new AddPlayerBuffEffectResolver(),
-            [typeof(ModifyPlayerBuffLevelEffect)] = new ModifyPlayerBuffLevelEffectResolver(),
-            [typeof(RemovePlayerBuffEffect)] = new RemovePlayerBuffEffectResolver(),
-            [typeof(DrawCardEffect)] = new DrawCardEffectResolver(),
-            [typeof(DiscardCardEffect)] = new DiscardCardEffectResolver(),
-            [typeof(ConsumeCardEffect)] = new ConsumeCardEffectResolver(),
-            [typeof(DisposeCardEffect)] = new DisposeCardEffectResolver(),
-            [typeof(CreateCardEffect)] = new CreateCardEffectResolver(),
-            [typeof(CloneCardEffect)] = new CloneCardEffectResolver(),
-            [typeof(AddCardBuffEffect)] = new AddCardBuffEffectResolver(),
-            [typeof(RemoveCardBuffEffect)] = new RemoveCardBuffEffectResolver(),
+            [typeof(DamageEffect)] = _damageResolver,
+            [typeof(HealEffect)] = _healResolver,
+            [typeof(ShieldEffect)] = _shieldResolver,
+            [typeof(GainEnergyEffect)] = _gainEnergyResolver,
+            [typeof(LoseEnegyEffect)] = _loseEnergyResolver,
+            [typeof(IncreaseDispositionEffect)] = _increaseDispositionResolver,
+            [typeof(DecreaseDispositionEffect)] = _decreaseDispositionResolver,
+            [typeof(AddPlayerBuffEffect)] = _addPlayerBuffResolver,
+            [typeof(ModifyPlayerBuffLevelEffect)] = _modifyPlayerBuffLevelResolver,
+            [typeof(RemovePlayerBuffEffect)] = _removePlayerBuffResolver,
+            [typeof(DrawCardEffect)] = _drawCardResolver,
+            [typeof(DiscardCardEffect)] = _discardCardResolver,
+            [typeof(ConsumeCardEffect)] = _consumeCardResolver,
+            [typeof(DisposeCardEffect)] = _disposeCardResolver,
+            [typeof(CreateCardEffect)] = _createCardResolver,
+            [typeof(CloneCardEffect)] = _cloneCardResolver,
+            [typeof(AddCardBuffEffect)] = _addCardBuffResolver,
+            [typeof(RemoveCardBuffEffect)] = _removeCardBuffResolver,
             [typeof(ApplyCardFormOverrideEffect)] = new ApplyCardFormOverrideEffectResolver(),
         };
 
         private static readonly Dictionary<Type, IPlayerBuffEffectResolver> _playerBuffResolverRegistry = new()
         {
+            [typeof(DamageEffect)] = _damageResolver,
+            [typeof(ShieldEffect)] = _shieldResolver,
+            [typeof(HealEffect)] = _healResolver,
+            [typeof(GainEnergyEffect)] = _gainEnergyResolver,
+            [typeof(LoseEnegyEffect)] = _loseEnergyResolver,
+            [typeof(IncreaseDispositionEffect)] = _increaseDispositionResolver,
+            [typeof(DecreaseDispositionEffect)] = _decreaseDispositionResolver,
+            [typeof(DrawCardEffect)] = _drawCardResolver,
+            [typeof(DiscardCardEffect)] = _discardCardResolver,
+            [typeof(ConsumeCardEffect)] = _consumeCardResolver,
+            [typeof(DisposeCardEffect)] = _disposeCardResolver,
+            [typeof(CreateCardEffect)] = _createCardResolver,
+            [typeof(CloneCardEffect)] = _cloneCardResolver,
+            [typeof(AddPlayerBuffEffect)] = _addPlayerBuffResolver,
+            [typeof(ModifyPlayerBuffLevelEffect)] = _modifyPlayerBuffLevelResolver,
+            [typeof(RemovePlayerBuffEffect)] = _removePlayerBuffResolver,
+            [typeof(AddCardBuffEffect)] = _addCardBuffResolver,
+            [typeof(RemoveCardBuffEffect)] = _removeCardBuffResolver,
             [typeof(AddCardBuffPlayerBuffEffect)] = new AddCardBuffPlayerBuffEffectResolver(),
             [typeof(RemoveCardBuffPlayerBuffEffect)] = new RemoveCardBuffPlayerBuffEffectResolver(),
             [typeof(ModifyCardPlayAttributeEffect)] = _modifyCardPlayAttributeResolver,
@@ -56,11 +93,47 @@ namespace MortalGame.GameModel
 
         private static readonly Dictionary<Type, ICharacterBuffEffectResolver> _characterBuffResolverRegistry = new()
         {
+            [typeof(DamageEffect)] = _damageResolver,
+            [typeof(ShieldEffect)] = _shieldResolver,
+            [typeof(HealEffect)] = _healResolver,
+            [typeof(GainEnergyEffect)] = _gainEnergyResolver,
+            [typeof(LoseEnegyEffect)] = _loseEnergyResolver,
+            [typeof(IncreaseDispositionEffect)] = _increaseDispositionResolver,
+            [typeof(DecreaseDispositionEffect)] = _decreaseDispositionResolver,
+            [typeof(DrawCardEffect)] = _drawCardResolver,
+            [typeof(DiscardCardEffect)] = _discardCardResolver,
+            [typeof(ConsumeCardEffect)] = _consumeCardResolver,
+            [typeof(DisposeCardEffect)] = _disposeCardResolver,
+            [typeof(CreateCardEffect)] = _createCardResolver,
+            [typeof(CloneCardEffect)] = _cloneCardResolver,
+            [typeof(AddPlayerBuffEffect)] = _addPlayerBuffResolver,
+            [typeof(ModifyPlayerBuffLevelEffect)] = _modifyPlayerBuffLevelResolver,
+            [typeof(RemovePlayerBuffEffect)] = _removePlayerBuffResolver,
+            [typeof(AddCardBuffEffect)] = _addCardBuffResolver,
+            [typeof(RemoveCardBuffEffect)] = _removeCardBuffResolver,
             [typeof(ModifyCardPlayAttributeEffect)] = _modifyCardPlayAttributeResolver,
         };
 
         private static readonly Dictionary<Type, ICardBuffEffectResolver> _cardBuffResolverRegistry = new()
         {
+            [typeof(DamageEffect)] = _damageResolver,
+            [typeof(ShieldEffect)] = _shieldResolver,
+            [typeof(HealEffect)] = _healResolver,
+            [typeof(GainEnergyEffect)] = _gainEnergyResolver,
+            [typeof(LoseEnegyEffect)] = _loseEnergyResolver,
+            [typeof(IncreaseDispositionEffect)] = _increaseDispositionResolver,
+            [typeof(DecreaseDispositionEffect)] = _decreaseDispositionResolver,
+            [typeof(DrawCardEffect)] = _drawCardResolver,
+            [typeof(DiscardCardEffect)] = _discardCardResolver,
+            [typeof(ConsumeCardEffect)] = _consumeCardResolver,
+            [typeof(DisposeCardEffect)] = _disposeCardResolver,
+            [typeof(CreateCardEffect)] = _createCardResolver,
+            [typeof(CloneCardEffect)] = _cloneCardResolver,
+            [typeof(AddPlayerBuffEffect)] = _addPlayerBuffResolver,
+            [typeof(ModifyPlayerBuffLevelEffect)] = _modifyPlayerBuffLevelResolver,
+            [typeof(RemovePlayerBuffEffect)] = _removePlayerBuffResolver,
+            [typeof(AddCardBuffEffect)] = _addCardBuffResolver,
+            [typeof(RemoveCardBuffEffect)] = _removeCardBuffResolver,
             [typeof(ModifyCardPlayAttributeEffect)] = _modifyCardPlayAttributeResolver,
         };
         #endregion
@@ -72,20 +145,17 @@ namespace MortalGame.GameModel
 
         public static bool HasPlayerBuffEffectResolver(Type effectType)
         {
-            return _HasCoreEffectResolver<IPlayerBuffEffect>(effectType) ||
-                _playerBuffResolverRegistry.ContainsKey(effectType);
+            return _playerBuffResolverRegistry.ContainsKey(effectType);
         }
 
         public static bool HasCharacterBuffEffectResolver(Type effectType)
         {
-            return _HasCoreEffectResolver<ICharacterBuffEffect>(effectType) ||
-                _characterBuffResolverRegistry.ContainsKey(effectType);
+            return _characterBuffResolverRegistry.ContainsKey(effectType);
         }
 
         public static bool HasCardBuffEffectResolver(Type effectType)
         {
-            return _HasCoreEffectResolver<ICardBuffEffect>(effectType) ||
-                _cardBuffResolverRegistry.ContainsKey(effectType);
+            return _cardBuffResolverRegistry.ContainsKey(effectType);
         }
 
         #region CardEffect
@@ -106,9 +176,6 @@ namespace MortalGame.GameModel
             TriggerContext context,
             IPlayerBuffEffect buffEffect)
         {
-            if (buffEffect is ICardEffect coreEffect)
-                return ResolveCardEffect(context, coreEffect);
-
             if (_playerBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
@@ -122,9 +189,6 @@ namespace MortalGame.GameModel
             TriggerContext context,
             ICharacterBuffEffect buffEffect)
         {
-            if (buffEffect is ICardEffect coreEffect)
-                return ResolveCardEffect(context, coreEffect);
-
             if (_characterBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
@@ -138,9 +202,6 @@ namespace MortalGame.GameModel
             TriggerContext context,
             ICardBuffEffect buffEffect)
         {
-            if (buffEffect is ICardEffect coreEffect)
-                return ResolveCardEffect(context, coreEffect);
-
             if (_cardBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
@@ -149,14 +210,6 @@ namespace MortalGame.GameModel
         }
         #endregion
 
-        private static bool _HasCoreEffectResolver<TReactionEffect>(Type effectType)
-            where TReactionEffect : IReactionEffect
-        {
-            return effectType != null &&
-                typeof(TReactionEffect).IsAssignableFrom(effectType) &&
-                typeof(ICardEffect).IsAssignableFrom(effectType) &&
-                HasCardEffectResolver(effectType);
-        }
     }
 
 }

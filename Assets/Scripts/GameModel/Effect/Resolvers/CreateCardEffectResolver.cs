@@ -1,46 +1,80 @@
 using System;
-using MortalGame.GameData;
 using System.Collections.Generic;
-using System.Linq;
-using Optional;
-using Sirenix.Utilities;
+using MortalGame.GameData;
 
 namespace MortalGame.GameModel
 {
-
-    public class CreateCardEffectResolver : ICardEffectResolver
+    public class CreateCardEffectResolver :
+        ICardEffectResolver,
+        IPlayerBuffEffectResolver,
+        ICharacterBuffEffectResolver,
+        ICardBuffEffectResolver
     {
         public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
+            => _ResolveCore(context, effect);
+
+        EffectCommandSet IPlayerBuffEffectResolver.Resolve(
+            TriggerContext context,
+            IPlayerBuffEffect effect)
+            => _ResolveCore(context, effect);
+
+        EffectCommandSet ICharacterBuffEffectResolver.Resolve(
+            TriggerContext context,
+            ICharacterBuffEffect effect)
+            => _ResolveCore(context, effect);
+
+        EffectCommandSet ICardBuffEffectResolver.Resolve(
+            TriggerContext context,
+            ICardBuffEffect effect)
+            => _ResolveCore(context, effect);
+
+        private static EffectCommandSet _ResolveCore(TriggerContext context, object effect)
         {
             if (effect is not CreateCardEffect createCardEffect)
-                throw new InvalidOperationException($"CreateCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new InvalidOperationException(
+                    $"CreateCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+
+            if (createCardEffect.Target == null ||
+                !createCardEffect.CreateDestination.IsValidCardZone())
+            {
+                return EffectCommandSet.Empty;
+            }
 
             var effectCommands = new List<IEffectCommand>();
-            var intent = new CreateCardIntentAction(context.Action.Source);
-            var triggerContext = context with { Action = intent };
+            var triggerContext = context with
+            {
+                Action = new CreateCardIntentAction(context.Action.Source)
+            };
             var target = createCardEffect.Target.Eval(triggerContext);
 
             target.MatchSome(targetPlayer =>
             {
-                foreach (var cardDataId in createCardEffect.CardDataIds)
+                foreach (var cardDataId in createCardEffect.CardDataIds ?? new List<string>())
                 {
-                    var playerTarget = new PlayerTarget(targetPlayer);
-                    var targetIntent = new CreateCardIntentTargetAction(context.Action.Source, playerTarget);
-                    var targetTriggerContext = triggerContext with { Action = targetIntent };
+                    if (string.IsNullOrWhiteSpace(cardDataId))
+                        continue;
 
+                    var cardData = context.Model.ContextManager.CardLibrary.GetCardData(cardDataId);
+                    if (cardData == null)
+                        continue;
+
+                    var playerTarget = new PlayerTarget(targetPlayer);
+                    var targetTriggerContext = triggerContext with
+                    {
+                        Action = new CreateCardIntentTargetAction(
+                            context.Action.Source,
+                            playerTarget)
+                    };
                     var newCard = CardEntity.RuntimeCreateFromId(
                         cardDataId,
                         context.Model.ContextManager.CardLibrary,
                         context.Model.ContextManager.CardPropertyEntityFactory);
-                    var createCardCaster = triggerContext.Action switch
+                    var createCardCaster = ReactionContextQuery.Caster(targetTriggerContext);
+
+                    foreach (var addCardBuffData in createCardEffect.AddCardBuffDatas ?? new List<AddCardBuffData>())
                     {
-                        CardPlaySource cardSource => cardSource.Card.Owner(triggerContext.Model),
-                        PlayerBuffSource playerBuffSource => playerBuffSource.Buff.Caster,
-                        _ => Option.None<IPlayerEntity>()
-                    };
-                    foreach (var addCardBuffData in createCardEffect.AddCardBuffDatas)
-                    {
-                        if (!addCardBuffData.Level
+                        if (addCardBuffData?.Level == null ||
+                            !addCardBuffData.Level
                                 .Eval(targetTriggerContext)
                                 .TryGetValue(out var level) ||
                             level < 0)
@@ -66,8 +100,8 @@ namespace MortalGame.GameModel
                         createCardEffect.CreateDestination));
                 }
             });
+
             return new EffectCommandSet(effectCommands);
         }
     }
-
 }

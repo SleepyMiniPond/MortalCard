@@ -1,50 +1,80 @@
 using System;
-using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
+using MortalGame.GameData;
 
 namespace MortalGame.GameModel
 {
-
-    public class DiscardCardEffectResolver : ICardEffectResolver
+    public class DiscardCardEffectResolver :
+        ICardEffectResolver,
+        IPlayerBuffEffectResolver,
+        ICharacterBuffEffectResolver,
+        ICardBuffEffectResolver
     {
         public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
+            => _ResolveCore(context, effect);
+
+        EffectCommandSet IPlayerBuffEffectResolver.Resolve(
+            TriggerContext context,
+            IPlayerBuffEffect effect)
+            => _ResolveCore(context, effect);
+
+        EffectCommandSet ICharacterBuffEffectResolver.Resolve(
+            TriggerContext context,
+            ICharacterBuffEffect effect)
+            => _ResolveCore(context, effect);
+
+        EffectCommandSet ICardBuffEffectResolver.Resolve(
+            TriggerContext context,
+            ICardBuffEffect effect)
+            => _ResolveCore(context, effect);
+
+        private static EffectCommandSet _ResolveCore(TriggerContext context, object effect)
         {
             if (effect is not DiscardCardEffect discardCardEffect)
-                throw new InvalidOperationException($"DiscardCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new InvalidOperationException(
+                    $"DiscardCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
 
             var effectCommands = new List<IEffectCommand>();
-            var intent = new DiscardCardIntentAction(context.Action.Source);
-            var triggerContext = context with { Action = intent };
-            var cards = discardCardEffect.TargetCards.Eval(triggerContext).ToList();
+            var triggerContext = context with
+            {
+                Action = new DiscardCardIntentAction(context.Action.Source)
+            };
+            var cards = discardCardEffect.TargetCards?
+                .Eval(triggerContext)
+                .GroupBy(card => card.Identity)
+                .Select(group => group.First())
+                ?? Enumerable.Empty<ICardEntity>();
 
             foreach (var card in cards)
             {
-                var destinationZone = card.IsConsumable() ?
-                    CardCollectionType.ExclusionZone :
-                    card.IsDisposable() ?
-                        CardCollectionType.DisposeZone :
-                        CardCollectionType.Graveyard;
+                var destinationZone = card.IsConsumable()
+                    ? CardCollectionType.ExclusionZone
+                    : card.IsDisposable()
+                        ? CardCollectionType.DisposeZone
+                        : CardCollectionType.Graveyard;
 
                 card.Owner(context.Model).MatchSome(cardOwner =>
                 {
-                    cardOwner.CardManager.HandCard.GetCardOrNone(c => c.Identity == card.Identity)
-                        .Map(handCard => CardCollectionType.HandCard)
-                        .Else(cardOwner.CardManager.Deck.GetCardOrNone(card => card.Identity == card.Identity)
-                            .Map(deckCard => CardCollectionType.Deck))
-                        .MatchSome(cardStartZone =>
+                    cardOwner.CardManager.GetCardAndZoneOrNone(
+                        card,
+                        new[]
                         {
-                            effectCommands.Add(new MoveCardEffectCommand(
-                                cardOwner,
-                                card,
-                                cardStartZone,
-                                destinationZone,
-                                MoveCardType.Discard));
-                        });
+                            CardCollectionType.HandCard,
+                            CardCollectionType.Deck
+                        }).MatchSome(found =>
+                    {
+                        effectCommands.Add(new MoveCardEffectCommand(
+                            cardOwner,
+                            found.Card,
+                            found.Zone,
+                            destinationZone,
+                            MoveCardType.Discard));
+                    });
                 });
             }
+
             return new EffectCommandSet(effectCommands);
         }
     }
-
 }

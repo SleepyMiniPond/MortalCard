@@ -32,6 +32,28 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(ApplyCardFormOverrideEffect));
         }
 
+        public static IEnumerable<TestCaseData> SharedCoreResolverTypes()
+        {
+            yield return new TestCaseData(typeof(DamageEffectResolver));
+            yield return new TestCaseData(typeof(ShieldEffectResolver));
+            yield return new TestCaseData(typeof(HealEffectResolver));
+            yield return new TestCaseData(typeof(GainEnergyEffectResolver));
+            yield return new TestCaseData(typeof(LoseEnergyEffectResolver));
+            yield return new TestCaseData(typeof(IncreaseDispositionEffectResolver));
+            yield return new TestCaseData(typeof(DecreaseDispositionEffectResolver));
+            yield return new TestCaseData(typeof(DrawCardEffectResolver));
+            yield return new TestCaseData(typeof(AddPlayerBuffEffectResolver));
+            yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffectResolver));
+            yield return new TestCaseData(typeof(RemovePlayerBuffEffectResolver));
+            yield return new TestCaseData(typeof(AddCardBuffEffectResolver));
+            yield return new TestCaseData(typeof(RemoveCardBuffEffectResolver));
+            yield return new TestCaseData(typeof(DiscardCardEffectResolver));
+            yield return new TestCaseData(typeof(ConsumeCardEffectResolver));
+            yield return new TestCaseData(typeof(DisposeCardEffectResolver));
+            yield return new TestCaseData(typeof(CreateCardEffectResolver));
+            yield return new TestCaseData(typeof(CloneCardEffectResolver));
+        }
+
         public static IEnumerable<TestCaseData> PlayerBuffEffectTypes()
         {
             yield return new TestCaseData(typeof(DamageEffect));
@@ -42,6 +64,11 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(IncreaseDispositionEffect));
             yield return new TestCaseData(typeof(DecreaseDispositionEffect));
             yield return new TestCaseData(typeof(DrawCardEffect));
+            yield return new TestCaseData(typeof(DiscardCardEffect));
+            yield return new TestCaseData(typeof(ConsumeCardEffect));
+            yield return new TestCaseData(typeof(DisposeCardEffect));
+            yield return new TestCaseData(typeof(CreateCardEffect));
+            yield return new TestCaseData(typeof(CloneCardEffect));
             yield return new TestCaseData(typeof(AddPlayerBuffEffect));
             yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffect));
             yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
@@ -63,6 +90,11 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(IncreaseDispositionEffect));
             yield return new TestCaseData(typeof(DecreaseDispositionEffect));
             yield return new TestCaseData(typeof(DrawCardEffect));
+            yield return new TestCaseData(typeof(DiscardCardEffect));
+            yield return new TestCaseData(typeof(ConsumeCardEffect));
+            yield return new TestCaseData(typeof(DisposeCardEffect));
+            yield return new TestCaseData(typeof(CreateCardEffect));
+            yield return new TestCaseData(typeof(CloneCardEffect));
             yield return new TestCaseData(typeof(AddPlayerBuffEffect));
             yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffect));
             yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
@@ -81,6 +113,11 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(IncreaseDispositionEffect));
             yield return new TestCaseData(typeof(DecreaseDispositionEffect));
             yield return new TestCaseData(typeof(DrawCardEffect));
+            yield return new TestCaseData(typeof(DiscardCardEffect));
+            yield return new TestCaseData(typeof(ConsumeCardEffect));
+            yield return new TestCaseData(typeof(DisposeCardEffect));
+            yield return new TestCaseData(typeof(CreateCardEffect));
+            yield return new TestCaseData(typeof(CloneCardEffect));
             yield return new TestCaseData(typeof(AddPlayerBuffEffect));
             yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffect));
             yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
@@ -120,12 +157,39 @@ namespace MortalGame.Tests
                 $"{effectType.Name} 缺少 ICardBuffEffectResolver 註冊");
         }
 
-        [Test]
-        public void CardOnlyEffect_DoesNotClaimBuffSourceSupport()
+        [TestCaseSource(nameof(SharedCoreResolverTypes))]
+        public void SharedCoreResolver_ImplementsAllSourceResolverInterfaces(Type resolverType)
         {
-            Assert.IsFalse(EffectDataResolver.HasPlayerBuffEffectResolver(typeof(DiscardCardEffect)));
-            Assert.IsFalse(EffectDataResolver.HasCharacterBuffEffectResolver(typeof(DiscardCardEffect)));
-            Assert.IsFalse(EffectDataResolver.HasCardBuffEffectResolver(typeof(DiscardCardEffect)));
+            var resolver = Activator.CreateInstance(resolverType);
+
+            Assert.That(resolver, Is.AssignableTo<ICardEffectResolver>());
+            Assert.That(resolver, Is.AssignableTo<IPlayerBuffEffectResolver>());
+            Assert.That(resolver, Is.AssignableTo<ICharacterBuffEffectResolver>());
+            Assert.That(resolver, Is.AssignableTo<ICardBuffEffectResolver>());
+        }
+
+        [Test]
+        public void CardFormOverrideEffect_DoesNotClaimBuffSourceSupport()
+        {
+            Assert.IsFalse(EffectDataResolver.HasPlayerBuffEffectResolver(typeof(ApplyCardFormOverrideEffect)));
+            Assert.IsFalse(EffectDataResolver.HasCharacterBuffEffectResolver(typeof(ApplyCardFormOverrideEffect)));
+            Assert.IsFalse(EffectDataResolver.HasCardBuffEffectResolver(typeof(ApplyCardFormOverrideEffect)));
+        }
+
+        [Test]
+        public void UnregisteredMultiSourceEffect_DoesNotClaimBuffSourceSupport()
+        {
+            Assert.IsFalse(EffectDataResolver.HasPlayerBuffEffectResolver(typeof(UnregisteredMultiSourceEffect)));
+            Assert.IsFalse(EffectDataResolver.HasCharacterBuffEffectResolver(typeof(UnregisteredMultiSourceEffect)));
+            Assert.IsFalse(EffectDataResolver.HasCardBuffEffectResolver(typeof(UnregisteredMultiSourceEffect)));
+        }
+
+        private sealed class UnregisteredMultiSourceEffect :
+            ICardEffect,
+            IPlayerBuffEffect,
+            ICharacterBuffEffect,
+            ICardBuffEffect
+        {
         }
     }
 }

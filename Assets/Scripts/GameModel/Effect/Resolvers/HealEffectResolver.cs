@@ -5,9 +5,41 @@ using System.Collections.Generic;
 namespace MortalGame.GameModel
 {
 
-    public class HealEffectResolver : ICardEffectResolver
+    public class HealEffectResolver :
+        ICardEffectResolver,
+        IPlayerBuffEffectResolver,
+        ICharacterBuffEffectResolver,
+        ICardBuffEffectResolver
     {
         public EffectCommandSet Resolve(TriggerContext context, ICardEffect effect)
+        {
+            return _ResolveCore(context, effect);
+        }
+
+        EffectCommandSet IPlayerBuffEffectResolver.Resolve(
+            TriggerContext context,
+            IPlayerBuffEffect effect)
+        {
+            return _ResolveCore(context, effect);
+        }
+
+        EffectCommandSet ICharacterBuffEffectResolver.Resolve(
+            TriggerContext context,
+            ICharacterBuffEffect effect)
+        {
+            return _ResolveCore(context, effect);
+        }
+
+        EffectCommandSet ICardBuffEffectResolver.Resolve(
+            TriggerContext context,
+            ICardBuffEffect effect)
+        {
+            return _ResolveCore(context, effect);
+        }
+
+        private static EffectCommandSet _ResolveCore(
+            TriggerContext context,
+            object effect)
         {
             if (effect is not HealEffect healEffect)
                 throw new InvalidOperationException($"HealEffectResolver 不支援的效果類型：{effect.GetType().Name}");

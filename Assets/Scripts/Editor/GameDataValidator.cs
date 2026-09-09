@@ -67,6 +67,7 @@ namespace MortalGame.Editor
                 _ValidateCardStateSemantics(asset.CardData, context, errors);
                 _ValidateBuffStateSemantics(asset.CardData, context, errors);
                 _ValidateTargetSemantics(asset.CardData, context, errors);
+                _ValidateCardOperationSemantics(asset.CardData, context, errors);
                 _ValidateCardNestedSemantics(asset.CardData, context, errors);
             }
 
@@ -84,6 +85,7 @@ namespace MortalGame.Editor
                 _ValidateCardStateSemantics(asset.Data, context, errors);
                 _ValidateBuffStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
+                _ValidateCardOperationSemantics(asset.Data, context, errors);
                 _ValidateCardBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -101,6 +103,7 @@ namespace MortalGame.Editor
                 _ValidateCardStateSemantics(asset.Data, context, errors);
                 _ValidateBuffStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
+                _ValidateCardOperationSemantics(asset.Data, context, errors);
                 _ValidatePlayerBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -118,6 +121,7 @@ namespace MortalGame.Editor
                 _ValidateCardStateSemantics(asset.Data, context, errors);
                 _ValidateBuffStateSemantics(asset.Data, context, errors);
                 _ValidateTargetSemantics(asset.Data, context, errors);
+                _ValidateCardOperationSemantics(asset.Data, context, errors);
                 _ValidateCharacterBuffNestedSemantics(asset.Data, context, errors);
             }
 
@@ -725,6 +729,18 @@ namespace MortalGame.Editor
                 ValidatePlayerBuffReferenceIds(
                     playerBuffAsset.Data,
                     AssetDatabase.GetAssetPath(playerBuffAsset),
+                    cardIds,
+                    cardBuffIds,
+                    errors);
+
+            }
+
+            foreach (var characterBuffAsset in catalog.CharacterBuffAssets.Where(asset => asset != null))
+            {
+                ValidateCharacterBuffReferenceIds(
+                    characterBuffAsset.Data,
+                    AssetDatabase.GetAssetPath(characterBuffAsset),
+                    cardIds,
                     cardBuffIds,
                     errors);
             }
@@ -734,6 +750,7 @@ namespace MortalGame.Editor
                 ValidateCardBuffReferenceIds(
                     cardBuffAsset.Data,
                     AssetDatabase.GetAssetPath(cardBuffAsset),
+                    cardIds,
                     cardBuffIds,
                     errors);
             }
@@ -1057,6 +1074,7 @@ namespace MortalGame.Editor
         private static void ValidatePlayerBuffReferenceIds(
             PlayerBuffData buffData,
             string assetPath,
+            ISet<string> cardIds,
             ISet<string> cardBuffIds,
             ICollection<string> errors)
         {
@@ -1078,11 +1096,37 @@ namespace MortalGame.Editor
                     }
                 }
             }
+
+            ValidateCardOperationReferenceIds(
+                buffData,
+                $"{assetPath} / PlayerBuffData[{buffData.ID}]",
+                cardIds,
+                cardBuffIds,
+                errors);
+        }
+
+        private static void ValidateCharacterBuffReferenceIds(
+            CharacterBuffData buffData,
+            string assetPath,
+            ISet<string> cardIds,
+            ISet<string> cardBuffIds,
+            ICollection<string> errors)
+        {
+            if (buffData == null)
+                return;
+
+            ValidateCardOperationReferenceIds(
+                buffData,
+                $"{assetPath} / CharacterBuffData[{buffData.ID}]",
+                cardIds,
+                cardBuffIds,
+                errors);
         }
 
         private static void ValidateCardBuffReferenceIds(
             CardBuffData buffData,
             string assetPath,
+            ISet<string> cardIds,
             ISet<string> cardBuffIds,
             ICollection<string> errors)
         {
@@ -1101,6 +1145,13 @@ namespace MortalGame.Editor
                         break;
                 }
             }
+
+            ValidateCardOperationReferenceIds(
+                buffData,
+                $"{assetPath} / CardBuffData[{buffData.ID}]",
+                cardIds,
+                cardBuffIds,
+                errors);
         }
 
         private static void ValidateDeckReferenceIds(
@@ -1283,6 +1334,38 @@ namespace MortalGame.Editor
                     errors.Add($"{context}.TriggeredEffects[{index}].Timing 不可為 None");
                 }
             }
+
+        }
+
+        private static void ValidateCardOperationReferenceIds(
+            object data,
+            string context,
+            ISet<string> cardIds,
+            ISet<string> cardBuffIds,
+            ICollection<string> errors)
+        {
+            foreach (var createCard in SerializedDataGraphUtility.Find<CreateCardEffect>(data))
+            {
+                foreach (var cardId in createCard.CardDataIds ?? Enumerable.Empty<string>())
+                {
+                    ValidateId(cardIds, cardId, $"{context} 的 CreateCardEffect.CardDataIds", errors);
+                }
+
+                ValidateAddCardBuffDataIds(
+                    createCard.AddCardBuffDatas,
+                    $"{context} 的 CreateCardEffect.AddCardBuffDatas",
+                    cardBuffIds,
+                    errors);
+            }
+
+            foreach (var cloneCard in SerializedDataGraphUtility.Find<CloneCardEffect>(data))
+            {
+                ValidateAddCardBuffDataIds(
+                    cloneCard.AddCardBuffDatas,
+                    $"{context} 的 CloneCardEffect.AddCardBuffDatas",
+                    cardBuffIds,
+                    errors);
+            }
         }
 
         private static void _ValidateCardCollectionSemantics(
@@ -1324,6 +1407,38 @@ namespace MortalGame.Editor
                 {
                     errors.Add(
                         $"{context} 的 CardCollectionAllCondition.Conditions 至少需要一項");
+                }
+            }
+        }
+
+        private static void _ValidateCardOperationSemantics(
+            object data,
+            string context,
+            ICollection<string> errors)
+        {
+            foreach (var effect in SerializedDataGraphUtility.Find<CreateCardEffect>(data))
+            {
+                if (effect.Target == null)
+                    errors.Add($"{context} 的 CreateCardEffect.Target 為空");
+                if (!effect.CreateDestination.IsValidCardZone())
+                {
+                    errors.Add(
+                        $"{context} 的 CreateCardEffect.CreateDestination 必須是有效的一般卡片區域：{effect.CreateDestination}");
+                }
+                if (effect.CardDataIds == null || effect.CardDataIds.Count == 0)
+                    errors.Add($"{context} 的 CreateCardEffect.CardDataIds 至少需要一項");
+            }
+
+            foreach (var effect in SerializedDataGraphUtility.Find<CloneCardEffect>(data))
+            {
+                if (effect.Target == null)
+                    errors.Add($"{context} 的 CloneCardEffect.Target 為空");
+                if (effect.ClonedCards == null)
+                    errors.Add($"{context} 的 CloneCardEffect.ClonedCards 為空");
+                if (!effect.CloneDestination.IsValidCardZone())
+                {
+                    errors.Add(
+                        $"{context} 的 CloneCardEffect.CloneDestination 必須是有效的一般卡片區域：{effect.CloneDestination}");
                 }
             }
         }
