@@ -20,6 +20,9 @@ namespace MortalGame.GameModel
     public static class EffectDataResolver
     {
         #region Registry
+        private static readonly ModifyCardPlayAttributeEffectResolver
+            _modifyCardPlayAttributeResolver = new();
+
         private static readonly Dictionary<Type, ICardEffectResolver> _resolverRegistry = new()
         {
 
@@ -48,15 +51,17 @@ namespace MortalGame.GameModel
         {
             [typeof(AddCardBuffPlayerBuffEffect)] = new AddCardBuffPlayerBuffEffectResolver(),
             [typeof(RemoveCardBuffPlayerBuffEffect)] = new RemoveCardBuffPlayerBuffEffectResolver(),
-            [typeof(CardPlayEffectAttributeAdditionPlayerBuffEffect)] = new CardPlayEffectAttributeAdditionPlayerBuffEffectResolver(),
+            [typeof(ModifyCardPlayAttributeEffect)] = _modifyCardPlayAttributeResolver,
         };
 
-        private static readonly Dictionary<Type, ICharacterBuffEffectResolver> _characterBuffResolverRegistry = new();
+        private static readonly Dictionary<Type, ICharacterBuffEffectResolver> _characterBuffResolverRegistry = new()
+        {
+            [typeof(ModifyCardPlayAttributeEffect)] = _modifyCardPlayAttributeResolver,
+        };
 
         private static readonly Dictionary<Type, ICardBuffEffectResolver> _cardBuffResolverRegistry = new()
         {
-            // 待 CardBuff 效果類型定義後填入
-            // 例：[typeof(DamageCardBuffEffect)] = new DamageCardBuffEffectResolver(),
+            [typeof(ModifyCardPlayAttributeEffect)] = _modifyCardPlayAttributeResolver,
         };
         #endregion
 

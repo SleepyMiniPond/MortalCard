@@ -321,7 +321,7 @@ namespace MortalGame.Tests
         {
             var conditionalEffect = new ConditionalPlayerBuffEffect
             {
-                Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                        Effect = new ModifyCardPlayAttributeEffect
                 {
                     Type = EffectAttributeAdditionType.PowerAddition,
                     Value = new ConstInteger { Value = 1 }

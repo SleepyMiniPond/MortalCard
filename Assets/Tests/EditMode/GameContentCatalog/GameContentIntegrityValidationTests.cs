@@ -82,7 +82,7 @@ namespace MortalGame.Tests
                                 }
                             }
                         },
-                        Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                        Effect = new ModifyCardPlayAttributeEffect
                         {
                             Value = new PlayerBuffSessionInteger
                             {

@@ -82,7 +82,7 @@ PlayerBuffData
 |------|------|
 | EffectiveDamagePlayerBuffEffect | 造成確實傷害 |
 | AdditionalDamagePlayerBuffEffect | 造成追加傷害 |
-| CardPlayEffectAttributeAdditionPlayerBuffEffect | 修改卡牌打出時的效果屬性 |
+| ModifyCardPlayAttributeEffect | 修改卡牌打出時的效果屬性 |
 | AddCardBuffPlayerBuffEffect | 對所有卡牌施加 Buff |
 | RemoveCardBuffPlayerBuffEffect | 移除所有卡牌上的 Buff |
 

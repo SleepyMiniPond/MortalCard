@@ -20,7 +20,8 @@ namespace MortalGame.GameData
     }
 
     [Serializable]
-    public class CardPlayEffectAttributeAdditionPlayerBuffEffect : IPlayerBuffEffect
+    public class ModifyCardPlayAttributeEffect :
+        IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         [HorizontalGroup("1")]
         public EffectAttributeAdditionType Type;

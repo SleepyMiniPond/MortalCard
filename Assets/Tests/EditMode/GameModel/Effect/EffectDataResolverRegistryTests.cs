@@ -49,11 +49,12 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(RemoveCardBuffEffect));
             yield return new TestCaseData(typeof(AddCardBuffPlayerBuffEffect));
             yield return new TestCaseData(typeof(RemoveCardBuffPlayerBuffEffect));
-            yield return new TestCaseData(typeof(CardPlayEffectAttributeAdditionPlayerBuffEffect));
+            yield return new TestCaseData(typeof(ModifyCardPlayAttributeEffect));
         }
 
         public static IEnumerable<TestCaseData> CharacterBuffEffectTypes()
         {
+            yield return new TestCaseData(typeof(ModifyCardPlayAttributeEffect));
             yield return new TestCaseData(typeof(DamageEffect));
             yield return new TestCaseData(typeof(ShieldEffect));
             yield return new TestCaseData(typeof(HealEffect));
@@ -71,6 +72,7 @@ namespace MortalGame.Tests
 
         public static IEnumerable<TestCaseData> CardBuffEffectTypes()
         {
+            yield return new TestCaseData(typeof(ModifyCardPlayAttributeEffect));
             yield return new TestCaseData(typeof(DamageEffect));
             yield return new TestCaseData(typeof(ShieldEffect));
             yield return new TestCaseData(typeof(HealEffect));

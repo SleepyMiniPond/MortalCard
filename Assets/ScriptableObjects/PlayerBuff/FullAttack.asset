@@ -257,7 +257,7 @@ MonoBehaviour:
       Data: 
     - Name: Effect
       Entry: 7
-      Data: 24|MortalGame.GameData.CardPlayEffectAttributeAdditionPlayerBuffEffect,
+      Data: 24|MortalGame.GameData.ModifyCardPlayAttributeEffect,
         MortalGame.Runtime
     - Name: Type
       Entry: 3

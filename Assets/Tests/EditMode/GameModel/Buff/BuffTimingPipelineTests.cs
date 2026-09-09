@@ -26,7 +26,7 @@ namespace MortalGame.Tests
             var conditionalEffect = new ConditionalPlayerBuffEffect
             {
                 Conditions = { new ConstCondition { Value = true } },
-                Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                        Effect = new ModifyCardPlayAttributeEffect
                 {
                     Type = EffectAttributeAdditionType.PowerAddition,
                     Value = new ConstInteger { Value = 1 }
@@ -52,7 +52,7 @@ namespace MortalGame.Tests
             var conditionalEffect = new ConditionalPlayerBuffEffect
             {
                 Conditions = { new ConstCondition { Value = false } },
-                Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                        Effect = new ModifyCardPlayAttributeEffect
                 {
                     Type = EffectAttributeAdditionType.PowerAddition,
                     Value = new ConstInteger { Value = 1 }
@@ -157,7 +157,7 @@ namespace MortalGame.Tests
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
-                    Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                        Effect = new ModifyCardPlayAttributeEffect
                     {
                         Type = EffectAttributeAdditionType.PowerAddition,
                         Value = new ConstInteger { Value = 1 }
@@ -226,7 +226,7 @@ namespace MortalGame.Tests
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
-                    Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                        Effect = new ModifyCardPlayAttributeEffect
                     {
                         Type = EffectAttributeAdditionType.PowerAddition,
                         Value = new ConstInteger { Value = 1 }
@@ -238,7 +238,7 @@ namespace MortalGame.Tests
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new PlayerBuffSourceIdCondition("first-buff") },
-                    Effect = new CardPlayEffectAttributeAdditionPlayerBuffEffect
+                        Effect = new ModifyCardPlayAttributeEffect
                     {
                         Type = EffectAttributeAdditionType.PowerAddition,
                         Value = new ConstInteger { Value = 1 }
