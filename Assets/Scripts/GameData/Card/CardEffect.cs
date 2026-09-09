@@ -27,13 +27,15 @@ namespace MortalGame.GameData
         public IIntegerValue Value;
     }
     [Serializable]
-    public class ShieldEffect : ICardEffect
+    public class ShieldEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetCharacterCollectionValue Targets;
         public IIntegerValue Value;
     }
     [Serializable]
-    public class HealEffect : ICardEffect
+    public class HealEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetCharacterCollectionValue Targets;
         public IIntegerValue Value;
@@ -43,13 +45,15 @@ namespace MortalGame.GameData
     // Target-Player Effect
     // ==============================
     [Serializable]
-    public class GainEnergyEffect : ICardEffect
+    public class GainEnergyEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerCollectionValue Targets;
         public IIntegerValue Value;
     }
     [Serializable]
-    public class LoseEnegyEffect : ICardEffect
+    public class LoseEnegyEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerCollectionValue Targets;
         public IIntegerValue Value;
@@ -79,14 +83,16 @@ namespace MortalGame.GameData
         public string BuffId;
     }
     [Serializable]
-    public class IncreaseDispositionEffect : ICardEffect
+    public class IncreaseDispositionEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         // Only Ally Has Disposition
         public ITargetPlayerCollectionValue Targets;
         public IIntegerValue Value;
     }
     [Serializable]
-    public class DecreaseDispositionEffect : ICardEffect
+    public class DecreaseDispositionEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         // Only Ally Has Disposition
         public ITargetPlayerCollectionValue Targets;
@@ -97,7 +103,8 @@ namespace MortalGame.GameData
     // Target-Card Effect
     // ==============================
     [Serializable]
-    public class DrawCardEffect : ICardEffect
+    public class DrawCardEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerCollectionValue Targets;
         public IIntegerValue Value;
