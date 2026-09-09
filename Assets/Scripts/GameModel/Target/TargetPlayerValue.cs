@@ -165,16 +165,7 @@ namespace MortalGame.GameModel
     {
         public Option<IPlayerEntity> Eval(TriggerContext triggerContext)
         {
-            return triggerContext.Triggered switch
-            {
-                ICardTriggeredSource cardSource =>
-                    cardSource.Card.Owner(triggerContext.Model),
-                ICharacterTriggeredSource characterSource =>
-                    characterSource.Character.Owner(triggerContext.Model),
-                IPlayerTriggeredSource playerSource =>
-                    playerSource.Player.SomeNotNull(),
-                _ => Option.None<IPlayerEntity>()
-            };
+            return ReactionContextQuery.Owner(triggerContext);
         }
     }
 
@@ -187,7 +178,7 @@ namespace MortalGame.GameModel
     {
         public Option<IPlayerEntity> Eval(TriggerContext triggerContext)
         {
-            return ReactionCasterResolver.Resolve(triggerContext);
+            return ReactionContextQuery.Caster(triggerContext);
         }
     }
 

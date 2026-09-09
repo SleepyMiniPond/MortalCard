@@ -37,7 +37,7 @@ namespace MortalGame.GameModel
                 }
                 else
                 {
-                    var caster = ReactionCasterResolver.Resolve(targetTriggerContext);
+                    var caster = ReactionContextQuery.Caster(targetTriggerContext);
 
                     var buffLibrary = triggerContext.Model.ContextManager.PlayerBuffLibrary;
                     var lifeTime = context.Model.ContextManager.PlayerBuffLifeTimeEntityFactory.Create(

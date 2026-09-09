@@ -42,7 +42,7 @@ namespace MortalGame.GameModel
                     }
                     else
                     {
-                        var caster = ReactionCasterResolver.Resolve(targetTriggerContext);
+                        var caster = ReactionContextQuery.Caster(targetTriggerContext);
 
                         var newCardBuff = CardBuffEntity.CreateFromData(
                             addCardBuff.CardBuffId,
