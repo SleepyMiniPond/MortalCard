@@ -42,6 +42,11 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(IncreaseDispositionEffect));
             yield return new TestCaseData(typeof(DecreaseDispositionEffect));
             yield return new TestCaseData(typeof(DrawCardEffect));
+            yield return new TestCaseData(typeof(AddPlayerBuffEffect));
+            yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffect));
+            yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
+            yield return new TestCaseData(typeof(AddCardBuffEffect));
+            yield return new TestCaseData(typeof(RemoveCardBuffEffect));
             yield return new TestCaseData(typeof(AddCardBuffPlayerBuffEffect));
             yield return new TestCaseData(typeof(RemoveCardBuffPlayerBuffEffect));
             yield return new TestCaseData(typeof(CardPlayEffectAttributeAdditionPlayerBuffEffect));
@@ -57,6 +62,11 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(IncreaseDispositionEffect));
             yield return new TestCaseData(typeof(DecreaseDispositionEffect));
             yield return new TestCaseData(typeof(DrawCardEffect));
+            yield return new TestCaseData(typeof(AddPlayerBuffEffect));
+            yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffect));
+            yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
+            yield return new TestCaseData(typeof(AddCardBuffEffect));
+            yield return new TestCaseData(typeof(RemoveCardBuffEffect));
         }
 
         public static IEnumerable<TestCaseData> CardBuffEffectTypes()
@@ -69,6 +79,11 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(IncreaseDispositionEffect));
             yield return new TestCaseData(typeof(DecreaseDispositionEffect));
             yield return new TestCaseData(typeof(DrawCardEffect));
+            yield return new TestCaseData(typeof(AddPlayerBuffEffect));
+            yield return new TestCaseData(typeof(ModifyPlayerBuffLevelEffect));
+            yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
+            yield return new TestCaseData(typeof(AddCardBuffEffect));
+            yield return new TestCaseData(typeof(RemoveCardBuffEffect));
         }
 
         [TestCaseSource(nameof(CardEffectTypes))]

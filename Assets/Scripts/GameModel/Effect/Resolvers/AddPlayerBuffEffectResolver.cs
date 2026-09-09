@@ -2,7 +2,6 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
-using Optional;
 namespace MortalGame.GameModel
 {
 
@@ -38,12 +37,7 @@ namespace MortalGame.GameModel
                 }
                 else
                 {
-                    var caster = triggerContext.Action.Source switch
-                    {
-                        PlayerBuffSource playerBuffSource => playerBuffSource.Buff.Caster,
-                        CardPlaySource cardPlaySource => cardPlaySource.Card.Owner(triggerContext.Model),
-                        _ => Option.None<IPlayerEntity>()
-                    };
+                    var caster = ReactionCasterResolver.Resolve(targetTriggerContext);
 
                     var buffLibrary = triggerContext.Model.ContextManager.PlayerBuffLibrary;
                     var lifeTime = context.Model.ContextManager.PlayerBuffLifeTimeEntityFactory.Create(

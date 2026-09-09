@@ -60,7 +60,8 @@ namespace MortalGame.GameData
     }
 
     [Serializable]
-    public class AddPlayerBuffEffect : ICardEffect
+    public class AddPlayerBuffEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerCollectionValue Targets;
         [ValueDropdown("@DropdownHelper.PlayerBuffNames")]
@@ -68,7 +69,8 @@ namespace MortalGame.GameData
         public IIntegerValue Level;
     }
     [Serializable]
-    public class ModifyPlayerBuffLevelEffect : ICardEffect
+    public class ModifyPlayerBuffLevelEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerCollectionValue Targets;
         [ValueDropdown("@DropdownHelper.PlayerBuffNames")]
@@ -76,7 +78,8 @@ namespace MortalGame.GameData
         public IIntegerValue DeltaLevel;
     }
     [Serializable]
-    public class RemovePlayerBuffEffect : ICardEffect
+    public class RemovePlayerBuffEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetPlayerCollectionValue Targets;
         [ValueDropdown("@DropdownHelper.PlayerBuffNames")]
@@ -144,14 +147,16 @@ namespace MortalGame.GameData
         public CardCollectionType CloneDestination;
     }
     [Serializable]
-    public class AddCardBuffEffect : ICardEffect
+    public class AddCardBuffEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetCardCollectionValue TargetCards;
         [ShowInInspector]
         public List<AddCardBuffData> AddCardBuffDatas = new();
     }
     [Serializable]
-    public class RemoveCardBuffEffect : ICardEffect
+    public class RemoveCardBuffEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {
         public ITargetCardCollectionValue TargetCards;
         [ValueDropdown("@DropdownHelper.CardBuffNames")]

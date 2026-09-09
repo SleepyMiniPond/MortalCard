@@ -2,7 +2,6 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
-using Optional;
 using Optional.Collections;
 
 namespace MortalGame.GameModel
@@ -43,12 +42,7 @@ namespace MortalGame.GameModel
                     }
                     else
                     {
-                        var caster = targetTriggerContext.Action switch
-                        {
-                            CardPlaySource cardSource => cardSource.Card.Owner(targetTriggerContext.Model),
-                            PlayerBuffSource playerBuffSource => playerBuffSource.Buff.Caster,
-                            _ => Option.None<IPlayerEntity>()
-                        };
+                        var caster = ReactionCasterResolver.Resolve(targetTriggerContext);
 
                         var newCardBuff = CardBuffEntity.CreateFromData(
                             addCardBuff.CardBuffId,

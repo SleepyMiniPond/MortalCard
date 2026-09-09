@@ -187,15 +187,7 @@ namespace MortalGame.GameModel
     {
         public Option<IPlayerEntity> Eval(TriggerContext triggerContext)
         {
-            return triggerContext.Triggered switch
-            {
-                PlayerBuffTrigger playerBuffTrigger => playerBuffTrigger.Buff.Caster,
-                CharacterBuffTrigger characterBuffTrigger => characterBuffTrigger.Buff.Caster,
-                CardBuffTrigger cardBuffTrigger => cardBuffTrigger.Buff.Caster,
-                ICardTriggeredSource cardSource =>
-                    cardSource.Card.Owner(triggerContext.Model),
-                _ => Option.None<IPlayerEntity>()
-            };
+            return ReactionCasterResolver.Resolve(triggerContext);
         }
     }
 

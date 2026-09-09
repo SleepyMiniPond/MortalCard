@@ -676,6 +676,14 @@ namespace MortalGame.Editor
                 : _ValidateReferenceIds(catalog);
         }
 
+        public static IReadOnlyList<string> ValidateReferenceIds(
+            GameContentCatalog catalog)
+        {
+            return catalog == null
+                ? new[] { "GameContentCatalog 為空，無法驗證參照 ID" }
+                : _ValidateReferenceIds(catalog);
+        }
+
         private static IReadOnlyList<string> _ValidateReferenceIds(
             GameContentCatalog catalog)
         {
@@ -730,6 +738,30 @@ namespace MortalGame.Editor
                     errors);
             }
 
+            foreach (var asset in catalog.PlayerBuffAssets.Where(asset => asset != null))
+                _ValidateCoreBuffWriteReferenceIds(
+                    asset.Data,
+                    AssetDatabase.GetAssetPath(asset),
+                    playerBuffIds,
+                    cardBuffIds,
+                    errors);
+
+            foreach (var asset in catalog.CharacterBuffAssets.Where(asset => asset != null))
+                _ValidateCoreBuffWriteReferenceIds(
+                    asset.Data,
+                    AssetDatabase.GetAssetPath(asset),
+                    playerBuffIds,
+                    cardBuffIds,
+                    errors);
+
+            foreach (var asset in catalog.CardBuffAssets.Where(asset => asset != null))
+                _ValidateCoreBuffWriteReferenceIds(
+                    asset.Data,
+                    AssetDatabase.GetAssetPath(asset),
+                    playerBuffIds,
+                    cardBuffIds,
+                    errors);
+
             foreach (var asset in catalog.CardAssets.Where(asset => asset != null))
                 _ValidateBuffQueryReferenceIds(
                     asset.CardData,
@@ -779,6 +811,59 @@ namespace MortalGame.Editor
                 ValidatePlayerDeck(enemyAsset.Enemy?.PlayerData, AssetDatabase.GetAssetPath(enemyAsset), errors);
 
             return errors;
+        }
+
+        private static void _ValidateCoreBuffWriteReferenceIds(
+            object data,
+            string assetPath,
+            ISet<string> playerBuffIds,
+            ISet<string> cardBuffIds,
+            ICollection<string> errors)
+        {
+            foreach (var effect in SerializedDataGraphUtility.Find<AddPlayerBuffEffect>(data))
+            {
+                ValidateId(
+                    playerBuffIds,
+                    effect.BuffId,
+                    $"{assetPath} 的 AddPlayerBuffEffect.BuffId",
+                    errors);
+            }
+
+            foreach (var effect in SerializedDataGraphUtility.Find<ModifyPlayerBuffLevelEffect>(data))
+            {
+                ValidateId(
+                    playerBuffIds,
+                    effect.BuffId,
+                    $"{assetPath} 的 ModifyPlayerBuffLevelEffect.BuffId",
+                    errors);
+            }
+
+            foreach (var effect in SerializedDataGraphUtility.Find<RemovePlayerBuffEffect>(data))
+            {
+                ValidateId(
+                    playerBuffIds,
+                    effect.BuffId,
+                    $"{assetPath} 的 RemovePlayerBuffEffect.BuffId",
+                    errors);
+            }
+
+            foreach (var effect in SerializedDataGraphUtility.Find<AddCardBuffEffect>(data))
+            {
+                ValidateAddCardBuffDataIds(
+                    effect.AddCardBuffDatas,
+                    $"{assetPath} 的 AddCardBuffEffect.AddCardBuffDatas",
+                    cardBuffIds,
+                    errors);
+            }
+
+            foreach (var effect in SerializedDataGraphUtility.Find<RemoveCardBuffEffect>(data))
+            {
+                ValidateId(
+                    cardBuffIds,
+                    effect.BuffId,
+                    $"{assetPath} 的 RemoveCardBuffEffect.BuffId",
+                    errors);
+            }
         }
 
         private static void _ValidateBuffQueryReferenceIds(
