@@ -26,7 +26,7 @@ namespace MortalGame.GameModel
         IEnumerable<ISubSelectionGroup> SubSelects { get; }
 
         IEnumerable<ICardEffect> Effects { get; }
-        IReadOnlyDictionary<CardTriggeredTiming, IEnumerable<ICardEffect>> TriggeredEffects { get; }
+        IReadOnlyDictionary<CardTriggeredTiming, IEnumerable<ConditionalCardEffect>> TriggeredEffects { get; }
         IEnumerable<ICardPropertyEntity> Properties { get; }
         ICardBuffManager BuffManager { get; }
 
@@ -84,10 +84,13 @@ namespace MortalGame.GameModel
         public MainTargetSelectLogic MainSelect => _effectiveCardData.MainSelect;
         public IEnumerable<ISubSelectionGroup> SubSelects => _effectiveCardData.SubSelects;
         public IEnumerable<ICardEffect> Effects => _effectiveCardData.Effects;
-        public IReadOnlyDictionary<CardTriggeredTiming, IEnumerable<ICardEffect>> TriggeredEffects
-            => _effectiveCardData.TriggeredEffects.ToDictionary(
-                pair => pair.Timing,
-                pair => (IEnumerable<ICardEffect>)pair.Effects);
+        public IReadOnlyDictionary<CardTriggeredTiming, IEnumerable<ConditionalCardEffect>> TriggeredEffects
+            => (_effectiveCardData.TriggeredEffects ??
+                new Dictionary<CardTriggeredTiming, ConditionalCardEffect[]>())
+                .ToDictionary(
+                    pair => pair.Key,
+                    pair => (IEnumerable<ConditionalCardEffect>)(pair.Value ??
+                        Array.Empty<ConditionalCardEffect>()));
 
         public Guid Identity => _indentity;
         public Option<Guid> OriginCardInstanceGuid => _originCardInstanceGuid;

@@ -1,6 +1,6 @@
 # Effect 效果管線
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-10 | 版本：v2.1
 
 ## 設計理念
 
@@ -80,6 +80,63 @@ EffectCommandExecutor.Execute()
 4. **生成命令**：為每個目標生成對應的 EffectCommand
 5. **組裝 CommandSet**：將所有命令打包回傳
 
+### Card 與 Reaction 的共用解析契約
+
+`EffectDataResolver` 支援四種效果來源：直接出牌的 `ICardEffect`，以及
+`IPlayerBuffEffect`、`ICharacterBuffEffect`、`ICardBuffEffect` 三種 Reaction Effect。
+四個 Registry 都以「效果具體型別 → 對應 Resolver」直接查表；同一個核心操作會共用
+同一個 Resolver 與 Command 路徑，但 Reaction Registry **不會回退查詢** Card Registry。
+
+因此，新增一個可由 Reaction 使用的效果時，必須同時完成下列事項：
+
+1. 讓效果型別明確實作允許的來源介面。
+2. 將相同 Resolver 實例登錄到每個允許來源的 Registry。
+3. 補齊 `GameDataValidator`、Round Trip 與來源行為測試。
+
+這項限制讓「可否使用」成為可檢查的內容規則，而不是執行期猜測。未知型別在 Runtime
+會記錄警告並回傳空 `EffectCommandSet`，不會執行半套效果；正式資產則必須先由
+`GameDataValidator` 阻止。
+
+### 四來源允許操作矩陣
+
+下表的「共用」表示四種來源使用同一個 Resolver／Command 實作，而非複製四套流程。
+
+| 操作 | Card | PlayerBuff | CharacterBuff | CardBuff |
+|------|:----:|:----------:|:-------------:|:--------:|
+| Damage、Shield、Heal | ✓ | ✓ | ✓ | ✓ |
+| GainEnergy、LoseEnegy、Increase／DecreaseDisposition | ✓ | ✓ | ✓ | ✓ |
+| DrawCard | ✓ | ✓ | ✓ | ✓ |
+| DiscardCard、ConsumeCard、DisposeCard | ✓ | ✓ | ✓ | ✓ |
+| CreateCard、CloneCard | ✓ | ✓ | ✓ | ✓ |
+| Add／ModifyLevel／Remove PlayerBuff | ✓ | ✓ | ✓ | ✓ |
+| Add／Remove CardBuff | ✓ | ✓ | ✓ | ✓ |
+| ModifyCardPlayAttribute | — | ✓ | ✓ | ✓ |
+| ApplyCardFormOverride | ✓ | — | — | — |
+
+`ModifyCardPlayAttributeEffect` 是既有的 Reaction 專用修正語意，不屬於 Card 的直接效果。
+`ApplyCardFormOverrideEffect` 涉及卡片形態與生命週期，維持 Card 專用；將卡片生命週期
+觸發接入 Queue 是後續 T-017 的工作，T-020 沒有藉此開放 `CardTriggeredTiming`。
+
+舊的 `AddCardBuffPlayerBuffEffect` 與 `RemoveCardBuffPlayerBuffEffect` 已在正式資產遷移後
+完全刪除；PlayerBuff 要新增或移除 CardBuff 時，一律使用共用的
+`AddCardBuffEffect`／`RemoveCardBuffEffect`，不保留舊型別相容分支。
+
+### Reaction Context 與 Queue 邊界
+
+- **Owner**：PlayerBuff 為被觸發玩家、CharacterBuff 為角色所屬玩家、CardBuff 與卡牌
+  Trigger 為觸發卡片的實際持有玩家。
+- **Caster**：Buff 使用建立時記錄的 Caster；直接卡牌效果使用卡片持有玩家。無合法來源時
+  回傳空值，不會猜測 Current Player。
+- **Selected Card**：仍由 `GameContext` 持有；Reaction Planner 不覆寫既有選取。
+- **Playing Card**：只從請求玩家的暫態 Playing Card 取得，不與一般牌區混用。
+- **順序與快照**：同一個 Timing 依 PlayerBuff → CharacterBuff → CardBuff 建立反應項目；
+  每一來源在建立時快照，後續新增／移除的 Buff 不會回頭加入同一次派送。
+- **失效契約**：目標、來源區域或 Layer 在執行前已失效時，命令安全 No-op，且不產生
+  Result 或 Event。
+
+`ReactionOriginTiming` 會隨反應鏈傳遞，因此條件和值可辨識最初觸發的 `GameTiming`；它不會
+因後續 Queue 執行而遺失。
+
 ### 數值解析
 
 效果中的數值並非簡單常數，而是透過 `IIntegerValue` 介面動態評估。這允許：
@@ -134,7 +191,7 @@ EffectCommandExecutor
 
 ## 設計價值
 
-1. **可擴展性**：新增效果類型只需要新增 CardEffect + EffectCommand + Executor 分支
+1. **可擴展性**：已批准的核心操作可由四種來源共用同一個 Resolver、Command 與 Executor 路徑
 2. **可追溯性**：每個效果的完整執行鏈（Intent → Target → Result）都被記錄
 3. **Buff 友善**：三階 Action 管線讓 Buff 有充分的介入時機
 4. **數值透明**：所有計算透過 GameFormula 集中處理，易於調試

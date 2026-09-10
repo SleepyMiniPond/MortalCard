@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
 using Optional;
@@ -72,10 +73,15 @@ namespace MortalGame.GameModel
                     CardTriggeredTiming.FormChanged,
                     out var triggeredEffects))
             {
-                queue.EnqueueImmediate(triggeredEffects.Select(effect =>
-                    new TriggeredCardEffectQueueItem(
+                queue.EnqueueImmediate(triggeredEffects
+                    .Where(conditionalEffect => conditionalEffect != null &&
+                        (conditionalEffect.Conditions ?? new List<ICondition>()).All(
+                            condition => condition != null && condition.Eval(formChangedContext)))
+                    .Where(conditionalEffect => conditionalEffect.Effect != null)
+                    .Select(conditionalEffect =>
+                    new CardTriggeredEffectQueueItem(
                         formChangedContext,
-                        effect)));
+                        conditionalEffect.Effect)));
             }
 
             var formChangedEvent = new CardFormChangedEvent(
@@ -126,10 +132,15 @@ namespace MortalGame.GameModel
                     CardTriggeredTiming.FormChanged,
                     out var triggeredEffects))
             {
-                queue.EnqueueImmediate(triggeredEffects.Select(effect =>
-                    new TriggeredCardEffectQueueItem(
+                queue.EnqueueImmediate(triggeredEffects
+                    .Where(conditionalEffect => conditionalEffect != null &&
+                        (conditionalEffect.Conditions ?? new List<ICondition>()).All(
+                            condition => condition != null && condition.Eval(formChangedContext)))
+                    .Where(conditionalEffect => conditionalEffect.Effect != null)
+                    .Select(conditionalEffect =>
+                    new CardTriggeredEffectQueueItem(
                         formChangedContext,
-                        effect)));
+                        conditionalEffect.Effect)));
             }
 
             return new EffectResult(
@@ -147,7 +158,7 @@ namespace MortalGame.GameModel
         }
     }
 
-    internal sealed record TriggeredCardEffectQueueItem(
+    internal sealed record CardTriggeredEffectQueueItem(
         TriggerContext Context,
         ICardEffect Effect) : EffectQueueItem(Context)
     {

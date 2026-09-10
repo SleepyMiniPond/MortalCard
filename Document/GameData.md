@@ -1,6 +1,6 @@
 # GameData 資料定義層
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-10 | 版本：v2.1
 
 ## 設計理念
 
@@ -63,7 +63,7 @@ GameData/
 - **基礎屬性**：ID、稀有度、類型、門派、費用、威力
 - **目標選取規則**：主目標（MainSelect）+ 子目標（SubSelects）
 - **直接效果列表**：打出時立即觸發的 ICardEffect 鏈
-- **觸發效果列表**：基於 CardTriggeredTiming 的條件觸發效果
+- **觸發效果字典**：`CardTriggeredTiming → ConditionalCardEffect[]`；每筆包含 Conditions 與單一 ICardEffect
 - **屬性工廠列表**：透過 ICardPropertyData.CreateEntity() 產生運行時屬性
 
 ### CardEffect — 效果介面體系
@@ -74,6 +74,33 @@ GameData/
 - **卡牌目標效果**：DrawCardEffect、CreateCardEffect、AddCardBuffEffect 等
 
 每個效果都使用 `IIntegerValue`（抽象數值）和 `ITargetCollectionValue`（抽象目標）進行參數化，實現高度組合性。
+
+### Reaction Effect 資料模型
+
+除了直接打出的 `ICardEffect`，三種 Buff 的 `BuffEffects` 分別承載
+`IPlayerBuffEffect`、`ICharacterBuffEffect`、`ICardBuffEffect`。同一個具體效果可以明確
+實作多個來源介面，以表示其可在那些資料欄位中被序列化與執行。
+
+T-020 已將傷害、護盾、治療、能量、好感度、抽牌、移牌、建立／複製卡牌、PlayerBuff
+與 CardBuff 操作列為四來源共用的正式效果。這些型別仍是單一資料定義與單一 Resolver
+流程；來源差異只由 Trigger Context 提供 Owner、Caster、Triggered Card 與
+`ReactionOriginTiming`，不應建立僅為了來源名稱而重複的 Effect 型別。
+
+資產製作時請注意：
+
+- 僅能在該欄位介面與 Resolver Registry 都支援的來源中選用效果；`GameDataValidator` 會
+  攔截不支援的型別、無效目標、遺失 ID 與不合法巢狀 `AddCardBuffData`。
+- `CreateCardEffect` 與 `CloneCardEffect` 的目的區域必須為一般牌區；Playing Card 是暫態
+  執行上下文，不可當作建立、複製或一般移牌目標。
+- `ModifyCardPlayAttributeEffect` 僅用於三種 Buff 的出牌屬性修正；
+  `ApplyCardFormOverrideEffect` 僅能作為直接卡牌效果。
+- 已移除 `AddCardBuffPlayerBuffEffect`／`RemoveCardBuffPlayerBuffEffect`。既有 PlayerBuff
+  資產應使用 `AddCardBuffEffect`／`RemoveCardBuffEffect`，不再有舊型別讀取相容。
+
+CardBuff 的 `BuffEffects` 已可在支援的 `GameTiming` 進入 Effect Queue。例如「定時炸彈」
+可在 `AfterExecuteEnd` 由 CardBuff 反應取得 Triggered Card 的 Power 並造成傷害；它不依賴
+尚未接線的 `CardTriggeredTiming`。後者仍由 T-017 統一處理 CardData 與 CardBuffData 的
+卡片生命週期效果。
 
 ### CardLibrary / CardViewLibrary
 

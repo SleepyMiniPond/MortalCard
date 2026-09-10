@@ -942,13 +942,14 @@ namespace MortalGame.Editor
             foreach (var effect in cardData.Effects ?? Enumerable.Empty<ICardEffect>())
                 ValidateCardEffectResolver(effect, $"{assetPath} / CardData[{cardData.ID}].Effects", errors);
 
-            foreach (var triggeredEffect in cardData.TriggeredEffects ?? Enumerable.Empty<TriggeredCardEffect>())
+            foreach (var pair in cardData.TriggeredEffects ??
+                new Dictionary<CardTriggeredTiming, ConditionalCardEffect[]>())
             {
-                foreach (var effect in triggeredEffect?.Effects ?? Array.Empty<ICardEffect>())
+                foreach (var conditionalEffect in pair.Value ?? Array.Empty<ConditionalCardEffect>())
                 {
                     ValidateCardEffectResolver(
-                        effect,
-                        $"{assetPath} / CardData[{cardData.ID}].TriggeredEffects[{triggeredEffect.Timing}]",
+                        conditionalEffect?.Effect,
+                        $"{assetPath} / CardData[{cardData.ID}].TriggeredEffects[{pair.Key}]",
                         errors);
                 }
             }
@@ -1187,10 +1188,14 @@ namespace MortalGame.Editor
             foreach (var effect in cardData.Effects ?? Enumerable.Empty<ICardEffect>())
                 yield return effect;
 
-            foreach (var triggeredEffect in cardData.TriggeredEffects ?? Enumerable.Empty<TriggeredCardEffect>())
+            foreach (var pair in cardData.TriggeredEffects ??
+                new Dictionary<CardTriggeredTiming, ConditionalCardEffect[]>())
             {
-                foreach (var effect in triggeredEffect?.Effects ?? Array.Empty<ICardEffect>())
-                    yield return effect;
+                foreach (var conditionalEffect in pair.Value ?? Array.Empty<ConditionalCardEffect>())
+                {
+                    if (conditionalEffect?.Effect != null)
+                        yield return conditionalEffect.Effect;
+                }
             }
         }
 
@@ -1296,13 +1301,19 @@ namespace MortalGame.Editor
 
             _ValidateAddCardBuffDataSemantics(cardData, context, errors);
 
-            var triggeredEffects = cardData.TriggeredEffects ?? new List<TriggeredCardEffect>();
-            for (var index = 0; index < triggeredEffects.Count; index++)
+            _ValidateTimingKeys(
+                cardData.TriggeredEffects,
+                $"{context}.TriggeredEffects",
+                errors);
+
+            foreach (var pair in cardData.TriggeredEffects ??
+                new Dictionary<CardTriggeredTiming, ConditionalCardEffect[]>())
             {
-                var triggeredEffect = triggeredEffects[index];
-                if (triggeredEffect != null && triggeredEffect.Timing == CardTriggeredTiming.None)
+                var conditionalEffects = pair.Value ?? Array.Empty<ConditionalCardEffect>();
+                for (var index = 0; index < conditionalEffects.Length; index++)
                 {
-                    errors.Add($"{context}.TriggeredEffects[{index}].Timing 不可為 None");
+                    if (conditionalEffects[index] == null)
+                        errors.Add($"{context}.TriggeredEffects[{pair.Key}][{index}] 為空");
                 }
             }
 
@@ -1943,6 +1954,22 @@ namespace MortalGame.Editor
                 var rule = rules[index];
                 if (rule != null && getTiming(rule) == GameTiming.None)
                     errors.Add($"{context}[{index}].Timing 不可為 None");
+            }
+        }
+
+        private static void _ValidateTimingKeys<T>(
+            IReadOnlyDictionary<T, ConditionalCardEffect[]> effects,
+            string context,
+            ICollection<string> errors)
+            where T : struct, Enum
+        {
+            if (effects == null)
+                return;
+
+            foreach (var timing in effects.Keys)
+            {
+                if (Convert.ToInt32(timing) == 0)
+                    errors.Add($"{context} 的 Timing 不可為 None");
             }
         }
 

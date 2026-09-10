@@ -290,3 +290,23 @@
   - 完整 EditMode：486 passed / 0 failed / 0 skipped。
   - 測試保留 2 筆既有 `NoOpCardBuffEffect` 未知 Resolver warning，屬測試用空效果案例。
 - **狀態**：✅ 已完成（2026-09-07）
+
+---
+
+### T-020：統一 Reaction Effect 執行能力
+
+- **目標**：讓 Card、PlayerBuff、CharacterBuff、CardBuff 重用核心遊戲操作與 Effect Queue，不為每種來源複製 Resolver／Command 流程。
+- **完成內容**：
+  - 建立四個來源各自明確的 Resolver Registry；已批准核心操作共用同一個 Resolver／Command 路徑，Reaction Registry 不回退至 Card Registry。
+  - 將傷害、護盾、治療、能量、好感度、抽牌、移牌、建立／複製卡牌、PlayerBuff 與 CardBuff 操作開放給四個來源；保留 `ModifyCardPlayAttributeEffect` 為 Reaction 專用、`ApplyCardFormOverrideEffect` 為 Card 專用。
+  - 補齊 Reaction 的 Owner、Caster、Selected Card、Playing Card 與 ReactionOriginTiming 契約，以及 PlayerBuff → CharacterBuff → CardBuff 的 Timing 快照順序與失效安全 No-op。
+  - 完成 CardBuff 定時炸彈垂直切片：於 `AfterExecuteEnd` 取得 Triggered Card Power 造成傷害，不覆寫 Selected Card；這不是 `CardTriggeredTiming`，後者保留給 T-017。
+  - 將 `QuickAttack` 資產遷移至共用 `AddCardBuffEffect`，並完全刪除 `AddCardBuffPlayerBuffEffect`／`RemoveCardBuffPlayerBuffEffect`、來源專用 Resolver、Registry、Validator 與測試相容分支。
+  - 更新 [Effect.md](Effect.md) 與 [GameData.md](GameData.md)，記錄允許操作矩陣與資產製作邊界。
+- **驗證結果**：
+  - Unity 編譯：0 error。
+  - 正式內容 `GameDataValidator.ValidateAll()`：0 errors。
+  - 定向測試：定時炸彈與三來源傷害 6 passed、Registry 96 passed、Play Mode Gate 3 passed、Build Gate 3 passed。
+  - 完整 Unity EditMode：603 passed / 0 failed / 0 skipped。
+  - 測試保留 2 筆既有 `NoOpCardBuffEffect` unknown Resolver warning，屬測試用安全空 CommandSet 案例。
+- **狀態**：✅ 已完成（2026-09-10）

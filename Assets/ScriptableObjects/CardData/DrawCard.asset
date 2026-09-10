@@ -127,8 +127,22 @@ MonoBehaviour:
       Data: 
     - Name: TriggeredEffects
       Entry: 7
-      Data: 11|System.Collections.Generic.List`1[[MortalGame.GameData.TriggeredCardEffect,
+      Data: 11|System.Collections.Generic.Dictionary`2[[MortalGame.GameData.CardTriggeredTiming,
+        MortalGame.Runtime],[MortalGame.GameData.ConditionalCardEffect[], MortalGame.Runtime]],
+        mscorlib
+    - Name: comparer
+      Entry: 7
+      Data: 12|System.Collections.Generic.EnumEqualityComparer`1[[MortalGame.GameData.CardTriggeredTiming,
         MortalGame.Runtime]], mscorlib
+    - Name: 
+      Entry: 12
+      Data: 0
+    - Name: 
+      Entry: 13
+      Data: 
+    - Name: 
+      Entry: 8
+      Data: 
     - Name: 
       Entry: 12
       Data: 0
@@ -140,17 +154,17 @@ MonoBehaviour:
       Data: 
     - Name: PropertyDatas
       Entry: 7
-      Data: 12|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
+      Data: 13|System.Collections.Generic.List`1[[MortalGame.GameData.ICardPropertyData,
         MortalGame.Runtime]], mscorlib
-    - Name:
+    - Name: 
       Entry: 12
       Data: 1
-    - Name:
+    - Name: 
       Entry: 7
-      Data: 13|MortalGame.GameData.InitialPriorityPropertyData, MortalGame.Runtime
-    - Name:
+      Data: 14|MortalGame.GameData.InitialPriorityPropertyData, MortalGame.Runtime
+    - Name: 
       Entry: 8
-      Data:
+      Data: 
     - Name: 
       Entry: 13
       Data: 
@@ -159,7 +173,7 @@ MonoBehaviour:
       Data: 
     - Name: TransformRules
       Entry: 7
-      Data: 14|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.CardTransformRule,
+      Data: 15|Unity.Plastic.Antlr3.Runtime.Misc.ListStack`1[[MortalGame.GameData.CardTransformRule,
         MortalGame.Runtime]], Unity.Plastic.Antlr3.Runtime
     - Name: 
       Entry: 12

@@ -35,14 +35,14 @@ namespace MortalGame.Tests
                     Targets = new SingleCharacterCollection(),
                     Value = null
                 });
-                card.Data.TriggeredEffects.Add(null);
+                card.Data.TriggeredEffects[CardTriggeredTiming.Drawed] = new ConditionalCardEffect[] { null };
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
                 var errors = GameDataValidator.ValidateNestedContent(catalog);
 
                 Assert.That(errors, Has.Some.Contains("Effects[0].Targets.Target 為空"));
                 Assert.That(errors, Has.Some.Contains("Effects[0].Value 為空"));
-                Assert.That(errors, Has.Some.Contains("TriggeredEffects[0] 為空"));
+                Assert.That(errors, Has.Some.Contains("TriggeredEffects[Drawed][0] 為空"));
             }
             finally
             {

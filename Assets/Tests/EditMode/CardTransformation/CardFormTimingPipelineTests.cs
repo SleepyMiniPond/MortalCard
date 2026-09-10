@@ -98,13 +98,19 @@ namespace MortalGame.Tests.CardTransformation
             var baseCard = CreateCardWithApplyRule(
                 CardTransformationTestBuilder.BaseCardId,
                 CardTransformationTestBuilder.AlternateCardId);
-            baseCard.TriggeredEffects.Add(CreateFormChangedEnergyEffect(1));
+            baseCard.TriggeredEffects[CardTriggeredTiming.FormChanged] = new[]
+            {
+                CreateFormChangedEnergyEffect(1)
+            };
 
             var alternateCard = CardTransformationTestBuilder.CreateCardData(
                 CardTransformationTestBuilder.AlternateCardId,
                 cost: 5,
                 power: 8);
-            alternateCard.TriggeredEffects.Add(CreateFormChangedEnergyEffect(2));
+            alternateCard.TriggeredEffects[CardTriggeredTiming.FormChanged] = new[]
+            {
+                CreateFormChangedEnergyEffect(2)
+            };
             alternateCard.TransformRules.Add(new CardTransformRule
             {
                 RuleId = "alternate-revert",
@@ -140,12 +146,11 @@ namespace MortalGame.Tests.CardTransformation
                 CardTransformationTestBuilder.AlternateCardId,
                 cost: 5,
                 power: 8);
-            alternateCard.TriggeredEffects.Add(new TriggeredCardEffect
+            alternateCard.TriggeredEffects[CardTriggeredTiming.FormChanged] = new[]
             {
-                Timing = CardTriggeredTiming.FormChanged,
-                Effects = new ICardEffect[]
+                new ConditionalCardEffect
                 {
-                    new GainEnergyEffect
+                    Effect = new GainEnergyEffect
                     {
                         Targets = new SinglePlayerCollection
                         {
@@ -170,7 +175,7 @@ namespace MortalGame.Tests.CardTransformation
                         }
                     }
                 }
-            });
+            };
             var built = new CardTransformationTestBuilder()
                 .WithCard(baseCard)
                 .WithCard(alternateCard)
@@ -238,21 +243,17 @@ namespace MortalGame.Tests.CardTransformation
             return card;
         }
 
-        private static TriggeredCardEffect CreateFormChangedEnergyEffect(int value)
+        private static ConditionalCardEffect CreateFormChangedEnergyEffect(int value)
         {
-            return new TriggeredCardEffect
+            return new ConditionalCardEffect
             {
-                Timing = CardTriggeredTiming.FormChanged,
-                Effects = new ICardEffect[]
+                Effect = new GainEnergyEffect
                 {
-                    new GainEnergyEffect
+                    Targets = new SinglePlayerCollection
                     {
-                        Targets = new SinglePlayerCollection
-                        {
-                            Target = new CardOwner { Card = new TriggeredCard() }
-                        },
-                        Value = new ConstInteger { Value = value }
-                    }
+                        Target = new CardOwner { Card = new TriggeredCard() }
+                    },
+                    Value = new ConstInteger { Value = value }
                 }
             };
         }

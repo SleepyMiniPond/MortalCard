@@ -1,6 +1,6 @@
 # Card 卡牌系統
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-11 | 版本：v2.1
 
 ## 設計理念
 
@@ -55,7 +55,8 @@ Record 類型的不可變快照，代表牌組中的一張具體卡牌：
 
 基於 `CardTriggeredTiming` 的事件驅動效果：
 - 抽到時（Drawed）、打出時（Played）、保留時（Preserved）、丟棄時（Discarded）
-- 每個觸發效果包裝為 `TriggeredCardEffect`，內含時機 + ICardEffect 列表
+- `TriggeredEffects` 使用 `CardTriggeredTiming → ConditionalCardEffect[]` 字典；時機由鍵提供
+- 每個 `ConditionalCardEffect` 包含 `Conditions` 與單一 `ICardEffect`，只有條件全部成立才會進入效果佇列
 
 ### 效果參數化
 

@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-09-07
+> 最後更新：2026-09-10
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -8,9 +8,7 @@
 
 ```text
 現在可開始
-└─ T-020 統一 Reaction Effect 執行能力
-        ↓
-    T-017 CardTriggeredTiming 生命週期觸發管線
+└─ T-017 CardTriggeredTiming 生命週期觸發管線
         ↓
     T-011 多步驟目標選取
         ↓
@@ -21,7 +19,7 @@
 └─ T-014 Preview / Simulation
 ```
 
-T-010、T-018 與 T-019 已完成並封存。通用資料表達基礎已具備，接下來補齊 Reaction Effect 與卡片生命週期，讓新增卡片能以資料資產完成，而不是持續為單一卡片增加專用程式。T-011 與 T-012 延後至這兩項完成後；T-013、T-014 影響面較廣，不與這條主線同時進行。
+T-010、T-018、T-019 與 T-020 已完成並封存。通用資料表達與 Reaction Effect 執行能力已具備，下一步補齊卡片生命週期觸發管線，讓新增卡片能以資料資產完成，而不是持續為單一卡片增加專用程式。T-011 與 T-012 延後至此項完成後；T-013、T-014 影響面較廣，不與這條主線同時進行。
 
 ---
 
@@ -29,28 +27,9 @@ T-010、T-018 與 T-019 已完成並封存。通用資料表達基礎已具備�
 
 ## 主線依序完成
 
-### T-020：統一 Reaction Effect 執行能力
-
-- **目標**：讓 Card、PlayerBuff、CharacterBuff、CardBuff 的反應效果能重用核心遊戲操作與 Effect Queue，而不必為每種來源複製 Damage、Shield、DrawCard 等效果實作。
-- **現況**：
-  - `ICardEffect` 已有傷害、護盾、抽牌、移牌與 Buff 等主要操作。
-  - `IPlayerBuffEffect` 與 `ICharacterBuffEffect` 只支援少量修正型效果。
-  - `ICardBuffEffect` 沒有任何正式具體型別，Resolver Registry 也是空的；CardBuff 雖能收到 Timing，卻無法執行實際效果。
-- **開始前需決定**：
-  - 採用共用 Gameplay Effect Spec、Reaction 對 CardEffect 的安全轉接，或保留不同介面但共用 Resolver／Command 建構層。
-  - 各來源的 Triggered Owner、Caster、Selected Target 與 Playing Card Context 如何明確對應。
-  - 哪些核心操作允許由所有 Reaction 來源使用，哪些需要限制。
-- **建議階段**：
-  1. 定義 Reaction Effect 到核心 Effect Command 的共用執行契約。
-  2. 先完成 CardBuff 的傷害、護盾、治療、能量、抽牌與 Buff 操作垂直切片。
-  3. 將 PlayerBuff／CharacterBuff 可共用的操作遷移到相同模型，保留來源特有的效果修正能力。
-  4. 補齊 Resolver／Handler 註冊檢查、Context、Queue 順序與失效目標測試。
-- **完成條件**：CardBuff 能在任一支援的 `GameTiming` 執行核心遊戲操作；新增共用操作時不需要為四種來源複製四套 Resolver／Command 流程。
-- **狀態**：⬜ 未開始
-
 ### T-017：完成 CardTriggeredTiming 生命週期觸發管線
 
-- **前置**：T-018、T-019、T-020。
+- **前置**：T-018、T-019、T-020 已完成。
 - **目標**：讓 `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 能在抽牌、打出、保留、丟棄、初始化等卡片生命週期中，依明確且唯一的時機進入 Effect Queue。
 - **現況**：
   - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入，會在形態狀態與最新 `CardInfo` 提交後執行新 Effective Form 的 Effects。
@@ -61,13 +40,9 @@ T-010、T-018 與 T-019 已完成並封存。通用資料表達基礎已具備�
   - 每個 timing 位於卡片區域移動、狀態提交、Gameplay Event 與畫面更新之前或之後。
   - CardData Effect 與 CardBuff Effect 的固定順序、快照範圍、Selected Card Context 與同一 EffectQueueRunner Budget 規則。
   - `Initialize` 的觸發範圍，以及既有 `Drawed` 命名若調整時的序列化數值與資產遷移策略。
-- **建議階段**：
-  1. 盤點每個 enum 對應的 GameplayManager／CardManager 狀態轉換點，建立唯一的生命週期順序表。
-  2. 建立共用 Card Trigger Dispatch Queue Item，同時快照並執行 CardData 與有效 CardBuff Effects。
-  3. 分批接入抽牌、打出、保留、丟棄與初始化流程，補齊 Effect 造成流程的來源辨識。
-  4. 新增 EditMode 測試與 Validator，確認不重複觸發、Context 正確且新增／移除的 Effect 不回頭參與同一次快照。
+- **建議階段**：拆成 8 個小工作包，先在共用觸發契約包完成 `CardData.TriggeredEffects` 的 conditional 字典格式與既有資產 migration，再依序完成 Initialize、一般抽牌、Effect 抽牌、Played／EffectPlayed 邊界、Preserved、Discarded／EffectDiscarded，最後再做完整驗收與文件收斂；每包單獨測試與確認，不把所有 timing 集中在第一包。
 - **完成條件**：除 `None` 外，每個 `CardTriggeredTiming` 都有一個明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。
-- **狀態**：⬜ 未開始
+- **狀態**：✅ 工作包 1 已完成；下一步為工作包 2 `Initialize`
 
 ### T-011：多步驟自訂目標選取
 

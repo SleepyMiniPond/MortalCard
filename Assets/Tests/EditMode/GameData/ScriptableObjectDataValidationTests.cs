@@ -209,19 +209,22 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void TriggeredCardEffect_AssetRoundTrip_PreservesTimingAndPolymorphicEffect()
+        public void ConditionalCardEffect_AssetRoundTrip_PreservesTimingAndPolymorphicEffect()
         {
             var assetPath = AssetDatabase.GenerateUniqueAssetPath(
-                "Assets/Tests/EditMode/GameData/TriggeredCardEffectRoundTrip.asset");
+                "Assets/Tests/EditMode/GameData/ConditionalCardEffectRoundTrip.asset");
             var asset = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
             try
             {
                 asset.Data.ID = "triggered-effect-round-trip";
-                asset.Data.TriggeredEffects.Add(new TriggeredCardEffect
+                asset.Data.TriggeredEffects[CardTriggeredTiming.FormChanged] = new[]
                 {
-                    Timing = CardTriggeredTiming.FormChanged,
-                    Effects = new ICardEffect[] { new GainEnergyEffect() }
-                });
+                    new ConditionalCardEffect
+                    {
+                        Conditions = { new ConstCondition { Value = true } },
+                        Effect = new GainEnergyEffect()
+                    }
+                };
                 AssetDatabase.CreateAsset(asset, assetPath);
                 AssetDatabase.SaveAssets();
                 Resources.UnloadAsset(asset);
@@ -230,11 +233,11 @@ namespace MortalGame.Tests
                 var loaded = AssetDatabase.LoadAssetAtPath<StandardCardDataScriptable>(assetPath);
 
                 Assert.That(loaded.Data.TriggeredEffects, Has.Count.EqualTo(1));
+                Assert.That(loaded.Data.TriggeredEffects, Does.ContainKey(CardTriggeredTiming.FormChanged));
+                Assert.That(loaded.Data.TriggeredEffects[CardTriggeredTiming.FormChanged], Has.Length.EqualTo(1));
                 Assert.That(
-                    loaded.Data.TriggeredEffects[0].Timing,
-                    Is.EqualTo(CardTriggeredTiming.FormChanged));
-                Assert.That(loaded.Data.TriggeredEffects[0].Effects, Has.Length.EqualTo(1));
-                Assert.That(loaded.Data.TriggeredEffects[0].Effects[0], Is.TypeOf<GainEnergyEffect>());
+                    loaded.Data.TriggeredEffects[CardTriggeredTiming.FormChanged][0].Effect,
+                    Is.TypeOf<GainEnergyEffect>());
             }
             finally
             {

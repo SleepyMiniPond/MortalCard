@@ -223,12 +223,11 @@ namespace MortalGame.Tests.CardTransformation
                 CardTransformationTestBuilder.BaseCardId,
                 cost: 2,
                 power: 3);
-            baseCard.TriggeredEffects.Add(new TriggeredCardEffect
+            baseCard.TriggeredEffects[CardTriggeredTiming.FormChanged] = new[]
             {
-                Timing = CardTriggeredTiming.FormChanged,
-                Effects = new ICardEffect[]
+                new ConditionalCardEffect
                 {
-                    new GainEnergyEffect
+                    Effect = new GainEnergyEffect
                     {
                         Targets = new SinglePlayerCollection
                         {
@@ -237,7 +236,7 @@ namespace MortalGame.Tests.CardTransformation
                         Value = new ConstInteger { Value = 2 }
                     }
                 }
-            });
+            };
             var built = new CardTransformationTestBuilder()
                 .WithCard(baseCard)
                 .WithCard(_CreateOverride(OverrideCardId))

@@ -41,8 +41,7 @@ namespace MortalGame.GameData
         public List<ICardEffect> Effects = new();
         [BoxGroup("Effects")]
         [ShowInInspector]
-        [TableList]
-        public List<TriggeredCardEffect> TriggeredEffects = new();
+        public Dictionary<CardTriggeredTiming, ConditionalCardEffect[]> TriggeredEffects = new();
 
         [ShowInInspector]
         [BoxGroup("Properties")]
