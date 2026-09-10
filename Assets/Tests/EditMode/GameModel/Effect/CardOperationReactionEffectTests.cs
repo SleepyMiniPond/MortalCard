@@ -302,6 +302,133 @@ namespace MortalGame.Tests
             }
         }
 
+        [Test]
+        public void AddCardBuffEffect_FromPlayerBuff_ProducesExpectedCommandResultAndEvent()
+        {
+            var setup = _CreateSetup(ReactionSource.PlayerBuff, includeCreatedBuff: true);
+            var targetCards = new CardsOfPlayer
+            {
+                Player = new PlayerByFaction { Faction = Faction.Ally },
+                Zone = CardCollectionType.HandCard
+            };
+            var addCardBuffData = new AddCardBuffData
+            {
+                CardBuffId = setup.CreatedCardBuffId,
+                Level = new ConstInteger { Value = 1 }
+            };
+            var effect = new AddCardBuffEffect
+            {
+                TargetCards = targetCards,
+                AddCardBuffDatas = { addCardBuffData }
+            };
+
+            var commands = EffectDataResolver.ResolvePlayerBuffEffect(setup.Context, effect);
+            var result = _RunPlayerBuffEffect(setup.Context, effect);
+
+            Assert.That(commands.Commands.Single(), Is.TypeOf<AddCardBuffEffectCommand>());
+            Assert.That(result.Actions.Single(), Is.TypeOf<AddCardBuffResultAction>());
+            Assert.That(result.Events.OfType<AddCardBuffEvent>().Count(), Is.EqualTo(1));
+            Assert.That(
+                setup.Card.BuffManager.Buffs.Single().Caster.ValueOr((IPlayerEntity)null),
+                Is.SameAs(setup.Built.Enemy));
+        }
+
+        [Test]
+        public void RemoveCardBuffEffect_FromPlayerBuff_ProducesExpectedCommandResultAndEvent()
+        {
+            var setup = _CreateSetup(ReactionSource.PlayerBuff, includeCreatedBuff: true);
+            var existingBuff = BuffTestBuilder.CreateCardBuff(
+                setup.Context,
+                setup.Built.ContextManager.CardBuffLibrary,
+                setup.CreatedCardBuffId,
+                setup.Built.Enemy);
+            setup.Card.BuffManager.AddBuff(existingBuff);
+            var targetCards = new CardsOfPlayer
+            {
+                Player = new PlayerByFaction { Faction = Faction.Ally },
+                Zone = CardCollectionType.HandCard
+            };
+            var effect = new RemoveCardBuffEffect
+            {
+                TargetCards = targetCards,
+                BuffId = setup.CreatedCardBuffId
+            };
+
+            var commands = EffectDataResolver.ResolvePlayerBuffEffect(setup.Context, effect);
+            var result = _RunPlayerBuffEffect(setup.Context, effect);
+
+            Assert.That(commands.Commands.Single(), Is.TypeOf<RemoveCardBuffEffectCommand>());
+            Assert.That(result.Actions.Single(), Is.TypeOf<RemoveCardBuffResultAction>());
+            Assert.That(result.Events.OfType<RemoveCardBuffEvent>().Count(), Is.EqualTo(1));
+            Assert.That(setup.Card.BuffManager.Buffs, Is.Empty);
+        }
+
+        [Test]
+        public void SharedPlayerBuffCardBuffEffects_RoundTripWithoutLosingTargets()
+        {
+            var path = AssetDatabase.GenerateUniqueAssetPath(
+                "Assets/Tests/EditMode/GameModel/Effect/SharedCardBuffPlayerBuffRoundTrip.asset");
+            var asset = UnityEngine.ScriptableObject.CreateInstance<PlayerBuffDataScriptable>();
+            try
+            {
+                asset.Data.ID = "shared-card-buff-player-buff-round-trip";
+                asset.Data.BuffEffects[GameTiming.AfterExecuteEnd] = new[]
+                {
+                    new ConditionalPlayerBuffEffect
+                    {
+                        Effect = new AddCardBuffEffect
+                        {
+                            TargetCards = new CardsOfPlayer
+                            {
+                                Player = new PlayerByFaction { Faction = Faction.Ally },
+                                Zone = CardCollectionType.HandCard
+                            },
+                            AddCardBuffDatas =
+                            {
+                                new AddCardBuffData
+                                {
+                                    CardBuffId = "shared-card-buff",
+                                    Level = new ConstInteger { Value = 1 }
+                                }
+                            }
+                        }
+                    },
+                    new ConditionalPlayerBuffEffect
+                    {
+                        Effect = new RemoveCardBuffEffect
+                        {
+                            TargetCards = new CardsOfPlayer
+                            {
+                                Player = new PlayerByFaction { Faction = Faction.Ally },
+                                Zone = CardCollectionType.HandCard
+                            },
+                            BuffId = "shared-card-buff"
+                        }
+                    }
+                };
+                AssetDatabase.CreateAsset(asset, path);
+                AssetDatabase.SaveAssets();
+                AssetDatabase.ImportAsset(path, ImportAssetOptions.ForceSynchronousImport);
+
+                var loaded = AssetDatabase.LoadAssetAtPath<PlayerBuffDataScriptable>(path);
+                var effects = loaded.Data.BuffEffects[GameTiming.AfterExecuteEnd];
+
+                Assert.That(effects[0].Effect, Is.TypeOf<AddCardBuffEffect>());
+                Assert.That(
+                    ((AddCardBuffEffect)effects[0].Effect).TargetCards,
+                    Is.TypeOf<CardsOfPlayer>());
+                Assert.That(effects[1].Effect, Is.TypeOf<RemoveCardBuffEffect>());
+                Assert.That(
+                    ((RemoveCardBuffEffect)effects[1].Effect).TargetCards,
+                    Is.TypeOf<CardsOfPlayer>());
+            }
+            finally
+            {
+                AssetDatabase.DeleteAsset(path);
+                UnityEngine.Object.DestroyImmediate(asset);
+            }
+        }
+
         private static ICardEffect _CreateMoveEffect(Type effectType)
         {
             var targetCards = new CardsOfPlayer
@@ -344,6 +471,15 @@ namespace MortalGame.Tests
                     throw new ArgumentOutOfRangeException();
             }
 
+            return runner.RunToCompletion();
+        }
+
+        private static EffectResult _RunPlayerBuffEffect(
+            TriggerContext context,
+            IPlayerBuffEffect effect)
+        {
+            var runner = new EffectQueueRunner();
+            runner.Enqueue(new PlayerBuffEffectQueueItem(context, effect));
             return runner.RunToCompletion();
         }
 

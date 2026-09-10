@@ -185,8 +185,8 @@ MonoBehaviour:
       Data: 
     - Name: Effect
       Entry: 7
-      Data: 16|MortalGame.GameData.AddCardBuffPlayerBuffEffect, MortalGame.Runtime
-    - Name: Targets
+      Data: 16|MortalGame.GameData.AddCardBuffEffect, MortalGame.Runtime
+    - Name: TargetCards
       Entry: 7
       Data: 17|MortalGame.GameModel.SingleCardCollection, MortalGame.Runtime
     - Name: TargetCard

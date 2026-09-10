@@ -10,8 +10,8 @@ namespace MortalGame.GameModel
             var c = (MoveCardEffectCommand)command;
             if (c.Target == null ||
                 c.Card == null ||
-                !c.Start.IsValidCardZone() ||
-                !c.Destination.IsValidCardZone())
+                !c.Start.IsNormalCardZone() ||
+                !c.Destination.IsNormalCardZone())
             {
                 return CommandApplyResult.Empty;
             }

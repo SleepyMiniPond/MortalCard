@@ -86,8 +86,6 @@ namespace MortalGame.GameModel
             [typeof(RemovePlayerBuffEffect)] = _removePlayerBuffResolver,
             [typeof(AddCardBuffEffect)] = _addCardBuffResolver,
             [typeof(RemoveCardBuffEffect)] = _removeCardBuffResolver,
-            [typeof(AddCardBuffPlayerBuffEffect)] = new AddCardBuffPlayerBuffEffectResolver(),
-            [typeof(RemoveCardBuffPlayerBuffEffect)] = new RemoveCardBuffPlayerBuffEffectResolver(),
             [typeof(ModifyCardPlayAttributeEffect)] = _modifyCardPlayAttributeResolver,
         };
 

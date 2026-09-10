@@ -30,26 +30,5 @@ namespace MortalGame.GameData
         public IIntegerValue Value;
     }
 
-    [Serializable]
-    public class AddCardBuffPlayerBuffEffect : IPlayerBuffEffect
-    {
-        [HorizontalGroup("1")]
-        public ITargetCardCollectionValue Targets;
-
-        [ShowInInspector]
-        [HorizontalGroup("2")]
-        public List<AddCardBuffData> AddCardBuffDatas = new();
-    }
-    [Serializable]
-    public class RemoveCardBuffPlayerBuffEffect : IPlayerBuffEffect
-    {
-        [HorizontalGroup("1")]
-        public ITargetCardCollectionValue Targets;
-
-        [ValueDropdown("@DropdownHelper.CardBuffNames")]
-        [HorizontalGroup("2")]
-        public string BuffId;
-    }
-
 }
 

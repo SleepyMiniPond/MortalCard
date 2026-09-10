@@ -37,7 +37,7 @@ namespace MortalGame.GameModel
 
             if (cloneCardEffect.Target == null ||
                 cloneCardEffect.ClonedCards == null ||
-                !cloneCardEffect.CloneDestination.IsValidCardZone())
+                !cloneCardEffect.CloneDestination.IsNormalCardZone())
             {
                 return EffectCommandSet.Empty;
             }

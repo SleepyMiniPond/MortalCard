@@ -156,9 +156,9 @@ namespace MortalGame.Tests.CardTransformation
                 new ConditionalPlayerBuffEffect
                 {
                     Conditions = { new ConstCondition { Value = true } },
-                    Effect = new AddCardBuffPlayerBuffEffect
+                    Effect = new AddCardBuffEffect
                     {
-                        Targets = new CardsOfPlayer
+                        TargetCards = new CardsOfPlayer
                         {
                             Player = new TriggeredPlayer(),
                             Zone = CardCollectionType.HandCard

@@ -35,7 +35,7 @@ namespace MortalGame.GameModel
                     $"CreateCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
 
             if (createCardEffect.Target == null ||
-                !createCardEffect.CreateDestination.IsValidCardZone())
+                !createCardEffect.CreateDestination.IsNormalCardZone())
             {
                 return EffectCommandSet.Empty;
             }

@@ -74,8 +74,6 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(RemovePlayerBuffEffect));
             yield return new TestCaseData(typeof(AddCardBuffEffect));
             yield return new TestCaseData(typeof(RemoveCardBuffEffect));
-            yield return new TestCaseData(typeof(AddCardBuffPlayerBuffEffect));
-            yield return new TestCaseData(typeof(RemoveCardBuffPlayerBuffEffect));
             yield return new TestCaseData(typeof(ModifyCardPlayAttributeEffect));
         }
 

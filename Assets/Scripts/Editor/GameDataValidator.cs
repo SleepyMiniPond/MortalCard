@@ -1081,22 +1081,6 @@ namespace MortalGame.Editor
             if (buffData == null)
                 return;
 
-            foreach (var pair in buffData.BuffEffects ?? new Dictionary<GameTiming, ConditionalPlayerBuffEffect[]>())
-            {
-                foreach (var conditionalEffect in pair.Value ?? Array.Empty<ConditionalPlayerBuffEffect>())
-                {
-                    switch (conditionalEffect?.Effect)
-                    {
-                        case AddCardBuffPlayerBuffEffect addCardBuff:
-                            ValidateAddCardBuffDataIds(addCardBuff.AddCardBuffDatas, $"{assetPath} / PlayerBuffData[{buffData.ID}].BuffEffects[{pair.Key}] 的 AddCardBuffPlayerBuffEffect.AddCardBuffDatas", cardBuffIds, errors);
-                            break;
-                        case RemoveCardBuffPlayerBuffEffect removeCardBuff:
-                            ValidateId(cardBuffIds, removeCardBuff.BuffId, $"{assetPath} / PlayerBuffData[{buffData.ID}].BuffEffects[{pair.Key}] 的 RemoveCardBuffPlayerBuffEffect.BuffId", errors);
-                            break;
-                    }
-                }
-            }
-
             ValidateCardOperationReferenceIds(
                 buffData,
                 $"{assetPath} / PlayerBuffData[{buffData.ID}]",
@@ -1132,19 +1116,6 @@ namespace MortalGame.Editor
         {
             if (buffData == null)
                 return;
-
-            foreach (var effect in EnumerateCardBuffEffects(buffData))
-            {
-                switch (effect)
-                {
-                    case AddCardBuffPlayerBuffEffect addCardBuff:
-                        ValidateAddCardBuffDataIds(addCardBuff.AddCardBuffDatas, $"{assetPath} / CardBuffData[{buffData.ID}] 的 AddCardBuffPlayerBuffEffect.AddCardBuffDatas", cardBuffIds, errors);
-                        break;
-                    case RemoveCardBuffPlayerBuffEffect removeCardBuff:
-                        ValidateId(cardBuffIds, removeCardBuff.BuffId, $"{assetPath} / CardBuffData[{buffData.ID}] 的 RemoveCardBuffPlayerBuffEffect.BuffId", errors);
-                        break;
-                }
-            }
 
             ValidateCardOperationReferenceIds(
                 buffData,
@@ -1420,7 +1391,7 @@ namespace MortalGame.Editor
             {
                 if (effect.Target == null)
                     errors.Add($"{context} 的 CreateCardEffect.Target 為空");
-                if (!effect.CreateDestination.IsValidCardZone())
+                if (!effect.CreateDestination.IsNormalCardZone())
                 {
                     errors.Add(
                         $"{context} 的 CreateCardEffect.CreateDestination 必須是有效的一般卡片區域：{effect.CreateDestination}");
@@ -1435,7 +1406,7 @@ namespace MortalGame.Editor
                     errors.Add($"{context} 的 CloneCardEffect.Target 為空");
                 if (effect.ClonedCards == null)
                     errors.Add($"{context} 的 CloneCardEffect.ClonedCards 為空");
-                if (!effect.CloneDestination.IsValidCardZone())
+                if (!effect.CloneDestination.IsNormalCardZone())
                 {
                     errors.Add(
                         $"{context} 的 CloneCardEffect.CloneDestination 必須是有效的一般卡片區域：{effect.CloneDestination}");

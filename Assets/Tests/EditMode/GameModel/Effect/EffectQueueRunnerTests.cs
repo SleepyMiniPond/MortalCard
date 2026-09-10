@@ -559,9 +559,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerBuffTrigger(built.Ally, BuffTestBuilder.CreatePlayerBuff()),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
-            var effect = new AddCardBuffPlayerBuffEffect
+            var effect = new AddCardBuffEffect
             {
-                Targets = new CardsOfPlayer
+                TargetCards = new CardsOfPlayer
                 {
                     Player = new CurrentPlayer(),
                     Zone = CardCollectionType.HandCard
