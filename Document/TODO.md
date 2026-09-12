@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-09-10
+> 最後更新：2026-09-13
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -32,8 +32,9 @@ T-010、T-018、T-019 與 T-020 已完成並封存。通用資料表達與 React
 - **前置**：T-018、T-019、T-020 已完成。
 - **目標**：讓 `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 能在抽牌、打出、保留、丟棄、初始化等卡片生命週期中，依明確且唯一的時機進入 Effect Queue。
 - **現況**：
-  - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入，會在形態狀態與最新 `CardInfo` 提交後執行新 Effective Form 的 Effects。
+  - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入；目前形態 Queue 直接執行新 Effective Form 的 CardData Effects，並在形態狀態與最新 `CardInfo` 提交後進行。
   - 其餘 `Drawed`、`EffectDrawed`、`Played`、`EffectPlayed`、`Preserved`、`Discarded`、`EffectDiscarded`、`Initialize` 目前只有 enum、資料欄位、Entity 查詢與 Validator，尚未找到正式的 Runtime 觸發入口。
+  - `CardTriggeredEffectDispatch.CreateItems()` 已能同時整理 CardData 與目前有效 CardBuff，但目前僅有 EditMode 契約測試，尚未由正式 Runtime Queue 呼叫；接線時必須避免與既有 FormChanged 直接派送重複。
   - `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 共用 `CardTriggeredTiming`，實作時必須同時處理卡片本體與目前有效的 CardBuff，避免兩套生命週期語意分離。
 - **開始前需決定**：
   - 一般流程與 Effect 造成的流程如何區分，例如 `Drawed`／`EffectDrawed`、`Played`／`EffectPlayed`、`Discarded`／`EffectDiscarded`。

@@ -1,6 +1,6 @@
 # Action 動作系統
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 設計理念
 
@@ -16,10 +16,9 @@ IActionUnit（根介面：所有動作都有 Timing 與 Source）
 ├── IEffectAction（型別化效果動作）
 │   ├── IEffectTargetAction（意圖階段 — 綁定目標前）
 │   └── IEffectResultAction（結果階段 — 執行完畢後）
-├── ITimingAction（遊戲時機動作，如回合開始）
-├── ILookAction（查詢動作，讀取不修改）
-├── IUpdateAction（更新動作，Session 值更新）
-└── ICreateAction（創建動作，新實體產生）
+├── UpdateTimingAction（遊戲時機動作）
+├── Look Action（查詢動作，讀取不修改）
+└── CardCreateSystemAction / CardPlay*Action（流程專用動作）
 ```
 
 ## 三層效果管線
@@ -82,8 +81,10 @@ GainEnergyResultAction
 | `CardPlayResultSource` | 卡牌打出結果（包裝 CardPlaySource + 效果結果） |
 | `PlayerBuffSource` | 玩家 Buff 觸發 |
 | `CardBuffSource` | 卡牌 Buff 觸發 |
-| `SystemExecuteStartSource` | 行動階段開始 |
-| `SystemExecuteEndSource` | 行動階段結束 |
+| `SystemExectueStartSource` | 行動階段開始 |
+| `SystemExectueEndSource` | 行動階段結束 |
+
+以上兩個型別的 `Exectue` 拼字與程式現況一致；若未來修正程式命名，需同步處理序列化或引用影響。
 
 ### CardPlaySource 特殊設計
 

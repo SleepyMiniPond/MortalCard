@@ -1,6 +1,6 @@
 # GameData 資料定義層
 
-> 最後更新：2026-09-10 | 版本：v2.1
+> 最後更新：2026-09-13 | 版本：v2.2
 
 ## 設計理念
 
@@ -38,7 +38,7 @@ GameData/
 | `DamageType` | 傷害類型（Normal/Penetrate/Additional/Effective） | 決定護甲穿透規則 |
 | `DamageStyle` | 攻擊風格（FullAttack/QuickAttack 等） | Flags 枚舉，可組合 |
 | `EffectType` | 效果類型（20+ 種） | 對應所有 CardEffect 實作 |
-| `GameTiming` | 遊戲時機（17 個觸發點） | Buff 反應系統的核心時機 |
+| `GameTiming` | 遊戲時機（26 個非 `None` 觸發點） | Buff 反應系統的核心時機 |
 | `MoveCardType` | 卡牌移動類型（Draw/Discard/Recycle/Consume/Dispose） | 卡牌區域轉換語義 |
 | `PlayerBuffProperty` | 玩家 Buff 屬性（16 種） | 數值修正類型 |
 
@@ -50,7 +50,7 @@ GameData/
 | `CardRarity` | 稀有度（5 級） | 影響卡池與平衡 |
 | `CardTheme` | 門派主題（5 大門派） | 武俠世界觀核心 |
 | `CardProperty` | 卡牌屬性（10 種 Flags） | Preserved/Consumable/Sealed 等行為標記 |
-| `CardTriggeredTiming` | 卡牌觸發時機（11 種） | 抽到/打出/保留/丟棄等 |
+| `CardTriggeredTiming` | 卡牌觸發時機（9 個非 `None` 時機） | 抽到/打出/保留/丟棄/初始化/變形等 |
 | `CardCollectionType` | 卡牌區域（5 種） | Deck/Hand/Graveyard/Exclusion/Dispose |
 
 ## 卡牌資料系統
@@ -178,13 +178,19 @@ Session 是 Buff 系統中最精巧的設計——讓 Buff 能夠追蹤動態狀
 `Scriptable/` 目錄下的類別負責將 Data 類別包裝為 Unity 可序列化的 ScriptableObject 資產：
 
 ```
-AllCardScriptable          # 聚合所有 CardDataScriptable
-├── CardDataScriptable     # 單張卡牌的 SO 容器
-AllPlayerBuffScriptable    # 聚合所有 PlayerBuffDataScriptable
-├── PlayerBuffDataScriptable
-DeckScriptable             # 牌組定義（CardDataScriptable[] 陣列）
+GameContentCatalog         # Card／Override Card／CardBuff／PlayerBuff／CharacterBuff 的權威集合
+├── StandardCardDataScriptable
+├── OverrideCardDataScriptable
+├── CardBuffScriptable / PlayerBuffDataScriptable / CharacterBuffDataScriptable
+AllPlayerScriptable        # Ally／Enemy 配置，與內容 Catalog 分開
+├── AllyScriptable / EnemyScriptable
+DeckScriptable             # 牌組定義
 ExcelDatas                 # Excel 匯入的本地化與常數表
 ```
+
+`ScriptableDataLoader` 從 `GameContentCatalog` 建立四套 Card／Buff Library，從
+`AllPlayerScriptable` 取得 Ally／Enemy，從 `ExcelDatas` 解析好感度與本地化資料。
+內容資產變更後需重新產生 Catalog；舊的卡牌／Buff `All*Scriptable` 聚合容器不再是資料來源。
 
 ### ExcelDatas — 外部資料橋接
 

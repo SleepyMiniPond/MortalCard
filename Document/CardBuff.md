@@ -1,6 +1,6 @@
 # CardBuff 卡牌 Buff 系統
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 設計理念
 
@@ -16,7 +16,8 @@ CardBuff 是施加在**單張卡牌**上的動態修正器。與 PlayerBuff（�
 CardBuffData
 ├── ID                    # 唯一識別碼
 ├── Sessions{}            # 反應會話（動態狀態追蹤）
-├── Effects{}             # CardTriggeredTiming → ConditionalCardBuffEffect[]
+├── Effects{}             # CardTriggeredTiming → ConditionalCardBuffEffect[]（卡片生命週期）
+├── BuffEffects{}         # GameTiming → ConditionalCardBuffEffect[]（一般反應時機）
 ├── PropertyDatas[]       # 屬性修正工廠列表
 └── LifeTimeData          # 生命週期策略工廠
 ```
@@ -58,10 +59,13 @@ HandCardLifeTime 是 CardBuff 獨有的策略，反映了卡牌在不同區域�
 ## 條件觸發效果
 
 每個 Buff 效果都包裝在 `ConditionalCardBuffEffect` 中：
-- **條件列表**：ICardBuffCondition[]（所有條件都必須滿足）
+- **條件列表**：`ICondition[]`（所有條件都必須滿足）
 - **效果**：ICardBuffEffect（觸發時執行的效果）
 
-效果按 `CardTriggeredTiming` 分組（與卡牌本身的觸發時機一致）。
+卡片生命週期效果放在 `Effects`，按 `CardTriggeredTiming` 分組；一般 Buff 反應放在
+`BuffEffects`，按 `GameTiming` 分組。後者已由 `TimingDispatchPlanner` 接入
+`EffectQueueRunner`；前者的共用 dispatch 契約已建立，但除 `FormChanged` 的既有 CardData
+入口外，其餘生命週期時機仍由 T-017 接續。
 
 ## 反應會話（Session）
 
@@ -91,9 +95,9 @@ CardBuff 可以擁有反應會話，追蹤動態狀態：
 |------|----------|---------------|------------|
 | 作用對象 | 單張卡牌 | 單個角色 | 整個玩家 |
 | 典型效果 | 封印、威力修正 | 生命上限、能量上限 | 全域傷害加成 |
-| 觸發時機 | CardTriggeredTiming | GameTiming | GameTiming |
+| 觸發時機 | `CardTriggeredTiming`（`Effects`） | `GameTiming`（`BuffEffects`） | `GameTiming` |
 | 獨有生命週期 | HandCardLifeTime | — | — |
-| 屬性修正 | 封印、威力 | 最大生命、最大能量 | 16 種全域數值修正 |
+| 屬性修正 | 封印、威力 | 最大生命、最大能量 | `PlayerBuffProperty` 16 個欄位；目前 6 種資料實作 |
 
 ## 相關文件
 

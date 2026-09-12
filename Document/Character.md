@@ -1,6 +1,6 @@
 # Character 角色系統
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 設計理念
 
@@ -76,7 +76,9 @@ CharacterBuffData
 
 ### 效果類型
 
-- `EffectiveDamageCharacterBuffEffect`：對目標造成確實傷害（無視護甲）
+`CharacterBuff` 的 `BuffEffects` 使用 `ICharacterBuffEffect`。傷害、護盾、治療、能量、
+好感度、卡牌與 Buff 操作均使用 `CardEffect.cs` 中共用且已註冊的效果型別；不再維護
+`EffectiveDamageCharacterBuffEffect` 這類來源專用效果。
 
 ### 屬性修正
 

@@ -1,6 +1,6 @@
 # AI 筆記索引 — MortalGame 文件系統
 
-> 最後更新：2026-09-06 | 版本：v2.1
+> 最後更新：2026-09-13 | 版本：v2.2
 
 ## 文件總覽
 
@@ -25,8 +25,7 @@
 
 | 文件 | 說明 | 狀態 |
 |------|------|------|
-| [SystemArchitecture.md](SystemArchitecture.md) | 六大系統架構總覽、協作關係 | ✅ 2026-04-20 |
-| [ArchitectureAnalysis_2026-06-22.md](ArchitectureAnalysis_2026-06-22.md) | 以目前實作為準的架構基線、風險與演進建議 | ✅ 2026-06-22 |
+| [SystemArchitecture.md](SystemArchitecture.md) | 六大系統架構總覽、協作關係 | ✅ 2026-09-13 |
 
 ---
 
@@ -34,7 +33,7 @@
 
 | 文件 | 說明 | 狀態 |
 |------|------|------|
-| [GameData.md](GameData.md) | 資料層總覽、ExcelDatas、Library、列舉 | ✅ 2026-04-20 |
+| [GameData.md](GameData.md) | 資料層總覽、Catalog、ExcelDatas、Library、列舉 | ✅ 2026-09-13 |
 | [GameData_Asset_Guidelines.md](GameData_Asset_Guidelines.md) | ScriptableObject 資料資產的製作、驗證與維護規範 | 🔄 持續維護 |
 
 ---
@@ -43,18 +42,18 @@
 
 | 文件 | 說明 | 狀態 |
 |------|------|------|
-| [GameModel.md](GameModel.md) | 邏輯層總覽、狀態機、管理器 | ✅ 2026-04-20 |
-| [Action.md](Action.md) | 三層動作管線（Intent→TargetIntent→Result） | ✅ 2026-04-20 |
-| [Effect.md](Effect.md) | 效果管線（Resolver→Command→Executor） | ✅ 2026-04-20 |
+| [GameModel.md](GameModel.md) | 邏輯層總覽、狀態機、管理器 | ✅ 2026-09-13 |
+| [Action.md](Action.md) | 三層動作管線（Intent→TargetIntent→Result） | ✅ 2026-09-13 |
+| [Effect.md](Effect.md) | 效果管線（Resolver→Command→Executor） | ✅ 2026-09-13 |
 | [Condition.md](Condition.md) | 組合式條件系統 | ✅ 2026-09-06 |
 | [Target.md](Target.md) | 目標解析系統 | ✅ 2026-09-06 |
 | [Value.md](Value.md) | 整數 Value、算術、缺值與集合計數契約 | ✅ 2026-09-06 |
 | [Entity.md](Entity.md) | 實體系統（組合式設計） | ✅ 2026-04-20 |
-| [Card.md](Card.md) | 卡牌系統（三層流轉） | ✅ 2026-04-20 |
+| [Card.md](Card.md) | 卡牌系統（三層流轉） | ✅ 2026-09-13 |
 | [CardTransformation.md](CardTransformation.md) | 卡片變身的現有代理結構、資料流與實作缺口 | ✅ 2026-07-24 |
-| [CardBuff.md](CardBuff.md) | 卡牌 Buff 系統 | ✅ 2026-04-20 |
-| [Character.md](Character.md) | 角色系統（血量、護甲、CharacterBuff） | ✅ 2026-04-20 |
-| [Player.md](Player.md) | 玩家系統（能量、牌組、好感度） | ✅ 2026-04-20 |
+| [CardBuff.md](CardBuff.md) | 卡牌 Buff 系統 | ✅ 2026-09-13 |
+| [Character.md](Character.md) | 角色系統（血量、護甲、CharacterBuff） | ✅ 2026-09-13 |
+| [Player.md](Player.md) | 玩家系統（能量、牌組、好感度） | ✅ 2026-09-13 |
 | [Session.md](Session.md) | 反應 Session 系統 | ✅ 2026-04-20 |
 | [Instance.md](Instance.md) | Instance 層（CardInstance、AllyInstance） | ✅ 2026-04-20 |
 
@@ -64,7 +63,7 @@
 
 | 文件 | 說明 | 狀態 |
 |------|------|------|
-| [GameView.md](GameView.md) | 視覺層總覽、GameplayView、ViewModel | ✅ 2026-04-20 |
+| [GameView.md](GameView.md) | 視覺層總覽、GameplayView、ViewModel | ✅ 2026-09-13 |
 | [CardView.md](CardView.md) | 卡牌視圖（弧形排列、拖曳、聚焦） | ✅ 2026-04-20 |
 | [BuffView.md](BuffView.md) | Buff 視圖（圖示、響應式更新） | ✅ 2026-04-20 |
 | [CharacterView.md](CharacterView.md) | 角色視圖（動畫佇列） | ✅ 2026-04-20 |
@@ -77,7 +76,7 @@
 
 | 文件 | 說明 | 狀態 |
 |------|------|------|
-| [GameView_Panel.md](GameView_Panel.md) | 面板系統總覽（Info/Popup/UI） | ✅ 2026-04-20 |
+| [GameView_Panel.md](GameView_Panel.md) | 面板系統總覽（Info/Popup/UI） | ✅ 2026-09-13 |
 | [GameView_Info.md](GameView_Info.md) | 資訊面板（血條、能量、好感度） | ✅ 2026-04-20 |
 | [GameView_Popup.md](GameView_Popup.md) | 彈窗面板（卡牌選取、結果面板） | ✅ 2026-04-20 |
 | [GameView_UI.md](GameView_UI.md) | 工具元件（牌組/墓地按鈕、送出） | ✅ 2026-04-20 |
@@ -88,7 +87,7 @@
 
 | 文件 | 說明 | 狀態 |
 |------|------|------|
-| [Presenter.md](Presenter.md) | 協調層總覽、BattleBuilder、Command/Action | ✅ 2026-04-20 |
+| [Presenter.md](Presenter.md) | 協調層總覽、BattleBuilder、Command/Action | ✅ 2026-09-13 |
 
 ---
 
@@ -116,7 +115,7 @@
 ## 文件系統統計
 
 - **總文件數**：35 個
-- **必讀文件**：4 個
-- **系統文件**：25 個
-- **最近索引更新**：2026-09-06
-- **目前核心腳本數**：243 個 .cs 檔案（`Assets/Scripts/`，2026-06-22）
+- **必讀文件**：6 個（含 TODO 與封存紀錄）
+- **系統文件**：29 個
+- **目前核心腳本數**：295 個 .cs 檔案（`Assets/Scripts/`，2026-09-13）
+- **目前測試腳本數**：73 個 .cs 檔案（`Assets/Tests/`，2026-09-13）

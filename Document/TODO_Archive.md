@@ -255,7 +255,7 @@
 - **完成內容**：
   - 建立 `GameContentCatalog`，統一收錄 Card、Override Card、CardBuff、PlayerBuff 與 CharacterBuff 資產。
   - 建立 Editor 掃描、Catalog 編譯與手動選單；搜尋與輸出路徑集中在 Editor 專用的 `ProjectAssetPaths`，不洩漏至 Runtime。
-  - Runtime `ScriptableDataLoader` 改由 Catalog 建立各 Library，移除四套舊 `All*Scriptable` 類別與對應資產。
+  - Runtime `ScriptableDataLoader` 改由 Catalog 建立 Card／Buff 各 Library，移除四套舊的卡牌／Buff `All*Scriptable` 聚合類別與對應資產；玩家／敵人配置用的 `AllPlayerScriptable` 仍保留。
   - Validator 補齊 Catalog 覆蓋率、重複 ID、巢狀必要引用、Target／Value／Condition、跨 Library 引用、Localization、LifeTime 與 Session 語意檢查。
   - 新增 Build Gate；建置前使用同一個 `GameDataValidator.ValidateAll()`，錯誤時停止建置並完整列出原因，不在建置期間偷偷修改 Catalog。
   - 新增 Play Mode Gate；日常按下 Play 時先執行相同驗證，錯誤時取消進入 Play Mode、輸出所有原因並顯示提示。

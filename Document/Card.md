@@ -1,6 +1,6 @@
 # Card 卡牌系統
 
-> 最後更新：2026-09-11 | 版本：v2.1
+> 最後更新：2026-09-13 | 版本：v2.2
 
 ## 設計理念
 
@@ -57,6 +57,10 @@ Record 類型的不可變快照，代表牌組中的一張具體卡牌：
 - 抽到時（Drawed）、打出時（Played）、保留時（Preserved）、丟棄時（Discarded）
 - `TriggeredEffects` 使用 `CardTriggeredTiming → ConditionalCardEffect[]` 字典；時機由鍵提供
 - 每個 `ConditionalCardEffect` 包含 `Conditions` 與單一 `ICardEffect`，只有條件全部成立才會進入效果佇列
+
+目前已建立 `CardTriggeredEffectDispatch`，可同時把 CardData 與有效 CardBuff 的條件效果
+轉成 QueueItem；但正式 Runtime 目前只有形態變更流程中的 CardData `FormChanged` 入口，
+其餘卡片生命週期時機與 CardBuff 生命週期效果仍在 T-017 排程中。
 
 ### 效果參數化
 

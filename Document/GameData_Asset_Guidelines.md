@@ -1,6 +1,6 @@
 # GameData 資料資產製作規範
 
-> 最後更新：2026-07-22 | 初始版本
+> 最後更新：2026-09-13 | v1.1
 
 ## 文件目的
 
@@ -11,6 +11,8 @@
 ## 基本規則
 
 - 遊戲資料資產原則上放在 `Assets/ScriptableObjects/` 對應分類目錄下。
+- 卡牌、CardBuff、PlayerBuff、CharacterBuff 資產由 `GameContentCatalog` 統一收錄；新增、刪除或移動這些資產後，先執行 `MortalGame/遊戲內容/重新產生內容目錄`。
+- `AllPlayerScriptable` 只負責 Ally／Enemy 配置，`ExcelDatas` 只負責外部表格資料，不要把它們當成 Card／Buff Catalog 使用。
 - 資料 ID 必須保持唯一且不可為空；修改既有 ID 前，必須確認所有引用端都已同步更新。
 - 新增 Effect 或 Command 型別時，必須確認對應 Resolver 或 Handler 已完成註冊。
 - 新增 ScriptableObject 類型、ID 引用欄位、巢狀資料結構，或變更資產存放位置時，必須確認 `GameDataValidator` 的搜尋範圍與驗證規則仍然完整。
@@ -20,10 +22,10 @@
 
 完成資料資產的新增或修改後：
 
-1. 在 Unity 執行 `MortalGame → 驗證遊戲資料`。
-2. 修正 Console 中的資料驗證錯誤。
+1. 若變更 Card／Buff 資產，先執行 `MortalGame/遊戲內容/重新產生內容目錄`。
+2. 在 Unity 執行 `MortalGame → 驗證遊戲資料`，修正 Console 中的資料驗證錯誤。
 3. 涉及資料結構或驗證規則變更時，執行 `ScriptableObjectDataValidationTests`。
-4. 確認受影響的卡牌或 Buff 能在實際流程中正確載入與顯示。
+4. 確認受影響的卡牌或 Buff 能在實際流程中正確載入與顯示；按下 Play 或建置時也會由 Gate 重複驗證。
 
 ## 維護原則
 
@@ -31,4 +33,3 @@
 - 規則應說明「需要檢查什麼」，避免堆疊過多實作細節。
 - 若規則已可由 Validator 自動檢查，文件仍保留簡短原則，詳細錯誤交由工具回報。
 - 若資料架構發生大幅調整，應同步更新本文件與 [GameData.md](GameData.md)。
-

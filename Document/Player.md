@@ -1,6 +1,6 @@
 # Player 玩家系統
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 設計理念
 
@@ -78,15 +78,15 @@ PlayerBuffData
 
 ### 效果類型
 
-| 效果 | 作用 |
-|------|------|
-| EffectiveDamagePlayerBuffEffect | 造成確實傷害 |
-| AdditionalDamagePlayerBuffEffect | 造成追加傷害 |
-| ModifyCardPlayAttributeEffect | 修改卡牌打出時的效果屬性 |
-| AddCardBuffPlayerBuffEffect | 對所有卡牌施加 Buff |
-| RemoveCardBuffPlayerBuffEffect | 移除所有卡牌上的 Buff |
+PlayerBuff 的 `BuffEffects` 使用 `IPlayerBuffEffect`。目前唯一只屬於 Reaction
+來源的資料型別是 `ModifyCardPlayAttributeEffect`；傷害、護盾、治療、能量、好感度、
+卡牌與 Buff 操作則重用 `CardEffect.cs` 中同時實作 `IPlayerBuffEffect` 的共用效果。
+舊的 `AddCardBuffPlayerBuffEffect`／`RemoveCardBuffPlayerBuffEffect` 已移除。
 
-### 屬性修正（16 種全域數值）
+### 屬性修正
+
+`PlayerBuffProperty` 列舉保留 16 個非 `None` 的語意欄位；目前可建立的
+`IPlayerBuffPropertyData`／Entity 實作有 6 種：
 
 | 屬性 | 效果 | 計算方式 |
 |------|------|----------|

@@ -1,6 +1,6 @@
 # GameView Panel 面板系統
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 設計理念
 
@@ -10,7 +10,6 @@ Panel 系統是 GameView 中的**面板與彈窗集合**，分為三個子目錄
 
 ```
 Panel/
-├── UIPresenter.cs           # 面板事件協調器
 ├── Info/                    # 狀態顯示（被動更新）
 │   ├── TopBarInfoView       # 回合數
 │   ├── HealthBarView        # 血條
@@ -36,6 +35,10 @@ Panel/
     ├── GraveyardCardView    # 墓地按鈕
     └── SubmitView           # 送出按鈕
 ```
+
+`UIPresenter`、`AllCardDetailPresenter`、`SubSelectionPresenter`、勝負結果 Presenter
+與 `UniTaskPresenter` 實際位於 `Assets/Scripts/Presenter/Gameplay/`；Panel 目錄只放 View
+元件。這是 GameView 與 Presenter 的責任邊界，不在 Panel 目錄混放協調邏輯。
 
 ## UIPresenter — 面板事件協調
 

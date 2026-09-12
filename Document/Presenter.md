@@ -1,6 +1,6 @@
 # Presenter 協調層
 
-> 最後更新：2026-07-12 | 版本：v2.1
+> 最後更新：2026-09-13 | 版本：v2.2
 
 ## 設計理念
 
@@ -18,7 +18,7 @@ Presenter/
 │   ├── GameplayPresenter.cs     # 戰鬥主協調器
 │   ├── BattleBuilder.cs         # 依賴建構器
 │   ├── Context.cs               # 全域遊戲配置
-│   ├── GameInfoModel.cs         # GameViewModel 實作
+│   ├── GameInfoModel.cs         # 檔名；內含 GameViewModel 實作
 │   ├── GameStageSetting.cs      # 關卡配置 Record
 │   ├── ScriptableDataLoader.cs  # 資料載入器
 │   └── InterAction/
@@ -136,10 +136,10 @@ UseCardAction（卡牌 Guid + 主選取 + 子選取字典）
 
 ## ScriptableDataLoader — 資料載入器
 
-序列化引用所有 ScriptableObject 資產，提供屬性存取：
-- 從 AllCardScriptable 取得所有卡牌資料
-- 從 ExcelDatas 解析好感度設定
-- 從 ExcelDatas 解析本地化字典
+序列化引用 `GameContentCatalog`、`AllPlayerScriptable` 與 `ExcelDatas`，提供屬性存取：
+- 從 `GameContentCatalog` 取得卡牌、CardBuff、PlayerBuff、CharacterBuff 資料
+- 從 `AllPlayerScriptable` 取得 Ally 與 Enemy 資料
+- 從 `ExcelDatas` 解析好感度設定與本地化字典
 
 ## GameStageSetting — 關卡配置
 

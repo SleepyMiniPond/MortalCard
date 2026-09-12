@@ -1,6 +1,6 @@
 # Effect 效果管線
 
-> 最後更新：2026-09-10 | 版本：v2.1
+> 最後更新：2026-09-13 | 版本：v2.2
 
 ## 設計理念
 
@@ -28,7 +28,7 @@ EffectCommandExecutor.Execute()
   ├── 對每個命令：
   │   ├── 呼叫實體方法修改狀態
   │   ├── 產生 Result Action
-  │   ├── 觸發 Buff 反應（UpdateReactorSessionAction）
+  │   ├── 透過 ObserveDerivedAction 觸發 Buff 反應
   │   └── 產生 GameEvent 供 View 使用
   └── 回傳 EffectResult（所有 Action + 事件）
 ```
@@ -158,14 +158,14 @@ EffectCommandExecutor.Execute()
 3. 呼叫 CharacterEntity.HealthManager.TakeDamage()
 4. 取得 TakeDamageResult（實際扣血、護甲吸收、溢出值）
 5. 建立 DamageResultAction
-6. 觸發 UpdateReactorSessionAction（讓 Buff 對傷害結果做反應）
+6. 由 Handler 以 `ObserveDerivedAction` 讓 Buff 對傷害結果做反應
 7. 產生 DamageEvent 供 View 播放動畫
 8. 檢查角色是否死亡 → 產生死亡事件
 ```
 
 ### Buff 反應整合
 
-每個命令執行後，都會觸發 `UpdateReactorSessionAction`，讓所有監聽該動作類型的 Buff 有機會做出反應。這是實現「受到傷害時觸發效果」等被動機制的核心。
+各命令 Handler 在狀態變更成功後建立 Result Action，透過 `context.Model.ObserveDerivedAction()` 讓 Player／Character／Card Buff 反應，再追加對應的 GameEvent；正常失效則回傳空結果，不製造假的 Result 或 Event。一般 `GameTiming` 則由 `TriggerTimingQueueItem` 建立快照並交給 `TimingDispatchPlanner` 排入同一個 `EffectQueueRunner`。
 
 ## EffectEventResult — 結果聚合
 

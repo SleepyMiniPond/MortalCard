@@ -1,6 +1,6 @@
 # 專案系統架構總覽 - MortalGame
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 專案定位
 
@@ -33,21 +33,23 @@ MortalGame 是一款基於 Unity 的**武俠主題卡牌對戰遊戲**，玩家�
 
 | 系統 | 職責 | 文件位置 |
 |------|------|----------|
-| **[GameData](GameData.md)** | 靜態資料定義：卡牌、角色、Buff、枚舉 | `Scripts/GameData/` |
-| **[GameModel](GameModel.md)** | 核心戰鬥邏輯：狀態機、效果管線、實體管理 | `Scripts/GameModel/` |
-| **[GameView](GameView.md)** | 視覺呈現：卡牌渲染、動畫、UI 元件 | `Scripts/GameView/` |
-| **[Presenter](Presenter.md)** | 協調樞紐：輸入轉譯、依賴建構、流程調度 | `Scripts/Presenter/` |
-| **[Scene](Scene.md)** | 場景管理：生命週期、轉換、載入 | `Scripts/Scene/` |
-| **[UI](UI.md)** | 工具元件：DeckView、GraveyardView、SubmitView | `Scripts/GameView/Panel/UI/` |
+| **[GameData](GameData.md)** | 靜態資料定義：卡牌、角色、Buff、枚舉 | `Assets/Scripts/GameData/` |
+| **[GameModel](GameModel.md)** | 核心戰鬥邏輯：狀態機、效果管線、實體管理 | `Assets/Scripts/GameModel/` |
+| **[GameView](GameView.md)** | 視覺呈現：卡牌渲染、動畫、UI 元件 | `Assets/Scripts/GameView/` |
+| **[Presenter](Presenter.md)** | 協調樞紐：輸入轉譯、依賴建構、流程調度 | `Assets/Scripts/Presenter/` |
+| **[Scene](Scene.md)** | 場景管理：生命週期、轉換、載入 | `Assets/Scripts/Scene/` |
+| **[GameView UI](GameView_UI.md)** | 工具元件：牌組、墓地、送出按鈕 | `Assets/Scripts/GameView/Panel/UI/` |
+
+`Presentation/Abstractions/` 是 View、Presenter 共用的契約層；`Assets/Scripts/UI/` 則是獨立的通用 Unity UI 工具，不等同於 GameView 的 Panel/UI。
 
 ## 系統間資料流
 
 ### 主要資料流向
 
 ```
-GameData (靜態配置)
+GameData / GameContentCatalog (靜態配置)
     ↓ 建構時讀取
-Presenter/BattleBuilder (建構所有運行時物件)
+Presenter/ScriptableDataLoader/BattleBuilder (建構所有運行時物件)
     ↓ 注入依賴
 GameModel/GameplayManager (驅動遊戲迴圈)
     ↓ 產生事件
@@ -130,7 +132,7 @@ Main Loop:
 2. **Effect 階段**：解析目標、計算數值、執行狀態變更
 3. **Event 階段**：產生不可變事件記錄，交由 View 層播放動畫
 
-每個效果經過三層處理：**Intent（意圖宣告）→ TargetIntent（目標綁定）→ Result（結果確認）**，每層都觸發 Buff 反應系統，實現複雜的連鎖效果。
+每個效果經過三層處理：**Intent（意圖宣告）→ TargetIntent（目標綁定）→ Result（結果確認）**，每層都可透過 `ObserveRootAction`／`ObserveDerivedAction` 讓 Buff 反應系統介入。一般 Timing 與 Buff Effect 由 `EffectQueueRunner` 統一執行，並由 `TimingDispatchPlanner` 依快照建立順序穩定的 QueueItem。
 
 詳見：[Effect 效果管線](Effect.md)、[Action 動作系統](Action.md)
 
@@ -158,4 +160,4 @@ Scene ──依賴──→ Presenter ──依賴──→ GameModel ──依�
 - **Presenter** 是唯一同時接觸 Model 和 View 的層級
 - **GameModel** 不知道 View 的存在，僅產生事件
 - **GameView** 透過 ViewModel（ReactiveProperty）接收狀態更新
-- **GameData** 是純資料層，不依賴任何其他系統
+- **GameData** 是邏輯上的資料層；卡牌與 Buff 的資產集合由 `GameContentCatalog` 統一提供，玩家／敵人配置仍由 `AllPlayerScriptable` 提供

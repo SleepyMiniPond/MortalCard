@@ -1,6 +1,6 @@
 # GameModel 核心遊戲邏輯層
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 設計理念
 
@@ -31,6 +31,11 @@ GameModel/
 ├── Instance/                # 實例層
 └── Target/                  # 目標系統
 ```
+
+Effect 子系統目前以 `EffectQueueRunner` 統一執行卡牌效果、Buff Reaction 與 GameTiming。
+`GameplayManager` 先建立 Timing Snapshot，再由 `TimingDispatchPlanner` 依
+PlayerBuff → CharacterBuff → CardBuff 的順序產生 QueueItem；Queue 支援 immediate enqueue
+與預算超限診斷，避免反應鏈無限展開。
 
 ## GameplayManager — 遊戲迴圈
 
@@ -138,6 +143,7 @@ GameContextManager 同時持有所有 Library（CardLibrary、各 BuffLibrary、
 ### 卡牌操作事件
 - `DrawCardEvent` / `MoveCardEvent` / `AddCardEvent` — 卡牌移動
 - `UsedCardEvent` — 卡牌使用完畢
+- `CardFormChangedEvent` — 卡牌有效形態變更
 - `DiscardHandCardEvent` — 手牌丟棄
 - `RecycleGraveyardToDeckEvent` / `RecycleGraveyardToHandCardEvent` — 卡牌回收
 - `EnemySelectCardEvent` / `EnemyUnselectedCardEvent` — 敵人選牌

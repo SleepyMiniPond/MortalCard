@@ -1,6 +1,6 @@
 # GameView 視覺呈現層
 
-> 最後更新：2026-04-20 | 版本：v2.0
+> 最後更新：2026-09-13 | 版本：v2.1
 
 ## 設計理念
 
@@ -16,7 +16,6 @@ GameView 是 MVP 架構中的**View 層**，負責將 GameModel 的資料狀態�
 GameView/
 ├── GameplayView.cs          # 總調度器（20+ 事件類型分發）
 ├── PlaygroundView.cs        # 遊戲棋盤（預設選取目標）
-├── ISelectableView.cs       # 可選取介面定義
 ├── ViewUtility.cs           # 動畫工具（PlayableDirector + UniTask）
 ├── BuffView/                # Buff 圖示顯示
 ├── CardView/                # 卡牌渲染與互動
@@ -28,6 +27,9 @@ GameView/
     ├── Popup/               # 彈窗面板
     └── UI/                  # 工具按鈕
 ```
+
+`ISelectableView` 位於 `Assets/Scripts/Presentation/Abstractions/`，由 View 與 Presenter
+共同使用，不屬於 GameView assembly 的實作檔案。
 
 ## GameplayView — 總調度器
 
