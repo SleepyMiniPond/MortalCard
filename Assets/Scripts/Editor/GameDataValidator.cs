@@ -2270,7 +2270,8 @@ namespace MortalGame.Editor
 
         private static bool IsTimingDispatchSupported(GameTiming timing)
         {
-            return timing is GameTiming.GameStart or
+            return timing is GameTiming.BeforeGameStart or
+                GameTiming.AfterGameStart or
                 GameTiming.BeforeTurnStart or GameTiming.AfterTurnStart or
                 GameTiming.BeforeDrawCard or GameTiming.AfterDrawCard or
                 GameTiming.BeforeExecuteStart or GameTiming.AfterExecuteStart or

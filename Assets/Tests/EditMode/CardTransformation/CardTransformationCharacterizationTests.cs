@@ -63,7 +63,7 @@ namespace MortalGame.Tests.CardTransformation
             Assert.That(restoredForm.Persistence, Is.EqualTo(CardFormPersistence.Persistent));
             Assert.That(
                 built.Card.Properties.Select(property => property.Property),
-                Is.EquivalentTo(new[] { CardProperty.Initialize, CardProperty.Recycle }));
+                Is.EquivalentTo(new[] { CardProperty.InitialPriority, CardProperty.Recycle }));
             Assert.That(built.Card.OriginCardInstanceGuid.HasValue, Is.True);
         }
 
@@ -345,7 +345,7 @@ namespace MortalGame.Tests.CardTransformation
             Assert.That(built.Card.OriginCost, Is.EqualTo(5));
             Assert.That(built.Card.OriginPower, Is.EqualTo(8));
             Assert.That(built.Card.Properties.Select(property => property.Property),
-                Is.EquivalentTo(new[] { CardProperty.Initialize, CardProperty.Recycle }));
+                Is.EquivalentTo(new[] { CardProperty.InitialPriority, CardProperty.Recycle }));
             Assert.That(built.Card.Identity, Is.EqualTo(identity));
             Assert.That(built.Card.OriginCardInstanceGuid, Is.EqualTo(originGuid));
             Assert.That(built.Card.BuffManager, Is.SameAs(buffManager));
@@ -428,7 +428,7 @@ namespace MortalGame.Tests.CardTransformation
             Assert.That(clone.CardDataId, Is.EqualTo(CardTransformationTestBuilder.AlternateCardId));
             Assert.That(clone.SelfFormState.HasValue, Is.False);
             Assert.That(clone.Properties.Select(property => property.Property),
-                Is.EquivalentTo(new[] { CardProperty.Initialize }));
+                Is.EquivalentTo(new[] { CardProperty.InitialPriority }));
             Assert.That(clone.BuffManager.Buffs, Is.Empty);
         }
 

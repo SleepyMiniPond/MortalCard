@@ -9,7 +9,8 @@ namespace MortalGame.Tests
     public class GameTimingSerializationTests
     {
         [TestCase(GameTiming.None, 0)]
-        [TestCase(GameTiming.GameStart, 1)]
+        [TestCase(GameTiming.BeforeGameStart, 1)]
+        [TestCase(GameTiming.AfterGameStart, 2)]
         [TestCase(GameTiming.EffectIntent, 11)]
         [TestCase(GameTiming.EffectTargetIntent, 12)]
         [TestCase(GameTiming.EffectTargetResult, 13)]
@@ -18,7 +19,6 @@ namespace MortalGame.Tests
             Assert.That((int)timing, Is.EqualTo(expectedValue));
         }
 
-        [TestCase(2)]
         [TestCase(3)]
         [TestCase(4)]
         [TestCase(5)]

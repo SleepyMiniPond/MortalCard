@@ -182,7 +182,61 @@ namespace MortalGame.GameModel
                     .ToList());
             _gameEvents.AddRange(createEnemyDeckResult.Events);
 
-            _gameEvents.AddRange(_RunTiming(GameTiming.GameStart, SystemSource.Instance));
+            var initialDeckCards = _CreateInitialDeckCardSnapshot();
+
+            _gameEvents.AddRange(_RunTiming(GameTiming.BeforeGameStart, SystemSource.Instance));
+            _gameEvents.AddRange(_RunInitialCardInitialize(initialDeckCards));
+            _gameEvents.AddRange(_RunTiming(GameTiming.AfterGameStart, SystemSource.Instance));
+
+            IReadOnlyList<InitialDeckCardCandidate> _CreateInitialDeckCardSnapshot()
+            {
+                var players = new IPlayerEntity[]
+                {
+                    _gameStatus.Ally,
+                    _gameStatus.Enemy
+                };
+                var candidates = new List<InitialDeckCardCandidate>();
+                var identities = new HashSet<Guid>();
+
+                foreach (var player in players)
+                {
+                    foreach (var card in player.CardManager.Deck.Cards)
+                    {
+                        if (identities.Add(card.Identity))
+                        {
+                            candidates.Add(new InitialDeckCardCandidate(card));
+                        }
+                    }
+                }
+
+                return candidates;
+            }
+
+            IEnumerable<IGameEvent> _RunInitialCardInitialize(
+                IReadOnlyCollection<InitialDeckCardCandidate> initialDeckCards)
+            {
+                var effectQueueRunner = new EffectQueueRunner();
+
+                foreach (var candidate in initialDeckCards)
+                {
+                    var context = new TriggerContext(
+                        this,
+                        new CardTrigger(candidate.Card),
+                        new CardTriggeredTimingAction(
+                            candidate.Card,
+                            CardTriggeredTiming.Initialize,
+                            SystemSource.Instance));
+                    foreach (var item in CardTriggeredEffectDispatch.CreateItems(
+                        context,
+                        candidate.Card,
+                        CardTriggeredTiming.Initialize))
+                    {
+                        effectQueueRunner.Enqueue(item);
+                    }
+                }
+
+                return effectQueueRunner.RunToCompletion().Events;
+            }
 
             AllyEntity _ParseAlly(AllyInstance allyInstance, IGameContextManager gameContextManager)
             {
@@ -603,6 +657,10 @@ namespace MortalGame.GameModel
                 throw new GameEndException(true);
             }
         }
+
+        private sealed record InitialDeckCardCandidate(
+            ICardEntity Card);
+
     }
 
 }

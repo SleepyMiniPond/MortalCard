@@ -168,7 +168,8 @@ namespace MortalGame.GameData
     public enum GameTiming
     {
         None = 0,
-        GameStart = 1,
+        BeforeGameStart = 1,
+        AfterGameStart = 2,
         EffectIntent = 11,
         EffectTargetIntent = 12,
         EffectTargetResult = 13,

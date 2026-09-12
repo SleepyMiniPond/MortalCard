@@ -99,7 +99,7 @@ namespace MortalGame.Tests
             }.Eval(built.Context, built.Card), Is.True);
             Assert.That(new CardPropertiesCondition
             {
-                CardProperties = { CardProperty.Initialize },
+                CardProperties = { CardProperty.InitialPriority },
                 Condition = SetConditionType.AnyInside
             }.Eval(built.Context, built.Card), Is.True);
             Assert.That(new CardPropertiesCondition

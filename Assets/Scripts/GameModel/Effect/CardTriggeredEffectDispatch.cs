@@ -19,7 +19,11 @@ namespace MortalGame.GameModel
 
             var cardContext = context with
             {
-                Triggered = new CardTrigger(card)
+                Triggered = new CardTrigger(card),
+                Action = new CardTriggeredTimingAction(
+                    card,
+                    timing,
+                    context.Action.Source)
             };
 
             var cardDataItems = card.TriggeredEffects
@@ -36,7 +40,7 @@ namespace MortalGame.GameModel
 
             var cardBuffItems = card.BuffManager.Buffs
                 .SelectMany(buff => _CreateCardBuffItems(
-                    context,
+                    cardContext,
                     card,
                     buff,
                     timing));

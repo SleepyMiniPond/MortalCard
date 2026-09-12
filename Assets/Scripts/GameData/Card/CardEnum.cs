@@ -41,7 +41,7 @@ namespace MortalGame.GameData
         Recycle = 1 << 1,
         PowerAddition = 1 << 2,
         CostAddition = 1 << 3,
-        Initialize = 1 << 4,
+        InitialPriority = 1 << 4,
         Preserved = 1 << 5,
         Sealed = 1 << 6,
         // Consumable means the card will be removed from the battle but added again next battle.

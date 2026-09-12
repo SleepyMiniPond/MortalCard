@@ -46,7 +46,7 @@ namespace MortalGame.Tests.CardTransformation
                 Is.EqualTo(CardTransformationTestBuilder.AlternateCardId));
             Assert.That(
                 built.Card.Properties.Select(property => property.Property),
-                Is.EquivalentTo(new[] { CardProperty.Initialize, CardProperty.Recycle }));
+                Is.EquivalentTo(new[] { CardProperty.InitialPriority, CardProperty.Recycle }));
             Assert.That(
                 built.Gameplay.Ally.CardManager.HandCard.Cards.Select(card => card.Identity),
                 Is.EqualTo(originalHandOrder));
@@ -115,7 +115,7 @@ namespace MortalGame.Tests.CardTransformation
                 Is.EqualTo(CardTransformationTestBuilder.AlternateCardId));
             Assert.That(
                 built.Card.Properties.Select(property => property.Property),
-                Is.EquivalentTo(new[] { CardProperty.Initialize, CardProperty.Recycle }));
+                Is.EquivalentTo(new[] { CardProperty.InitialPriority, CardProperty.Recycle }));
             Assert.That(
                 built.Gameplay.Ally.CardManager.HandCard.Cards.Select(card => card.Identity),
                 Is.EqualTo(originalHandOrder));

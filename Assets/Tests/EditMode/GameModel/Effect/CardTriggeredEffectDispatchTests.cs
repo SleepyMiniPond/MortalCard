@@ -4,6 +4,7 @@ using System.Linq;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
+using Optional;
 
 namespace MortalGame.Tests
 {
@@ -25,6 +26,52 @@ namespace MortalGame.Tests
                 CardTriggeredTiming.None);
 
             Assert.That(items, Is.Empty);
+        }
+
+        [Test]
+        public void CreateItems_UsesCardTriggeredTimingActionAndPreservesOriginTiming()
+        {
+            var cardData = CardTestBuilder.CreateCardData();
+            cardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions =
+                    {
+                        new GameTimingCondition
+                        {
+                            Timing = GameTiming.BeforeTurnEnd
+                        }
+                    },
+                    Effect = new DamageEffect()
+                }
+            };
+
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            var context = new TriggerContext(
+                built.Manager,
+                new CardTrigger(card),
+                new UpdateTimingAction(
+                    GameTiming.BeforeTurnEnd,
+                    SystemSource.Instance));
+
+            var items = CardTriggeredEffectDispatch.CreateItems(
+                context,
+                card,
+                CardTriggeredTiming.Drawed);
+
+            var cardEffectItem = items.OfType<CardTriggeredEffectQueueItem>().Single();
+            var action = cardEffectItem.Context.Action as CardTriggeredTimingAction;
+            Assert.That(action, Is.Not.Null);
+            Assert.That(action.Card, Is.SameAs(card));
+            Assert.That(action.TriggeredTiming, Is.EqualTo(CardTriggeredTiming.Drawed));
+            Assert.That(action.Source, Is.SameAs(SystemSource.Instance));
+            Assert.That(
+                cardEffectItem.Context.ReactionOriginTiming.ValueOr(GameTiming.None),
+                Is.EqualTo(GameTiming.BeforeTurnEnd));
         }
 
         [Test]
@@ -93,6 +140,9 @@ namespace MortalGame.Tests
             Assert.That(items, Has.Length.EqualTo(2));
             Assert.That(items[0], Is.TypeOf<CardTriggeredEffectQueueItem>());
             Assert.That(items[1], Is.TypeOf<CardBuffEffectExecutionQueueItem>());
+            Assert.That(
+                ((CardBuffEffectExecutionQueueItem)items[1]).Context.Action,
+                Is.TypeOf<CardTriggeredTimingAction>());
 
             card.BuffManager.RemoveBuff(buff);
             Assert.That(items, Has.Length.EqualTo(2));

@@ -43,7 +43,16 @@ T-010、T-018、T-019 與 T-020 已完成並封存。通用資料表達與 React
   - `Initialize` 的觸發範圍，以及既有 `Drawed` 命名若調整時的序列化數值與資產遷移策略。
 - **建議階段**：拆成 8 個小工作包，先在共用觸發契約包完成 `CardData.TriggeredEffects` 的 conditional 字典格式與既有資產 migration，再依序完成 Initialize、一般抽牌、Effect 抽牌、Played／EffectPlayed 邊界、Preserved、Discarded／EffectDiscarded，最後再做完整驗收與文件收斂；每包單獨測試與確認，不把所有 timing 集中在第一包。
 - **完成條件**：除 `None` 外，每個 `CardTriggeredTiming` 都有一個明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。
-- **狀態**：✅ 工作包 1 已完成；下一步為工作包 2 `Initialize`
+- **狀態**：✅ 工作包 2 `Initialize` 實作、驗證與使用者確認完成；下一步工作包 3 `Drawed`
+
+### T-021：完成 `CardProperty.InitialPriority` 初始抽牌優先
+
+- **前置／插入順序**：建議於 T-017 完成後排入；與 T-017 的 `CardTriggeredTiming.Initialize` 分開處理。
+- **目標**：讓 `InitialPriorityPropertyData` 對應的 `CardProperty.InitialPriority` 真正影響戰鬥初始抽牌順序。
+- **現況**：目前只有 `InitialPriorityPropertyData`、`InitialPriorityPropertyEntity` 與查詢／轉換測試；正式牌堆建立與抽牌流程尚未讀取此屬性來排序。
+- **開始前需決定**：優先卡影響第一手或整個牌堆、同優先級的排序規則、洗牌與可重現亂數的互動，以及 `BeforeGameStart`／`CardTriggeredTiming.Initialize` 新增或修改優先卡時是否影響本場戰鬥。
+- **範圍**：先將現有錯名 `CardProperty.Initialize` 更名為 `CardProperty.InitialPriority`（本輪已完成，保留底層數值 `1 << 4`）；再實作牌堆排序與抽牌行為，並補足 EditMode／整合測試。
+- **狀態**：✅ 改名子步驟已完成；初始抽牌排序功能仍待規劃，本項目前不併入 T-017 工作包 2。
 
 ### T-011：多步驟自訂目標選取
 

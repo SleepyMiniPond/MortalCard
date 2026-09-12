@@ -29,7 +29,7 @@ namespace MortalGame.GameModel
 
     public class InitialPriorityPropertyEntity : ICardPropertyEntity
     {
-        public CardProperty Property => CardProperty.Initialize;
+        public CardProperty Property => CardProperty.InitialPriority;
         public IEnumerable<string> Keywords => Property.ToString().WrapAsEnumerable();
 
         public InitialPriorityPropertyEntity() { }

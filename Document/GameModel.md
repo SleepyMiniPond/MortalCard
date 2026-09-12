@@ -45,7 +45,11 @@ GameplayManager 是整個戰鬥的心臟，實現了一個非同步的回合制�
 
 ```
 GameStart（遊戲開始）
-  ├── 觸發 GameStart 時機 Buff
+  ├── 召喚雙方角色並建立、洗牌初始牌堆
+  ├── 記錄戰鬥開始時存在的初始卡片
+  ├── BeforeGameStart：觸發初始化前的遊戲時機 Buff
+  ├── CardTriggeredTiming.Initialize：觸發初始卡片效果
+  ├── AfterGameStart：觸發初始化後的遊戲時機 Buff
   └── 進入回合迴圈
       ↓
 TurnStart（回合開始）

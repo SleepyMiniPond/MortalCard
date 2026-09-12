@@ -18,7 +18,7 @@ IActionUnit（根介面：所有動作都有 Timing 與 Source）
 │   └── IEffectResultAction（結果階段 — 執行完畢後）
 ├── UpdateTimingAction（遊戲時機動作）
 ├── Look Action（查詢動作，讀取不修改）
-└── CardCreateSystemAction / CardPlay*Action（流程專用動作）
+└── CardTriggeredTimingAction / CardPlay*Action（流程專用動作）
 ```
 
 ## 三層效果管線
@@ -76,13 +76,25 @@ GainEnergyResultAction
 
 | Source 類型 | 語義 |
 |------------|------|
-| `SystemSource` | 系統自動觸發（回合開始、遊戲開始） |
+| `SystemSource` | 系統自動觸發（回合開始、遊戲開始前後） |
 | `CardPlaySource` | 卡牌打出觸發（攜帶手牌位置、屬性修正） |
 | `CardPlayResultSource` | 卡牌打出結果（包裝 CardPlaySource + 效果結果） |
 | `PlayerBuffSource` | 玩家 Buff 觸發 |
 | `CardBuffSource` | 卡牌 Buff 觸發 |
 | `SystemExectueStartSource` | 行動階段開始 |
 | `SystemExectueEndSource` | 行動階段結束 |
+
+### CardTriggeredTimingAction
+
+`CardTriggeredTimingAction` 專門描述「某張卡片的某個 `CardTriggeredTiming` 正在被派送」。
+它包含卡片、卡片生命週期時機與原始來源；`Timing` 維持 `GameTiming.None`，不把兩套
+不同層級的時機互相混用。
+
+共用派送器會讓 `Initialize`、`Drawed`、`Played`、`Preserved`、`Discarded` 等卡片生命週期
+時機使用同一種 Action，只有 `TriggeredTiming` 與 `Source` 不同。現有的
+`CardFormChangedAction` 仍表示「形態變更操作本身」；待該流程改由共用派送器接線時，
+其 `FormChanged` 生命週期效果也會使用此 Action。真正的「系統建立卡片」語意若未來需要，
+應另行定義建立動作，不與卡片生命週期觸發混用。
 
 以上兩個型別的 `Exectue` 拼字與程式現況一致；若未來修正程式命名，需同步處理序列化或引用影響。
 

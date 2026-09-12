@@ -53,13 +53,13 @@ namespace MortalGame.GameModel
         public IActionSource Source => SystemSource.Instance;
     };
 
-    //===
-    public record CardCreateSystemAction(
-        IPlayerEntity Player,
-        CardCollectionType Destination) : IActionUnit
+    public record CardTriggeredTimingAction(
+        ICardEntity Card,
+        CardTriggeredTiming TriggeredTiming,
+        IActionSource Source) : IActionUnit
     {
-        public GameTiming Timing => GameTiming.GameStart;
-        public IActionSource Source => SystemSource.Instance;
+        // CardTriggeredTiming 與 GameTiming 是不同層級的時機，不在此互相轉換。
+        public GameTiming Timing => GameTiming.None;
     };
 
     public record CardPlayIntentAction(CardPlaySource CardPlaySource) : IActionUnit
