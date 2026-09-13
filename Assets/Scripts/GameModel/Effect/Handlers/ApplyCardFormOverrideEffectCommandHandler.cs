@@ -6,7 +6,7 @@ namespace MortalGame.GameModel
 {
     public sealed class ApplyCardFormOverrideEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             if (command is not ApplyCardFormOverrideEffectCommand applyCommand)
             {

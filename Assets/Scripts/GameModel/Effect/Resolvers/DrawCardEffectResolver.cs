@@ -45,6 +45,8 @@ namespace MortalGame.GameModel
                 throw new InvalidOperationException($"DrawCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
 
             var effectCommands = new List<IEffectCommand>();
+            var isSystemInitiated = context.ReactionOriginAction is
+                DrawCardIntentAction or DrawCardIntentTargetAction;
             var intent = new DrawCardIntentAction(context.Action.Source);
             var triggerContext = context with { Action = intent };
             var targets = drawCardEffect.Targets.Eval(triggerContext);
@@ -59,7 +61,10 @@ namespace MortalGame.GameModel
                     continue;
                 }
 
-                effectCommands.Add(new DrawCardEffectCommand(target, drawCount));
+                effectCommands.Add(new DrawCardEffectCommand(
+                    target,
+                    drawCount,
+                    isSystemInitiated));
             }
             return new EffectCommandSet(effectCommands);
         }

@@ -1,6 +1,6 @@
 # CardBuff 卡牌 Buff 系統
 
-> 最後更新：2026-09-13 | 版本：v2.1
+> 最後更新：2026-09-14 | 版本：v2.2
 
 ## 設計理念
 
@@ -64,8 +64,9 @@ HandCardLifeTime 是 CardBuff 獨有的策略，反映了卡牌在不同區域�
 
 卡片生命週期效果放在 `Effects`，按 `CardTriggeredTiming` 分組；一般 Buff 反應放在
 `BuffEffects`，按 `GameTiming` 分組。後者已由 `TimingDispatchPlanner` 接入
-`EffectQueueRunner`；前者的共用 dispatch 契約已建立，但除 `FormChanged` 的既有 CardData
-入口外，其餘生命週期時機仍由 T-017 接續。
+`EffectQueueRunner`；前者已透過共用 dispatch 契約接入 `Initialize` 與系統抽牌 `Drawed`，
+並與 CardData 效果共用快照及 Queue Scope。`FormChanged` 仍維持既有 CardData 入口，其他
+卡片生命週期時機由 T-017 後續工作包接續。
 
 ## 反應會話（Session）
 

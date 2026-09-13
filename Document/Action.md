@@ -1,6 +1,6 @@
 # Action 動作系統
 
-> 最後更新：2026-09-13 | 版本：v2.1
+> 最後更新：2026-09-14 | 版本：v2.2
 
 ## 設計理念
 
@@ -90,8 +90,9 @@ GainEnergyResultAction
 它包含卡片、卡片生命週期時機與原始來源；`Timing` 維持 `GameTiming.None`，不把兩套
 不同層級的時機互相混用。
 
-共用派送器會讓 `Initialize`、`Drawed`、`Played`、`Preserved`、`Discarded` 等卡片生命週期
-時機使用同一種 Action，只有 `TriggeredTiming` 與 `Source` 不同。現有的
+共用派送器目前已讓 `Initialize` 與系統抽牌的 `Drawed` 使用同一種 Action；後續
+`EffectDrawed`、`Played`、`Preserved`、`Discarded` 等卡片生命週期也會沿用此契約，只有
+`TriggeredTiming` 與 `Source` 不同。現有的
 `CardFormChangedAction` 仍表示「形態變更操作本身」；待該流程改由共用派送器接線時，
 其 `FormChanged` 生命週期效果也會使用此 Action。真正的「系統建立卡片」語意若未來需要，
 應另行定義建立動作，不與卡片生命週期觸發混用。
@@ -124,6 +125,10 @@ TriggerContext = (IGameplayModel Model, ITriggeredSource Triggered, IActionUnit 
 ```
 
 TriggerContext 是貫穿整個效果管線的**不可變上下文物件**。透過 Record 的 `with` 語法，可以安全地複製並修改特定欄位，而不影響原始上下文。
+
+`ReactionOriginAction` 保存整條反應鏈最初的 Action：根 Context 預設使用當前 `Action`，
+後續以 `with` 建立的衍生 Context 則持續沿用。`ReactionOriginTiming` 由同一來源推導，讓
+生命週期入口能判斷事件根源，而不必在 Queue 或 Executor 為每種觸發新增專用旗標。
 
 ### ITriggeredSource 型別
 

@@ -13,6 +13,388 @@ namespace MortalGame.Tests
     public class EffectQueueRunnerTests
     {
         [Test]
+        public void DrawCardCommandHandler_ExpandsDrawCountIntoImmediateSingleCardItems()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DrawCardIntentAction(SystemSource.Instance));
+            var runner = new EffectQueueRunner();
+            var handler = new DrawCardEffectCommandHandler();
+
+            var result = handler.Handle(
+                context,
+                new DrawCardEffectCommand(built.Ally, 3, true),
+                runner);
+
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+            Assert.That(runner.PendingItemCount, Is.EqualTo(3));
+        }
+
+        [TestCase(true)]
+        [TestCase(false)]
+        public void RunToCompletion_WithDrawCommand_ProcessesCardsAsSeparateQueueItemsInDeckOrder(
+            bool isSystemInitiated)
+        {
+            const string firstCardId = "draw-first";
+            const string secondCardId = "draw-second";
+            const string thirdCardId = "draw-third";
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(CardTestBuilder.CreateCardData(firstCardId))
+                .WithCard(CardTestBuilder.CreateCardData(secondCardId))
+                .WithCard(CardTestBuilder.CreateCardData(thirdCardId))
+                .Build();
+            var cards = new[]
+            {
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, firstCardId),
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, secondCardId),
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, thirdCardId)
+            };
+            built.Ally.CardManager.Deck.AddCards(cards);
+            IActionUnit originAction = isSystemInitiated
+                ? new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally))
+                : new UpdateTimingAction(GameTiming.AfterTurnEnd, SystemSource.Instance);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                originAction);
+            var commands = new EffectCommandSet(new IEffectCommand[]
+            {
+                new DrawCardEffectCommand(built.Ally, cards.Length, isSystemInitiated)
+            });
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, commands);
+            var result = runner.RunToCompletion();
+
+            Assert.That(runner.ProcessedItemCount, Is.EqualTo(cards.Length + 1));
+            Assert.That(built.Ally.CardManager.Deck.Cards, Is.Empty);
+            Assert.That(built.Ally.CardManager.HandCard.Cards, Is.EqualTo(cards));
+            Assert.That(
+                result.Actions.OfType<DrawCardResultAction>().Select(action => action.Card),
+                Is.EqualTo(cards));
+            Assert.That(
+                result.Events.OfType<DrawCardEvent>().Select(gameEvent => gameEvent.NewCardInfo.Identity),
+                Is.EqualTo(cards.Select(card => card.Identity)));
+        }
+
+        [Test]
+        public void RunToCompletion_WithMultipleDrawCommands_PreservesCommandAndCardOrder()
+        {
+            const string allyFirstCardId = "ally-draw-first";
+            const string allySecondCardId = "ally-draw-second";
+            const string enemyCardId = "enemy-draw";
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(CardTestBuilder.CreateCardData(allyFirstCardId))
+                .WithCard(CardTestBuilder.CreateCardData(allySecondCardId))
+                .WithCard(CardTestBuilder.CreateCardData(enemyCardId))
+                .Build();
+            var allyCards = new[]
+            {
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, allyFirstCardId),
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, allySecondCardId)
+            };
+            var enemyCard = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, enemyCardId);
+            built.Ally.CardManager.Deck.AddCards(allyCards);
+            built.Enemy.CardManager.Deck.AddCard(enemyCard);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DrawCardIntentAction(SystemSource.Instance));
+            var commands = new EffectCommandSet(new IEffectCommand[]
+            {
+                new DrawCardEffectCommand(built.Ally, allyCards.Length, true),
+                new DrawCardEffectCommand(built.Enemy, 1, true)
+            });
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, commands);
+            var result = runner.RunToCompletion();
+
+            Assert.That(runner.ProcessedItemCount, Is.EqualTo(5));
+            Assert.That(built.Ally.CardManager.HandCard.Cards, Is.EqualTo(allyCards));
+            Assert.That(built.Enemy.CardManager.HandCard.Cards, Is.EqualTo(new[] { enemyCard }));
+            Assert.That(
+                result.Actions.OfType<DrawCardResultAction>().Select(action => action.Card),
+                Is.EqualTo(allyCards.Concat(new[] { enemyCard })));
+        }
+
+        [Test]
+        public void RunToCompletion_WithSystemDraw_DispatchesEachDrawedBeforeNextCard()
+        {
+            const string firstCardId = "drawed-first";
+            const string secondCardId = "drawed-second";
+            var drawedEffect = new GainEnergyEffect
+            {
+                Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                Value = new ConstInteger { Value = 1 }
+            };
+            var firstCardData = CardTestBuilder.CreateCardData(firstCardId);
+            firstCardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = drawedEffect
+                }
+            };
+            var secondCardData = CardTestBuilder.CreateCardData(secondCardId);
+            secondCardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = drawedEffect
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(firstCardData)
+                .WithCard(secondCardData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var cards = new[]
+            {
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, firstCardId),
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, secondCardId)
+            };
+            built.Ally.CardManager.Deck.AddCards(cards);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            {
+                new DrawCardEffectCommand(built.Ally, cards.Length, true)
+            }));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.CurrentEnergy, Is.EqualTo(2));
+            Assert.That(
+                result.Actions.Select(action => action.GetType()),
+                Is.EqualTo(new[]
+                {
+                    typeof(DrawCardResultAction),
+                    typeof(GainEnergyResultAction),
+                    typeof(DrawCardResultAction),
+                    typeof(GainEnergyResultAction)
+                }));
+            Assert.That(
+                result.Events
+                    .Where(gameEvent => gameEvent is DrawCardEvent or GainEnergyEvent)
+                    .Select(gameEvent => gameEvent.GetType()),
+                Is.EqualTo(new[]
+                {
+                    typeof(DrawCardEvent),
+                    typeof(GainEnergyEvent),
+                    typeof(DrawCardEvent),
+                    typeof(GainEnergyEvent)
+                }));
+        }
+
+        [Test]
+        public void RunToCompletion_WithNonSystemDraw_DoesNotDispatchDrawed()
+        {
+            const string cardId = "effect-draw-boundary";
+            var cardData = CardTestBuilder.CreateCardData(cardId);
+            cardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = new GainEnergyEffect
+                    {
+                        Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                        Value = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            built.Ally.CardManager.Deck.AddCard(card);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new UpdateTimingAction(GameTiming.AfterTurnEnd, SystemSource.Instance));
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            {
+                new DrawCardEffectCommand(built.Ally, 1, false)
+            }));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.CurrentEnergy, Is.Zero);
+            Assert.That(result.Actions.OfType<DrawCardResultAction>().Count(), Is.EqualTo(1));
+            Assert.That(result.Actions.OfType<GainEnergyResultAction>(), Is.Empty);
+            Assert.That(result.Events.OfType<DrawCardEvent>().Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<GainEnergyEvent>(), Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WhenSystemDrawedEffectDrawsAgain_NestedDrawStillDispatchesDrawed()
+        {
+            const string chainStarterCardId = "system-draw-chain-starter";
+            const string nestedDrawCardId = "system-draw-chain-result";
+            var chainStarterCardData = CardTestBuilder.CreateCardData(chainStarterCardId);
+            chainStarterCardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = new DrawCardEffect
+                    {
+                        Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                        Value = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var nestedDrawCardData = CardTestBuilder.CreateCardData(nestedDrawCardId);
+            nestedDrawCardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = new GainEnergyEffect
+                    {
+                        Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                        Value = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(chainStarterCardData)
+                .WithCard(nestedDrawCardData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var cards = new[]
+            {
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, chainStarterCardId),
+                CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, nestedDrawCardId)
+            };
+            built.Ally.CardManager.Deck.AddCards(cards);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            {
+                new DrawCardEffectCommand(built.Ally, 1, true)
+            }));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.CardManager.HandCard.Cards, Is.EqualTo(cards));
+            Assert.That(built.Ally.CurrentEnergy, Is.EqualTo(1));
+            Assert.That(result.Actions.Select(action => action.GetType()), Is.EqualTo(new[]
+            {
+                typeof(DrawCardResultAction),
+                typeof(DrawCardResultAction),
+                typeof(GainEnergyResultAction)
+            }));
+        }
+
+        [Test]
+        public void RunToCompletion_WithEmptyDeckAndGraveyard_DoesNotDispatchDrawed()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            {
+                new DrawCardEffectCommand(built.Ally, 1, true)
+            }));
+            var result = runner.RunToCompletion();
+
+            Assert.That(result.Actions, Is.Empty);
+            Assert.That(result.Events, Is.Empty);
+        }
+
+        [Test]
+        public void RunToCompletion_WithCreateAndCloneIntoHand_DoesNotDispatchDrawed()
+        {
+            const string cardId = "create-clone-not-draw";
+            var cardData = _CreateDrawedGainEnergyCardData(cardId);
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var originCard = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            var createdCard = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            var clonedCard = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            built.Ally.CardManager.Deck.AddCard(originCard);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            {
+                new CreateCardEffectCommand(built.Ally, createdCard, CardCollectionType.HandCard),
+                new CloneCardEffectCommand(
+                    built.Ally,
+                    originCard,
+                    clonedCard,
+                    CardCollectionType.HandCard)
+            }));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.CardManager.HandCard.Cards, Is.EqualTo(new[] { createdCard, clonedCard }));
+            Assert.That(built.Ally.CurrentEnergy, Is.Zero);
+            Assert.That(result.Actions.OfType<CreateCardResultAction>().Count(), Is.EqualTo(1));
+            Assert.That(result.Actions.OfType<CloneCardResultAction>().Count(), Is.EqualTo(1));
+            Assert.That(result.Actions.OfType<GainEnergyResultAction>(), Is.Empty);
+        }
+
+        [TestCase(CardCollectionType.Graveyard)]
+        [TestCase(CardCollectionType.ExclusionZone)]
+        public void RunToCompletion_WithMoveFromNonDeckZoneIntoHand_DoesNotDispatchDrawed(
+            CardCollectionType sourceZone)
+        {
+            const string cardId = "move-to-hand-not-draw";
+            var cardData = _CreateDrawedGainEnergyCardData(cardId);
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            using var currentPlayerScope = built.Status.SetCurrentPlayer(built.Ally);
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            built.Ally.CardManager.GetCardCollectionZone(sourceZone).AddCard(card);
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            {
+                new MoveCardEffectCommand(
+                    built.Ally,
+                    card,
+                    sourceZone,
+                    CardCollectionType.HandCard,
+                    MoveCardType.Recycle)
+            }));
+            var result = runner.RunToCompletion();
+
+            Assert.That(built.Ally.CardManager.HandCard.Cards, Is.EqualTo(new[] { card }));
+            Assert.That(built.Ally.CurrentEnergy, Is.Zero);
+            Assert.That(result.Actions.OfType<MoveCardResultAction>().Count(), Is.EqualTo(1));
+            Assert.That(result.Actions.OfType<GainEnergyResultAction>(), Is.Empty);
+        }
+
+        [Test]
         public void RunToCompletion_WithCardEffects_AppliesCommandsAndCollectsResultsInOrder()
         {
             var built = new GameplayManagerTestBuilder().Build();
@@ -762,6 +1144,24 @@ namespace MortalGame.Tests
                     .Cast<StaticQueueItem>()
                     .Select(item => item.Id),
                 Is.EqualTo(new[] { 1, 2, 3 }));
+        }
+
+        private static StandardCardData _CreateDrawedGainEnergyCardData(string cardId)
+        {
+            var cardData = CardTestBuilder.CreateCardData(cardId);
+            cardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = new GainEnergyEffect
+                    {
+                        Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                        Value = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            return cardData;
         }
     }
 }

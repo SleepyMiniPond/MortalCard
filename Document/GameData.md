@@ -1,6 +1,6 @@
 # GameData 資料定義層
 
-> 最後更新：2026-09-13 | 版本：v2.2
+> 最後更新：2026-09-14 | 版本：v2.3
 
 ## 設計理念
 
@@ -98,9 +98,9 @@ T-020 已將傷害、護盾、治療、能量、好感度、抽牌、移牌、�
   資產應使用 `AddCardBuffEffect`／`RemoveCardBuffEffect`，不再有舊型別讀取相容。
 
 CardBuff 的 `BuffEffects` 已可在支援的 `GameTiming` 進入 Effect Queue。例如「定時炸彈」
-可在 `AfterExecuteEnd` 由 CardBuff 反應取得 Triggered Card 的 Power 並造成傷害；它不依賴
-尚未接線的 `CardTriggeredTiming`。後者仍由 T-017 統一處理 CardData 與 CardBuffData 的
-卡片生命週期效果。
+可在 `AfterExecuteEnd` 由 CardBuff 反應取得 Triggered Card 的 Power 並造成傷害。
+`CardTriggeredTiming` 則由 T-017 統一處理 CardData 與 CardBuffData 的卡片生命週期效果；
+目前已完成 `Initialize` 與系統抽牌 `Drawed`，其餘時機仍依工作包逐步接入。
 
 ### CardLibrary / CardViewLibrary
 

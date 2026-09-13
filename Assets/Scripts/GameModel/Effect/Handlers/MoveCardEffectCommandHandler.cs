@@ -5,7 +5,7 @@ namespace MortalGame.GameModel
 
     public class MoveCardEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             var c = (MoveCardEffectCommand)command;
             if (c.Target == null ||

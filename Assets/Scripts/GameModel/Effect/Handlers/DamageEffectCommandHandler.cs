@@ -6,7 +6,7 @@ namespace MortalGame.GameModel
 
     public class DamageEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             var c = (DamageEffectCommand)command;
             var damageResult = c.Target.HealthManager.TakeDamage(

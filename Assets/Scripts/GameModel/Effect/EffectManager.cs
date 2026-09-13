@@ -13,8 +13,7 @@ namespace MortalGame.GameModel
             IPlayerEntity player,
             IReadOnlyCollection<CardInstance> cardInstances)
         {
-            var resultActions = new List<BaseResultAction>();
-            var drawCardEvents = new List<IGameEvent>();
+            var effectQueueRunner = new EffectQueueRunner();
 
             foreach (var cardInstance in cardInstances)
             {
@@ -27,13 +26,10 @@ namespace MortalGame.GameModel
                 var createCardCommand = new EffectCommandSet(
                     new CreateCardEffectCommand(player, newCard, CardCollectionType.Deck).WrapAsEnumerable().ToArray());
 
-                var createCardResult = EffectCommandExecutor.ApplyEffectCommands(context, createCardCommand);
-
-                drawCardEvents.AddRange(createCardResult.Events);
-                resultActions.AddRange(createCardResult.Actions);
+                effectQueueRunner.EnqueueCommands(context, createCardCommand);
             }
 
-            return new EffectResult(resultActions.ToArray(), drawCardEvents.ToArray());
+            return effectQueueRunner.RunToCompletion();
         }
         public static EffectResult DrawCards(
             IGameplayModel model,
@@ -44,9 +40,13 @@ namespace MortalGame.GameModel
             var drawAction = new DrawCardIntentTargetAction(source, new PlayerTarget(player));
             var context = new TriggerContext(model, new PlayerTrigger(player), drawAction);
             var drawCommand = new EffectCommandSet(
-                new DrawCardEffectCommand(player, drawCount).WrapAsEnumerable().ToArray());
+                new DrawCardEffectCommand(player, drawCount, true)
+                    .WrapAsEnumerable()
+                    .ToArray());
 
-            var drawCardResult = EffectCommandExecutor.ApplyEffectCommands(context, drawCommand);
+            var effectQueueRunner = new EffectQueueRunner();
+            effectQueueRunner.EnqueueCommands(context, drawCommand);
+            var drawCardResult = effectQueueRunner.RunToCompletion();
 
             return new EffectResult(drawCardResult.Actions.ToArray(), drawCardResult.Events.ToArray());
         }

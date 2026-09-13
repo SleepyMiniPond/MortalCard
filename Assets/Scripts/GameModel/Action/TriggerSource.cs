@@ -11,8 +11,11 @@ namespace MortalGame.GameModel
         ITriggeredSource Triggered,
         IActionUnit Action)
     {
-        public Option<GameTiming> ReactionOriginTiming { get; init; } =
-            Action is UpdateTimingAction { Timing: not GameTiming.None } timingAction
+        // 根 Context 以當前 Action 建立來源；with 建立的衍生 Context 會沿用此來源。
+        public IActionUnit ReactionOriginAction { get; init; } = Action;
+
+        public Option<GameTiming> ReactionOriginTiming =>
+            ReactionOriginAction is UpdateTimingAction { Timing: not GameTiming.None } timingAction
                 ? timingAction.Timing.Some()
                 : Option.None<GameTiming>();
     }

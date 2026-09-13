@@ -7,7 +7,7 @@ namespace MortalGame.GameModel
 
     public class PlayerBuffEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             return command switch
             {

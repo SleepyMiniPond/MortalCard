@@ -6,7 +6,7 @@ namespace MortalGame.GameModel
 
     public class ShieldEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             var c = (ShieldEffectCommand)command;
             var shieldResult = c.Target.HealthManager.GetShield(

@@ -6,7 +6,7 @@ namespace MortalGame.GameModel
 
     public class DispositionEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             return command switch
             {

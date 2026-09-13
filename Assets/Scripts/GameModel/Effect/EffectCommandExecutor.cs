@@ -54,24 +54,21 @@ namespace MortalGame.GameModel
             return _handlerRegistry.ContainsKey(commandType);
         }
 
-        public static EffectResult ApplyEffectCommands(
+        public static EffectResult ApplyEffectCommand(
             TriggerContext context,
-            EffectCommandSet effectCommandSet)
+            IEffectCommand command,
+            IEffectQueueContext queue)
         {
-            var actionList = new List<BaseResultAction>();
-            var eventList = new List<IGameEvent>();
+            if (queue == null)
+                throw new ArgumentNullException(nameof(queue));
 
-            foreach (var command in effectCommandSet.Commands)
-            {
-                if (!_handlerRegistry.TryGetValue(command.GetType(), out var handler))
-                    throw new InvalidOperationException($"[EffectCommandExecutor] 未知的 IEffectCommand 類型：{command.GetType().Name}");
+            if (!_handlerRegistry.TryGetValue(command.GetType(), out var handler))
+                throw new InvalidOperationException($"[EffectCommandExecutor] 未知的 IEffectCommand 類型：{command.GetType().Name}");
 
-                var commandApplyResult = handler.Handle(context, command);
-                actionList.AddRange(commandApplyResult.Actions);
-                eventList.AddRange(commandApplyResult.Events);
-            }
-
-            return new EffectResult(actionList, eventList);
+            var commandApplyResult = handler.Handle(context, command, queue);
+            return new EffectResult(
+                new List<BaseResultAction>(commandApplyResult.Actions),
+                new List<IGameEvent>(commandApplyResult.Events));
         }
     }
 

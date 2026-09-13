@@ -6,7 +6,7 @@ namespace MortalGame.GameModel
 
     public class HealEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             var c = (HealEffectCommand)command;
             var healResult = c.Target.HealthManager.GetHeal(

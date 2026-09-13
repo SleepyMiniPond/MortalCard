@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-09-13
+> 最後更新：2026-09-14
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -33,17 +33,17 @@ T-010、T-018、T-019 與 T-020 已完成並封存。通用資料表達與 React
 - **目標**：讓 `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 能在抽牌、打出、保留、丟棄、初始化等卡片生命週期中，依明確且唯一的時機進入 Effect Queue。
 - **現況**：
   - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入；目前形態 Queue 直接執行新 Effective Form 的 CardData Effects，並在形態狀態與最新 `CardInfo` 提交後進行。
-  - 其餘 `Drawed`、`EffectDrawed`、`Played`、`EffectPlayed`、`Preserved`、`Discarded`、`EffectDiscarded`、`Initialize` 目前只有 enum、資料欄位、Entity 查詢與 Validator，尚未找到正式的 Runtime 觸發入口。
-  - `CardTriggeredEffectDispatch.CreateItems()` 已能同時整理 CardData 與目前有效 CardBuff，但目前僅有 EditMode 契約測試，尚未由正式 Runtime Queue 呼叫；接線時必須避免與既有 FormChanged 直接派送重複。
+  - T-017 工作包 2 已接入 `Initialize`；工作包 3 已接入由系統抽牌根源造成的 `Drawed`，並確認每張卡實際完成 `Deck → HandCard` 後逐張派送。
+  - `EffectDrawed`、`Played`、`EffectPlayed`、`Preserved`、`Discarded`、`EffectDiscarded` 仍待後續工作包接入正式 Runtime 入口。
+  - `CardTriggeredEffectDispatch.CreateItems()` 已由 `Initialize` 與 `Drawed` 正式 Runtime Queue 呼叫，可快照 CardData 與目前有效 CardBuff，並固定依 CardData → CardBuff 順序執行；既有 FormChanged 直接派送仍維持原語意。
   - `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 共用 `CardTriggeredTiming`，實作時必須同時處理卡片本體與目前有效的 CardBuff，避免兩套生命週期語意分離。
-- **開始前需決定**：
-  - 一般流程與 Effect 造成的流程如何區分，例如 `Drawed`／`EffectDrawed`、`Played`／`EffectPlayed`、`Discarded`／`EffectDiscarded`。
-  - 每個 timing 位於卡片區域移動、狀態提交、Gameplay Event 與畫面更新之前或之後。
-  - CardData Effect 與 CardBuff Effect 的固定順序、快照範圍、Selected Card Context 與同一 EffectQueueRunner Budget 規則。
-  - `Initialize` 的觸發範圍，以及既有 `Drawed` 命名若調整時的序列化數值與資產遷移策略。
+- **已確認契約與後續待決定事項**：
+  - `Drawed` 是系統根源抽牌，`EffectDrawed` 是非系統根源抽牌；系統抽牌觸發的連鎖抽牌仍屬 `Drawed`，且只有 `Deck → HandCard` 算抽牌。
+  - CardData Effect → CardBuff Effect 的順序、派送快照、Selected Card Context 與同一 EffectQueueRunner Budget 規則已由工作包 1～3 確認。
+  - 後續仍需逐包決定 `Played`／`EffectPlayed`、`Preserved`、`Discarded`／`EffectDiscarded` 與各自狀態、Gameplay Event、畫面更新的相對順序。
 - **建議階段**：拆成 8 個小工作包，先在共用觸發契約包完成 `CardData.TriggeredEffects` 的 conditional 字典格式與既有資產 migration，再依序完成 Initialize、一般抽牌、Effect 抽牌、Played／EffectPlayed 邊界、Preserved、Discarded／EffectDiscarded，最後再做完整驗收與文件收斂；每包單獨測試與確認，不把所有 timing 集中在第一包。
 - **完成條件**：除 `None` 外，每個 `CardTriggeredTiming` 都有一個明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。
-- **狀態**：✅ 工作包 2 `Initialize` 實作、驗證與使用者確認完成；下一步工作包 3 `Drawed`
+- **狀態**：🔄 工作包 3 `Drawed` 已完成實作、完整驗證並經使用者確認；下一步工作包 4 `EffectDrawed`
 
 ### T-021：完成 `CardProperty.InitialPriority` 初始抽牌優先
 

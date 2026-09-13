@@ -6,6 +6,7 @@ using MortalGame.Editor;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
+using Optional;
 using UnityEditor;
 using UnityEngine;
 
@@ -83,6 +84,58 @@ namespace MortalGame.Tests
                     cardContext,
                     (ICardBuffEffect)effect),
                 commandType);
+        }
+
+        [Test]
+        public void DrawCardEffect_ClassifiesFromReactionOriginAction()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            var effect = (DrawCardEffect)_CreateEffect(typeof(DrawCardEffect));
+            var systemDrawOriginAction = new DrawCardIntentTargetAction(
+                SystemSource.Instance,
+                new PlayerTarget(built.Ally));
+            var systemDrawContext = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                systemDrawOriginAction) with
+            {
+                Triggered = new CardTrigger(card),
+                Action = new CardTriggeredTimingAction(
+                    card,
+                    CardTriggeredTiming.Drawed,
+                    SystemSource.Instance)
+            };
+
+            var systemDrawCommand = (DrawCardEffectCommand)EffectDataResolver
+                .ResolveCardEffect(systemDrawContext, effect)
+                .Commands
+                .Single();
+            Assert.That(systemDrawContext.ReactionOriginAction, Is.SameAs(systemDrawOriginAction));
+            Assert.That(systemDrawCommand.IsSystemInitiated, Is.True);
+
+            var effectOriginAction = new UpdateTimingAction(
+                GameTiming.BeforeDrawCard,
+                SystemSource.Instance);
+            var effectDrawContext = new TriggerContext(
+                built.Manager,
+                new CardTrigger(card),
+                effectOriginAction) with
+            {
+                Action = new CardTriggeredTimingAction(
+                    card,
+                    CardTriggeredTiming.EffectDrawed,
+                    SystemSource.Instance)
+            };
+            var effectDrawCommand = (DrawCardEffectCommand)EffectDataResolver
+                .ResolveCardEffect(effectDrawContext, effect)
+                .Commands
+                .Single();
+            Assert.That(effectDrawContext.ReactionOriginAction, Is.SameAs(effectOriginAction));
+            Assert.That(
+                effectDrawContext.ReactionOriginTiming.ValueOr(GameTiming.None),
+                Is.EqualTo(GameTiming.BeforeDrawCard));
+            Assert.That(effectDrawCommand.IsSystemInitiated, Is.False);
         }
 
         [Test]

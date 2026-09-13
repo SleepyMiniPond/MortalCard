@@ -10,6 +10,7 @@ namespace MortalGame.GameModel
     {
         int ProcessedItemCount { get; }
         void Enqueue(EffectQueueItem item);
+        void EnqueueImmediateCommands(TriggerContext context, EffectCommandSet commands);
         void EnqueueImmediate(EffectQueueItem item);
         void EnqueueImmediate(IEnumerable<EffectQueueItem> items);
     }
@@ -80,6 +81,17 @@ namespace MortalGame.GameModel
             _items.AddLast(CreatePendingItem(item));
         }
 
+        public void EnqueueCommands(TriggerContext context, EffectCommandSet commands)
+        {
+            foreach (var commandItem in CreateCommandQueueItems(context, commands))
+                Enqueue(commandItem);
+        }
+
+        public void EnqueueImmediateCommands(TriggerContext context, EffectCommandSet commands)
+        {
+            EnqueueImmediate(CreateCommandQueueItems(context, commands));
+        }
+
         public void EnqueueImmediate(EffectQueueItem item)
         {
             _items.AddFirst(CreatePendingItem(item));
@@ -136,11 +148,35 @@ namespace MortalGame.GameModel
                 .ToArray();
             return new PendingEffectQueueItem(item, triggerPath);
         }
+
+        private static IReadOnlyList<EffectQueueItem> CreateCommandQueueItems(
+            TriggerContext context,
+            EffectCommandSet commands)
+        {
+            if (context == null)
+                throw new ArgumentNullException(nameof(context));
+            if (commands == null)
+                throw new ArgumentNullException(nameof(commands));
+
+            return commands.Commands
+                .Select(command => (EffectQueueItem)new EffectCommandQueueItem(context, command))
+                .ToArray();
+        }
     }
 
     public abstract record EffectQueueItem(TriggerContext Context)
     {
         public abstract EffectResult Execute(IEffectQueueContext queue);
+    }
+
+    internal sealed record EffectCommandQueueItem(
+        TriggerContext Context,
+        IEffectCommand Command) : EffectQueueItem(Context)
+    {
+        public override EffectResult Execute(IEffectQueueContext queue)
+        {
+            return EffectCommandExecutor.ApplyEffectCommand(Context, Command, queue);
+        }
     }
 
     public sealed record CardEffectQueueItem(
@@ -150,7 +186,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 
@@ -161,7 +198,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolvePlayerBuffEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 
@@ -172,7 +210,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 
@@ -183,7 +222,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 

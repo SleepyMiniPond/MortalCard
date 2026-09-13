@@ -38,7 +38,7 @@ namespace MortalGame.Tests.CardTransformation
             var effect = _CreateEffect(built.Card, "pipeline", OverrideCardId);
             var commandSet = EffectDataResolver.ResolveCardEffect(built.Context, effect);
 
-            var result = EffectCommandExecutor.ApplyEffectCommands(built.Context, commandSet);
+            var result = _ExecuteCommands(built.Context, commandSet);
 
             Assert.That(built.Card.CardDataId, Is.EqualTo(OverrideCardId));
             Assert.That(result.Actions.OfType<ApplyCardFormOverrideResultAction>().Count(), Is.EqualTo(1));
@@ -57,11 +57,11 @@ namespace MortalGame.Tests.CardTransformation
             var built = _Build();
             var effect = _CreateEffect(built.Card, "pipeline", OverrideCardId);
             var firstCommands = EffectDataResolver.ResolveCardEffect(built.Context, effect);
-            EffectCommandExecutor.ApplyEffectCommands(built.Context, firstCommands);
+            _ExecuteCommands(built.Context, firstCommands);
             built.Card.OverrideFormState.TryGetValue(out var firstState);
 
             var secondCommands = EffectDataResolver.ResolveCardEffect(built.Context, effect);
-            var secondResult = EffectCommandExecutor.ApplyEffectCommands(built.Context, secondCommands);
+            var secondResult = _ExecuteCommands(built.Context, secondCommands);
 
             Assert.That(secondResult.Actions, Is.Empty);
             Assert.That(secondResult.Events, Is.Empty);
@@ -76,18 +76,64 @@ namespace MortalGame.Tests.CardTransformation
             var built = _Build();
             var firstEffect = _CreateEffect(built.Card, "first", OverrideCardId);
             var firstCommands = EffectDataResolver.ResolveCardEffect(built.Context, firstEffect);
-            EffectCommandExecutor.ApplyEffectCommands(built.Context, firstCommands);
+            _ExecuteCommands(built.Context, firstCommands);
             built.Card.OverrideFormState.TryGetValue(out var firstState);
             var secondEffect = _CreateEffect(built.Card, "second", OverrideCardId);
             var secondCommands = EffectDataResolver.ResolveCardEffect(built.Context, secondEffect);
 
-            var secondResult = EffectCommandExecutor.ApplyEffectCommands(built.Context, secondCommands);
+            var secondResult = _ExecuteCommands(built.Context, secondCommands);
 
             Assert.That(secondResult.Actions.OfType<ApplyCardFormOverrideResultAction>().Count(), Is.EqualTo(1));
             Assert.That(secondResult.Events.OfType<CardFormChangedEvent>(), Is.Empty);
             Assert.That(built.Card.OverrideFormState.TryGetValue(out var secondState), Is.True);
             Assert.That(secondState.Identity, Is.Not.EqualTo(firstState.Identity));
             Assert.That(secondState.BuffLayerHandle, Is.Not.SameAs(firstState.BuffLayerHandle));
+        }
+
+        [Test]
+        public void ExecuteFormOverride_ToCardWithDrawedEffect_DoesNotDispatchDrawed()
+        {
+            const string drawedOverrideCardId = "form-change-not-draw";
+            var overrideCardData = new OverrideCardData
+            {
+                ID = drawedOverrideCardId,
+                Cost = 4,
+                Power = 7
+            };
+            overrideCardData.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = new GainEnergyEffect
+                    {
+                        Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
+                        Value = new ConstInteger { Value = 1 }
+                    }
+                }
+            };
+            var built = new CardTransformationTestBuilder()
+                .WithCard(overrideCardData)
+                .Build();
+            using var currentPlayerScope = built.Gameplay.Status.SetCurrentPlayer(built.Gameplay.Ally);
+            built.Gameplay.Ally.CardManager.HandCard.AddCard(built.Card);
+            var context = new TriggerContext(
+                built.Gameplay.Manager,
+                new CardTrigger(built.Card),
+                new DrawCardIntentTargetAction(
+                    SystemSource.Instance,
+                    new PlayerTarget(built.Gameplay.Ally)));
+            var effect = _CreateEffect(built.Card, "not-draw", drawedOverrideCardId);
+            var commandSet = EffectDataResolver.ResolveCardEffect(context, effect);
+
+            var result = _ExecuteCommands(context, commandSet);
+
+            Assert.That(built.Card.CardDataId, Is.EqualTo(drawedOverrideCardId));
+            Assert.That(built.Gameplay.Ally.CurrentEnergy, Is.Zero);
+            Assert.That(result.Actions.OfType<ApplyCardFormOverrideResultAction>().Count(), Is.EqualTo(1));
+            Assert.That(result.Actions.OfType<GainEnergyResultAction>(), Is.Empty);
+            Assert.That(result.Events.OfType<CardFormChangedEvent>().Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<GainEnergyEvent>(), Is.Empty);
         }
 
         private static BuiltCardTransformationTest _Build()
@@ -100,6 +146,15 @@ namespace MortalGame.Tests.CardTransformation
                     Power = 10
                 })
                 .Build();
+        }
+
+        private static EffectResult _ExecuteCommands(
+            TriggerContext context,
+            EffectCommandSet commands)
+        {
+            var runner = new EffectQueueRunner();
+            runner.EnqueueCommands(context, commands);
+            return runner.RunToCompletion();
         }
 
         private static ApplyCardFormOverrideEffect _CreateEffect(

@@ -1,6 +1,6 @@
 # Effect 效果管線
 
-> 最後更新：2026-09-13 | 版本：v2.2
+> 最後更新：2026-09-14 | 版本：v2.3
 
 ## 設計理念
 
@@ -8,7 +8,8 @@ Effect 系統是 GameModel 中最複雜也最核心的子系統，負責將「�
 
 1. **宣告式輸入**：CardEffect（「對目標造成 5 點傷害」）
 2. **解析轉換**：EffectDataResolver（解析目標、建立 Action 鏈）
-3. **命令式執行**：EffectCommandExecutor（執行命令、產生事件）
+3. **佇列化執行**：EffectQueueRunner（安排命令與衍生效果順序）
+4. **命令套用**：EffectCommandExecutor（逐一執行命令、產生事件）
 
 ## 效果管線流程
 
@@ -23,9 +24,14 @@ EffectDataResolver.Resolve()
   │   └── Effect Command（待執行命令）
   └── 回傳 EffectCommandSet
   ↓
-EffectCommandExecutor.Execute()
-  ├── 逐一執行 Effect Command
-  ├── 對每個命令：
+EffectQueueRunner.EnqueueCommands()
+  ├── 依原順序將 EffectCommandSet 展開成單一 EffectCommandQueueItem
+  ├── 執行中產生的立即項目插入目前項目之後
+  └── 每個 Queue Item 共用同一個 Queue Scope 與 Budget
+  ↓
+EffectCommandExecutor.ApplyEffectCommand()
+  ├── 一次執行一個 Effect Command
+  ├── 對該命令：
   │   ├── 呼叫實體方法修改狀態
   │   ├── 產生 Result Action
   │   ├── 透過 ObserveDerivedAction 觸發 Buff 反應
@@ -56,7 +62,7 @@ EffectCommandExecutor.Execute()
 - `ModifyPlayerBuffLevelEffectCommand` — 修改 Buff 層數
 
 ### 卡牌操作
-- `DrawCardEffectCommand` — 抽牌
+- `DrawCardEffectCommand` — 抽牌；保存本次抽牌鏈是否源自系統抽牌
 - `MoveCardEffectCommand` — 移動卡牌到其他區域
 - `CreateCardEffectCommand` — 創建新卡牌
 - `CloneCardEffectCommand` — 複製卡牌
@@ -114,8 +120,9 @@ EffectCommandExecutor.Execute()
 | ApplyCardFormOverride | ✓ | — | — | — |
 
 `ModifyCardPlayAttributeEffect` 是既有的 Reaction 專用修正語意，不屬於 Card 的直接效果。
-`ApplyCardFormOverrideEffect` 涉及卡片形態與生命週期，維持 Card 專用；將卡片生命週期
-觸發接入 Queue 是後續 T-017 的工作，T-020 沒有藉此開放 `CardTriggeredTiming`。
+`ApplyCardFormOverrideEffect` 涉及卡片形態與生命週期，維持 Card 專用；T-017 已將
+`Initialize` 與系統抽牌 `Drawed` 接入 Queue，其餘 `CardTriggeredTiming` 仍按工作包逐步接線。
+T-020 沒有藉此開放新的生命週期來源。
 
 舊的 `AddCardBuffPlayerBuffEffect` 與 `RemoveCardBuffPlayerBuffEffect` 已在正式資產遷移後
 完全刪除；PlayerBuff 要新增或移除 CardBuff 時，一律使用共用的
@@ -165,7 +172,7 @@ EffectCommandExecutor.Execute()
 
 ### Buff 反應整合
 
-各命令 Handler 在狀態變更成功後建立 Result Action，透過 `context.Model.ObserveDerivedAction()` 讓 Player／Character／Card Buff 反應，再追加對應的 GameEvent；正常失效則回傳空結果，不製造假的 Result 或 Event。一般 `GameTiming` 則由 `TriggerTimingQueueItem` 建立快照並交給 `TimingDispatchPlanner` 排入同一個 `EffectQueueRunner`。
+各命令 Handler 在狀態變更成功後建立 Result Action，透過 `context.Model.ObserveDerivedAction()` 讓 Player／Character／Card Buff 反應，再追加對應的 GameEvent；正常失效則回傳空結果，不製造假的 Result 或 Event。一般 `GameTiming` 則由 `TriggerTimingQueueItem` 建立快照並交給 `TimingDispatchPlanner` 排入同一個 `EffectQueueRunner`。抽牌命令會先展開成逐張 `DrawCardQueueItem`；系統抽牌每張完成 `Deck → HandCard` 與 `DrawCardEvent` 後，立即排入該卡的 `Drawed` 項目，再處理下一張。
 
 ## EffectEventResult — 結果聚合
 

@@ -165,7 +165,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 }

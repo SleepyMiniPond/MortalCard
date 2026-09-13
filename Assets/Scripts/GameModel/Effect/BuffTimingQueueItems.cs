@@ -120,7 +120,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolvePlayerBuffEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 
@@ -131,7 +132,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 
@@ -142,7 +144,8 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
-            return EffectCommandExecutor.ApplyEffectCommands(Context, commands);
+            queue.EnqueueImmediateCommands(Context, commands);
+            return EffectResult.Empty;
         }
     }
 

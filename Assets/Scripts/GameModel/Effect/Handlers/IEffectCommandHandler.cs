@@ -3,7 +3,10 @@ namespace MortalGame.GameModel
 
     public interface IEffectCommandHandler
     {
-        CommandApplyResult Handle(TriggerContext context, IEffectCommand command);
+        CommandApplyResult Handle(
+            TriggerContext context,
+            IEffectCommand command,
+            IEffectQueueContext queue);
     }
 
 }

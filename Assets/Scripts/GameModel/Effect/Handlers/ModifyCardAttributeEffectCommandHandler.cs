@@ -6,7 +6,7 @@ namespace MortalGame.GameModel
 
     public class ModifyCardAttributeEffectCommandHandler : IEffectCommandHandler
     {
-        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command)
+        public CommandApplyResult Handle(TriggerContext context, IEffectCommand command, IEffectQueueContext queue)
         {
             var c = (ModifyCardAttributeEffectCommand)command;
             if (context.Action.Source is CardPlaySource cardPlaySource)

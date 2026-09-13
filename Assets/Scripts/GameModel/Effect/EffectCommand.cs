@@ -50,7 +50,9 @@ namespace MortalGame.GameModel
 
     public record DrawCardEffectCommand(
         IPlayerEntity Target,
-        int DrawCount) : IEffectCommand;
+        int DrawCount,
+        // true 表示根源為系統抽牌，false 表示根源為非系統效果抽牌。
+        bool IsSystemInitiated) : IEffectCommand;
     public record MoveCardEffectCommand(
         IPlayerEntity Target,
         ICardEntity Card,
