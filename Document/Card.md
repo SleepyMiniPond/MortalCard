@@ -1,6 +1,6 @@
 # Card 卡牌系統
 
-> 最後更新：2026-09-14 | 版本：v2.3
+> 最後更新：2026-09-15 | 版本：v2.4
 
 ## 設計理念
 
@@ -59,9 +59,9 @@ Record 類型的不可變快照，代表牌組中的一張具體卡牌：
 - 每個 `ConditionalCardEffect` 包含 `Conditions` 與單一 `ICardEffect`，只有條件全部成立才會進入效果佇列
 
 目前已建立 `CardTriggeredEffectDispatch`，可同時把 CardData 與有效 CardBuff 的條件效果
-轉成 QueueItem；正式 Runtime 已接入戰鬥開始的 `Initialize`，以及系統抽牌的 `Drawed`。
-`Drawed` 只計算抽牌根源為系統、且卡片實際完成 `Deck → HandCard` 的流程；一次抽多張時逐張
-完成狀態、事件與觸發效果後才處理下一張。效果抽牌的 `EffectDrawed` 尚待 T-017 工作包 4。
+轉成 QueueItem；正式 Runtime 已接入戰鬥開始的 `Initialize`、系統抽牌的 `Drawed`，以及
+非系統抽牌的 `EffectDrawed`。兩種抽牌 timing 都只計算卡片實際完成 `Deck → HandCard` 的流程，
+並依整條抽牌鏈的最初根源分類；一次抽多張時逐張完成狀態、事件與觸發效果後才處理下一張。
 形態變更流程則維持既有 CardData `FormChanged` 入口，其餘生命週期時機仍在後續工作包中。
 
 ### 效果參數化

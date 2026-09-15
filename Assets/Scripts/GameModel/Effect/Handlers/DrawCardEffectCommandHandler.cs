@@ -88,12 +88,15 @@ namespace MortalGame.GameModel
         {
             var drawResult = DrawCardEffectCommandHandler.DrawSingleCard(Context, Target);
 
-            if (IsSystemInitiated && drawResult.DrawnCard.TryGetValue(out var drawnCard))
+            if (drawResult.DrawnCard.TryGetValue(out var drawnCard))
             {
+                var timing = IsSystemInitiated
+                    ? CardTriggeredTiming.Drawed
+                    : CardTriggeredTiming.EffectDrawed;
                 queue.EnqueueImmediate(CardTriggeredEffectDispatch.CreateItems(
                     Context,
                     drawnCard,
-                    CardTriggeredTiming.Drawed));
+                    timing));
             }
 
             return drawResult.EffectResult;

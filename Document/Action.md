@@ -1,6 +1,6 @@
 # Action 動作系統
 
-> 最後更新：2026-09-14 | 版本：v2.2
+> 最後更新：2026-09-15 | 版本：v2.3
 
 ## 設計理念
 
@@ -90,8 +90,8 @@ GainEnergyResultAction
 它包含卡片、卡片生命週期時機與原始來源；`Timing` 維持 `GameTiming.None`，不把兩套
 不同層級的時機互相混用。
 
-共用派送器目前已讓 `Initialize` 與系統抽牌的 `Drawed` 使用同一種 Action；後續
-`EffectDrawed`、`Played`、`Preserved`、`Discarded` 等卡片生命週期也會沿用此契約，只有
+共用派送器目前已讓 `Initialize`、系統抽牌的 `Drawed` 與效果抽牌的 `EffectDrawed`
+使用同一種 Action；後續 `Played`、`Preserved`、`Discarded` 等卡片生命週期也會沿用此契約，只有
 `TriggeredTiming` 與 `Source` 不同。現有的
 `CardFormChangedAction` 仍表示「形態變更操作本身」；待該流程改由共用派送器接線時，
 其 `FormChanged` 生命週期效果也會使用此 Action。真正的「系統建立卡片」語意若未來需要，
