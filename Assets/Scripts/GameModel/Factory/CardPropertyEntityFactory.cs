@@ -30,6 +30,7 @@ namespace MortalGame.GameModel
         {
             return new CardPropertyEntityFactory(new ICardPropertyEntityCreator[]
             {
+            new EffectRepeatPropertyEntityCreator(),
             new PreservedPropertyEntityCreator(),
             new InitialPriorityPropertyEntityCreator(),
             new ConsumablePropertyEntityCreator(),
@@ -55,6 +56,13 @@ namespace MortalGame.GameModel
             throw new ArgumentException(
                 $"未註冊的 Card Property Data 型別：{data.GetType().FullName}",
                 nameof(data));
+        }
+
+        private sealed class EffectRepeatPropertyEntityCreator : ICardPropertyEntityCreator
+        {
+            public Type DataType => typeof(EffectRepeatPropertyData);
+            public ICardPropertyEntity Create(ICardPropertyData data) =>
+                new EffectRepeatPropertyEntity(((EffectRepeatPropertyData)data).Value);
         }
 
         private sealed class PreservedPropertyEntityCreator : ICardPropertyEntityCreator

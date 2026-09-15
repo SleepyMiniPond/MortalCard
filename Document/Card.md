@@ -1,6 +1,6 @@
 # Card 卡牌系統
 
-> 最後更新：2026-09-15 | 版本：v2.4
+> 最後更新：2026-09-16 | 版本：v2.5
 
 ## 設計理念
 
@@ -78,6 +78,7 @@ Record 類型的不可變快照，代表牌組中的一張具體卡牌：
 
 | 屬性 | 效果 | 來源 |
 |------|------|------|
+| EffectRepeat | 設定普通 Card Effects 每次出牌的總執行次數；CardBuff 可提供動態數值，最終至少執行一次 | CardPropertyData / CardBuffPropertyData |
 | Preserved | 回合結束保留在手牌 | CardPropertyData |
 | Consumable | 可重複打出 | CardPropertyData |
 | Dispose | 打出後進入消耗區 | CardPropertyData |

@@ -30,6 +30,7 @@ namespace MortalGame.GameModel
         {
             return new CardBuffPropertyEntityFactory(new ICardBuffPropertyEntityCreator[]
             {
+            new EffectRepeatCardBuffPropertyEntityCreator(),
             new SealedCardBuffPropertyEntityCreator(),
             new PowerCardBuffPropertyEntityCreator(),
             });
@@ -50,6 +51,14 @@ namespace MortalGame.GameModel
             throw new ArgumentException(
                 $"未註冊的 Card Buff Property Data 型別：{data.GetType().FullName}",
                 nameof(data));
+        }
+
+        private sealed class EffectRepeatCardBuffPropertyEntityCreator : ICardBuffPropertyEntityCreator
+        {
+            public Type DataType => typeof(EffectRepeatCardBuffPropertyData);
+            public ICardBuffPropertyEntity Create(ICardBuffPropertyData data) =>
+                new EffectRepeatCardBuffPropertyEntity(
+                    ((EffectRepeatCardBuffPropertyData)data).Value);
         }
 
         private sealed class SealedCardBuffPropertyEntityCreator : ICardBuffPropertyEntityCreator

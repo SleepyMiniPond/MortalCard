@@ -10,6 +10,12 @@ namespace MortalGame.GameData
     }
 
     [Serializable]
+    public class EffectRepeatCardBuffPropertyData : ICardBuffPropertyData
+    {
+        public IIntegerValue Value;
+    }
+
+    [Serializable]
     public class SealedCardBuffPropertyData : ICardBuffPropertyData
     {
     }

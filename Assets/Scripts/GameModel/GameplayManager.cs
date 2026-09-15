@@ -514,8 +514,7 @@ namespace MortalGame.GameModel
 
                             var effectActionResults = new List<BaseResultAction>();
 
-                            var repeatTimes = usedCard.HasProperty(CardProperty.EffectRepeat) ?
-                                1 : Math.Max(1, effectRepeat);
+                            var repeatTimes = Math.Max(1, effectRepeat);
                             for (int i = 0; i < repeatTimes; i++)
                             {
                                 var effectQueueRunner = new EffectQueueRunner();

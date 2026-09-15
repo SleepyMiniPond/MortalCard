@@ -17,6 +17,31 @@ namespace MortalGame.GameModel
         ICardBuffPropertyEntity Clone();
     }
 
+    public class EffectRepeatCardBuffPropertyEntity : ICardBuffPropertyEntity
+    {
+        private readonly IIntegerValue _value;
+
+        public CardProperty Property => CardProperty.EffectRepeat;
+        public IEnumerable<string> Keywords => Property.ToString().WrapAsEnumerable();
+
+        public EffectRepeatCardBuffPropertyEntity(IIntegerValue value)
+        {
+            _value = value;
+        }
+
+        public Option<int> Eval(TriggerContext triggerContext)
+        {
+            var propertyContext = triggerContext with
+            {
+                Action = new CardBuffPropertyLookAction(this)
+            };
+            return _value.Eval(propertyContext);
+        }
+
+        public ICardBuffPropertyEntity Clone() =>
+            new EffectRepeatCardBuffPropertyEntity(_value);
+    }
+
     public class SealedCardBuffPropertyEntity : ICardBuffPropertyEntity
     {
         public CardProperty Property => CardProperty.Sealed;

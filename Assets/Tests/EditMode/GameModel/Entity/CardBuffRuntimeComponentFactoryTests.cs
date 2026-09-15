@@ -18,6 +18,7 @@ namespace MortalGame.Tests
             _lifeTimeFactory = CardBuffLifeTimeEntityFactory.CreateDefault();
         }
 
+        [TestCase(typeof(EffectRepeatCardBuffPropertyData), typeof(EffectRepeatCardBuffPropertyEntity))]
         [TestCase(typeof(SealedCardBuffPropertyData), typeof(SealedCardBuffPropertyEntity))]
         [TestCase(typeof(PowerCardBuffPropertyData), typeof(PowerCardBuffPropertyEntity))]
         public void CreateProperty_KnownDataType_ReturnsExpectedEntityType(Type dataType, Type expectedEntityType)

@@ -11,6 +11,12 @@ namespace MortalGame.GameData
     }
 
     [Serializable]
+    public class EffectRepeatPropertyData : ICardPropertyData
+    {
+        public int Value = 1;
+    }
+
+    [Serializable]
     public class PreservedPropertyData : ICardPropertyData
     {
     }

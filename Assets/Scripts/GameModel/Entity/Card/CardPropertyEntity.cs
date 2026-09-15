@@ -17,6 +17,22 @@ namespace MortalGame.GameModel
         ICardPropertyEntity Clone();
     }
 
+    public class EffectRepeatPropertyEntity : ICardPropertyEntity
+    {
+        private readonly int _value;
+
+        public CardProperty Property => CardProperty.EffectRepeat;
+        public IEnumerable<string> Keywords => Property.ToString().WrapAsEnumerable();
+
+        public EffectRepeatPropertyEntity(int value)
+        {
+            _value = value;
+        }
+
+        public int Eval(TriggerContext triggerContext) => _value;
+        public ICardPropertyEntity Clone() => new EffectRepeatPropertyEntity(_value);
+    }
+
     public class PreservedPropertyEntity : ICardPropertyEntity
     {
         public CardProperty Property => CardProperty.Preserved;

@@ -16,6 +16,7 @@ namespace MortalGame.Tests
             _factory = CardPropertyEntityFactory.CreateDefault();
         }
 
+        [TestCase(typeof(EffectRepeatPropertyData), typeof(EffectRepeatPropertyEntity))]
         [TestCase(typeof(PreservedPropertyData), typeof(PreservedPropertyEntity))]
         [TestCase(typeof(InitialPriorityPropertyData), typeof(InitialPriorityPropertyEntity))]
         [TestCase(typeof(ConsumablePropertyData), typeof(ConsumablePropertyEntity))]
