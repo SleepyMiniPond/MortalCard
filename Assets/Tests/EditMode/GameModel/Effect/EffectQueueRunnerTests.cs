@@ -1192,6 +1192,38 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void EnqueueRange_PreservesProvidedOrderInExistingScope()
+        {
+            var runner = new EffectQueueRunner();
+
+            runner.EnqueueRange(new EffectQueueItem[]
+            {
+                new StaticQueueItem(null, 1),
+                new StaticQueueItem(null, 2)
+            });
+            runner.Enqueue(new StaticQueueItem(null, 3));
+            var result = runner.RunToCompletion();
+
+            Assert.That(
+                result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id),
+                Is.EqualTo(new[] { 1, 2, 3 }));
+            Assert.That(runner.ProcessedItemCount, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void StaticRunToCompletion_CreatesScopeAndProcessesFollowUpItems()
+        {
+            var result = EffectQueueRunner.RunToCompletion(new EffectQueueItem[]
+            {
+                new ChainedQueueItem(null, 1, 2)
+            });
+
+            Assert.That(
+                result.Events.OfType<TestQueueEvent>().Select(evt => evt.Id),
+                Is.EqualTo(new[] { 1, 2 }));
+        }
+
+        [Test]
         public void RunToCompletion_WhenItemEnqueuesImmediateItem_ProcessesItBeforeQueuedTail()
         {
             var runner = new EffectQueueRunner();

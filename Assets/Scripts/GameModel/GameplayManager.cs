@@ -226,13 +226,11 @@ namespace MortalGame.GameModel
                             candidate.Card,
                             CardTriggeredTiming.Initialize,
                             SystemSource.Instance));
-                    foreach (var item in CardTriggeredEffectDispatch.CreateItems(
-                        context,
-                        candidate.Card,
-                        CardTriggeredTiming.Initialize))
-                    {
-                        effectQueueRunner.Enqueue(item);
-                    }
+                    effectQueueRunner.EnqueueRange(
+                        CardTriggeredEffectDispatch.CreateItems(
+                            context,
+                            candidate.Card,
+                            CardTriggeredTiming.Initialize));
                 }
 
                 return effectQueueRunner.RunToCompletion().Events;
@@ -517,24 +515,30 @@ namespace MortalGame.GameModel
                             var repeatTimes = Math.Max(1, effectRepeat);
                             for (int i = 0; i < repeatTimes; i++)
                             {
-                                var effectQueueRunner = new EffectQueueRunner();
-                                foreach (var effect in usedCard.Effects)
-                                {
-                                    effectQueueRunner.Enqueue(new CardEffectQueueItem(cardPlayTriggerContext, effect));
-                                }
-
-                                var effectResult = effectQueueRunner.RunToCompletion();
+                                var effectResult = EffectQueueRunner.RunToCompletion(
+                                    usedCard.Effects.Select(effect =>
+                                        new CardEffectQueueItem(
+                                            cardPlayTriggerContext,
+                                            effect)));
                                 useCardEvents.AddRange(effectResult.Events);
                                 effectActionResults.AddRange(effectResult.Actions);
                             }
-
-                            cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
 
                             var usedCardEvent = new UsedCardEvent(
                                 Faction: player.Faction,
                                 UsedCardIdentity: usedCard.Identity,
                                 CardManagerInfo: player.CardManager.ToInfo());
                             useCardEvents.Add(usedCardEvent);
+
+                            var playedResult = EffectQueueRunner.RunToCompletion(
+                                CardTriggeredEffectDispatch.CreateItems(
+                                    cardPlayTriggerContext,
+                                    usedCard,
+                                    CardTriggeredTiming.Played));
+                            useCardEvents.AddRange(playedResult.Events);
+                            effectActionResults.AddRange(playedResult.Actions);
+
+                            cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
 
                             useCardEvents.AddRange(
                                 ObserveRootAction(new CardPlayResultAction(cardPlayResultSource)));

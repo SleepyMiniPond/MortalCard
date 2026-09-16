@@ -59,10 +59,15 @@ Record 類型的不可變快照，代表牌組中的一張具體卡牌：
 - 每個 `ConditionalCardEffect` 包含 `Conditions` 與單一 `ICardEffect`，只有條件全部成立才會進入效果佇列
 
 目前已建立 `CardTriggeredEffectDispatch`，可同時把 CardData 與有效 CardBuff 的條件效果
-轉成 QueueItem；正式 Runtime 已接入戰鬥開始的 `Initialize`、系統抽牌的 `Drawed`，以及
-非系統抽牌的 `EffectDrawed`。兩種抽牌 timing 都只計算卡片實際完成 `Deck → HandCard` 的流程，
+轉成 QueueItem；正式 Runtime 已接入戰鬥開始的 `Initialize`、系統抽牌的 `Drawed`、
+非系統抽牌的 `EffectDrawed`，以及玩家／敵人主動出牌的 `Played`。兩種抽牌 timing 都只計算卡片實際完成 `Deck → HandCard` 的流程，
 並依整條抽牌鏈的最初根源分類；一次抽多張時逐張完成狀態、事件與觸發效果後才處理下一張。
-形態變更流程則維持既有 CardData `FormChanged` 入口，其餘生命週期時機仍在後續工作包中。
+主動出牌固定依 `HandCard → PlayingCard` → 普通 Card Effects → `UsedCardEvent` → `Played` →
+`CardPlayResultAction` → 離場執行；普通 Effects 依 `EffectRepeat` 重複，`Played` 每次完整出牌只派送一次。
+`Played` 執行時卡片仍位於 `PlayingCard`，CardData 先於當下有效的 CardBuff，其 Result 會接在普通
+Effects Result 後納入同一個 `CardPlayResultSource`。主動出牌不會派送 `EffectPlayed`；完整的間接
+出牌能力由 T-022 實作。形態變更流程則維持既有 CardData `FormChanged` 入口，Preserved 與棄牌相關
+生命週期仍在後續工作包中。
 
 ### 效果參數化
 

@@ -1,6 +1,6 @@
 # Effect 效果管線
 
-> 最後更新：2026-09-14 | 版本：v2.3
+> 最後更新：2026-09-17 | 版本：v2.4
 
 ## 設計理念
 
@@ -38,6 +38,10 @@ EffectCommandExecutor.ApplyEffectCommand()
   │   └── 產生 GameEvent 供 View 使用
   └── 回傳 EffectResult（所有 Action + 事件）
 ```
+
+呼叫端已有兩種批次入口：`EnqueueRange(items)` 將多個項目加入既有 Runner，繼續共用同一個
+Scope／Budget；static `RunToCompletion(items)` 則建立新的 Runner 與獨立 Budget 後執行完成。
+選擇入口時必須先判斷該批效果是否應與既有連鎖共用 Budget，不能只以程式碼長度決定。
 
 ## EffectCommand — 命令封裝
 
@@ -121,7 +125,10 @@ EffectCommandExecutor.ApplyEffectCommand()
 
 `ModifyCardPlayAttributeEffect` 是既有的 Reaction 專用修正語意，不屬於 Card 的直接效果。
 `ApplyCardFormOverrideEffect` 涉及卡片形態與生命週期，維持 Card 專用；T-017 已將
-`Initialize` 與系統抽牌 `Drawed` 接入 Queue，其餘 `CardTriggeredTiming` 仍按工作包逐步接線。
+`Initialize`、系統抽牌 `Drawed`、效果抽牌 `EffectDrawed` 與主動出牌 `Played` 接入 Queue。
+`Played` 位於普通 Card Effects 與 `UsedCardEvent` 後，每次完整出牌只派送一次；其 Result 與普通
+效果一起收斂至 `CardPlayResultSource`。`EffectPlayed` 的間接出牌 Runtime 由 T-022 接續，其餘
+`CardTriggeredTiming` 仍按 T-017 後續工作包逐步接線。
 T-020 沒有藉此開放新的生命週期來源。
 
 舊的 `AddCardBuffPlayerBuffEffect` 與 `RemoveCardBuffPlayerBuffEffect` 已在正式資產遷移後

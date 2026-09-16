@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-09-16
+> 最後更新：2026-09-17
 > 狀態標記：⬜ 未開始 | 🔄 進行中 | ✅ 已完成
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
@@ -47,7 +47,7 @@ T-010、T-018、T-019 與 T-020 已完成並封存。通用資料表達與 React
   - `Played`／`EffectPlayed` 的語意已確認；後續仍需逐包決定 `Preserved`、`Discarded`／`EffectDiscarded` 與各自狀態、Gameplay Event、畫面更新的相對順序。
 - **建議階段**：拆成 8 個小工作包，先完成共用觸發契約與既有資產 migration，再依序完成 Initialize、一般抽牌、Effect 抽牌、現有主動出牌 `Played`、Preserved、Discarded／EffectDiscarded，最後做完整驗收與文件收斂；`EffectPlayed` 的新間接出牌能力另由 T-022 實作。
 - **完成條件**：現有正式生命週期流程皆有明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。尚無正式操作來源的 `EffectPlayed` 以已確認契約及 T-022 追蹤，不在 T-017 製造假入口。
-- **狀態**：🔄 工作包 5 步驟 2 已補齊 CardData／CardBuff 的 `EffectRepeat` 資料到 Runtime 垂直切片並修正執行次數，完整 EditMode 628／628 passed，目前待使用者確認；下一步為步驟 3 接入 `Played`
+- **狀態**：🔄 工作包 5 `Played` 已完成實作、正式文件與 Unity 驗證，完整 EditMode 635／635 passed，目前待使用者確認；確認後進入工作包 6 `Preserved`
 
 ### T-022：完成 `EffectPlayed` 間接出牌能力
 

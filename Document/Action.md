@@ -90,9 +90,11 @@ GainEnergyResultAction
 它包含卡片、卡片生命週期時機與原始來源；`Timing` 維持 `GameTiming.None`，不把兩套
 不同層級的時機互相混用。
 
-共用派送器目前已讓 `Initialize`、系統抽牌的 `Drawed` 與效果抽牌的 `EffectDrawed`
-使用同一種 Action；後續 `Played`、`Preserved`、`Discarded` 等卡片生命週期也會沿用此契約，只有
-`TriggeredTiming` 與 `Source` 不同。現有的
+共用派送器目前已讓 `Initialize`、系統抽牌的 `Drawed`、效果抽牌的 `EffectDrawed`，以及
+主動出牌的 `Played` 使用同一種 Action；後續 `Preserved`、`Discarded` 等卡片生命週期也會沿用
+此契約，只有 `TriggeredTiming` 與 `Source` 不同。主動出牌的 `Played` 沿用原本
+`CardPlaySource`，其效果 Result 會與普通 Card Effects 的 Result 一起收斂至同一個
+`CardPlayResultSource`。現有的
 `CardFormChangedAction` 仍表示「形態變更操作本身」；待該流程改由共用派送器接線時，
 其 `FormChanged` 生命週期效果也會使用此 Action。真正的「系統建立卡片」語意若未來需要，
 應另行定義建立動作，不與卡片生命週期觸發混用。

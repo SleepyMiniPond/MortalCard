@@ -76,15 +76,30 @@ namespace MortalGame.GameModel
             _executionScope = new EffectQueueExecutionScope(BUDGET_COUNT);
         }
 
+        public static EffectResult RunToCompletion(IEnumerable<EffectQueueItem> items)
+        {
+            var runner = new EffectQueueRunner();
+            runner.EnqueueRange(items);
+            return runner.RunToCompletion();
+        }
+
         public void Enqueue(EffectQueueItem item)
         {
             _items.AddLast(CreatePendingItem(item));
         }
 
+        public void EnqueueRange(IEnumerable<EffectQueueItem> items)
+        {
+            if (items == null)
+                throw new ArgumentNullException(nameof(items));
+
+            foreach (var item in items)
+                Enqueue(item);
+        }
+
         public void EnqueueCommands(TriggerContext context, EffectCommandSet commands)
         {
-            foreach (var commandItem in CreateCommandQueueItems(context, commands))
-                Enqueue(commandItem);
+            EnqueueRange(CreateCommandQueueItems(context, commands));
         }
 
         public void EnqueueImmediateCommands(TriggerContext context, EffectCommandSet commands)
