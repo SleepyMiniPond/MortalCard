@@ -39,10 +39,13 @@ namespace MortalGame.GameModel
     public record CardManagerInfo(
         IReadOnlyDictionary<CardCollectionType, ImmutableArray<Guid>> CardZoneInfos);
 
+    public sealed record HandClearCardResult(
+        ICardEntity Card,
+        CardCollectionType Destination,
+        CardTriggeredTiming TriggeredTiming);
+
     public sealed record HandClearResult(
-        IReadOnlyList<ICardEntity> PreservedCards,
-        IReadOnlyList<ICardEntity> DiscardedCards,
-        IReadOnlyList<ICardEntity> ExcludedCards,
+        IReadOnlyList<HandClearCardResult> Cards,
         IReadOnlyList<IGameEvent> Events);
 
     public class PlayerCardManager : IPlayerCardManager, IDisposable
@@ -116,14 +119,33 @@ namespace MortalGame.GameModel
 
         public HandClearResult ClearHandOnTurnEnd(IGameplayModel model)
         {
-            var preservedCards = HandCard.Cards
-                .Where(card => card.HasProperty(CardProperty.Preserved))
+            var cardResults = HandCard.Cards
+                .Select(card => card.HasProperty(CardProperty.Preserved)
+                    ? new HandClearCardResult(
+                        card,
+                        CardCollectionType.HandCard,
+                        CardTriggeredTiming.Preserved)
+                    : card.HasProperty(CardProperty.AutoDispose)
+                        ? new HandClearCardResult(
+                            card,
+                            CardCollectionType.ExclusionZone,
+                            CardTriggeredTiming.Discarded)
+                        : new HandClearCardResult(
+                            card,
+                            CardCollectionType.Graveyard,
+                            CardTriggeredTiming.Discarded))
                 .ToArray();
-            var nonePreservedCards = HandCard.ClearHand();
-            var excludeCards = nonePreservedCards.Where(c => c.HasProperty(CardProperty.AutoDispose)).ToArray();
+            HandCard.ClearHand();
+            var excludeCards = cardResults
+                .Where(result => result.Destination == CardCollectionType.ExclusionZone)
+                .Select(result => result.Card)
+                .ToArray();
             ExclusionZone.AddCards(excludeCards);
 
-            var discardedCards = nonePreservedCards.Except(excludeCards).ToArray();
+            var discardedCards = cardResults
+                .Where(result => result.Destination == CardCollectionType.Graveyard)
+                .Select(result => result.Card)
+                .ToArray();
             Graveyard.AddCards(discardedCards);
             var discardHandCardEvent = new DiscardHandCardEvent(
                 Faction: this.Owner(model).ValueOr(DummyPlayer.Instance).Faction,
@@ -132,9 +154,7 @@ namespace MortalGame.GameModel
                 CardManagerInfo: this.ToInfo());
 
             return new HandClearResult(
-                preservedCards,
-                discardedCards,
-                excludeCards,
+                cardResults,
                 new IGameEvent[] { discardHandCardEvent });
         }
 

@@ -48,10 +48,10 @@ namespace MortalGame.GameModel
 
             foreach (var card in cards)
             {
-                var destinationZone = card.IsConsumable()
-                    ? CardCollectionType.ExclusionZone
-                    : card.IsDisposable()
-                        ? CardCollectionType.DisposeZone
+                var destinationZone = card.IsDisposable() 
+                    ? CardCollectionType.DisposeZone
+                    : card.IsConsumable()
+                        ? CardCollectionType.ExclusionZone
                         : CardCollectionType.Graveyard;
 
                 card.Owner(context.Model).MatchSome(cardOwner =>

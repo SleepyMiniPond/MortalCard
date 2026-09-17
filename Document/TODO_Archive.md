@@ -310,3 +310,29 @@
   - 完整 Unity EditMode：603 passed / 0 failed / 0 skipped。
   - 測試保留 2 筆既有 `NoOpCardBuffEffect` unknown Resolver warning，屬測試用安全空 CommandSet 案例。
 - **狀態**：✅ 已完成（2026-09-10）
+
+---
+
+### T-017：完成 CardTriggeredTiming 生命週期觸發管線
+
+- **目標**：讓 `CardData.TriggeredEffects` 與目前有效的 `CardBuffData.Effects`，在卡片生命週期的每個正式入口以固定順序、同一 Effect Queue Scope 執行。
+- **完成內容**：
+  - 將 `CardData.TriggeredEffects` 收斂為 `CardTriggeredTiming → ConditionalCardEffect[]`，並建立 `CardTriggeredEffectDispatch`，統一快照 CardData 與目前有效 CardBuff，固定依 CardData → CardBuff 進入 Queue。
+  - 新增 `CardTriggeredTimingAction`，分離卡片生命週期與 `GameTiming`；根入口可建立唯一 Context，抽牌、出牌與 Effect 棄牌則沿用父 Context 的 Source／Reaction Origin。
+  - 接入 `Initialize`、系統根源抽牌 `Drawed`、非系統根源抽牌 `EffectDrawed`、主動出牌 `Played`、回合結束 `Preserved`／`Discarded` 與效果棄牌 `EffectDiscarded`。
+  - 抽牌只在實際完成 `Deck → HandCard` 後派送，多張抽牌逐張完成狀態、Event 與 timing；連鎖抽牌沿用整條抽牌鏈的最初根源分類。
+  - 主動出牌固定依「普通 Card Effects → `UsedCardEvent` → `Played` → `CardPlayResultAction` → 離場」執行；普通 Effects 套用 `EffectRepeat`，`Played` 每次完整出牌只派送一次。
+  - 回合結束以單一有序 `HandClearCardResult` 快照卡片、目的區域與 timing；先完成移牌與 `DiscardHandCardEvent`，再依原手牌順序執行全部 Preserved，最後執行全部 Discarded。Preserved 優先於 AutoDispose。
+  - `DiscardCardEffect` 只在成功移牌後逐張派送 `EffectDiscarded`；一般、Consumable 與 Dispose 卡雖分別進入 Graveyard、ExclusionZone 或 DisposeZone，timing 仍由棄牌操作決定。明確 `ConsumeCardEffect`／`DisposeCardEffect` 不派送 `EffectDiscarded`。
+  - 所有連鎖沿用原 `EffectQueueRunner` Scope／Budget；失效移牌安全 No-op，不製造重複 Event 或 timing。
+  - 更新 [Card.md](Card.md)、[Action.md](Action.md)、[Effect.md](Effect.md)、[Player.md](Player.md) 與 [GameModel.md](GameModel.md)，記錄正式 Runtime 入口、快照、順序與失效契約。
+- **後續範圍**：`EffectPlayed` 的完整間接出牌能力由 T-022 追蹤；`InvokeCardEffects` 原地執行卡效由 T-023 追蹤，T-017 不為尚無操作來源的能力製造假 Runtime 入口。
+- **驗證結果**：
+  - Unity 編譯：0 error。
+  - 正式內容 `GameDataValidator.ValidateAll()`：0 errors。
+  - `ScriptableObjectDataValidationTests`：20 passed，包含 `ConditionalCardEffect` Timing、多型 Effect 與資產 Round Trip。
+  - GameData Play Mode Gate：3 passed；Build Gate：3 passed；實際 Play Mode smoke test 可正常進入並退出。
+  - 生命週期定向回歸：Dispatch 4 passed、Initialize 1 passed、Effect Queue／抽牌 39 passed、出牌 9 passed、清手 8 passed、卡片操作 27 passed。
+  - 完整 EditMode：652 passed / 0 failed / 0 skipped。
+  - 測試保留 2 則既有 `NoOpCardBuffEffect` 未知類型 Warning，屬測試用安全空 CommandSet 案例。
+- **狀態**：✅ 已完成（2026-09-18）

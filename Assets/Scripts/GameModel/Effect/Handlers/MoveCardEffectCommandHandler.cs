@@ -38,6 +38,16 @@ namespace MortalGame.GameModel
                 c.Start,
                 c.Destination,
                 c.Target.CardManager.ToInfo());
+
+            if (c.MoveType == MoveCardType.Discard)
+            {
+                queue.EnqueueImmediate(
+                    CardTriggeredEffectDispatch.CreateItems(
+                        context,
+                        cardInStartZone,
+                        CardTriggeredTiming.EffectDiscarded));
+            }
+
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(moveCardEvent));
         }
     }

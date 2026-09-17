@@ -136,6 +136,258 @@ namespace MortalGame.Tests
             Assert.That(result.Events.OfType<MoveCardEvent>().Count(), Is.EqualTo(1));
         }
 
+        [Test]
+        public void DiscardCardEffect_MovesAndRunsEffectDiscardedOneCardAtATime()
+        {
+            const string firstCardId = "effect-discarded-first";
+            const string secondCardId = "effect-discarded-second";
+            var firstCardData = CardTestBuilder.CreateCardData(firstCardId);
+            firstCardData.TriggeredEffects[CardTriggeredTiming.EffectDiscarded] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = _GainEnergyForCardOwner(1)
+                }
+            };
+            var secondCardData = CardTestBuilder.CreateCardData(secondCardId);
+            secondCardData.TriggeredEffects[CardTriggeredTiming.EffectDiscarded] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = _GainEnergyForCardOwner(2)
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(firstCardData)
+                .WithCard(secondCardData)
+                .Build();
+            var firstCard = CardTestBuilder.CreateCard(
+                built.ContextManager.CardLibrary,
+                firstCardId);
+            var secondCard = CardTestBuilder.CreateCard(
+                built.ContextManager.CardLibrary,
+                secondCardId);
+            built.Ally.CardManager.HandCard.AddCards(new[] { firstCard, secondCard });
+            var context = new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new UpdateTimingAction(
+                    GameTiming.AfterExecuteEnd,
+                    SystemSource.Instance));
+            var effect = new DiscardCardEffect
+            {
+                TargetCards = new CardsOfPlayer
+                {
+                    Player = new PlayerByFaction { Faction = Faction.Ally },
+                    Zone = CardCollectionType.HandCard
+                }
+            };
+
+            var result = EffectQueueRunner.RunToCompletion(
+                new[] { new CardEffectQueueItem(context, effect) });
+
+            var lifecycleEvents = result.Events
+                .Where(gameEvent => gameEvent is MoveCardEvent or GainEnergyEvent)
+                .ToArray();
+            Assert.That(
+                lifecycleEvents.Select(gameEvent => gameEvent.GetType()),
+                Is.EqualTo(new[]
+                {
+                    typeof(MoveCardEvent),
+                    typeof(GainEnergyEvent),
+                    typeof(MoveCardEvent),
+                    typeof(GainEnergyEvent)
+                }));
+            Assert.That(
+                lifecycleEvents
+                    .OfType<MoveCardEvent>()
+                    .Select(gameEvent => gameEvent.CardIdentity),
+                Is.EqualTo(new[] { firstCard.Identity, secondCard.Identity }));
+            Assert.That(
+                lifecycleEvents
+                    .OfType<GainEnergyEvent>()
+                    .Select(gameEvent => gameEvent.GainEnergyResult.EnergyPoint),
+                Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(
+                built.Ally.CardManager.Graveyard.Cards,
+                Is.EqualTo(new[] { firstCard, secondCard }));
+        }
+
+        [TestCase(false, false, CardCollectionType.Graveyard)]
+        [TestCase(true, false, CardCollectionType.ExclusionZone)]
+        [TestCase(true, true, CardCollectionType.DisposeZone)]
+        public void DiscardCardEffect_AllDestinationsRunEffectDiscarded(
+            bool consumable,
+            bool disposable,
+            CardCollectionType expectedDestination)
+        {
+            const string cardId = "effect-discarded-destination";
+            var cardData = CardTestBuilder.CreateCardData(cardId);
+            if (consumable)
+                cardData.PropertyDatas.Add(new ConsumablePropertyData());
+            if (disposable)
+                cardData.PropertyDatas.Add(new DisposePropertyData());
+            cardData.TriggeredEffects[CardTriggeredTiming.EffectDiscarded] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = _GainEnergyForCardOwner(1)
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            var context = _CreateSystemContext(built);
+
+            var result = EffectQueueRunner.RunToCompletion(new[]
+            {
+                new CardEffectQueueItem(
+                    context,
+                    _CreateMoveEffect(typeof(DiscardCardEffect)))
+            });
+
+            Assert.That(
+                built.Ally.CardManager.GetCardCollectionZone(expectedDestination).Cards,
+                Has.Member(card));
+            Assert.That(result.Events.OfType<MoveCardEvent>().Single().Destination,
+                Is.EqualTo(expectedDestination));
+            Assert.That(result.Events.OfType<GainEnergyEvent>().Count(), Is.EqualTo(1));
+        }
+
+        [TestCase(typeof(ConsumeCardEffect), CardCollectionType.ExclusionZone)]
+        [TestCase(typeof(DisposeCardEffect), CardCollectionType.DisposeZone)]
+        public void ExplicitConsumeAndDispose_DoNotRunEffectDiscarded(
+            Type effectType,
+            CardCollectionType expectedDestination)
+        {
+            const string cardId = "effect-discarded-explicit-exclusion";
+            var cardData = CardTestBuilder.CreateCardData(cardId);
+            cardData.TriggeredEffects[CardTriggeredTiming.EffectDiscarded] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = _GainEnergyForCardOwner(1)
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            built.Ally.CardManager.HandCard.AddCard(card);
+
+            var result = EffectQueueRunner.RunToCompletion(new[]
+            {
+                new CardEffectQueueItem(
+                    _CreateSystemContext(built),
+                    _CreateMoveEffect(effectType))
+            });
+
+            Assert.That(
+                built.Ally.CardManager.GetCardCollectionZone(expectedDestination).Cards,
+                Has.Member(card));
+            Assert.That(result.Events.OfType<MoveCardEvent>().Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<GainEnergyEvent>(), Is.Empty);
+        }
+
+        [Test]
+        public void QueuedDiscardCommand_WhenCardAlreadyMoved_DoesNotRunEffectDiscardedAgain()
+        {
+            const string cardId = "effect-discarded-stale-command";
+            var cardData = CardTestBuilder.CreateCardData(cardId);
+            cardData.TriggeredEffects[CardTriggeredTiming.EffectDiscarded] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = _GainEnergyForCardOwner(1)
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            var command = new MoveCardEffectCommand(
+                built.Ally,
+                card,
+                CardCollectionType.HandCard,
+                CardCollectionType.Graveyard,
+                MoveCardType.Discard);
+            var runner = new EffectQueueRunner();
+            runner.EnqueueCommands(
+                _CreateSystemContext(built),
+                new EffectCommandSet(new IEffectCommand[] { command, command }));
+
+            var result = runner.RunToCompletion();
+
+            Assert.That(result.Events.OfType<MoveCardEvent>().Count(), Is.EqualTo(1));
+            Assert.That(result.Events.OfType<GainEnergyEvent>().Count(), Is.EqualTo(1));
+            Assert.That(built.Ally.CardManager.Graveyard.Cards, Is.EqualTo(new[] { card }));
+        }
+
+        [Test]
+        public void EffectDiscarded_RunsCardDataBeforeCardBuffWithinOriginalQueueBudget()
+        {
+            const string cardId = "effect-discarded-card-buff-order";
+            const string buffId = "effect-discarded-card-buff";
+            var cardData = CardTestBuilder.CreateCardData(cardId);
+            cardData.TriggeredEffects[CardTriggeredTiming.EffectDiscarded] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = _GainEnergyForCardOwner(1)
+                }
+            };
+            var buffData = new CardBuffData
+            {
+                ID = buffId,
+                LifeTimeData = new AlwaysLifeTimeCardBuffData(),
+                Effects = new Dictionary<CardTriggeredTiming, ConditionalCardBuffEffect[]>
+                {
+                    [CardTriggeredTiming.EffectDiscarded] = new[]
+                    {
+                        new ConditionalCardBuffEffect
+                        {
+                            Conditions = { new ConstCondition { Value = true } },
+                            Effect = _GainEnergyForCardOwner(2)
+                        }
+                    }
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .WithCardBuff(buffData)
+                .Build();
+            var context = _CreateSystemContext(built);
+            var card = CardTestBuilder.CreateCardWithBuff(
+                context,
+                built.ContextManager.CardBuffLibrary,
+                built.ContextManager.CardLibrary,
+                cardId,
+                buffId);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            var runner = new EffectQueueRunner();
+            runner.Enqueue(new CardEffectQueueItem(
+                context,
+                _CreateMoveEffect(typeof(DiscardCardEffect))));
+
+            var result = runner.RunToCompletion();
+
+            Assert.That(
+                result.Events
+                    .OfType<GainEnergyEvent>()
+                    .Select(gameEvent => gameEvent.GainEnergyResult.EnergyPoint),
+                Is.EqualTo(new[] { 1, 2 }));
+            Assert.That(runner.ProcessedItemCount, Is.EqualTo(6));
+        }
+
         [TestCase(ReactionSource.PlayerBuff)]
         [TestCase(ReactionSource.CharacterBuff)]
         [TestCase(ReactionSource.CardBuff)]
@@ -566,6 +818,28 @@ namespace MortalGame.Tests
                 built.Manager,
                 new CardBuffTrigger(card, sourceBuff),
                 timing);
+        }
+
+        private static GainEnergyEffect _GainEnergyForCardOwner(int value)
+        {
+            return new GainEnergyEffect
+            {
+                Targets = new SinglePlayerCollection
+                {
+                    Target = new CardOwner { Card = new TriggeredCard() }
+                },
+                Value = new ConstInteger { Value = value }
+            };
+        }
+
+        private static TriggerContext _CreateSystemContext(BuiltGameplay built)
+        {
+            return new TriggerContext(
+                built.Manager,
+                new PlayerTrigger(built.Ally),
+                new UpdateTimingAction(
+                    GameTiming.AfterExecuteEnd,
+                    SystemSource.Instance));
         }
 
         public enum ReactionSource

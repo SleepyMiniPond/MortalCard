@@ -423,28 +423,33 @@ namespace MortalGame.GameModel
         {
             _gameEvents.AddRange(_RunTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance));
 
-            ClearHandAndRunPreserved(_gameStatus.Ally);
-            ClearHandAndRunPreserved(_gameStatus.Enemy);
+            ClearHandAndRunCardTimings(_gameStatus.Ally);
+            ClearHandAndRunCardTimings(_gameStatus.Enemy);
 
             _gameEvents.AddRange(_RunTiming(GameTiming.AfterTurnEnd, SystemSource.Instance));
 
             _CheckGameEnd();
 
-            void ClearHandAndRunPreserved(IPlayerEntity player)
+            void ClearHandAndRunCardTimings(IPlayerEntity player)
             {
                 var handClearResult = player.CardManager.ClearHandOnTurnEnd(this);
                 _gameEvents.AddRange(handClearResult.Events);
 
-                var preservedItems = handClearResult.PreservedCards
-                    .SelectMany(card =>
+                var orderedResults = handClearResult.Cards
+                    .Where(result =>
+                        result.TriggeredTiming == CardTriggeredTiming.Preserved)
+                    .Concat(handClearResult.Cards.Where(result =>
+                        result.TriggeredTiming == CardTriggeredTiming.Discarded));
+                var cardTimingItems = orderedResults
+                    .SelectMany(result =>
                         CardTriggeredEffectDispatch.CreateItems(
                             this,
-                            card,
-                            CardTriggeredTiming.Preserved,
+                            result.Card,
+                            result.TriggeredTiming,
                             SystemSource.Instance));
 
                 _gameEvents.AddRange(
-                    EffectQueueRunner.RunToCompletion(preservedItems).Events);
+                    EffectQueueRunner.RunToCompletion(cardTimingItems).Events);
             }
         }
 

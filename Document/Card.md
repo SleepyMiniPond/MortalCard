@@ -60,21 +60,28 @@ Record 類型的不可變快照，代表牌組中的一張具體卡牌：
 
 目前已建立 `CardTriggeredEffectDispatch`，可同時把 CardData 與有效 CardBuff 的條件效果
 轉成 QueueItem；正式 Runtime 已接入戰鬥開始的 `Initialize`、系統抽牌的 `Drawed`、
-非系統抽牌的 `EffectDrawed`、玩家／敵人主動出牌的 `Played`，以及回合結束清手牌的 `Preserved`。兩種抽牌 timing 都只計算卡片實際完成 `Deck → HandCard` 的流程，
+非系統抽牌的 `EffectDrawed`、玩家／敵人主動出牌的 `Played`、回合結束清手牌的
+`Preserved`／`Discarded`，以及效果棄牌的 `EffectDiscarded`。兩種抽牌 timing 都只計算卡片實際完成 `Deck → HandCard` 的流程，
 並依整條抽牌鏈的最初根源分類；一次抽多張時逐張完成狀態、事件與觸發效果後才處理下一張。
 主動出牌固定依 `HandCard → PlayingCard` → 普通 Card Effects → `UsedCardEvent` → `Played` →
 `CardPlayResultAction` → 離場執行；普通 Effects 依 `EffectRepeat` 重複，`Played` 每次完整出牌只派送一次。
 `Played` 執行時卡片仍位於 `PlayingCard`，CardData 先於當下有效的 CardBuff，其 Result 會接在普通
 Effects Result 後納入同一個 `CardPlayResultSource`。主動出牌不會派送 `EffectPlayed`；完整的間接
-出牌能力由 T-022 實作。形態變更流程則維持既有 CardData `FormChanged` 入口；棄牌相關
-生命週期仍在後續工作包中。
+出牌能力由 T-022 實作。形態變更流程則維持既有 CardData `FormChanged` 入口。
 
-回合結束時，每位玩家先固定原手牌的 Preserved／Discarded／Excluded 分類，完成非保留卡的
-Graveyard／ExclusionZone 移動並提交 `DiscardHandCardEvent`，再依原手牌順序派送 Preserved。
+回合結束時，每位玩家先固定原手牌的卡片、目的區域與 timing，完成非保留卡的
+Graveyard／ExclusionZone 移動並提交 `DiscardHandCardEvent`，再依原手牌順序先派送全部 Preserved，
+最後派送全部 Discarded。
 Ally 完整處理後才輪到 Enemy，最後才進入 `AfterTurnEnd`。同一玩家的所有 Preserved 卡共用
 同一個 Queue Scope／Budget，每張卡內固定 CardData → CardBuff；資格與派送內容均在效果執行前
 快照，因此執行期間的形態或屬性變更不回頭修改本次名單。Preserved 優先於 AutoDispose，
-卡片留在 Hand，且不會同時派送 `Discarded`。
+卡片留在 Hand，且不會同時派送 `Discarded`。一般卡與 AutoDispose 卡分別進入
+Graveyard／ExclusionZone，但都依「回合結束棄牌」的操作原因派送 `Discarded`。
+
+`DiscardCardEffect` 只在卡片實際成功移動後派送 `EffectDiscarded`；目的區域可依
+Consumable／Dispose 屬性為 Graveyard、ExclusionZone 或 DisposeZone，不改變 timing。
+明確的 `ConsumeCardEffect`／`DisposeCardEffect` 不派送 `EffectDiscarded`。一次棄多張時，
+每張都先完成 `MoveCardEvent` 與該卡 `EffectDiscarded`，才處理下一張；全部沿用原 Queue Scope／Budget。
 
 ### 效果參數化
 

@@ -143,8 +143,9 @@ TryPlayCard(CardEntity)
 **回合結束清理**：
 ```
 ClearHandOnTurnEnd()
-  → 分離 Preserved 卡牌（保留）與其他卡牌（丟棄）
-  → 產生 DiscardHandCardEvent
+  → 依原手牌順序固定每張卡、目的區域與 Preserved／Discarded timing
+  → 移動非 Preserved 卡，並產生 DiscardHandCardEvent
+  → GameplayManager 先派送全部 Preserved，再派送全部 Discarded
 ```
 
 **卡牌回收**：

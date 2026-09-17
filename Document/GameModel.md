@@ -77,7 +77,7 @@ EnemyExecute（敵人行動）
   └── 同樣經過完整效果管線
       ↓
 TurnEnd（回合結束）
-  ├── 清理手牌（保留 Preserved 卡牌）
+  ├── 清理手牌（先派送 Preserved，再派送 Discarded）
   ├── 觸發 TurnEnd 時機 Buff
   ├── 回收墓地中有 Recycle 屬性的卡牌
   ├── 回復能量
