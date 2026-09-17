@@ -38,16 +38,16 @@ T-010、T-018、T-019 與 T-020 已完成並封存。通用資料表達與 React
 - **現況**：
   - `CardTriggeredTiming.FormChanged` 已由 T-010 階段 4 接入；目前形態 Queue 直接執行新 Effective Form 的 CardData Effects，並在形態狀態與最新 `CardInfo` 提交後進行。
   - T-017 工作包 2 已接入 `Initialize`；工作包 3 已接入由系統抽牌根源造成的 `Drawed`；工作包 4 已接入非系統抽牌根源造成的 `EffectDrawed`，並確認每張卡實際完成 `Deck → HandCard` 後逐張派送。
-  - `Played`、`Preserved`、`Discarded`、`EffectDiscarded` 仍待後續工作包接入；`EffectPlayed` 契約已確認，完整間接出牌 Runtime 拆至 T-022。
-  - `CardTriggeredEffectDispatch.CreateItems()` 已由 `Initialize`、`Drawed` 與 `EffectDrawed` 正式 Runtime Queue 呼叫，可快照 CardData 與目前有效 CardBuff，並固定依 CardData → CardBuff 順序執行；既有 FormChanged 直接派送仍維持原語意。
+  - `Played` 已由工作包 5 接入並經確認；`Preserved` 已由工作包 6 接入並完成實作與邊界測試；`Discarded`、`EffectDiscarded` 仍待後續工作包接入。`EffectPlayed` 契約已確認，完整間接出牌 Runtime 拆至 T-022。
+  - `CardTriggeredEffectDispatch.CreateItems()` 已由 `Initialize`、`Drawed`、`EffectDrawed`、`Played` 與 `Preserved` 正式 Runtime Queue 呼叫，可快照 CardData 與目前有效 CardBuff，並固定依 CardData → CardBuff 順序執行；既有 FormChanged 直接派送仍維持原語意。
   - `CardData.TriggeredEffects` 與 `CardBuffData.Effects` 共用 `CardTriggeredTiming`，實作時必須同時處理卡片本體與目前有效的 CardBuff，避免兩套生命週期語意分離。
 - **已確認契約與後續待決定事項**：
   - `Drawed` 是系統根源抽牌，`EffectDrawed` 是非系統根源抽牌；系統抽牌觸發的連鎖抽牌仍屬 `Drawed`，且只有 `Deck → HandCard` 算抽牌。
   - CardData Effect → CardBuff Effect 的順序、派送快照、Selected Card Context 與同一 EffectQueueRunner Budget 規則已由工作包 1～3 確認。
-  - `Played`／`EffectPlayed` 的語意已確認；後續仍需逐包決定 `Preserved`、`Discarded`／`EffectDiscarded` 與各自狀態、Gameplay Event、畫面更新的相對順序。
+  - `Played`／`EffectPlayed` 與 `Preserved` 的語意已確認；後續仍需決定 `Discarded`／`EffectDiscarded` 與各自狀態、Gameplay Event、畫面更新的相對順序。
 - **建議階段**：拆成 8 個小工作包，先完成共用觸發契約與既有資產 migration，再依序完成 Initialize、一般抽牌、Effect 抽牌、現有主動出牌 `Played`、Preserved、Discarded／EffectDiscarded，最後做完整驗收與文件收斂；`EffectPlayed` 的新間接出牌能力另由 T-022 實作。
 - **完成條件**：現有正式生命週期流程皆有明確且可測試的 Runtime 入口；CardData 與有效 CardBuff 依固定順序在同一 Queue Scope 執行，且一般流程與 Effect 造成的流程不會混用或重複觸發。尚無正式操作來源的 `EffectPlayed` 以已確認契約及 T-022 追蹤，不在 T-017 製造假入口。
-- **狀態**：🔄 工作包 5 `Played` 已完成實作、正式文件與 Unity 驗證，完整 EditMode 635／635 passed，目前待使用者確認；確認後進入工作包 6 `Preserved`
+- **狀態**：🔄 工作包 6 `Preserved` 已完成實作、文件與最終驗證，完整 EditMode 643／643 passed，目前待使用者確認；確認後才開始工作包 7
 
 ### T-022：完成 `EffectPlayed` 間接出牌能力
 

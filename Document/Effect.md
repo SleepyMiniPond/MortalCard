@@ -125,10 +125,12 @@ Scope／Budget；static `RunToCompletion(items)` 則建立新的 Runner 與獨�
 
 `ModifyCardPlayAttributeEffect` 是既有的 Reaction 專用修正語意，不屬於 Card 的直接效果。
 `ApplyCardFormOverrideEffect` 涉及卡片形態與生命週期，維持 Card 專用；T-017 已將
-`Initialize`、系統抽牌 `Drawed`、效果抽牌 `EffectDrawed` 與主動出牌 `Played` 接入 Queue。
+`Initialize`、系統抽牌 `Drawed`、效果抽牌 `EffectDrawed`、主動出牌 `Played` 與回合結束
+`Preserved` 接入 Queue。
 `Played` 位於普通 Card Effects 與 `UsedCardEvent` 後，每次完整出牌只派送一次；其 Result 與普通
-效果一起收斂至 `CardPlayResultSource`。`EffectPlayed` 的間接出牌 Runtime 由 T-022 接續，其餘
-`CardTriggeredTiming` 仍按 T-017 後續工作包逐步接線。
+效果一起收斂至 `CardPlayResultSource`。`Preserved` 在每位玩家完成清手牌狀態與事件提交後，
+依固定快照順序於同一 Runner 執行；Ally 完成後才處理 Enemy。`EffectPlayed` 的間接出牌 Runtime
+由 T-022 接續，棄牌相關 `CardTriggeredTiming` 仍按 T-017 後續工作包逐步接線。
 T-020 沒有藉此開放新的生命週期來源。
 
 舊的 `AddCardBuffPlayerBuffEffect` 與 `RemoveCardBuffPlayerBuffEffect` 已在正式資產遷移後
@@ -180,6 +182,10 @@ T-020 沒有藉此開放新的生命週期來源。
 ### Buff 反應整合
 
 各命令 Handler 在狀態變更成功後建立 Result Action，透過 `context.Model.ObserveDerivedAction()` 讓 Player／Character／Card Buff 反應，再追加對應的 GameEvent；正常失效則回傳空結果，不製造假的 Result 或 Event。一般 `GameTiming` 則由 `TriggerTimingQueueItem` 建立快照並交給 `TimingDispatchPlanner` 排入同一個 `EffectQueueRunner`。抽牌命令會先展開成逐張 `DrawCardQueueItem`；系統抽牌每張完成 `Deck → HandCard` 與 `DrawCardEvent` 後，立即排入該卡的 `Drawed` 項目，再處理下一張。
+
+`EffectResult.Actions` 是整條 Queue 的結果語意彙整；各 Result Action 在 Handler 內已即時進入
+反應管線。只有出牌等需要建立批次 Result Source 的流程會在 Queue 結束後再次消費 Actions；
+Initialize、Preserved 等沒有批次 Result Source 的根流程只需將 `Events` 交給呈現管線。
 
 ## EffectEventResult — 結果聚合
 

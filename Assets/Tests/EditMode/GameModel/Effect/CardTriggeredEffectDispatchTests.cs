@@ -75,6 +75,38 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void CreateItems_RootEntryBuildsCardTriggeredContextOnce()
+        {
+            var cardData = CardTestBuilder.CreateCardData();
+            cardData.TriggeredEffects[CardTriggeredTiming.Preserved] = new[]
+            {
+                new ConditionalCardEffect
+                {
+                    Conditions = { new ConstCondition { Value = true } },
+                    Effect = new DamageEffect()
+                }
+            };
+            var built = new GameplayManagerTestBuilder()
+                .WithCard(cardData)
+                .Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+
+            var items = CardTriggeredEffectDispatch.CreateItems(
+                built.Manager,
+                card,
+                CardTriggeredTiming.Preserved,
+                SystemSource.Instance);
+
+            var item = items.OfType<CardTriggeredEffectQueueItem>().Single();
+            var action = item.Context.Action as CardTriggeredTimingAction;
+            Assert.That(action, Is.Not.Null);
+            Assert.That(item.Context.ReactionOriginAction, Is.SameAs(action));
+            Assert.That(action.Card, Is.SameAs(card));
+            Assert.That(action.TriggeredTiming, Is.EqualTo(CardTriggeredTiming.Preserved));
+            Assert.That(action.Source, Is.SameAs(SystemSource.Instance));
+        }
+
+        [Test]
         public void CreateItems_SnapshotsCardDataBeforeCardBuff()
         {
             var cardData = CardTestBuilder.CreateCardData();

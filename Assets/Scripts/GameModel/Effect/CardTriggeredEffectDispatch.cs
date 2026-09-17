@@ -8,6 +8,25 @@ namespace MortalGame.GameModel
     internal static class CardTriggeredEffectDispatch
     {
         internal static IReadOnlyList<EffectQueueItem> CreateItems(
+            IGameplayModel model,
+            ICardEntity card,
+            CardTriggeredTiming timing,
+            IActionSource source)
+        {
+            if (timing == CardTriggeredTiming.None)
+            {
+                return Array.Empty<EffectQueueItem>();
+            }
+
+            var context = new TriggerContext(
+                model,
+                new CardTrigger(card),
+                new CardTriggeredTimingAction(card, timing, source));
+
+            return _CreateItems(context, card, timing);
+        }
+
+        internal static IReadOnlyList<EffectQueueItem> CreateItems(
             TriggerContext context,
             ICardEntity card,
             CardTriggeredTiming timing)
@@ -26,6 +45,14 @@ namespace MortalGame.GameModel
                     context.Action.Source)
             };
 
+            return _CreateItems(cardContext, card, timing);
+        }
+
+        private static IReadOnlyList<EffectQueueItem> _CreateItems(
+            TriggerContext cardContext,
+            ICardEntity card,
+            CardTriggeredTiming timing)
+        {
             var cardDataItems = card.TriggeredEffects
                 .TryGetValue(timing, out var cardDataEffects)
                 ? cardDataEffects

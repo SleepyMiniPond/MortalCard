@@ -160,10 +160,10 @@ namespace MortalGame.GameModel
 
         private void _GameStart()
         {
-            _gameStatus.SummonAlly(_ParseAlly(_gameStageSetting.Ally, _contextMgr));
+            _gameStatus.SummonAlly(ParseAlly(_gameStageSetting.Ally, _contextMgr));
             _gameEvents.Add(new AllySummonEvent(_gameStatus.Ally));
 
-            _gameStatus.SummonEnemy(_ParseEnemy(_gameStageSetting.Enemy, _contextMgr));
+            _gameStatus.SummonEnemy(ParseEnemy(_gameStageSetting.Enemy, _contextMgr));
             _gameEvents.Add(new EnemySummonEvent(_gameStatus.Enemy));
 
             var createAllyDeckResult = EffectManager.CreateNewDeckCard(
@@ -182,13 +182,13 @@ namespace MortalGame.GameModel
                     .ToList());
             _gameEvents.AddRange(createEnemyDeckResult.Events);
 
-            var initialDeckCards = _CreateInitialDeckCardSnapshot();
+            var initialDeckCards = CreateInitialDeckCardSnapshot();
 
             _gameEvents.AddRange(_RunTiming(GameTiming.BeforeGameStart, SystemSource.Instance));
-            _gameEvents.AddRange(_RunInitialCardInitialize(initialDeckCards));
+            _gameEvents.AddRange(RunInitialCardInitialize(initialDeckCards));
             _gameEvents.AddRange(_RunTiming(GameTiming.AfterGameStart, SystemSource.Instance));
 
-            IReadOnlyList<InitialDeckCardCandidate> _CreateInitialDeckCardSnapshot()
+            IReadOnlyList<InitialDeckCardCandidate> CreateInitialDeckCardSnapshot()
             {
                 var players = new IPlayerEntity[]
                 {
@@ -212,31 +212,20 @@ namespace MortalGame.GameModel
                 return candidates;
             }
 
-            IEnumerable<IGameEvent> _RunInitialCardInitialize(
+            IEnumerable<IGameEvent> RunInitialCardInitialize(
                 IReadOnlyCollection<InitialDeckCardCandidate> initialDeckCards)
             {
-                var effectQueueRunner = new EffectQueueRunner();
-
-                foreach (var candidate in initialDeckCards)
-                {
-                    var context = new TriggerContext(
-                        this,
-                        new CardTrigger(candidate.Card),
-                        new CardTriggeredTimingAction(
+                var initialQueueItems = initialDeckCards
+                    .SelectMany(candidate => 
+                        CardTriggeredEffectDispatch.CreateItems(
+                            this,
                             candidate.Card,
                             CardTriggeredTiming.Initialize,
                             SystemSource.Instance));
-                    effectQueueRunner.EnqueueRange(
-                        CardTriggeredEffectDispatch.CreateItems(
-                            context,
-                            candidate.Card,
-                            CardTriggeredTiming.Initialize));
-                }
-
-                return effectQueueRunner.RunToCompletion().Events;
+                return EffectQueueRunner.RunToCompletion(initialQueueItems).Events;
             }
 
-            AllyEntity _ParseAlly(AllyInstance allyInstance, IGameContextManager gameContextManager)
+            AllyEntity ParseAlly(AllyInstance allyInstance, IGameContextManager gameContextManager)
             {
                 var characterRecord = new CharacterParameter
                 {
@@ -257,7 +246,7 @@ namespace MortalGame.GameModel
                 );
             }
 
-            EnemyEntity _ParseEnemy(EnemyData enemyData, IGameContextManager gameContextManager)
+            EnemyEntity ParseEnemy(EnemyData enemyData, IGameContextManager gameContextManager)
             {
                 var characterRecord = new CharacterParameter
                 {
@@ -434,14 +423,29 @@ namespace MortalGame.GameModel
         {
             _gameEvents.AddRange(_RunTiming(GameTiming.BeforeTurnEnd, SystemSource.Instance));
 
-            _gameEvents.AddRange(
-                _gameStatus.Ally.CardManager.ClearHandOnTurnEnd(this));
-            _gameEvents.AddRange(
-                _gameStatus.Enemy.CardManager.ClearHandOnTurnEnd(this));
+            ClearHandAndRunPreserved(_gameStatus.Ally);
+            ClearHandAndRunPreserved(_gameStatus.Enemy);
 
             _gameEvents.AddRange(_RunTiming(GameTiming.AfterTurnEnd, SystemSource.Instance));
 
             _CheckGameEnd();
+
+            void ClearHandAndRunPreserved(IPlayerEntity player)
+            {
+                var handClearResult = player.CardManager.ClearHandOnTurnEnd(this);
+                _gameEvents.AddRange(handClearResult.Events);
+
+                var preservedItems = handClearResult.PreservedCards
+                    .SelectMany(card =>
+                        CardTriggeredEffectDispatch.CreateItems(
+                            this,
+                            card,
+                            CardTriggeredTiming.Preserved,
+                            SystemSource.Instance));
+
+                _gameEvents.AddRange(
+                    EffectQueueRunner.RunToCompletion(preservedItems).Events);
+            }
         }
 
         private IGameContextManager _SetUseCardSelectTarget(UseCardAction useCardAction)

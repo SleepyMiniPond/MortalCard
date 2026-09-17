@@ -20,7 +20,7 @@ namespace MortalGame.GameModel
         ICardColletionZone GetCardCollectionZone(CardCollectionType type);
 
         (bool Success, IDisposable PlayCardDisposable) TryPlayCard(ICardEntity card, out int handCardIndex, out int handCardsCount);
-        IEnumerable<IGameEvent> ClearHandOnTurnEnd(IGameplayModel model);
+        HandClearResult ClearHandOnTurnEnd(IGameplayModel model);
         IEnumerable<IGameEvent> RecycleCardOnPlayEnd(IGameplayModel model, ICardEntity card);
 
         Option<ICardEntity> GetCardOrNone(Func<ICardEntity, bool> predicate);
@@ -38,6 +38,12 @@ namespace MortalGame.GameModel
 
     public record CardManagerInfo(
         IReadOnlyDictionary<CardCollectionType, ImmutableArray<Guid>> CardZoneInfos);
+
+    public sealed record HandClearResult(
+        IReadOnlyList<ICardEntity> PreservedCards,
+        IReadOnlyList<ICardEntity> DiscardedCards,
+        IReadOnlyList<ICardEntity> ExcludedCards,
+        IReadOnlyList<IGameEvent> Events);
 
     public class PlayerCardManager : IPlayerCardManager, IDisposable
     {
@@ -108,24 +114,28 @@ namespace MortalGame.GameModel
             PlayingCard = Option.None<ICardEntity>();
         }
 
-        public IEnumerable<IGameEvent> ClearHandOnTurnEnd(IGameplayModel model)
+        public HandClearResult ClearHandOnTurnEnd(IGameplayModel model)
         {
-            var events = new List<IGameEvent>();
-
-            // TODO:  trigger preserved timing
+            var preservedCards = HandCard.Cards
+                .Where(card => card.HasProperty(CardProperty.Preserved))
+                .ToArray();
             var nonePreservedCards = HandCard.ClearHand();
             var excludeCards = nonePreservedCards.Where(c => c.HasProperty(CardProperty.AutoDispose)).ToArray();
             ExclusionZone.AddCards(excludeCards);
 
             var discardedCards = nonePreservedCards.Except(excludeCards).ToArray();
             Graveyard.AddCards(discardedCards);
-            events.Add(new DiscardHandCardEvent(
+            var discardHandCardEvent = new DiscardHandCardEvent(
                 Faction: this.Owner(model).ValueOr(DummyPlayer.Instance).Faction,
                 DiscardedCardIdentities: discardedCards.Select(c => c.Identity).ToImmutableArray(),
                 ExcludedCardIdentities: excludeCards.Select(c => c.Identity).ToImmutableArray(),
-                CardManagerInfo: this.ToInfo()));
+                CardManagerInfo: this.ToInfo());
 
-            return events;
+            return new HandClearResult(
+                preservedCards,
+                discardedCards,
+                excludeCards,
+                new IGameEvent[] { discardHandCardEvent });
         }
 
         public IEnumerable<IGameEvent> RecycleCardOnPlayEnd(IGameplayModel model, ICardEntity card)
