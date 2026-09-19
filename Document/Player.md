@@ -1,193 +1,28 @@
 # Player 玩家系統
 
-> 最後更新：2026-09-13 | 版本：v2.1
+> 核對日期：2026-09-19
 
-## 設計理念
+[PlayerEntity](../Assets/Scripts/GameModel/Entity/Player/PlayerEntity.cs) 是戰鬥控制單位，組合角色、卡牌、能量與 PlayerBuff。MainCharacter 死亡即視為玩家死亡。Ally 另有好感度與來源 Instance，Enemy 另有 AI 選牌及回合資源配置。
 
-玩家（Player）是戰鬥中最高層級的「控制單位」，管轄角色、卡牌、能量、Buff 等所有子系統。設計上採用**抽象基類 + 特化子類**的策略，AllyEntity 和 EnemyEntity 共享核心架構但各有獨特機制。
+## 資源與 Buff
 
-玩家系統也是 Composition Pattern 的最佳展示——PlayerEntity 不是一個萬行大類別，而是由 5 個 Manager 子系統組合而成。
+[EnergyManager](../Assets/Scripts/GameModel/Entity/Player/EnergyManager.cs) 維護合法能量範圍。雙方在回合開始恢復能量，主動出牌支付費用，效果可另行增減。
 
-## PlayerEntity — 抽象基類
+[DispositionManager](../Assets/Scripts/GameModel/Entity/Player/DispositionManager.cs) 管理友軍好感度；[DispositionLibrary](../Assets/Scripts/GameData/DispositionLibrary.cs) 將目前數值對應至回合能量恢復與抽牌數。
 
-### 組成結構
+PlayerBuff 可藉 GameTiming 執行共用效果，也可提供公式查詢的屬性修正。可建立的屬性以 [PlayerBuffLifePropertyData](../Assets/Scripts/GameData/PlayerBuff/PlayerBuffLifePropertyData.cs) 為準；列舉成員不保證有資料實作或完整消費端。壽命與記憶見 [Session](Session.md)，效果來源規則見 [Effect](Effect.md)。
 
-```
-PlayerEntity（抽象）
-├── Identity (Guid)           # 唯一身份
-├── Faction (Ally/Enemy)      # 陣營
-├── EnergyManager             # 能量管理
-├── PlayerBuffManager         # 全域 Buff 管理
-│   └── PlayerBuffEntity[]
-├── PlayerCardManager         # 卡牌區域管理
-│   ├── Deck                  # 牌組
-│   ├── HandCard              # 手牌
-│   ├── Graveyard             # 墓地
-│   ├── ExclusionZone         # 排除區
-│   └── DisposeZone           # 消耗區
-├── Characters[]              # 角色集合
-│   └── CharacterEntity
-├── MainCharacter             # 主角色（第一個角色）
-└── IsDead                    # 所有角色死亡
-```
+## 卡片管理
 
-### Update 聚合更新
+[PlayerCardManager](../Assets/Scripts/GameModel/Entity/Player/PlayerCardManager.cs) 協調五種一般區域與 PlayingCard 暫態。
 
-`Update(TriggerContext)` 方法是關鍵設計——它遍歷所有子系統（Buff、角色、角色Buff、卡牌），收集所有變化，打包成 `GeneralUpdateEvent` 回傳。這保證了 View 層可以在一次更新中獲得所有最新狀態。
+- 出牌先離開手牌，結算期間留在 PlayingCard；結束時 Dispose／AutoDispose 進入 ExclusionZone，其餘進入 Graveyard。
+- Recycle 僅嘗試將剛打出且位於墓地的該卡移回手牌。
+- 回合清手先固定資格與目的地，再提交移牌事件及生命週期效果。
+- 全域查找含 PlayingCard；一般反應不包含 DisposeZone。
 
-## AllyEntity — 友軍特化
+不同操作的移牌及觸發契約集中於 [Card](Card.md)，避免將效果棄牌與出牌離場規則混為一談。
 
-### 獨有機制
+## 跨戰鬥狀態
 
-- **好感度系統**（DispositionManager）：管理 0 ~ Max 的好感度值
-  - 好感度影響回合開始的能量恢復和抽牌數量
-  - 透過 DispositionLibrary 查詢各等級的加成效果
-- **Instance 連結**：保留 `OriginPlayerInstanceGuid`，用於與 AllyInstance 建立關聯（存檔/讀檔）
-
-### 好感度的遊戲意義
-
-好感度是 MortalGame 的特色機制之一——它代表友軍角色之間的關係深度。高好感度提供更多資源（能量、抽牌），鼓勵玩家在戰鬥中做出維護關係的選擇。
-
-## EnemyEntity — 敵軍特化
-
-### 獨有機制
-
-- **AI 選牌**：`SelectedCardEntity` 追蹤 AI 在準備階段選定的卡牌
-  - `TryGetRecommandSelectCard()` 使用貪心策略選取高費用卡牌
-  - `SelectedCardMaxCount` 限制每回合最多選幾張牌
-- **行為參數**：
-  - `TurnStartDrawCardCount`：每回合自動抽牌數
-  - `EnergyRecoverPoint`：回合能量回復量
-
-## PlayerBuff — 玩家 Buff 系統
-
-### 設計定位
-
-PlayerBuff 是**全域性**的數值修正，影響該玩家控制的所有卡牌、角色。這是三套 Buff 中作用範圍最廣的。
-
-### PlayerBuffData（設計時）
-
-```
-PlayerBuffData
-├── ID, MaxLevel
-├── Sessions{}            # 反應會話
-├── BuffEffects{}         # GameTiming → ConditionalPlayerBuffEffect[]
-├── PropertyDatas[]       # 全域屬性修正
-└── LifeTimeData          # 生命週期策略
-```
-
-### 效果類型
-
-PlayerBuff 的 `BuffEffects` 使用 `IPlayerBuffEffect`。目前唯一只屬於 Reaction
-來源的資料型別是 `ModifyCardPlayAttributeEffect`；傷害、護盾、治療、能量、好感度、
-卡牌與 Buff 操作則重用 `CardEffect.cs` 中同時實作 `IPlayerBuffEffect` 的共用效果。
-舊的 `AddCardBuffPlayerBuffEffect`／`RemoveCardBuffPlayerBuffEffect` 已移除。
-
-### 屬性修正
-
-`PlayerBuffProperty` 列舉保留 16 個非 `None` 的語意欄位；目前可建立的
-`IPlayerBuffPropertyData`／Entity 實作有 6 種：
-
-| 屬性 | 效果 | 計算方式 |
-|------|------|----------|
-| AllCardPower | 所有卡牌威力加成 | IIntegerValue |
-| AllCardCost | 所有卡牌費用修正 | IIntegerValue |
-| NormalDamageAddition | 普通傷害固定加成 | IIntegerValue |
-| NormalDamageRatio | 普通傷害百分比加成 | float |
-| MaxHealth | 最大生命值加成 | IIntegerValue |
-| MaxEnergy | 最大能量加成 | IIntegerValue |
-| HealRatio | 治療倍率 | float |
-
-### PlayerBuffLibrary
-
-查詢服務，使用 Option 模式。重要方法：
-- `GetBuffEffects(buffId, GameTiming)` → `Option<ConditionalPlayerBuffEffect[]>`
-- `GetBuffProperties(buffId)` → `IPlayerBuffPropertyData[]`
-
-### PlayerBuffManager
-
-管理玩家所有 Buff 的新增/移除/修改/更新。`Update()` 回傳變化的 Buff 集合。
-
-## EnergyManager — 能量管理
-
-能量是打出卡牌的資源，每回合恢復，打牌消耗。
-
-### 操作類型
-
-```
-回合開始 → RecoverEnergy（RoundStartRecover）
-打出卡牌 → ConsumeEnergy（PlayCardConsume）
-效果獲得 → GainEnergy（GainEffect）
-效果失去 → LoseEnergy（LoseEffect）
-```
-
-所有操作受 MaxEnergy 上限約束，回傳帶 Delta 的結果物件。
-
-## PlayerCardManager — 卡牌總管理
-
-協調五個卡牌區域和一個「打出中」狀態的複雜管理器。
-
-### 關鍵流程
-
-**打牌流程**：
-```
-TryPlayCard(CardEntity)
-  → 從手牌移除卡牌
-  → 設為 PlayingCard 狀態
-  → 回傳 IDisposable
-  → Dispose 時根據卡牌屬性決定去向：
-    ├── Dispose 屬性 → DisposeZone
-    └── 其他 → Graveyard
-```
-
-**回合結束清理**：
-```
-ClearHandOnTurnEnd()
-  → 依原手牌順序固定每張卡、目的區域與 Preserved／Discarded timing
-  → 移動非 Preserved 卡，並產生 DiscardHandCardEvent
-  → GameplayManager 先派送全部 Preserved，再派送全部 Discarded
-```
-
-**卡牌回收**：
-```
-RecycleCardOnPlayEnd()
-  → 從墓地篩選 Recycle 屬性的卡牌
-  → 移回手牌
-```
-
-**跨區域搜尋**：
-```
-GetCardOrNone(Guid)
-  → HandCard → Deck → Graveyard → ExclusionZone → DisposeZone
-  → Option 鏈式查詢
-```
-
-## DispositionManager — 好感度管理（友軍獨有）
-
-好感度值影響遊戲資源獲取：
-- **IncreaseDisposition**：增加好感度（上限約束）
-- **DecreaseDisposition**：減少好感度（下限 0）
-- 好感度等級透過 DispositionLibrary 轉換為回復能量和抽牌加成
-
-## Instance 層
-
-### AllyInstance（Record 類型）
-
-持久化友軍玩家狀態：
-- Identity、NameKey、CurrentDisposition
-- CurrentHealth、MaxHealth、CurrentEnergy、MaxEnergy
-- Deck（CardInstance 列表）
-- HandCardMaxCount
-
-### 設計意義
-
-AllyInstance 是跨場景保留玩家狀態的機制——戰鬥結束後，玩家的血量、好感度、牌組變化可以持久保存。
-
-## 相關文件
-
-- [Entity 實體系統](Entity.md) — PlayerEntity 在實體階層中的位置
-- [Character 角色系統](Character.md) — 玩家管轄的角色
-- [Card 卡牌系統](Card.md) — 玩家管理的卡牌
-- [CardBuff 卡牌 Buff](CardBuff.md) — PlayerBuff 可以影響卡牌 Buff
-- [Session 反應會話](Session.md) — Buff 動態狀態
-- [Instance 實例層](Instance.md) — AllyInstance 的設計
+AllyInstance 保存 Domain 狀態，目前尚無完整戰後數值寫回與磁碟存檔流程。卡片持久形態已有勝利 ChangeSet 收集，實際戰鬥外套用仍未接線，見 [Instance](Instance.md) 與 [TODO](TODO.md)。

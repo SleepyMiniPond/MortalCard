@@ -1,6 +1,6 @@
 # GameData 資料資產製作規範
 
-> 最後更新：2026-09-13 | v1.1
+> 最後更新：2026-09-19 | v1.2
 
 ## 文件目的
 
@@ -33,3 +33,7 @@
 - 規則應說明「需要檢查什麼」，避免堆疊過多實作細節。
 - 若規則已可由 Validator 自動檢查，文件仍保留簡短原則，詳細錯誤交由工具回報。
 - 若資料架構發生大幅調整，應同步更新本文件與 [GameData.md](GameData.md)。
+
+## 程式入口
+
+[目錄編譯](../Assets/Scripts/Editor/GameContentCatalogCompiler.cs)、[資產搜尋範圍](../Assets/Scripts/Editor/ProjectAssetPaths.cs)、[Validator](../Assets/Scripts/Editor/GameDataValidator.cs)、[Play Mode Gate](../Assets/Scripts/Editor/GameDataPlayModeGate.cs)、[Build Gate](../Assets/Scripts/Editor/GameDataBuildPreprocessor.cs)。

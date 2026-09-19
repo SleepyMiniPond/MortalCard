@@ -1,118 +1,34 @@
-# GameView 視覺呈現層
+# GameView 視覺呈現
 
-> 最後更新：2026-09-13 | 版本：v2.1
+> 核對日期：2026-09-19
 
-## 設計理念
+GameView 消費 Model 事件、顯示狀態並將互動交回 Presenter。戰鬥規則由 Model 決定，View 另有拖曳、焦點與合法選取等互動判斷。
 
-GameView 是 MVP 架構中的**View 層**，負責將 GameModel 的資料狀態轉換為玩家可見的視覺元素。設計核心原則：
+## 事件與顯示狀態
 
-1. **被動渲染**：View 不主動查詢 Model，而是**響應事件**（IGameEvent）和**訂閱狀態**（ReactiveProperty）
-2. **零業務邏輯**：View 只關心「怎麼顯示」，不關心「為什麼顯示」
-3. **工廠 + 物件池**：所有動態 UI 元件透過 PrefabFactory 管理，避免 GC 波動
+[GameplayView](../Assets/Scripts/GameView/GameplayView.cs) 逐事件分發更新，不會為所有事件等待完整動畫播放。角色動畫由各 Worker 排程。
 
-## 子系統總覽
+[GameViewModel](../Assets/Scripts/Presenter/Gameplay/GameInfoModel.cs) 保存卡片、Buff、牌區及好感度等可觀察資料；血條、能量條與回合顯示亦有直接事件更新。契約位於 [PresentationContracts](../Assets/Scripts/Presentation/Abstractions/PresentationContracts.cs)。
 
-```
-GameView/
-├── GameplayView.cs          # 總調度器（20+ 事件類型分發）
-├── PlaygroundView.cs        # 遊戲棋盤（預設選取目標）
-├── ViewUtility.cs           # 動畫工具（PlayableDirector + UniTask）
-├── BuffView/                # Buff 圖示顯示
-├── CardView/                # 卡牌渲染與互動
-├── CharacterView/           # 角色視覺與動畫
-├── EventView/               # 戰鬥數字動畫
-├── Factory/                 # 物件池工廠
-└── Panel/                   # 面板系統
-    ├── Info/                # 狀態資訊面板
-    ├── Popup/               # 彈窗面板
-    └── UI/                  # 工具按鈕
-```
+卡片以 Identity 訂閱最新 CardInfo。GeneralUpdateEvent 更新一般資料，CardFormChangedEvent 更新有效形態；移牌、出牌等事件可只帶身份與區域，不必重建完整卡片快照。
 
-`ISelectableView` 位於 `Assets/Scripts/Presentation/Abstractions/`，由 View 與 Presenter
-共同使用，不屬於 GameView assembly 的實作檔案。
+目前 Render 有 IncreaseDispositionEvent 分支，卻沒有 DecreaseDispositionEvent 分支；雖存在減少好感度的畫面處理方法，尚未由事件分發接入，見 [TODO](TODO.md)。
 
-## GameplayView — 總調度器
+## 互動與資源
 
-GameplayView 是整個 View 層的**入口與樞紐**，實作三個關鍵介面：
-- `IGameplayView`：完整的視覺操作契約
-- `IAllCardDetailPanelView`：卡牌詳情面板入口
-- `IInteractionButtonView`：互動按鈕入口
+Presenter 在結算時控制互動開關。卡片拖曳與聚焦遇到形態改變時，依最新資料重新驗證規則。動態卡片、Buff 圖示與數字動畫使用 Factory；回收前必須清理各自訂閱與播放狀態。
 
-### Init — 初始化接線
+角色呈現目前仍是一個 Ally／一個 Enemy View，不能視為完整多角色動態集合。
 
-`Init()` 方法將所有子元件與依賴連接：
-- **ViewModel**：GameViewModel（響應式狀態源）
-- **ActionReceiver**：玩家操作接收器（送往 Presenter）
-- **StatusWatcher**：遊戲狀態觀察（當前行動玩家等）
-- **LocalizeLibrary / DispositionLibrary**：本地化與好感度查詢
+## 子系統導引
 
-### Render — 事件分發引擎
+| 領域 | 文件 |
+|---|---|
+| 手牌、拖曳、聚焦與詳情 | [CardView](CardView.md) |
+| 玩家 Buff 圖示 | [BuffView](BuffView.md) |
+| 角色動畫排程與取消 | [CharacterView](CharacterView.md) |
+| 數字動畫 | [EventView](EventView.md) |
+| 物件池 | [Factory](Factory.md) |
+| 資訊、彈窗、按鈕 | [Panel](GameView_Panel.md) |
 
-`Render()` 是核心方法，接收 `IGameEvent` 陣列，逐一識別事件類型並委派給對應的處理邏輯：
-
-| 事件類型 | 處理 |
-|----------|------|
-| DrawCardEvent | 在手牌區域建立新的 CardView |
-| MoveCardEvent | 移動卡牌到其他區域 |
-| DamageEvent | 在角色身上播放傷害數字動畫 |
-| GetHealEvent | 播放治療動畫 |
-| GetShieldEvent | 播放護甲動畫 |
-| AddPlayerBuffEvent | 在 Buff 集合中添加圖示 |
-| GeneralUpdateEvent | 批次更新所有 ViewModel 狀態 |
-| ... | 20+ 種事件各有對應處理 |
-
-### DisableAllInteraction — 安全鎖
-
-在特定階段（如效果結算中）禁用所有玩家互動，防止不當操作。
-
-## GameViewModel — 響應式狀態中心
-
-GameViewModel 是 View 層的**單一真相來源**（Single Source of Truth），使用 UniRx `ReactiveProperty<T>` 管理所有可觀察狀態：
-
-| 狀態 | 型別 | 用途 |
-|------|------|------|
-| CardInfo | Dict<Guid, ReactiveProperty<CardInfo>> | 每張卡牌的完整顯示資訊 |
-| PlayerBuffInfo | Dict<Guid, ReactiveProperty<PlayerBuffInfo>> | 每個 Buff 的顯示狀態 |
-| CharacterBuffInfo | Dict<Guid, ReactiveProperty<CharacterBuffInfo>> | 角色 Buff 的顯示狀態 |
-| CardCollectionInfo | 巢狀 Dict[Faction][Type] | 各區域的卡牌集合資訊 |
-| DispositionInfo | ReactiveProperty | 好感度資訊 |
-| IsHandCardsEnabled | bool | 手牌是否可互動 |
-
-View 元件透過 `Observable*()` 方法訂閱這些狀態，在資料變化時自動更新顯示。
-
-## ISelectableView — 可選取介面
-
-定義可被玩家點擊/拖曳選取的 UI 元件契約：
-- `RectTransform`：位置資訊
-- `TargetType`：目標類型（角色/卡牌）
-- `TargetIdentity`：目標 Guid
-- `OnSelect()` / `OnDeselect()`：選取/取消選取回調
-
-## 子系統文件引用
-
-| 子系統 | 文件 | 簡述 |
-|--------|------|------|
-| CardView | [CardView 卡牌視圖](CardView.md) | 手牌渲染、拖曳互動、弧形排列 |
-| BuffView | [BuffView Buff 視圖](BuffView.md) | Buff 圖示、層數顯示、提示框 |
-| CharacterView | [CharacterView 角色視圖](CharacterView.md) | 角色動畫、事件佇列處理 |
-| EventView | [EventView 事件視圖](EventView.md) | 數字動畫（傷害/治療/護甲等） |
-| Factory | [Factory 工廠系統](Factory.md) | PrefabFactory 物件池 |
-| Panel/Info | [Info 資訊面板](GameView_Info.md) | 血條、能量條、好感度、回合數 |
-| Panel/Popup | [Popup 彈窗面板](GameView_Popup.md) | 卡牌詳情、卡牌選取、勝負結果 |
-| Panel/UI | [UI 工具元件](GameView_UI.md) | 牌組按鈕、墓地按鈕、送出按鈕 |
-
-## 設計模式
-
-| 模式 | 應用 |
-|------|------|
-| **Composite** | GameplayView 聚合所有子 View |
-| **Observer** | ReactiveProperty 驅動自動更新 |
-| **Strategy** | Render() 按事件類型分發處理 |
-| **Factory + Pool** | 所有動態元件透過 PrefabFactory 建立/回收 |
-| **MVP** | View 只負責顯示，邏輯在 Presenter/Model |
-
-## 相關文件
-
-- [Presenter 協調層](Presenter.md) — 連接 View 與 Model
-- [GameModel 核心邏輯](GameModel.md) — 產生事件供 View 渲染
-- [SystemArchitecture 架構總覽](SystemArchitecture.md) — View 在系統中的位置
+通用 Unity UI 工具另位於 [Assets/Scripts/UI](../Assets/Scripts/UI/)，不等同於 GameView 的 Panel/UI。

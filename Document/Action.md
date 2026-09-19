@@ -1,162 +1,29 @@
-# Action 動作系統
+# Action 與反應上下文
 
-> 最後更新：2026-09-15 | 版本：v2.3
+> 核對日期：2026-09-19
 
-## 設計理念
+Action 描述意圖、目標或已發生的結果，Effect Command 才是狀態變更指令。Action 多以 Record 表達，但其中可參考可變 Entity／屬性容器，不代表整張物件圖不可變。
 
-動作系統是 GameModel 的**語義層**，負責定義「遊戲中發生了什麼」的精確描述。每一個遊戲事件（打牌、造成傷害、觸發 Buff）都被建模為一個結構化的 Action 物件，攜帶完整的來源、目標與語境資訊。
+## 意圖與結果
 
-核心設計原則：**每個 Action 都是不可變的描述**，而非命令式的操作。這使得 Buff 反應系統可以在效果實際執行前「審視」即將發生的事情，並進行修正。
+效果可經過 Intent → TargetIntent → Result，分別表達整體意圖、特定目標與實際結果。具體效果會使用其中適用的階段，不保證每個操作都產生完整三階 Action。
 
-## Action 階層體系
+ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可執行的 Buff 效果另由 Timing Planner 排入 Queue。不能把「觀察 Action」一律描述為立即執行 Buff 效果。來源見 [GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[Action 定義](../Assets/Scripts/GameModel/Action/)、[TimingDispatchPlanner](../Assets/Scripts/GameModel/Effect/TimingDispatchPlanner.cs)。
 
-```
-IActionUnit（根介面：所有動作都有 Timing 與 Source）
-├── IActionTargetUnit（帶目標的動作）
-├── IEffectAction（型別化效果動作）
-│   ├── IEffectTargetAction（意圖階段 — 綁定目標前）
-│   └── IEffectResultAction（結果階段 — 執行完畢後）
-├── UpdateTimingAction（遊戲時機動作）
-├── Look Action（查詢動作，讀取不修改）
-└── CardTriggeredTimingAction / CardPlay*Action（流程專用動作）
-```
+## 三種視角
 
-## 三層效果管線
+| 資料 | 語意 |
+|---|---|
+| Action.Source／Target | 發生何事、由誰發起、作用於誰 |
+| TriggerContext.Triggered | 目前正在回應該事件的卡片、玩家或 Buff |
+| GameContext.Selected* | 玩家或 AI 出牌操作中明確選擇的對象 |
 
-這是動作系統最精巧的設計——每個效果都經歷三個階段，每個階段都讓 Buff 反應系統有機會介入。
+[TriggerContext](../Assets/Scripts/GameModel/Action/TriggerSource.cs) 沿衍生反應保留最初 ReactionOriginAction／Timing，避免後續效果失去根源。Buff Trigger 保存宿主，不能以 CurrentPlayer 或覆寫 Selected 目標代替。
 
-### 1. Intent（意圖宣告）
+## 出牌與卡片時機
 
-```
-DamageIntentAction
-HealIntentAction
-ShieldIntentAction
-GainEnergyIntentAction
-...
-```
+[CardPlaySource](../Assets/Scripts/GameModel/Action/ActionSource.cs) 保存出牌卡、手牌位置與本次屬性修正；結果 Source 聚合普通效果及 Played 的 Result。
 
-**語義**：「我打算對某些目標造成 X 點傷害」
-**Buff 介入點**：全域修正（例如「所有傷害 +2」的 Buff 在此修改數值）
+CardTriggeredTimingAction 表達某張卡的生命週期，其 GameTiming 維持 None，兩套時機不混用。共用派送已接入的時機見 [Card](Card.md)。FormChanged 仍使用 CardFormChangedAction 的 CardData 專用路徑；EffectPlayed 尚無正式出牌入口。
 
-### 2. TargetIntent（目標綁定）
-
-```
-DamageIntentTargetAction
-HealIntentTargetAction
-ShieldIntentTargetAction
-...
-```
-
-**語義**：「我打算對這個特定目標造成 X 點傷害」
-**Buff 介入點**：目標特化修正（例如「對該角色的傷害 +50%」）
-
-### 3. Result（結果確認）
-
-```
-DamageResultAction
-HealResultAction
-ShieldResultAction
-GainEnergyResultAction
-...
-```
-
-**語義**：「這個目標實際受到了 Y 點傷害」
-**Buff 介入點**：結果反應（例如「受到傷害時，回復 1 點護甲」）
-
-### 設計價值
-
-這三層管線的價值在於：
-- **修正鏈**：多個 Buff 可以在不同階段疊加修正
-- **條件精確化**：Buff 可以只對特定目標或特定結果做出反應
-- **因果追溯**：每個結果都能追溯到原始意圖
-
-## ActionSource — 動作來源
-
-每個 Action 都標記「是誰觸發的」，這對條件判斷至關重要。
-
-| Source 類型 | 語義 |
-|------------|------|
-| `SystemSource` | 系統自動觸發（回合開始、遊戲開始前後） |
-| `CardPlaySource` | 卡牌打出觸發（攜帶手牌位置、屬性修正） |
-| `CardPlayResultSource` | 卡牌打出結果（包裝 CardPlaySource + 效果結果） |
-| `PlayerBuffSource` | 玩家 Buff 觸發 |
-| `CardBuffSource` | 卡牌 Buff 觸發 |
-| `SystemExectueStartSource` | 行動階段開始 |
-| `SystemExectueEndSource` | 行動階段結束 |
-
-### CardTriggeredTimingAction
-
-`CardTriggeredTimingAction` 專門描述「某張卡片的某個 `CardTriggeredTiming` 正在被派送」。
-它包含卡片、卡片生命週期時機與原始來源；`Timing` 維持 `GameTiming.None`，不把兩套
-不同層級的時機互相混用。
-
-共用派送器目前已讓 `Initialize`、系統抽牌的 `Drawed`、效果抽牌的 `EffectDrawed`、
-主動出牌的 `Played`、回合結束的 `Preserved`／`Discarded` 與效果棄牌的 `EffectDiscarded`
-使用同一種 Action；只有 `TriggeredTiming` 與 `Source` 不同。根生命週期入口可由 `IGameplayModel`、卡片、
-Timing 與 Source 直接建立唯一的 `TriggerContext`；需要保留父反應來源的抽牌與出牌流程則沿用既有
-`TriggerContext`。主動出牌的 `Played` 沿用原本
-`CardPlaySource`，其效果 Result 會與普通 Card Effects 的 Result 一起收斂至同一個
-`CardPlayResultSource`。現有的
-`CardFormChangedAction` 仍表示「形態變更操作本身」；待該流程改由共用派送器接線時，
-其 `FormChanged` 生命週期效果也會使用此 Action。真正的「系統建立卡片」語意若未來需要，
-應另行定義建立動作，不與卡片生命週期觸發混用。
-
-以上兩個型別的 `Exectue` 拼字與程式現況一致；若未來修正程式命名，需同步處理序列化或引用影響。
-
-### CardPlaySource 特殊設計
-
-`CardPlaySource` 是最豐富的 Source 類型，攜帶：
-- 打出的卡牌引用
-- 手牌位置索引
-- `CardPlayAttributeEntity`：屬性修正容器（費用加成、威力加成、傷害修正等）
-
-這使得「根據卡牌位置」或「根據已累積的屬性修正」做條件判斷成為可能。
-
-## ActionTarget — 動作目標
-
-| Target 類型 | 語義 |
-|-------------|------|
-| `SystemTarget` | 無特定目標（系統事件） |
-| `PlayerTarget` | 玩家實體 |
-| `CharacterTarget` | 角色實體 |
-| `CardTarget` | 卡牌實體 |
-| `PlayerAndCardTarget` | 玩家與卡牌複合目標 |
-
-## TriggerContext — 觸發上下文
-
-```
-TriggerContext = (IGameplayModel Model, ITriggeredSource Triggered, IActionUnit Action)
-```
-
-TriggerContext 是貫穿整個效果管線的**不可變上下文物件**。透過 Record 的 `with` 語法，可以安全地複製並修改特定欄位，而不影響原始上下文。
-
-`ReactionOriginAction` 保存整條反應鏈最初的 Action：根 Context 預設使用當前 `Action`，
-後續以 `with` 建立的衍生 Context 則持續沿用。`ReactionOriginTiming` 由同一來源推導，讓
-生命週期入口能判斷事件根源，而不必在 Queue 或 Executor 為每種觸發新增專用旗標。
-
-### ITriggeredSource 型別
-
-| 觸發來源 | 語義 |
-|----------|------|
-| `CardPlayTrigger` | 卡牌打出觸發 |
-| `CardTrigger` | 卡牌本身觸發（觸發效果） |
-| `PlayerBuffTrigger` | 玩家 Buff 觸發 |
-| `CardBuffTrigger` | 卡牌 Buff 觸發 |
-| `CharacterBuffTrigger` | 角色 Buff 觸發 |
-| `PlayerTrigger` | 玩家實體觀察 Action |
-| `CardFormOverrideTrigger` | 卡牌 External Override 狀態觸發 |
-
-觸發來源依宿主能力實作 `ICardTriggeredSource`、`ICharacterTriggeredSource` 或
-`IPlayerTriggeredSource`。Buff Trigger 會直接保存當次快照中的宿主 Entity，不在
-執行時掃描 `GameStatus` 反查，因此排隊後即使 Buff 已失效，Trigger 視角仍保持穩定。
-
-`Action` 表示發生的事，`Triggered` 表示目前對該 Action 作出反應的 Entity；兩者不可
-混用。`GameContext.Selected*` 則只代表玩家或 AI 在出牌操作中明確選擇的目標，Trigger
-流程不得為了提供反應者視角而覆寫它。
-
-## 與其他系統的協作
-
-- **Effect 系統**：Action 定義「要做什麼」，Effect 系統負責「怎麼做」
-- **Condition 系統**：讀取 Action 的來源和目標來評估條件
-- **Buff 反應系統**：在 Action 的三個階段（Intent/TargetIntent/Result）介入修正
-- **GameContextManager**：提供 Action 計算所需的全域上下文
+目標及值的查詢契約見 [Target](Target.md)、[Value](Value.md)、[Condition](Condition.md)，排程與副作用見 [Effect](Effect.md)。

@@ -1,89 +1,29 @@
 # Condition 條件系統
 
-> 最後更新：2026-09-06 | 版本：v3.0
+> 核對日期：2026-09-19
 
-## 設計目的
+Condition 在 TriggerContext 中回傳布林結果，供效果、反應、形態及 Session 規則共用。條件讀取狀態，不修改狀態或消耗亂數；以可組合積木表達內容，不為單一卡牌建立專用條件。
 
-`ICondition` 在 `TriggerContext` 下回傳布林結果，供 Conditional Effect、反應規則與 Session 更新規則共用。條件只讀取當下狀態；不建立內容專用的「定時炸彈條件」或「刀盾條件」，而是以 Target、Value 與條件積木組合表達。
+## 組合與缺值
 
-當單一 Target 或 `IIntegerValue` 無法取得時，依賴該值的 Condition 一律回傳 `false`。這讓 Runtime 的正常時序失效安全結束，同時由 Validator 攔截可在編輯期判定的錯誤資料。
+All／Any／Inverse 組合其他條件。依賴的單一 Target 或 Value 缺失時，該葉條件回傳 false；外層仍依邏輯運算，例如 Inverse 可反轉結果。空白必要條件清單及缺少子條件由 Validator 攔截。
 
-## 邏輯與 Timing 積木
+GameTimingCondition 比較反應鏈最初的 ReactionOriginTiming，非 Timing 根源或 None 不匹配。
 
-```
-ICondition
-├── ConstCondition
-├── AllCondition
-├── AnyCondition
-├── InverseCondition
-├── GameTimingCondition
-└── IsTriggeredOwnerTurnCondition
-```
+## 身份、狀態與集合
 
-`AllCondition`、`AnyCondition` 與 `InverseCondition` 可遞迴組合。空白條件清單或缺少必要子條件不屬於有效企劃資料，會由 Validator 攔截。`GameTimingCondition` 比較的是整條反應鏈的 `ReactionOriginTiming`；非 Timing 反應鏈及 `GameTiming.None` 皆為 `false`。
+Card Identity 判斷同一戰鬥實體；Base CardData 判斷不受變形影響的原始資料；Card Form 及類型、主題、稀有度、屬性讀取有效形態。
 
-## 數值與實體條件
+玩家死亡依 MainCharacter；角色條件則查詢指定角色。Buff 條件可判斷 ID 與集合持有關係，0 層與不存在不同。
 
-```
-IntegerCondition(Value, IIntegerValueCondition[])
-├── IntegerCompare（Equal、NotEqual、Greater、Less、GreaterOrEqual、LessOrEqual）
+卡片集合 Contains 使用 Identity；Any／All 都要求至少一張卡，空集合皆為 false。同一卡的多個條件採 AND，避免把空集合誤判成符合全部條件。
 
-CardCondition(Card, ICardValueCondition[])
-├── CardIdentityCondition
-├── BaseCardDataIdCondition
-├── CardFormCondition
-├── CardTypesCondition／CardThemesCondition／CardRaritiesCondition
-└── CardPropertiesCondition
+## 出牌與 Session
 
-PlayerCondition(Player, IPlayerValueCondition[])
-├── PlayerFactionCondition
-├── PlayerEnergyCondition
-└── PlayerIsDeadCondition
+CardPlay 條件讀取出牌位置與來源；CardPlayResult 條件讀取效果結果及目標。Session 條件讀取目前有效的記憶值，不負責觸發更新；有效期間見 [Session](Session.md)。
 
-CharacterCondition(Character, ICharacterValueCondition[])
-├── CharacterFactionCondition
-└── CharacterIsDeadCondition
+## 程式導引
 
-CardPlayCondition／CardPlayResultCondition
-└── 分別讀取 Card Play Source 與 Effect Result
+[ModelCondition](../Assets/Scripts/GameModel/Condition/ModelCondition.cs) 提供組合及領域條件入口，[Condition 目錄](../Assets/Scripts/GameModel/Condition/) 提供各類值判斷。必要引用、集合與列舉語意由 [GameDataValidator](../Assets/Scripts/Editor/GameDataValidator.cs) 驗證。
 
-CardFormOverrideSessionCondition
-└── 讀取目前 External Override 所持有的 Reaction Session
-```
-
-Card Identity 比較戰鬥實體 Identity；Base CardData 比較不受變形影響的原始資料；Card Form 與 Type／Theme／Rarity／Property 則比較目前有效形態。玩家死亡只由 Main Character 的死亡狀態判定，助戰角色死亡不會單獨造成 Player 死亡。
-
-## 集合與 Buff 條件
-
-```
-CardCollectionContainsCondition(Collection, Card)
-CardCollectionAnyCondition(Collection, ICardValueCondition[])
-CardCollectionAllCondition(Collection, ICardValueCondition[])
-
-PlayerBuffCondition／CharacterBuffCondition／CardBuffCondition
-└── 各自接受 ID 等 Buff Value Condition
-
-PlayerBuffCollectionContainsIdCondition
-CharacterBuffCollectionContainsIdCondition
-CardBuffCollectionContainsIdCondition
-```
-
-`CardCollectionContainsCondition` 以 Card Identity 判定同一張戰鬥實體卡。Any 與 All 都要求集合至少有一張卡；空集合一律為 `false`，避免把「沒有任何卡」誤解成「所有卡都符合」。同一張卡的多個 `ICardValueCondition` 固定以 AND 評估。
-
-例如「持有者回合結束時，卡片仍在持有者手牌」可由 `GameTimingCondition`、`IsTriggeredOwnerTurnCondition`、`CardsOfPlayer(CardOwner(ActionCard), HandCard)` 與 `CardCollectionContainsCondition` 組合；不需額外專用 Condition 類別。
-
-## Action 結果與 Session 條件
-
-`CardPlayCondition` 可對出牌位置與來源卡牌建立條件；`CardPlayResultCondition` 可對 Effect Result 類型、Damage 結果與結果目標建立條件。`CardFormOverrideSessionCondition` 透過 Session Key 讀取目前 External Override 的 Reaction Session，並以「值是否已更新」、布林或整數比較進行判斷。這些條件同樣只讀取 Context，不改變遊戲狀態。
-
-## Context 與驗證邊界
-
-`TriggerContext` 提供 Model、Triggered、Action 與反應鏈起因 Timing。條件可讀取這些資料，但不得變更狀態或消耗亂數。
-
-`GameDataValidator` 會檢查必填巢狀引用、空集合條件、無效比較列舉、無效 Timing、無效卡片集合區域、Buff ID 與 Reference ID。Runtime 則負責把正常的缺值與時序失效表達為 `false` 或安全 No-op。
-
-## 與其他系統的關係
-
-- [Target.md](Target.md) 定義條件讀取對象的來源與缺值契約。
-- [Value.md](Value.md) 定義整數資料來源、算術與 `Option<int>` 的傳遞規則。
-- Conditional Buff Effect 可直接接受 `ICondition`；具體查詢對象由 Target 與 Condition 類別決定。
+資料來源與缺值傳遞見 [Target](Target.md)、[Value](Value.md)。

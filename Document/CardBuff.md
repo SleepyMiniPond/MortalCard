@@ -1,109 +1,25 @@
-# CardBuff 卡牌 Buff 系統
+# CardBuff 卡牌修正器
 
-> 最後更新：2026-09-14 | 版本：v2.2
+> 核對日期：2026-09-19
 
-## 設計理念
+CardBuff 作用於單張卡牌，PlayerBuff 作用於玩家，CharacterBuff 作用於角色。CardBuff 目前可提供封印、威力及 EffectRepeat 修正；具體資料見 [CardBuffPropertyData](../Assets/Scripts/GameData/CardBuff/CardBuffPropertyData.cs)。
 
-CardBuff 是施加在**單張卡牌**上的動態修正器。與 PlayerBuff（作用於整個玩家）和 CharacterBuff（作用於角色）不同，CardBuff 精確到特定一張卡牌，適合實現「封印某張牌」、「這張牌威力 +3」等個體化效果。
+## 反應與壽命
 
-三套 Buff 系統（Card/Character/Player）共享相同的設計範式，但各自針對不同的作用對象做特化。
+[CardBuffData](../Assets/Scripts/GameData/CardBuff/CardBuffData.cs) 分開保存卡片生命週期 Effects 與一般 GameTiming 的 BuffEffects。一般反應由 Timing Planner 排程；生命週期以 [Card](Card.md) 的接線表為準。Initialize、抽牌、主動出牌、清手及效果棄牌已共用派送；FormChanged 尚未接入 CardBuff，EffectPlayed 尚無正式出牌入口。
 
-## 結構設計
+Always 壽命不自動過期；Turn 壽命於 AfterTurnEnd 扣減；HandCard 壽命追蹤卡片是否仍在手牌。層數為 0 不等於移除，更新時由壽命決定是否過期。實作入口：[CardBuffEntity](../Assets/Scripts/GameModel/Entity/CardBuff/CardBuffEntity.cs)、[CardBuffLifeTimeEntity](../Assets/Scripts/GameModel/Entity/CardBuff/CardBuffLifeTimeEntity.cs)。
 
-### CardBuffData（設計時模板）
+條件及 Session 機制見 [Condition](Condition.md)、[Session](Session.md)，效果來源見 [Effect](Effect.md)。
 
-```
-CardBuffData
-├── ID                    # 唯一識別碼
-├── Sessions{}            # 反應會話（動態狀態追蹤）
-├── Effects{}             # CardTriggeredTiming → ConditionalCardBuffEffect[]（卡片生命週期）
-├── BuffEffects{}         # GameTiming → ConditionalCardBuffEffect[]（一般反應時機）
-├── PropertyDatas[]       # 屬性修正工廠列表
-└── LifeTimeData          # 生命週期策略工廠
-```
+## Layer 所有權
 
-### CardBuffEntity（戰鬥時實體）
+[CardBuffLayerManager](../Assets/Scripts/GameModel/Entity/CardBuff/CardBuffLayerManager.cs) 對外提供目前有效 Layer：
 
-```
-CardBuffEntity
-├── Identity (Guid)       # 唯一實例身份
-├── CardBuffDataId        # 對應的 Data 模板 ID
-├── Level                 # 疊加層數
-├── Caster (Option)       # 施放者（可選）
-├── LifeTimeEntity        # 運行時生命週期
-├── PropertyEntity[]      # 運行時屬性修正
-└── ReactionSessionEntity{} # 運行時反應會話
-```
+- Self Transform 沿用 Base Layer。
+- External Override 建立新的 Override Layer，期間凍結 Base Layer。
+- 新 Override 取代舊 Override，舊層失效且不會在解除後復活。
+- 解除目前 Override 時丟棄該層 Buff，恢復原 Base Layer 的身份、層數、壽命與 Session。
+- 排隊命令持有 LayerHandle，失效後安全 No-op。
 
-## 屬性修正
-
-CardBuff 可以修改卡牌的屬性：
-
-| 屬性 | 效果 |
-|------|------|
-| `SealedCardBuffPropertyEntity` | 封印卡牌，使其無法被打出 |
-| `PowerCardBuffPropertyEntity` | 修改卡牌威力（使用 IIntegerValue 動態計算） |
-
-屬性值的計算是**上下文敏感的**——透過 `Eval(TriggerContext)` 動態求值，結果可能因遊戲狀態不同而改變。
-
-## 生命週期策略
-
-| 策略 | 行為 | 適用場景 |
-|------|------|----------|
-| `AlwaysLifeTime` | 永不過期 | 永久性卡牌修正 |
-| `TurnLifeTime` | N 回合後過期 | 「威力 +2 持續 3 回合」 |
-| `HandCardLifeTime` | 卡牌離開手牌時過期 | 「手牌中威力 +1」 |
-
-HandCardLifeTime 是 CardBuff 獨有的策略，反映了卡牌在不同區域時 Buff 效果的語義差異。
-
-## 條件觸發效果
-
-每個 Buff 效果都包裝在 `ConditionalCardBuffEffect` 中：
-- **條件列表**：`ICondition[]`（所有條件都必須滿足）
-- **效果**：ICardBuffEffect（觸發時執行的效果）
-
-卡片生命週期效果放在 `Effects`，按 `CardTriggeredTiming` 分組；一般 Buff 反應放在
-`BuffEffects`，按 `GameTiming` 分組。後者已由 `TimingDispatchPlanner` 接入
-`EffectQueueRunner`；前者已透過共用 dispatch 契約接入 `Initialize` 與系統抽牌 `Drawed`，
-並與 CardData 效果共用快照及 Queue Scope。`FormChanged` 仍維持既有 CardData 入口，其他
-卡片生命週期時機由 T-017 後續工作包接續。
-
-## 反應會話（Session）
-
-CardBuff 可以擁有反應會話，追蹤動態狀態：
-- 記錄「本回合觸發了幾次」
-- 記錄「是否已被激活」
-- 根據遊戲事件更新計數器
-
-詳見：[Session 反應會話](Session.md)
-
-## CardBuffLayerManager — 管理器
-
-每張 CardEntity 都擁有一個實作 `ICardBuffManager` 的 `CardBuffLayerManager` Facade，負責：
-- **新增 Buff**：防止重複 ID
-- **移除 Buff**：按身份或 Data ID
-- **修改層數**：增減 Buff 的 Level
-- **更新**：每回合更新生命週期和 Session，移除已過期的 Buff
-- **Layer 路由**：External Override 生效時建立空的 Override Layer，凍結 Base Layer 並將所有操作轉送至 Override Layer
-- **最新取代**：再次套用 External Override 時直接丟棄舊 Override Layer，以全新空 Layer 取代；新 Override 解除後不會恢復舊 Override
-- **Layer 還原**：移除目前 Override Layer 時直接丟棄該層 Buff，恢復原 Base Buff 的身份、層數、生命週期與 Session 狀態
-
-`CardBuffLayer` 是 Facade 內部的單層 Buff 容器，只處理該層的集合與生命週期；它不實作 `ICardBuffManager`，也不理解 Active Layer 或 Override 路由。
-
-## 與 PlayerBuff / CharacterBuff 的比較
-
-| 面向 | CardBuff | CharacterBuff | PlayerBuff |
-|------|----------|---------------|------------|
-| 作用對象 | 單張卡牌 | 單個角色 | 整個玩家 |
-| 典型效果 | 封印、威力修正 | 生命上限、能量上限 | 全域傷害加成 |
-| 觸發時機 | `CardTriggeredTiming`（`Effects`） | `GameTiming`（`BuffEffects`） | `GameTiming` |
-| 獨有生命週期 | HandCardLifeTime | — | — |
-| 屬性修正 | 封印、威力 | 最大生命、最大能量 | `PlayerBuffProperty` 16 個欄位；目前 6 種資料實作 |
-
-## 相關文件
-
-- [Card 卡牌系統](Card.md) — CardBuff 的宿主
-- [Player 玩家系統](Player.md) — PlayerBuff 系統
-- [Character 角色系統](Character.md) — CharacterBuff 系統
-- [Session 反應會話](Session.md) — Buff 動態狀態追蹤
-- [Entity 實體系統](Entity.md) — 實體結構總覽
+PlayerBuff 不屬於此 Layer，仍可作用於 Override 形態。完整形態契約見 [CardTransformation](CardTransformation.md)。

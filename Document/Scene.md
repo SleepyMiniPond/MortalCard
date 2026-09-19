@@ -1,85 +1,24 @@
-# Scene 場景管理
+# Scene 場景與主流程
 
-> 最後更新：2026-07-12 | 版本：v2.1
+> 核對日期：2026-09-19
 
-## 設計理念
+Scene 負責取得場景內 View、建立 Presenter、等待結果。場景載入與遊戲主迴圈集中在 [Main](../Assets/Scripts/Scene/Main.cs) 及 [SceneLoadManager](../Assets/Scripts/Scene/SceneLoadManager.cs)。
 
-Scene 系統管理 Unity 場景的生命週期和切換。透過 Main.cs 的無限迴圈驅動遊戲流程，每個場景對應一個明確的遊戲階段。
+## 生命週期
 
-## 遊戲主迴圈 — Main.cs
+Main 的銷毀 Token 傳至載入與 Scene.Run；各 Scene 再連結自身銷毀 Token。Menu 等待開始、LevelMap 等待選擇、Gameplay 等待戰鬥與結果，均受取消控制。下層取消不反向取消 Main。
 
-```
-Main.StartGame()
-  Loop(永遠):
-    1. MenuScene       → 主選單（等待玩家開始）
-    2. LevelMapScene   → 關卡選擇（等待玩家選關 / 離開）
-       ├── 選擇關卡 → 進入 3
-       └── 離開     → 回到 1
-    3. GameplayScene   → 戰鬥（等待戰鬥結束）
-       ├── 勝利 → 回到 2
-       ├── 重試 → 回到 3（同關卡）
-       ├── 重新開始 → 回到 2
-       └── 退出 → 回到 1
-```
+入口：[MenuScene](../Assets/Scripts/Scene/MenuScene.cs)、[LevelMapScene](../Assets/Scripts/Scene/LevelMapScene.cs)、[GameplayScene](../Assets/Scripts/Scene/GameplayScene.cs)。LoadingScene 仍是最小預留元件。
 
-Main 使用 `UniTask` 非同步執行整個流程，每個場景回傳一個結果物件決定下一步。
+## 現有流程與限制
 
-### 場景取消邊界
+目前可從 Menu 進入 LevelMap，再由地圖點擊進入 Gameplay。不能將程式描述為已完成「勝利回地圖、重試同關、退出回選單」的完整狀態機：
 
-`Main` 以自身的 Unity 銷毀 Token 作為主迴圈根生命週期，並將 Token 傳入 SceneLoadManager 與各 Scene `Run()`。每個 Scene 再連結自身的銷毀 Token，使場景載入、等待輸入與 Presenter 流程能在 Main 結束或 Scene 卸載時共同取消。下層 linked scope 的主動取消不會反向取消 Main。
+- [GameResultWinPresenter](../Assets/Scripts/Presenter/Gameplay/GameResultWinPresenter.cs) 沒有正常完成入口，勝利畫面持續等待至取消。
+- Main 在沒有 restart／retry 旗標時離開內層迴圈，再進入外層 Menu；不是一律回 LevelMap。
+- retry 在單次戰鬥重試迴圈內未逐次重設，曾選 Retry 後的其他結果可能繼續重試；restart 也需明確定義每次結果的狀態轉移。
+- LevelMap 的 Fail／Finish 會直接結束主流程；目前 View 只有開戰按鈕，其他結果尚無完整互動入口。
+- 戰鬥設定仍由 [BattleBuilder](../Assets/Scripts/Presenter/Gameplay/BattleBuilder.cs) 產生測試關卡、第一個敵人與新種子，Retry 並未保存原戰鬥設定。
+- Main 尚未套用勝利 CardInstanceChangeSet。
 
-## 場景列表
-
-### GameplayScene — 戰鬥場景
-
-最複雜的場景，負責：
-1. 取得 Scene 中的 GameplayView
-2. 透過 BattleBuilder 建構所有依賴
-3. 啟動 GameplayPresenter.Run()
-4. 等待戰鬥結束，回傳 `GameplayResultCommand`
-
-### LevelMapScene — 關卡選擇場景
-
-1. 取得 Scene 中的 LevelMapView
-2. 啟動 LevelMapPresenter.Run()
-3. 等待玩家選擇，回傳 `LevelMapCommand`
-   - Battle（含 StageID）→ 進入戰鬥
-   - Leave → 回到主選單
-
-### MenuScene — 主選單場景
-
-最簡場景，等待玩家點擊開始遊戲。
-
-### LoadingScene — 載入場景
-
-預留的中間場景（最小實作）。
-
-## SceneLoadManager — 場景載入管理
-
-提供非同步的場景載入工具：
-- 使用 `SceneManager.LoadSceneAsync()` 進行非同步載入
-- 以 `UniTask` 包裝 Unity 的非同步操作
-- 接收上層 `CancellationToken`，讓載入途中仍受主迴圈生命週期控制
-- 確保場景轉換的平順
-
-## 設計特點
-
-### 無限迴圈架構
-
-Main.cs 的遊戲迴圈永不結束（`while(true)`），場景之間透過結果物件控制流向。這讓流程控制集中在一個位置，避免分散到各場景中。
-
-### 場景獨立性
-
-每個場景只負責：
-1. 取得自身的 View 參照
-2. 建構需要的 Presenter
-3. 啟動並等待結果
-4. 回傳結果物件
-
-不涉及其他場景的邏輯。
-
-## 相關文件
-
-- [Presenter 協調層](Presenter.md) — 場景內的邏輯協調
-- [GameView 視覺呈現層](GameView.md) — 場景中的視覺元件
-- [SystemArchitecture 架構總覽](SystemArchitecture.md) — 全域架構
+上述是程式現況，後續修正與行為決策列於 [TODO](TODO.md)；戰鬥內非同步協調見 [Presenter](Presenter.md)。

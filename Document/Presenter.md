@@ -1,179 +1,29 @@
 # Presenter 協調層
 
-> 最後更新：2026-09-13 | 版本：v2.2
+> 核對日期：2026-09-19
 
-## 設計理念
+Presenter 將 UI 命令轉成 Model 動作，並將 Model 事件交給 View 呈現。View／Presenter 的共享契約位於 [Presentation Abstractions](../Assets/Scripts/Presentation/Abstractions/)，協調實作位於 [Presenter](../Assets/Scripts/Presenter/)，不混放在 Panel。
 
-Presenter 是 MVP 架構中的**協調樞紐**，是唯一同時接觸 GameModel 和 GameView 的層級。它負責：
-1. 將玩家的 UI 操作轉譯為遊戲邏輯動作
-2. 將遊戲邏輯產生的事件分發給 View 渲染
-3. 建構戰鬥所需的所有依賴物件
-4. 管理整個戰鬥的生命週期
+## 戰鬥與取消
 
-## 子系統總覽
+[GameplayPresenter](../Assets/Scripts/Presenter/Gameplay/GameplayPresenter.cs) 同時監督戰鬥主流程、玩家命令／事件流程與 UI 面板流程。只有戰鬥主流程可以正常先完成；其餘工作提前結束或拋出例外須向上傳遞。
 
-```
-Presenter/
-├── Gameplay/
-│   ├── GameplayPresenter.cs     # 戰鬥主協調器
-│   ├── BattleBuilder.cs         # 依賴建構器
-│   ├── Context.cs               # 全域遊戲配置
-│   ├── GameInfoModel.cs         # 檔名；內含 GameViewModel 實作
-│   ├── GameStageSetting.cs      # 關卡配置 Record
-│   ├── ScriptableDataLoader.cs  # 資料載入器
-│   └── InterAction/
-│       ├── GameAction.cs        # Presenter→Model 的動作
-│       └── GameCommand.cs       # View→Presenter 的命令
-└── LevelMap/
-    ├── LevelMapPresenter.cs     # 關卡選擇協調器
-    └── LevelMapView.cs          # 關卡選擇視圖
-```
+戰鬥結束後取消輔助工作並等待收斂，再處理結果面板；最後等待角色動畫清理。Scene Token 沿子流程傳遞，面板與訂閱透過清理區塊釋放，避免場景離開後仍操作畫面。
 
-## GameplayPresenter — 戰鬥主協調器
+## 輸入與選取
 
-整個戰鬥場景的大腦，協調 Model 與 View 的互動。
+[GameCommand](../Assets/Scripts/Presentation/Abstractions/GameCommand.cs) 描述 View 操作，[GameAction](../Assets/Scripts/GameModel/Action/GameAction.cs) 描述交給 Model 的動作。命令先入列，由單一流程依序處理，不在接收時提前啟動非同步選取。
 
-### 持有的依賴
+[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 已逐群組處理 ExistCard 選取並以群組 ID 回傳結果；其他子選取類型仍是預留，完整多步驟契約見 T-011。卡片互動依 Identity 查最新 CardInfo，避免變形後使用舊規則。
 
-| 依賴 | 型別 | 用途 |
-|------|------|------|
-| GameplayView | IGameplayView | 視覺呈現入口 |
-| GameViewModel | IGameViewModel | 響應式狀態中心 |
-| GameplayManager | IGameplayManager | 遊戲邏輯引擎 |
-| UIPresenter | IUIPresenter | 面板事件處理 |
-| SubSelectionPresenter | — | 子選取流程處理 |
-| GameResultWin/LosePresenter | — | 勝負結果處理 |
+## 建構與顯示狀態
 
-### Run — 主執行流程
+- [ScriptableDataLoader](../Assets/Scripts/Presenter/Gameplay/ScriptableDataLoader.cs) 從 Catalog、玩家配置與 Excel 表讀取內容。
+- [Context](../Assets/Scripts/Presenter/Gameplay/Context.cs) 保存載入資料，由 Main 建立及持有，並非單例服務。
+- [BattleBuilder.cs](../Assets/Scripts/Presenter/Gameplay/BattleBuilder.cs) 內的類別目前拼為 BattleBuidler，組裝 Library、Factory 與種子亂數。正式建構仍使用測試關卡 ID、第一個敵人與即時種子，尚無完整選關參數傳遞。
+- [GameStageSetting](../Assets/Scripts/GameModel/GameStageSetting.cs) 位於 GameModel。
+- [GameInfoModel.cs](../Assets/Scripts/Presenter/Gameplay/GameInfoModel.cs) 內的 GameViewModel 管理卡片與 Buff 等可觀察顯示資料，並非所有 UI 數值的唯一更新途徑。
 
-```
-Run()
-  1. 建立連結 Scene Token 的戰鬥 scope
-  2. 同時啟動並保存：
-     a. GameplayManager.StartBattle()  ← 戰鬥主流程
-     b. Gameplay Event loop            ← 玩家命令與事件渲染
-     c. UIPresenter.Run()               ← UI 面板事件流程
-  3. 監督三者，只有戰鬥主流程可以正常先完成
-  4. 戰鬥結束後取消其餘工作，並等待三者完全收斂
-  5. 顯示勝/負結果面板
-  6. 回傳 GameplayResultCommand，最後等待 Character 動畫 Worker 清理完成
-```
+## 結果與地圖限制
 
-必要的並行工作不使用 `.Forget()`。GameplayPresenter 透過 `WhenAny` 監督提前完成與例外，再於 `finally` 取消 scope 並以 `WhenAll` 等待清理。Scene 外部取消會沿呼叫鏈向上傳遞；Presenter 主動結束戰鬥 scope 所造成的預期取消則在收尾階段消化。
-
-### 動作處理迴圈
-
-```
-_GameplayBattleActions()
-  Loop:
-    1. 從命令佇列取出 GameCommand（UseCardCommand / TurnSubmitCommand）
-       - RecieveEvent() 只負責入列，不提前啟動非同步處理
-       - 單一 loop 依序執行命令
-    2. 等待 GameplayManager 進入可接受動作狀態
-    3. _PostProcessAction() 轉譯為 GameAction
-       - UseCardCommand → 判斷是否需要子選取
-         → 需要：啟動 SubSelectionPresenter 取得目標
-         → 不需要：直接建立 UseCardAction
-       - TurnSubmitCommand → TurnSubmitAction
-    4. 將 GameAction 送入 GameplayManager 的佇列
-    5. 等待 GameplayManager 處理完成
-    6. 取得事件列表 → GameplayView.Render()
-```
-
-UI、子選取、卡片詳情 Popup 與勝負面板皆接收同一生命週期 Token，並以 `finally` 保證關閉面板與釋放 UniRx 訂閱。下層不吞掉取消例外，避免被上層誤判為 loop 無故正常結束。
-
-## 命令與動作
-
-### GameCommand（View → Presenter）
-
-玩家在 UI 上的操作被封裝為命令：
-- `UseCardCommand`：點擊/拖曳卡牌（含可選的主目標）
-- `TurnSubmitCommand`：點擊送出按鈕
-
-### GameAction（Presenter → Model）
-
-Presenter 將命令轉譯為遊戲邏輯動作：
-- `UseCardAction`：打出卡牌（含主選取 + 子選取集合）
-  - `MainSelectionAction`：主目標（角色/卡牌/無）
-  - 子選取：`ExistCardSubSelectionAction`、`NewCardSubSelectionAction` 等
-- `TurnSubmitAction`：結束回合
-
-### 轉譯過程
-
-```
-UseCardCommand（卡牌 Guid + 可選主目標）
-  ↓
-檢查卡牌是否有子選取需求
-  ├── 有：啟動 SubSelectionPresenter → 取得選取結果
-  └── 無：直接建立
-  ↓
-UseCardAction（卡牌 Guid + 主選取 + 子選取字典）
-```
-
-## BattleBuilder — 依賴建構器
-
-使用 Builder Pattern 建構戰鬥所需的所有運行時物件：
-
-### ConstructGameContextManager()
-建立 GameContextManager 並初始化所有 Library：
-- CardLibrary、CardBuffLibrary
-- PlayerBuffLibrary、CharacterBuffLibrary
-- DispositionLibrary、LocalizeLibrary
-
-### ConstructBattle()
-建立 GameStageSetting（不可變的戰鬥配置）：
-- StageID、RandomSeed
-- AllyInstance、EnemyData
-
-## Context — 全域遊戲配置
-
-單例物件，持有從 ScriptableObject 載入的所有遊戲配置：
-- 卡牌/Buff 資料表（ID → Data 字典）
-- 好感度設定
-- 敵人定義集合
-- 玩家實例（AllyInstance）
-- 本地化字典
-
-## ScriptableDataLoader — 資料載入器
-
-序列化引用 `GameContentCatalog`、`AllPlayerScriptable` 與 `ExcelDatas`，提供屬性存取：
-- 從 `GameContentCatalog` 取得卡牌、CardBuff、PlayerBuff、CharacterBuff 資料
-- 從 `AllPlayerScriptable` 取得 Ally 與 Enemy 資料
-- 從 `ExcelDatas` 解析好感度設定與本地化字典
-
-## GameStageSetting — 關卡配置
-
-Record 類型的不可變戰鬥設定：
-- StageID：關卡識別碼
-- RandomSeed：隨機種子（確保可重現）
-- AllyInstance：友軍玩家快照
-- EnemyData：敵軍配置
-
-## LevelMap 子系統
-
-### LevelMapPresenter
-
-簡單的狀態機：
-- Walk（預設）→ Battle（選擇關卡）→ Leave（退出）
-- 回傳 `LevelMapCommand` 供 Main 遊戲迴圈使用
-
-### LevelMapView
-
-最小的視覺元件，提供關卡按鈕點擊回調。
-
-## 設計模式
-
-| 模式 | 應用 |
-|------|------|
-| **MVP** | Presenter 作為 Model 與 View 的唯一橋樑 |
-| **Builder** | BattleBuilder 建構複雜依賴 |
-| **Command** | GameCommand / GameAction 封裝互動意圖 |
-| **非同步事件迴圈** | UniTaskPresenter 驅動模態流程 |
-| **狀態機** | LevelMapPresenter 管理關卡選擇流程 |
-
-## 相關文件
-
-- [GameModel 核心邏輯](GameModel.md) — Presenter 驅動的邏輯引擎
-- [GameView 視覺呈現層](GameView.md) — Presenter 分發的渲染層
-- [Scene 場景管理](Scene.md) — 載入 Presenter 的容器
-- [SystemArchitecture 架構總覽](SystemArchitecture.md) — MVP 架構說明
+Lose 面板提供 Retry／Restart／Quit。Win 面板目前只有顯示與隱藏，Win Presenter 沒有正常完成事件，會持續等待至取消。地圖目前只有點擊開戰入口；完整場景結果處理見 [Scene](Scene.md)，缺口列於 [TODO](TODO.md)。
