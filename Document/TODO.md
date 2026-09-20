@@ -24,6 +24,7 @@
 ├─ T-026 Buff 資源上限接線
 ├─ T-027 減少好感度事件呈現
 ├─ T-028 可配置的卡片出牌條件
+├─ T-029 GameplayManager 職責拆分
 ├─ T-013 敵人動態增減
 └─ T-014 Preview / Simulation
 ```
@@ -43,9 +44,9 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 - **執行模型**：同時只允許一個完整出牌流程；目前出牌中產生的間接出牌請求以 FIFO 延後到目前卡片完成離場後執行，整條出牌鏈需有共同 Budget 防止循環。
 - **事件**：為 `UsedCardEvent` 增加出牌原因，區分主動出牌與 Effect 間接出牌。
 - **失效規則**：卡片不在手牌、已被 `Sealed` 或無法建立合法自動目標時，不移入 `PlayingCard`、不產生出牌事件、不派送 `EffectPlayed`。
-- **程式核對**：共用單張出牌核心、出牌原因與支付資料已建立；CardPlaySource 公式改依卡片擁有者計算。顯式選取視角、候選範圍、First／Random，以及 ExistCard 群組結果 Context 已完成接線；尚無正式間接出牌 Effect／FIFO Queue 與共同 Budget。
+- **程式核對**：共用單張出牌核心、出牌原因、支付資料與擁有者公式已建立。顯式選取視角、ExistCard 群組 Context、FIFO 出牌鏈與共同 Budget 已接線至主動出牌、Timing、系統抽牌、Initialize 及回合清手根入口；正式 PlayCardEffect 資料／Resolver／Handler、敵人預選整合與完整呈現驗證尚未完成。
 - **依據**：[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[SelectTargetLogic](../Assets/Scripts/GameModel/EnemyLogic/SelectTargetLogic.cs)、[GameEvent](../Assets/Scripts/GameModel/GameEvent.cs)。
-- **狀態**：🔄 進行中（第 1～2 個工作已確認；第 3 個工作已完成實作，待確認）
+- **狀態**：🔄 進行中（第 1～3 個工作已確認；第 4 個工作已完成實作，待確認）
 
 ### T-023：完成 `InvokeCardEffects` 原地執行卡效能力
 
@@ -166,6 +167,14 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 - **工作**：定義可序列化的出牌前置條件、失敗提示、玩家／敵人／間接出牌是否共用，以及條件應在哪個 Context 與時點評估。
 - **完成條件**：企劃可在 CardData 配置必要條件；所有正式出牌入口使用同一合法性規則，失敗時不支付費用、不移入 `PlayingCard`、不產生出牌事件。
 - **狀態**：⬜ 未來待排期。
+
+### T-029：GameplayManager 職責拆分
+
+- **範圍**：GameModel 內部重構；T-022 完成後另行評估排期，不插入目前主線。
+- **現況**：GameplayManager 同時承擔回合、出牌、效果根入口、事件與勝負收斂，閱讀及修改成本逐漸增加。
+- **工作**：優先評估抽離單張出牌流程與出牌鏈協調，釐清查詢／執行介面及事件擁有權；入口保留可直接閱讀的具名流程，避免只為消除少量重複而引入委派抽象。
+- **完成條件**：責任與依賴清楚，既有 FIFO、Budget、選取作用域、事件順序與中止清理測試全部通過，遊戲行為不變。
+- **狀態**：⬜ 待 T-022 完成後評估；本次只記錄，不實作。
 
 ## 未來可能方向（非待辦）
 

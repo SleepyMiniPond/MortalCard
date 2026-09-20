@@ -63,10 +63,13 @@ namespace MortalGame.GameModel
         private GameStageSetting _gameStageSetting;
         private GameStatus _gameStatus;
         private Option<BattleResult> _battleResult;
-        private List<IGameEvent> _gameEvents;
+        private List<IGameEvent> _gameEvents = new();
         private UniTaskAwaitableQueue<IGameAction> _gameActions;
         private IGameContextManager _contextMgr;
-        private GameHistory _gameHistory;
+        private GameHistory _gameHistory; // TODO
+        private Option<CardPlayChain> _activeCardPlayChain = Option.None<CardPlayChain>();
+        private CancellationToken _battleCancellationToken;
+        internal int CardPlayChainBudget { get; set; } = EffectQueueRunner.BUDGET_COUNT;
 
         public Option<BattleResult> BattleResult { get { return _battleResult; } }
         GameStatus IGameplayModel.GameStatus { get { return _gameStatus; } }
@@ -97,7 +100,15 @@ namespace MortalGame.GameModel
             _gameActions = new UniTaskAwaitableQueue<IGameAction>();
             _battleResult = Option.None<BattleResult>();
 
-            await _Run(cancellationToken);
+            _battleCancellationToken = cancellationToken;
+            try
+            {
+                await _Run(cancellationToken);
+            }
+            finally
+            {
+                _battleCancellationToken = CancellationToken.None;
+            }
 
             return _battleResult;
         }
@@ -136,10 +147,10 @@ namespace MortalGame.GameModel
 
         private async UniTask _Run(CancellationToken cancellationToken)
         {
-            _GameStart();
-
             try
             {
+                cancellationToken.ThrowIfCancellationRequested();
+                _GameStart();
                 while (true)
                 {
                     _TurnStart();
@@ -231,7 +242,7 @@ namespace MortalGame.GameModel
                             candidate.Card,
                             CardTriggeredTiming.Initialize,
                             SystemSource.Instance));
-                return EffectQueueRunner.RunToCompletion(initialQueueItems).Events;
+                return RunEffectBatch(initialQueueItems).Events;
             }
 
             AllyEntity ParseAlly(AllyInstance allyInstance, IGameContextManager gameContextManager)
@@ -456,7 +467,7 @@ namespace MortalGame.GameModel
                             SystemSource.Instance));
 
                 _gameEvents.AddRange(
-                    EffectQueueRunner.RunToCompletion(cardTimingItems).Events);
+                    RunEffectBatch(cardTimingItems).Events);
             }
         }
 
@@ -481,19 +492,127 @@ namespace MortalGame.GameModel
         }
         private bool _UseCard(IPlayerEntity player, UseCardAction action)
         {
-            if (!_TrySetUseCardSelection(action, out var selectionScope))
-            {
-                return false;
-            }
+            if (_activeCardPlayChain.HasValue)
+                throw new InvalidOperationException("完整出牌流程不可重入；請改為排入出牌請求。");
 
+            var result = _RunCardPlayChain(new ActiveCardPlayRoot(player, action));
+            _gameEvents.AddRange(result.Effects.Events);
+            return result.CardPlayed;
+        }
+
+        private bool _ExecuteSelectedCard(CardPlayChain chain, IPlayerEntity player, UseCardAction action, CardPlayReason reason)
+        {
+            if (!_TrySetUseCardSelection(action, out var selectionScope))
+                return false;
+
+            bool succeeded;
             using (selectionScope)
             {
-                return _ExecuteCardPlay(player, action.CardIndentity, CardPlayReason.Active);
+                succeeded = _ExecuteCardPlay(chain, player, action.CardIndentity, reason);
+            }
+            if (succeeded)
+                _CheckGameEnd();
+            return succeeded;
+        }
+
+        private void _ExecuteCardPlayRequest(CardPlayChain chain, CardPlayRequest request)
+        {
+            if (!_gameStatus.GetPlayer(request.OwnerIdentity).TryGetValue(out var owner))
+                return;
+            var card = owner.CardManager.HandCard.Cards.FirstOrDefault(c => c.Identity == request.CardIdentity);
+            if (card == null || card.HasProperty(CardProperty.Sealed))
+                return;
+
+            using (_contextMgr.SetContext(GameContext.EMPTY))
+            {
+                if (!SelectTargetLogic.SelectTargets(this, card, owner).TryGetValue(out var selection))
+                    return;
+                _ExecuteSelectedCard(chain, owner,
+                    new UseCardAction(card.Identity, selection.MainSelectionAction, selection.SubSelectionActions),
+                    CardPlayReason.Effect);
             }
         }
 
-        private bool _ExecuteCardPlay(IPlayerEntity player, Guid cardIdentity, CardPlayReason reason)
+        public void EnqueueCardPlay(CardPlayRequest request)
         {
+            if (!_activeCardPlayChain.TryGetValue(out var chain))
+                throw new InvalidOperationException("出牌請求必須由效果根批次提交。");
+            chain.Enqueue(request);
+        }
+
+        public EffectResult RunEffectBatch(IEnumerable<EffectQueueItem> items)
+        {
+            if (_activeCardPlayChain.TryGetValue(out var activeChain))
+                return activeChain.RunEffects(items);
+
+            return _RunCardPlayChain(new EffectBatchRoot(items)).Effects;
+        }
+
+        // 根工作只攜帶資料；實際執行分支集中於下方，不傳入委派。
+        private abstract record CardPlayChainRoot;
+        private sealed record ActiveCardPlayRoot(IPlayerEntity Player, UseCardAction Action) : CardPlayChainRoot;
+        private sealed record EffectBatchRoot(IEnumerable<EffectQueueItem> Items) : CardPlayChainRoot;
+        private sealed record CardPlayChainResult(bool CardPlayed, EffectResult Effects);
+
+        private CardPlayChainResult _RunCardPlayChain(CardPlayChainRoot root)
+        {
+            var chain = new CardPlayChain(CardPlayChainBudget, _battleCancellationToken);
+            _activeCardPlayChain = chain.Some();
+            var result = EffectResult.Empty;
+            var rootCompleted = false;
+            var cardPlayed = false;
+            try
+            {
+                try
+                {
+                    switch (root)
+                    {
+                        case ActiveCardPlayRoot active:
+                            chain.BeginStep($"ActiveCard:{active.Action.CardIndentity}");
+                            cardPlayed = _ExecuteSelectedCard(chain, active.Player, active.Action, CardPlayReason.Active);
+                            break;
+                        case EffectBatchRoot batch:
+                            result = chain.RunEffects(batch.Items);
+                            break;
+                        default:
+                            throw new InvalidOperationException("不支援的出牌鏈根工作。");
+                    }
+                    rootCompleted = true;
+                    
+                    while (chain.TryDequeue(out var request))
+                    {
+                        chain.BeginStep($"CardPlayRequest:{request.CardIdentity};Source:{request.RequestedBy.GetType().Name}");
+                        _ExecuteCardPlayRequest(chain, request);
+                    }
+                }
+                catch (CardPlayChainHaltedException halted)
+                {
+                    // 根批次中止時保留其部分結果；後續牌的結果不可倒灌。
+                    if (!rootCompleted && root is EffectBatchRoot)
+                        result = halted.PartialResult;
+                }
+                return new CardPlayChainResult(cardPlayed,
+                    new EffectResult(result.Actions, chain.Events.ToArray()));
+            }
+            catch
+            {
+                // 無法正常回傳時，仍保留已提交事件供畫面同步。
+                _gameEvents.AddRange(chain.Events);
+                throw;
+            }
+            finally
+            {
+                chain.Clear();
+                _activeCardPlayChain = Option.None<CardPlayChain>();
+            }
+        }
+
+        private bool _ExecuteCardPlay(CardPlayChain chain, IPlayerEntity player, Guid cardIdentity, CardPlayReason reason)
+        {
+            if (_gameStatus.Ally.CardManager.PlayingCard.HasValue ||
+                _gameStatus.Enemy.CardManager.PlayingCard.HasValue)
+                return false;
+
             var usedCard = player.CardManager.HandCard.Cards.FirstOrDefault(c => c.Identity == cardIdentity);
             if (usedCard == null || usedCard.HasProperty(CardProperty.Sealed))
             {
@@ -524,84 +643,104 @@ namespace MortalGame.GameModel
                 return false;
             }
 
-            var useCardEvents = new List<IGameEvent>();
             var cardPlaySource = new CardPlaySource(
                 usedCard, handCardIndex, handCardsCount, reason, payment, new CardPlayAttributeEntity());
             var cardPlayTrigger = new CardPlayTrigger(cardPlaySource);
             var cardPlayIntent = new CardPlayIntentAction(cardPlaySource);
             var cardPlayTriggerContext = new TriggerContext(this, cardPlayTrigger, cardPlayIntent);
             CardPlayResultSource cardPlayResultSource;
-            using (playCardDisposable)
+            var completed = false;
+            try
             {
-                if (payment.TryGetValue(out var paid))
+                using (playCardDisposable)
                 {
-                    var result = player.EnergyManager.ConsumeEnergy(paid.EnergySpent);
-                    useCardEvents.Add(new LoseEnergyEvent(player.Faction, player.EnergyManager.ToInfo(), result));
+                    if (payment.TryGetValue(out var paid))
+                    {
+                        var result = player.EnergyManager.ConsumeEnergy(paid.EnergySpent);
+                        chain.Record(new LoseEnergyEvent(player.Faction, player.EnergyManager.ToInfo(), result));
+                    }
+                    _RunTiming(
+                        GameTiming.BeforePlayCardStart,
+                        cardPlaySource);
+
+                    chain.Record(ObserveRootAction(cardPlayIntent));
+
+                    // TODO：檢查並移除過期 Buff，派送對應移除事件。
+
+                    _RunTiming(
+                        GameTiming.AfterPlayCardStart,
+                        cardPlaySource);
+
+                    var effectActionResults = new List<BaseResultAction>();
+
+                    var repeatTimes = Math.Max(1, effectRepeat);
+                    for (int i = 0; i < repeatTimes; i++)
+                    {
+                        chain.BeginStep($"CardEffectRepeat:{usedCard.Identity}:{i}");
+                        var effectResult = RunEffectBatch(
+                            usedCard.Effects.Select(effect =>
+                                new CardEffectQueueItem(
+                                    cardPlayTriggerContext,
+                                    effect)));
+
+                        effectActionResults.AddRange(effectResult.Actions);
+                    }
+
+                    var usedCardEvent = new UsedCardEvent(
+                        Faction: player.Faction,
+                        UsedCardIdentity: usedCard.Identity,
+                        CardManagerInfo: player.CardManager.ToInfo(),
+                        Reason: cardPlaySource.Reason);
+                    chain.Record(usedCardEvent);
+
+                    var playedResult = RunEffectBatch(
+                        CardTriggeredEffectDispatch.CreateItems(
+                            cardPlayTriggerContext,
+                            usedCard,
+                            cardPlaySource.Reason == CardPlayReason.Active
+                            ? CardTriggeredTiming.Played
+                            : CardTriggeredTiming.EffectPlayed));
+
+                    effectActionResults.AddRange(playedResult.Actions);
+
+                    cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
+
+                    chain.Record(
+                        ObserveRootAction(new CardPlayResultAction(cardPlayResultSource)));
+                    _RunTiming(
+                        GameTiming.BeforePlayCardEnd,
+                        cardPlayResultSource);
                 }
-                useCardEvents.AddRange(_RunTiming(
-                    GameTiming.BeforePlayCardStart,
-                    cardPlaySource));
 
-                useCardEvents.AddRange(ObserveRootAction(cardPlayIntent));
-
-                // TODO：檢查並移除過期 Buff，派送對應移除事件。
-
-                useCardEvents.AddRange(_RunTiming(
-                    GameTiming.AfterPlayCardStart,
-                    cardPlaySource));
-
-                var effectActionResults = new List<BaseResultAction>();
-
-                var repeatTimes = Math.Max(1, effectRepeat);
-                for (int i = 0; i < repeatTimes; i++)
+                if (usedCard.HasProperty(CardProperty.Recycle))
                 {
-                    var effectResult = EffectQueueRunner.RunToCompletion(
-                        usedCard.Effects.Select(effect =>
-                            new CardEffectQueueItem(
-                                cardPlayTriggerContext,
-                                effect)));
-                    useCardEvents.AddRange(effectResult.Events);
-                    effectActionResults.AddRange(effectResult.Actions);
+                    var recycleResult = EffectManager.RecycleCardOnPlayEnd(this, player, usedCard);
+                    chain.Record(recycleResult.Events);
                 }
 
-                var usedCardEvent = new UsedCardEvent(
-                    Faction: player.Faction,
-                    UsedCardIdentity: usedCard.Identity,
-                    CardManagerInfo: player.CardManager.ToInfo(),
-                    Reason: cardPlaySource.Reason);
-                useCardEvents.Add(usedCardEvent);
-
-                var playedResult = EffectQueueRunner.RunToCompletion(
-                    CardTriggeredEffectDispatch.CreateItems(
-                        cardPlayTriggerContext,
-                        usedCard,
-                        cardPlaySource.Reason == CardPlayReason.Active
-                        ? CardTriggeredTiming.Played
-                        : CardTriggeredTiming.EffectPlayed));
-                useCardEvents.AddRange(playedResult.Events);
-                effectActionResults.AddRange(playedResult.Actions);
-
-                cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
-
-                useCardEvents.AddRange(
-                    ObserveRootAction(new CardPlayResultAction(cardPlayResultSource)));
-                useCardEvents.AddRange(_RunTiming(
-                    GameTiming.BeforePlayCardEnd,
-                    cardPlayResultSource));
+                _RunTiming(
+                    GameTiming.AfterPlayCardEnd,
+                    cardPlayResultSource);
+                completed = true;
             }
-
-            if (usedCard.HasProperty(CardProperty.Recycle))
+            finally
             {
-                var recycleResult = EffectManager.RecycleCardOnPlayEnd(this, player, usedCard);
-                useCardEvents.AddRange(recycleResult.Events);
+                if (!completed)
+                {
+                    // PlayingCard 的 Dispose 已完成；只同步真實離場，不偽造 UsedCard 或 Result。
+                    if (player.CardManager.HandCard.Cards.Any(c => c.Identity == usedCard.Identity))
+                        chain.Record(new PlayerExecuteEndEvent(player.Faction, player.CardManager.ToInfo()));
+                    else
+                    {
+                        var destination = player.CardManager.ExclusionZone.Cards.Any(c => c.Identity == usedCard.Identity)
+                            ? CardCollectionType.ExclusionZone : CardCollectionType.Graveyard;
+                        chain.Record(new MoveCardEvent(player.Faction, usedCard.Identity,
+                            CardCollectionType.HandCard, destination, player.CardManager.ToInfo()));
+                    }
+                }
             }
-
-            useCardEvents.AddRange(_RunTiming(
-                GameTiming.AfterPlayCardEnd,
-                cardPlayResultSource));
 
             OnUseCard?.Invoke();
-            _gameEvents.AddRange(useCardEvents);
             return true;
         }
 
@@ -649,9 +788,7 @@ namespace MortalGame.GameModel
             GameTiming timing,
             IActionSource actionSource)
         {
-            var effectQueueRunner = new EffectQueueRunner();
-            effectQueueRunner.Enqueue(new TriggerTimingQueueItem(this, timing, actionSource));
-            var result = effectQueueRunner.RunToCompletion();
+            var result = RunEffectBatch(new[] { new TriggerTimingQueueItem(this, timing, actionSource) });
             return result.Events;
         }
 

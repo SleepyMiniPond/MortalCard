@@ -2,7 +2,6 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
-using UnityEngine;
 namespace MortalGame.GameModel
 {
 
@@ -10,6 +9,8 @@ namespace MortalGame.GameModel
     {
         GameStatus GameStatus { get; }
         IGameContextManager ContextManager { get; }
+        EffectResult RunEffectBatch(IEnumerable<EffectQueueItem> items);
+        void EnqueueCardPlay(CardPlayRequest request);
         Option<SubSelectionInfo> QueryCardSubSelectionInfos(
             Guid cardIdentity,
             MainSelectionAction mainSelectionAction);
@@ -27,6 +28,12 @@ namespace MortalGame.GameModel
 
         public GameStatus GameStatus => _clonedStatus;
         public IGameContextManager ContextManager => _baseModel.ContextManager;
+
+        public EffectResult RunEffectBatch(IEnumerable<EffectQueueItem> items)
+            => _baseModel.RunEffectBatch(items);
+
+        public void EnqueueCardPlay(CardPlayRequest request)
+            => _baseModel.EnqueueCardPlay(request);
 
         public ClonedGameplayModel(IGameplayModel baseModel, GameStatus clonedStatus)
         {

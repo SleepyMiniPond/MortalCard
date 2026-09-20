@@ -34,7 +34,13 @@ Card、PlayerBuff、CharacterBuff、CardBuff 各有明確的 Resolver Registry�
 
 同一 Runner 中的立即衍生項目在目前項目之後優先執行，共用該 Runner 的 Scope／Budget；超限會停駐並保留診斷與未執行項目。
 
-靜態 RunToCompletion 每次建立新 Runner。現有出牌流程的各次 EffectRepeat、Played 與一般 Timing 根入口分別建立 Runner，因此尚無涵蓋整條出牌鏈的共同預算。T-022 要求的間接出牌鏈 Budget 是後續能力，不能當作既有保證。
+正式根入口使用 `IGameplayModel.RunEffectBatch`，由 GameplayManager 建立 [CardPlayChain](../Assets/Scripts/GameModel/Effect/CardPlayChain.cs)。同一張牌的各次 EffectRepeat、Played／EffectPlayed、一般 Timing 與後續間接牌雖使用不同 Runner，仍共用同一 ExecutionScope。獨立根批次及直接建立的 Runner 保持獨立預算；靜態 RunToCompletion 不參與 GameplayManager 出牌鏈。
+
+`EnqueueCardPlay` 只提交卡片／擁有者 Identity 與請求來源，不在 Handler 中執行完整出牌。根批次完成後依 FIFO 處理；A 排入 B、C，B 再排入 D，順序為 A 完整結束 → B → C → D。輪到請求時才重新檢查手牌、Sealed 與自動選取；選取視角為擁有者。每張成功出牌在離場、Recycle、AfterPlayCardEnd 之後判定勝負，結束時清除其餘請求。正式 PlayCardEffect 資料／Resolver／Handler 仍待 T-022 後續接線。
+
+GameplayManager 以 Option<CardPlayChain> 表達是否處於執行鏈內。主動出牌與效果批次以不同的根工作資料呼叫 _RunCardPlayChain，由方法內的 switch 明確執行，不傳入委派。根方法統一處理 Budget、例外事件保存與 finally 清理；正常完成時，主動出牌入口將回傳事件存入 _gameEvents，效果批次入口則將 EffectResult 交給呼叫端，避免重複加入事件。_DrainCardPlayRequests 透過 TryDequeue 取出請求、計算 Budget 並直接執行。
+
+每個 Queue item、出牌嘗試（包含失效請求）及 Repeat 輪次均計入預算，避免零效果牌或極大 Repeat 繞過上限。Budget 超限會中止整條鏈，不繼續派送尚未發生的成功事件；中止前已完成項目的事件會保留。PlayingCard 與 Selected 作用域必定釋放，異常離場另提供真實牌區同步；例外／取消／勝負結束後清除請求，下一根批次使用新預算。
 
 抽牌與效果棄牌的逐卡觸發沿用其原 Runner；回合清手的同一玩家 Preserved／Discarded 共用一個 Runner。FormChanged 的 Self 變形／Override 解除走專用 CardData 路徑；Override 套用及 CardBuff 派送尚未接線，詳見 [CardTransformation](CardTransformation.md)。
 

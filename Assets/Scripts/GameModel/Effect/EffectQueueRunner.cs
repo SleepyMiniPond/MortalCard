@@ -2,6 +2,7 @@ using System;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace MortalGame.GameModel
 {
@@ -64,6 +65,8 @@ namespace MortalGame.GameModel
 
         private readonly LinkedList<PendingEffectQueueItem> _items = new();
         private readonly EffectQueueExecutionScope _executionScope;
+        private readonly Action<IEnumerable<IGameEvent>> _recordEvents;
+        private readonly CancellationToken _cancellationToken;
         private IReadOnlyList<string> _currentTriggerPath = Array.Empty<string>();
 
         public bool IsHalted => _executionScope.IsHalted;
@@ -72,8 +75,18 @@ namespace MortalGame.GameModel
         public EffectQueueHaltDiagnostic HaltDiagnostic => _executionScope.HaltDiagnostic;
 
         public EffectQueueRunner()
+            : this(new EffectQueueExecutionScope(BUDGET_COUNT), _ => { }, CancellationToken.None)
         {
-            _executionScope = new EffectQueueExecutionScope(BUDGET_COUNT);
+        }
+
+        internal EffectQueueRunner(
+            EffectQueueExecutionScope executionScope,
+            Action<IEnumerable<IGameEvent>> recordEvents,
+            CancellationToken cancellationToken)
+        {
+            _executionScope = executionScope;
+            _recordEvents = recordEvents;
+            _cancellationToken = cancellationToken;
         }
 
         public static EffectResult RunToCompletion(IEnumerable<EffectQueueItem> items)
@@ -131,6 +144,7 @@ namespace MortalGame.GameModel
 
             while (_items.Count > 0)
             {
+                _cancellationToken.ThrowIfCancellationRequested();
                 var pendingItem = _items.First.Value;
                 if (!_executionScope.TryBeginItem(pendingItem.TriggerPath))
                     break;
@@ -143,6 +157,7 @@ namespace MortalGame.GameModel
                     var result = pendingItem.Item.Execute(this);
                     actions.AddRange(result.Actions);
                     events.AddRange(result.Events);
+                    _recordEvents(result.Events);
                 }
                 finally
                 {

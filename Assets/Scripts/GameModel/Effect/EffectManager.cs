@@ -13,7 +13,7 @@ namespace MortalGame.GameModel
             IPlayerEntity player,
             IReadOnlyCollection<CardInstance> cardInstances)
         {
-            var effectQueueRunner = new EffectQueueRunner();
+            var items = new List<EffectQueueItem>();
 
             foreach (var cardInstance in cardInstances)
             {
@@ -26,10 +26,10 @@ namespace MortalGame.GameModel
                 var createCardCommand = new EffectCommandSet(
                     new CreateCardEffectCommand(player, newCard, CardCollectionType.Deck).WrapAsEnumerable().ToArray());
 
-                effectQueueRunner.EnqueueCommands(context, createCardCommand);
+                items.AddRange(createCardCommand.Commands.Select(command => new EffectCommandQueueItem(context, command)));
             }
 
-            return effectQueueRunner.RunToCompletion();
+            return model.RunEffectBatch(items);
         }
         public static EffectResult DrawCards(
             IGameplayModel model,
@@ -44,9 +44,8 @@ namespace MortalGame.GameModel
                     .WrapAsEnumerable()
                     .ToArray());
 
-            var effectQueueRunner = new EffectQueueRunner();
-            effectQueueRunner.EnqueueCommands(context, drawCommand);
-            var drawCardResult = effectQueueRunner.RunToCompletion();
+            var drawCardResult = model.RunEffectBatch(drawCommand.Commands
+                .Select(command => new EffectCommandQueueItem(context, command)));
 
             return new EffectResult(drawCardResult.Actions.ToArray(), drawCardResult.Events.ToArray());
         }

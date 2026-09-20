@@ -29,7 +29,7 @@ Scene 組裝 Presenter 與 View；Presenter 協調 Model 和 View，GameView 不
 
 - [Instance](Instance.md) 保存跨戰鬥 Domain 狀態，目前並非磁碟存檔契約。
 - [Card](Card.md) 定義卡片流轉與生命週期；[CardTransformation](CardTransformation.md) 定義形態優先順序與持久化邊界。
-- [Effect](Effect.md) 統一效果解析及排程；同一 Runner 的連鎖共用預算，不等於整次出牌共用唯一預算。
+- [Effect](Effect.md) 統一效果解析及排程；正式出牌與效果根批次透過 CardPlayChain 協調 FIFO，跨 Runner 共用整條鏈的執行預算。
 - [Presenter](Presenter.md) 監督非同步工作，取消後等待清理；[Scene](Scene.md) 記錄場景結果流程限制。
 - UniTask、UniRx、Option 與 Odin 的使用原則見 [Coding_Standards](Coding_Standards.md)。
 

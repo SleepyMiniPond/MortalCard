@@ -26,8 +26,8 @@ ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可�
 
 [CardPlaySource](../Assets/Scripts/GameModel/Action/ActionSource.cs) 保存出牌卡、手牌位置、出牌原因、支付資料與本次屬性修正。`Payment` 有值代表本次支付的能量（可為 0）；無值表示未支付，預覽亦不偽造支付命令。`UsedCardEvent.Reason` 與 Played／EffectPlayed 派送共用 Source 的原因；結果 Source 聚合普通效果及本次出牌生命週期的 Result。
 
-`GameplayManager._UseCard` 建立並還原完整 Selected Context，再交給 `_ExecuteCardPlay` 結算單張卡片。目前正式入口仍只有主動出牌，間接請求與排程尚待 T-022 後續工作。CardPlaySource 的公式加成由卡片擁有者取得，不依賴或修改 CurrentPlayer。
+`GameplayManager._UseCard` 建立主動出牌根批次，`_ExecuteSelectedCard` 建立並還原完整 Selected Context，再交給 `_ExecuteCardPlay` 結算單張卡片。間接請求經 FIFO 協調器重新建立選取後共用單張核心；正式 PlayCardEffect 資料與 Handler 仍待 T-022 後續工作。CardPlaySource 的公式加成由卡片擁有者取得，不依賴或修改 CurrentPlayer。
 
-CardTriggeredTimingAction 表達某張卡的生命週期，其 GameTiming 維持 None，兩套時機不混用。共用派送已接入的時機見 [Card](Card.md)。FormChanged 仍使用 CardFormChangedAction 的 CardData 專用路徑；EffectPlayed 尚無正式出牌入口。
+CardTriggeredTimingAction 表達某張卡的生命週期，其 GameTiming 維持 None，兩套時機不混用。共用派送已接入的時機見 [Card](Card.md)。FormChanged 仍使用 CardFormChangedAction 的 CardData 專用路徑。間接牌建立自己的 CardPlayIntent 根來源，其 Result 不併入發起效果的結果集合。
 
 目標及值的查詢契約見 [Target](Target.md)、[Value](Value.md)、[Condition](Condition.md)，排程與副作用見 [Effect](Effect.md)。
