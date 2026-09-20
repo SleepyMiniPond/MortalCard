@@ -114,7 +114,7 @@ namespace MortalGame.GameModel
             {
                 var cardPlayAttribute = cardPlaySource.Attribute.IntValues
                     .GetValueOrDefault(attribute, 0);
-                return triggerContext.Model.GameStatus.CurrentPlayer.Value
+                return cardPlaySource.Card.Owner(triggerContext.Model)
                     .FlatMap(player => player.GetPlayerBuffAdditionProperty(triggerContext, playerBuffProperty))
                     .FlatMap(playerAttribute => GameplayIntegerMath.Add(cardPlayAttribute, playerAttribute));
             }
@@ -129,7 +129,7 @@ namespace MortalGame.GameModel
             {
                 var cardPlayAttribute = cardPlaySource.Attribute.FloatValues
                     .GetValueOrDefault(attribute, 0);
-                var playerAttribute = triggerContext.Model.GameStatus.CurrentPlayer.Value
+                var playerAttribute = cardPlaySource.Card.Owner(triggerContext.Model)
                     .Map(player => player.GetPlayerBuffRatioProperty(triggerContext, playerBuffProperty))
                     .ValueOr(0);
 

@@ -60,7 +60,7 @@ namespace MortalGame.GameModel
     public record EnemyUnselectedCardEvent(ImmutableArray<Guid> UnselectedCards) : IGameEvent;
     public record PlayerExecuteStartEvent(Faction Faction, CardManagerInfo CardManagerInfo, CardCollectionInfo HandCardInfo) : IGameEvent;
     public record PlayerExecuteEndEvent(Faction Faction, CardManagerInfo CardManagerInfo) : IGameEvent;
-    public record UsedCardEvent(Faction Faction, Guid UsedCardIdentity, CardManagerInfo CardManagerInfo) : IGameEvent;
+    public record UsedCardEvent(Faction Faction, Guid UsedCardIdentity, CardManagerInfo CardManagerInfo, CardPlayReason Reason) : IGameEvent;
 
     public record GainEnergyEvent(Faction Faction, EnergyInfo Info, GainEnergyResult GainEnergyResult) : IGameEvent, IAnimationNumberEvent;
     public record LoseEnergyEvent(Faction Faction, EnergyInfo Info, LoseEnergyResult LoseEnergyResult) : IGameEvent, IAnimationNumberEvent;

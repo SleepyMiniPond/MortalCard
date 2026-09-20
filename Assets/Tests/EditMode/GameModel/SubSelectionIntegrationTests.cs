@@ -325,13 +325,7 @@ namespace MortalGame.Tests
                 });
             InitializeEventBuffer(built.Manager);
 
-            Assert.That(
-                TrySetUseCardSelection(built.Manager, action, out var selectionScope),
-                Is.True);
-            using (selectionScope)
-            {
-                InvokeUseCard(built.Manager, built.Ally, playedCard.Identity);
-            }
+            InvokeUseCard(built.Manager, built.Ally, action);
 
             Assert.That(
                 built.Ally.CardManager.Graveyard.Cards
@@ -385,29 +379,14 @@ namespace MortalGame.Tests
                 ?.SetValue(manager, new List<IGameEvent>());
         }
 
-        private static bool TrySetUseCardSelection(
-            GameplayManager manager,
-            UseCardAction action,
-            out IGameContextManager selectionScope)
-        {
-            var arguments = new object[] { action, null };
-            var result = (bool)typeof(GameplayManager)
-                .GetMethod(
-                    "_TrySetUseCardSelection",
-                    BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.Invoke(manager, arguments)!;
-            selectionScope = (IGameContextManager)arguments[1];
-            return result;
-        }
-
         private static void InvokeUseCard(
             GameplayManager manager,
             IPlayerEntity player,
-            Guid cardIdentity)
+            UseCardAction action)
         {
             typeof(GameplayManager)
                 .GetMethod("_UseCard", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.Invoke(manager, new object[] { player, cardIdentity });
+                ?.Invoke(manager, new object[] { player, action });
         }
 
         private sealed class FixedCardCollection : ITargetCardCollectionValue

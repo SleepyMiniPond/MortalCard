@@ -4,6 +4,7 @@ using System.Reflection;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
+using Optional;
 
 namespace MortalGame.Tests
 {
@@ -519,6 +520,77 @@ namespace MortalGame.Tests
                 Is.True);
         }
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void CardFormula_UsesOwnerBuffWithDifferentOrMissingCurrentPlayer(bool hasCurrentPlayer)
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Enemy.CardManager.HandCard.AddCard(card);
+            built.Enemy.BuffManager.AddBuff(new PlayerBuffEntity(
+                "owner-addition", System.Guid.NewGuid(), 1, 1, Option.None<IPlayerEntity>(),
+                new IPlayerBuffPropertyEntity[]
+                {
+                    new NormalDamageAdditionPlayerBuffPropertyEntity(new ConstInteger { Value = 7 }),
+                    new NormalDamageRatioPlayerBuffPropertyEntity(0.5f)
+                },
+                new AlwaysLifeTimePlayerBuffEntity(), new Dictionary<string, IReactionSessionEntity>()));
+            var source = new CardPlaySource(card, 0, 1, CardPlayReason.Active,
+                Option.None<CardPlayPayment>(), new CardPlayAttributeEntity());
+            var context = new TriggerContext(built.Manager, new CardPlayTrigger(source), new CardPlayIntentAction(source));
+            using var currentPlayerScope = hasCurrentPlayer ? built.Status.SetCurrentPlayer(built.Ally) : null;
+            var before = built.Status.CurrentPlayer.Value;
+
+            Assert.That(GameFormula.NormalDamagePoint(context, 3).ValueOr(-1), Is.EqualTo(10));
+            var ratio = typeof(GameFormula).GetMethod("_GetAttributeRatio", BindingFlags.Static | BindingFlags.NonPublic)
+                .Invoke(null, new object[] { context, EffectAttributeRatioType.NormalDamageRatio, PlayerBuffProperty.NormalDamageRatio });
+            Assert.That(ratio, Is.EqualTo(0.5f));
+            Assert.That(built.Status.CurrentPlayer.Value, Is.EqualTo(before));
+        }
+
+        [TestCase(false)]
+        [TestCase(true)]
+        public void UseCard_InvalidOrUnaffordableCardDoesNotPayOrNotify(bool sealedCard)
+        {
+            var data = CardTestBuilder.CreateCardData();
+            data.Cost = sealedCard ? 0 : 1;
+            if (sealedCard) data.PropertyDatas.Add(new SealedPropertyData());
+            var built = new GameplayManagerTestBuilder().WithCard(data).Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            _InitializeEventBuffer(built.Manager);
+            var notified = false;
+            built.Manager.OnUseCard += () => notified = true;
+
+            _InvokeUseCard(built.Manager, built.Ally, card.Identity);
+
+            Assert.That(built.Manager.PopAllEvents(), Is.Empty);
+            Assert.That(built.Ally.CurrentEnergy, Is.Zero);
+            Assert.That(notified, Is.False);
+            Assert.That(built.Ally.CardManager.HandCard.Cards, Does.Contain(card));
+            Assert.That(built.ContextManager.Context, Is.EqualTo(GameContext.EMPTY));
+        }
+
+        [Test]
+        public void UseCard_ClearsInheritedSelectionAndRestoresItAfterCompletion()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            _InitializeEventBuffer(built.Manager);
+            var outer = GameContext.EMPTY with { SelectedCard = System.Guid.NewGuid() };
+            GameContext observed = null;
+            built.Manager.OnUseCard += () => observed = built.ContextManager.Context;
+            using (built.ContextManager.SetContext(outer))
+            {
+                _InvokeUseCard(built.Manager, built.Ally, card.Identity);
+                Assert.That(built.ContextManager.Context, Is.EqualTo(outer));
+            }
+            Assert.That(observed, Is.EqualTo(GameContext.EMPTY));
+            Assert.That(built.Manager.PopAllEvents().OfType<UsedCardEvent>().Single().Reason,
+                Is.EqualTo(CardPlayReason.Active));
+        }
+
         private static void _InitializeEventBuffer(GameplayManager manager)
         {
             typeof(GameplayManager)
@@ -533,7 +605,8 @@ namespace MortalGame.Tests
         {
             typeof(GameplayManager)
                 .GetMethod("_UseCard", BindingFlags.Instance | BindingFlags.NonPublic)
-                ?.Invoke(manager, new object[] { player, cardIdentity });
+                ?.Invoke(manager, new object[] { player, new UseCardAction(
+                    cardIdentity, MainSelectionAction.Empty, new Dictionary<string, ISubSelectionAction>()) });
         }
 
         private sealed class ContainsAddCardBuffResultCondition : ICardPlayResultValueCondition

@@ -3,6 +3,7 @@ using System.Linq;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
+using Optional;
 
 namespace MortalGame.Tests
 {
@@ -243,7 +244,8 @@ namespace MortalGame.Tests
                 card,
                 0,
                 1,
-                new LoseEnergyEffectCommand(player, 0),
+                CardPlayReason.Active,
+                new CardPlayPayment(0).Some(),
                 new CardPlayAttributeEntity());
         }
 

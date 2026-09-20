@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Optional;
 using UnityEngine;
 
 namespace MortalGame.GameModel
@@ -17,11 +18,20 @@ namespace MortalGame.GameModel
 
     public record SystemExectueEndSource(IPlayerEntity Player) : IActionSource;
 
+    public enum CardPlayReason
+    {
+        Active = 0,
+        Effect = 1
+    }
+
+    public record CardPlayPayment(int EnergySpent);
+
     public record CardPlaySource(
         ICardEntity Card,
         int HandCardIndex,
         int HandCardsCount,
-        LoseEnergyEffectCommand ConsumeEnergy,
+        CardPlayReason Reason,
+        Option<CardPlayPayment> Payment,
         IEffectAttribute Attribute) : IActionSource
     {
         public CardPlayResultSource CreateResultSource(IReadOnlyList<IEffectResultAction> effectResults)

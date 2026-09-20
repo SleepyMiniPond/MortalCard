@@ -101,10 +101,9 @@ namespace MortalGame.GameModel
             var handCardsCount = cardOwnerCardManager.Map(manager => manager.Cards.Count).ValueOr(0);
             var basicInfo = card.ToInfo(gameWatcher);
 
-            //TODO: collect real player.EnergyLoseCommand
-            var energyLoseCommand = new LoseEnergyEffectCommand(card.Owner(gameWatcher).ValueOr(DummyPlayer.Instance), 0);
-
-            var cardPlaySource = new CardPlaySource(card, handCardIndex, handCardsCount, energyLoseCommand, new CardPlayAttributeEntity());
+            // 預覽尚未支付費用，不建立假的扣能量命令。
+            var cardPlaySource = new CardPlaySource(card, handCardIndex, handCardsCount,
+                CardPlayReason.Active, Option.None<CardPlayPayment>(), new CardPlayAttributeEntity());
             var cardPreviewTriggerContext = new TriggerContext(
                 gameWatcher,
                 new CardPlayTrigger(cardPlaySource),

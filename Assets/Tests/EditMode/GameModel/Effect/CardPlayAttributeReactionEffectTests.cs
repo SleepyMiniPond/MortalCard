@@ -2,6 +2,7 @@ using System;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
+using Optional;
 using UnityEditor;
 using UnityEngine;
 
@@ -129,7 +130,8 @@ namespace MortalGame.Tests
                     card,
                     0,
                     1,
-                    new LoseEnergyEffectCommand(built.Ally, 0),
+                    CardPlayReason.Active,
+                    new CardPlayPayment(0).Some(),
                     attribute)
                 : SystemSource.Instance;
             var context = source switch

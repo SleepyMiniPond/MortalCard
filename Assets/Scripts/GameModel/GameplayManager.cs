@@ -354,19 +354,13 @@ namespace MortalGame.GameModel
                 switch (action)
                 {
                     case UseCardAction useCardAction:
-                        if (_TrySetUseCardSelection(
-                                useCardAction,
-                                out var selectionScope))
+                        if (_UseCard(_gameStatus.Ally, useCardAction))
                         {
-                            using (selectionScope)
-                            {
-                                _UseCard(_gameStatus.Ally, useCardAction.CardIndentity);
-                                _gameEvents.Add(new PlayerExecuteStartEvent(
-                                    Faction: _gameStatus.Ally.Faction,
-                                    CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
-                                    HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
-                                ));
-                            }
+                            _gameEvents.Add(new PlayerExecuteStartEvent(
+                                Faction: _gameStatus.Ally.Faction,
+                                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
+                                HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
+                            ));
                         }
                         break;
 
@@ -389,19 +383,13 @@ namespace MortalGame.GameModel
 
             while (_gameStatus.Enemy.TryGetNextUseCardAction(this, out var useCardAction))
             {
-                if (_TrySetUseCardSelection(
-                        useCardAction,
-                        out var selectionScope))
+                if (_UseCard(_gameStatus.Enemy, useCardAction))
                 {
-                    using (selectionScope)
-                    {
-                        _UseCard(_gameStatus.Enemy, useCardAction.CardIndentity);
-                        _gameEvents.Add(new PlayerExecuteStartEvent(
-                            Faction: _gameStatus.Enemy.Faction,
-                            CardManagerInfo: _gameStatus.Enemy.CardManager.ToInfo(),
-                            HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
-                        ));
-                    }
+                    _gameEvents.Add(new PlayerExecuteStartEvent(
+                        Faction: _gameStatus.Enemy.Faction,
+                        CardManagerInfo: _gameStatus.Enemy.CardManager.ToInfo(),
+                        HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
+                    ));
                 }
 
                 _CheckGameEnd();
@@ -491,106 +479,130 @@ namespace MortalGame.GameModel
             selectionScope = _contextMgr.SetContext(selectionContext);
             return true;
         }
-        private void _UseCard(IPlayerEntity player, Guid CardIndentity)
+        private bool _UseCard(IPlayerEntity player, UseCardAction action)
         {
-            var usedCard = player.CardManager.HandCard.Cards.FirstOrDefault(c => c.Identity == CardIndentity);
-            if (usedCard != null &&
-                !usedCard.HasProperty(CardProperty.Sealed))
+            if (!_TrySetUseCardSelection(action, out var selectionScope))
             {
-                var useCardEvents = new List<IGameEvent>();
-
-                var useCardContext = new TriggerContext(this, new CardTrigger(usedCard), new CardLookIntentAction(usedCard));
-                if (!GameFormula.CardCost(useCardContext, usedCard)
-                        .TryGetValue(out var cardRuntimCost) ||
-                    !usedCard.GetCardProperty(useCardContext, CardProperty.EffectRepeat)
-                        .TryGetValue(out var effectRepeat))
-                {
-                    return;
-                }
-
-                if (cardRuntimCost <= player.CurrentEnergy)
-                {
-                    var loseEnergyCommand = new LoseEnergyEffectCommand(player, cardRuntimCost);
-                    var loseEnergyResult = player.EnergyManager.ConsumeEnergy(cardRuntimCost);
-                    useCardEvents.Add(new LoseEnergyEvent(player.Faction, player.EnergyManager.ToInfo(), loseEnergyResult));
-
-                    var (isSuccess, playCardDisposable) = player.CardManager.TryPlayCard(usedCard, out int handCardIndex, out int handCardsCount);
-                    if (isSuccess)
-                    {
-                        var cardPlaySource = new CardPlaySource(usedCard, handCardIndex, handCardsCount, loseEnergyCommand, new CardPlayAttributeEntity());
-                        var cardPlayTrigger = new CardPlayTrigger(cardPlaySource);
-                        var cardPlayIntent = new CardPlayIntentAction(cardPlaySource);
-                        var cardPlayTriggerContext = new TriggerContext(this, cardPlayTrigger, cardPlayIntent);
-                        var cardPlayResultSource = null as CardPlayResultSource;
-
-                        using (playCardDisposable)
-                        {
-                            useCardEvents.AddRange(_RunTiming(
-                                GameTiming.BeforePlayCardStart,
-                                cardPlaySource));
-
-                            useCardEvents.AddRange(ObserveRootAction(cardPlayIntent));
-
-                            //TODO: check and remove expired buffs
-                            //      trigger events while remove buffs
-
-                            useCardEvents.AddRange(_RunTiming(
-                                GameTiming.AfterPlayCardStart,
-                                cardPlaySource));
-
-                            var effectActionResults = new List<BaseResultAction>();
-
-                            var repeatTimes = Math.Max(1, effectRepeat);
-                            for (int i = 0; i < repeatTimes; i++)
-                            {
-                                var effectResult = EffectQueueRunner.RunToCompletion(
-                                    usedCard.Effects.Select(effect =>
-                                        new CardEffectQueueItem(
-                                            cardPlayTriggerContext,
-                                            effect)));
-                                useCardEvents.AddRange(effectResult.Events);
-                                effectActionResults.AddRange(effectResult.Actions);
-                            }
-
-                            var usedCardEvent = new UsedCardEvent(
-                                Faction: player.Faction,
-                                UsedCardIdentity: usedCard.Identity,
-                                CardManagerInfo: player.CardManager.ToInfo());
-                            useCardEvents.Add(usedCardEvent);
-
-                            var playedResult = EffectQueueRunner.RunToCompletion(
-                                CardTriggeredEffectDispatch.CreateItems(
-                                    cardPlayTriggerContext,
-                                    usedCard,
-                                    CardTriggeredTiming.Played));
-                            useCardEvents.AddRange(playedResult.Events);
-                            effectActionResults.AddRange(playedResult.Actions);
-
-                            cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
-
-                            useCardEvents.AddRange(
-                                ObserveRootAction(new CardPlayResultAction(cardPlayResultSource)));
-                            useCardEvents.AddRange(_RunTiming(
-                                GameTiming.BeforePlayCardEnd,
-                                cardPlayResultSource));
-                        }
-
-                        if (usedCard.HasProperty(CardProperty.Recycle))
-                        {
-                            var recycleResult = EffectManager.RecycleCardOnPlayEnd(this, player, usedCard);
-                            useCardEvents.AddRange(recycleResult.Events);
-                        }
-
-                        useCardEvents.AddRange(_RunTiming(
-                            GameTiming.AfterPlayCardEnd,
-                            cardPlayResultSource));
-                    }
-                }
-
-                OnUseCard?.Invoke(); // pass record to History
-
-                _gameEvents.AddRange(useCardEvents);
+                return false;
             }
+
+            using (selectionScope)
+            {
+                return _ExecuteCardPlay(player, action.CardIndentity, CardPlayReason.Active);
+            }
+        }
+
+        private bool _ExecuteCardPlay(IPlayerEntity player, Guid cardIdentity, CardPlayReason reason)
+        {
+            var usedCard = player.CardManager.HandCard.Cards.FirstOrDefault(c => c.Identity == cardIdentity);
+            if (usedCard == null || usedCard.HasProperty(CardProperty.Sealed))
+            {
+                return false;
+            }
+
+            var lookContext = new TriggerContext(this, new CardTrigger(usedCard), new CardLookIntentAction(usedCard));
+            if (!usedCard.GetCardProperty(lookContext, CardProperty.EffectRepeat).TryGetValue(out var effectRepeat))
+            {
+                return false;
+            }
+
+            var payment = Option.None<CardPlayPayment>();
+            if (reason == CardPlayReason.Active)
+            {
+                if (!GameFormula.CardCost(lookContext, usedCard).TryGetValue(out var cost) ||
+                    cost > player.CurrentEnergy)
+                {
+                    return false;
+                }
+                payment = new CardPlayPayment(cost).Some();
+            }
+
+            var (isSuccess, playCardDisposable) = player.CardManager.TryPlayCard(
+                usedCard, out var handCardIndex, out var handCardsCount);
+            if (!isSuccess)
+            {
+                return false;
+            }
+
+            var useCardEvents = new List<IGameEvent>();
+            var cardPlaySource = new CardPlaySource(
+                usedCard, handCardIndex, handCardsCount, reason, payment, new CardPlayAttributeEntity());
+            var cardPlayTrigger = new CardPlayTrigger(cardPlaySource);
+            var cardPlayIntent = new CardPlayIntentAction(cardPlaySource);
+            var cardPlayTriggerContext = new TriggerContext(this, cardPlayTrigger, cardPlayIntent);
+            CardPlayResultSource cardPlayResultSource;
+            using (playCardDisposable)
+            {
+                if (payment.TryGetValue(out var paid))
+                {
+                    var result = player.EnergyManager.ConsumeEnergy(paid.EnergySpent);
+                    useCardEvents.Add(new LoseEnergyEvent(player.Faction, player.EnergyManager.ToInfo(), result));
+                }
+                useCardEvents.AddRange(_RunTiming(
+                    GameTiming.BeforePlayCardStart,
+                    cardPlaySource));
+
+                useCardEvents.AddRange(ObserveRootAction(cardPlayIntent));
+
+                // TODO：檢查並移除過期 Buff，派送對應移除事件。
+
+                useCardEvents.AddRange(_RunTiming(
+                    GameTiming.AfterPlayCardStart,
+                    cardPlaySource));
+
+                var effectActionResults = new List<BaseResultAction>();
+
+                var repeatTimes = Math.Max(1, effectRepeat);
+                for (int i = 0; i < repeatTimes; i++)
+                {
+                    var effectResult = EffectQueueRunner.RunToCompletion(
+                        usedCard.Effects.Select(effect =>
+                            new CardEffectQueueItem(
+                                cardPlayTriggerContext,
+                                effect)));
+                    useCardEvents.AddRange(effectResult.Events);
+                    effectActionResults.AddRange(effectResult.Actions);
+                }
+
+                var usedCardEvent = new UsedCardEvent(
+                    Faction: player.Faction,
+                    UsedCardIdentity: usedCard.Identity,
+                    CardManagerInfo: player.CardManager.ToInfo(),
+                    Reason: cardPlaySource.Reason);
+                useCardEvents.Add(usedCardEvent);
+
+                var playedResult = EffectQueueRunner.RunToCompletion(
+                    CardTriggeredEffectDispatch.CreateItems(
+                        cardPlayTriggerContext,
+                        usedCard,
+                        cardPlaySource.Reason == CardPlayReason.Active
+                        ? CardTriggeredTiming.Played
+                        : CardTriggeredTiming.EffectPlayed));
+                useCardEvents.AddRange(playedResult.Events);
+                effectActionResults.AddRange(playedResult.Actions);
+
+                cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
+
+                useCardEvents.AddRange(
+                    ObserveRootAction(new CardPlayResultAction(cardPlayResultSource)));
+                useCardEvents.AddRange(_RunTiming(
+                    GameTiming.BeforePlayCardEnd,
+                    cardPlayResultSource));
+            }
+
+            if (usedCard.HasProperty(CardProperty.Recycle))
+            {
+                var recycleResult = EffectManager.RecycleCardOnPlayEnd(this, player, usedCard);
+                useCardEvents.AddRange(recycleResult.Events);
+            }
+
+            useCardEvents.AddRange(_RunTiming(
+                GameTiming.AfterPlayCardEnd,
+                cardPlayResultSource));
+
+            OnUseCard?.Invoke();
+            _gameEvents.AddRange(useCardEvents);
+            return true;
         }
 
         public IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit)

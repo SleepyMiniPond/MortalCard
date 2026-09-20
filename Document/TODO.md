@@ -43,9 +43,9 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 - **執行模型**：同時只允許一個完整出牌流程；目前出牌中產生的間接出牌請求以 FIFO 延後到目前卡片完成離場後執行，整條出牌鏈需有共同 Budget 防止循環。
 - **事件**：為 `UsedCardEvent` 增加出牌原因，區分主動出牌與 Effect 間接出牌。
 - **失效規則**：卡片不在手牌、已被 `Sealed` 或無法建立合法自動目標時，不移入 `PlayingCard`、不產生出牌事件、不派送 `EffectPlayed`。
-- **程式核對**：目前只有 EffectPlayed 列舉，尚無完整間接出牌 Effect／Queue；UsedCardEvent 也尚無出牌原因。顯式選取視角、候選範圍、First／Random，以及 ExistCard 群組結果 Context 已完成接線，後續仍需完成共用出牌核心與排程。
+- **程式核對**：共用單張出牌核心、出牌原因與支付資料已建立；CardPlaySource 公式改依卡片擁有者計算。顯式選取視角、候選範圍、First／Random，以及 ExistCard 群組結果 Context 已完成接線；尚無正式間接出牌 Effect／FIFO Queue 與共同 Budget。
 - **依據**：[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[SelectTargetLogic](../Assets/Scripts/GameModel/EnemyLogic/SelectTargetLogic.cs)、[GameEvent](../Assets/Scripts/GameModel/GameEvent.cs)。
-- **狀態**：🔄 進行中（第 1～2 個工作已完成實作，第 2 個工作待確認）
+- **狀態**：🔄 進行中（第 1～2 個工作已確認；第 3 個工作已完成實作，待確認）
 
 ### T-023：完成 `InvokeCardEffects` 原地執行卡效能力
 
