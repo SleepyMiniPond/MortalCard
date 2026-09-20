@@ -16,9 +16,11 @@ ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可�
 |---|---|
 | Action.Source／Target | 發生何事、由誰發起、作用於誰 |
 | TriggerContext.Triggered | 目前正在回應該事件的卡片、玩家或 Buff |
-| GameContext.Selected* | 玩家或 AI 出牌操作中明確選擇的對象 |
+| GameContext.Selected* | 玩家或 AI 出牌操作中明確選擇的主目標與 ExistCard 群組結果 |
 
 [TriggerContext](../Assets/Scripts/GameModel/Action/TriggerSource.cs) 沿衍生反應保留最初 ReactionOriginAction／Timing，避免後續效果失去根源。Buff Trigger 保存宿主，不能以 CurrentPlayer 或覆寫 Selected 目標代替。
+
+每次出牌會建立完整且獨立的選取作用域；主目標與 ExistCard 群組結果在結算結束後一併還原，不沿用上一張牌的 Selected 欄位。群組結果以不可變卡片 Identity 集合保存，Effect 於執行時再解析仍存在的卡片。
 
 ## 出牌與卡片時機
 

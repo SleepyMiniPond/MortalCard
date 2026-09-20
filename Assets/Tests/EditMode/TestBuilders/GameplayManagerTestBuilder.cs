@@ -13,6 +13,7 @@ namespace MortalGame.Tests
         private readonly Dictionary<string, PlayerBuffData> _playerBuffs = new();
         private readonly Dictionary<string, CharacterBuffData> _characterBuffs = new();
         private readonly Dictionary<string, CardBuffData> _cardBuffs = new();
+        private int _randomSeed = 1;
         private IReadOnlyList<CharacterParameter> _allyCharacters = new[]
         {
             new CharacterParameter
@@ -43,6 +44,12 @@ namespace MortalGame.Tests
             params CharacterParameter[] characters)
         {
             _enemyCharacters = characters;
+            return this;
+        }
+
+        public GameplayManagerTestBuilder WithRandomSeed(int randomSeed)
+        {
+            _randomSeed = randomSeed;
             return this;
         }
 
@@ -91,7 +98,8 @@ namespace MortalGame.Tests
                 cardLibrary,
                 cardBuffLibrary,
                 playerBuffLibrary,
-                characterBuffLibrary);
+                characterBuffLibrary,
+                randomSeed: _randomSeed);
 
             var ally = new AllyEntity(
                 Guid.NewGuid(),

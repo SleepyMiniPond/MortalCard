@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using MortalGame.GameData;
 using System.Linq;
 using Optional;
@@ -9,7 +11,8 @@ namespace MortalGame.GameModel
 
     public record MainSelectionInfo(
         SelectType SelectType,
-        TargetLogicTag LogicTag);
+        TargetCandidateScope CandidateScope,
+        AutomaticTargetSelectionStrategy AutomaticSelection);
 
     public record SubSelectionInfo(
         IReadOnlyDictionary<string, ISubSelectionGroupInfo> SelectionInfos);
@@ -18,7 +21,10 @@ namespace MortalGame.GameModel
     public record ExistCardSelectionInfo(
         IReadOnlyList<CardInfo> CardInfos,
         int Count,
-        bool IsMustSelect) : ISubSelectionGroupInfo;
+        bool IsMustSelect) : ISubSelectionGroupInfo
+    {
+        public int EffectiveCount => Math.Min(Count, CardInfos.Count);
+    }
     public record NewCardSelectionInfo() : ISubSelectionGroupInfo;
     public record NewPartialCardSelectionInfo() : ISubSelectionGroupInfo;
     public record NewEffectSelectionInfo() : ISubSelectionGroupInfo;
@@ -28,7 +34,9 @@ namespace MortalGame.GameModel
         public static MainSelectionInfo ToInfo(this MainTargetSelectLogic mainTargetLogic)
         {
             return new MainSelectionInfo(
-                mainTargetLogic.MainSelectable.SelectType, mainTargetLogic.LogicTag);
+                mainTargetLogic.MainSelectable.SelectType,
+                mainTargetLogic.CandidateScope,
+                mainTargetLogic.AutomaticSelection);
         }
 
         public static Option<SubSelectionInfo> ToInfo(
@@ -48,30 +56,135 @@ namespace MortalGame.GameModel
                             new CardLookIntentAction(cardEntity));
                         if (!existCardGroup.SelectCount
                                 .Eval(cardLookTriggerContext)
-                                .TryGetValue(out var selectCount))
+                                .TryGetValue(out var selectCount) ||
+                            selectCount < 0)
                         {
                             return Option.None<SubSelectionInfo>();
                         }
 
+                        var candidates = existCardGroup.CardCandidates
+                            .Eval(cardLookTriggerContext);
+                        var cardInfos = candidates
+                            .GroupBy(card => card.Identity)
+                            .Select(grouping => grouping.First().ToInfo(model))
+                            .ToList();
+
                         selectionInfos[group.Id] =
                             new ExistCardSelectionInfo(
-                                existCardGroup.CardCandidates.Eval(cardLookTriggerContext).Select(c => c.ToInfo(model)).ToList(),
+                                cardInfos,
                                 selectCount,
                                 existCardGroup.IsMustSelect.Eval(cardLookTriggerContext));
                         break;
-                    case NewCardSelectionGroup:
-                        selectionInfos[group.Id] = new NewCardSelectionInfo();
-                        break;
-                    case NewPartialCardSelectionGroup:
-                        selectionInfos[group.Id] = new NewPartialCardSelectionInfo();
-                        break;
-                    case NewEffectSelectionGroup:
-                        selectionInfos[group.Id] = new NewEffectSelectionInfo();
-                        break;
+                    default:
+                        // TODO（T-011／T-012）：NewCard、NewPartialCard、NewEffect 尚未實作資訊與結果流程，
+                        // 暫時回傳 None；功能完成後補齊轉換，這不是永久禁止這些選取類型的規則。
+                        return Option.None<SubSelectionInfo>();
                 }
             }
 
             return new SubSelectionInfo(selectionInfos).Some();
+        }
+
+        internal static Option<GameContext> TryCreateMainSelectionContext(
+            IGameplayModel model,
+            ICardEntity cardEntity,
+            MainSelectionAction mainSelectionAction)
+        {
+            var selectType = cardEntity.MainSelect.MainSelectable.SelectType;
+            if (selectType == SelectType.None)
+            {
+                return mainSelectionAction.TargetType == TargetType.None
+                    ? GameContext.EMPTY.Some()
+                    : Option.None<GameContext>();
+            }
+
+            if (!selectType.IsSelectable(mainSelectionAction.TargetType) ||
+                !mainSelectionAction.SelectedTarget.TryGetValue(out var targetIdentity) ||
+                targetIdentity == Guid.Empty)
+            {
+                return Option.None<GameContext>();
+            }
+
+            switch (mainSelectionAction.TargetType)
+            {
+                case TargetType.AllyCharacter:
+                case TargetType.EnemyCharacter:
+                    return model.GetCharacter(targetIdentity).HasValue
+                        ? (GameContext.EMPTY with
+                        {
+                            SelectedCharacter = targetIdentity
+                        }).Some()
+                        : Option.None<GameContext>();
+                case TargetType.AllyCard:
+                case TargetType.EnemyCard:
+                    return model.GetCard(targetIdentity).HasValue
+                        ? (GameContext.EMPTY with
+                        {
+                            SelectedCard = targetIdentity
+                        }).Some()
+                        : Option.None<GameContext>();
+                default:
+                    return Option.None<GameContext>();
+            }
+        }
+
+        internal static Option<GameContext> TryCreateUseCardContext(
+            IGameplayModel model,
+            ICardEntity cardEntity,
+            UseCardAction useCardAction)
+        {
+            if (!TryCreateMainSelectionContext(
+                        model,
+                        cardEntity,
+                        useCardAction.MainSelectionAction)
+                    .TryGetValue(out var mainSelectionContext))
+            {
+                return Option.None<GameContext>();
+            }
+
+            Option<SubSelectionInfo> subSelectionInfoOption;
+            using (model.ContextManager.SetContext(mainSelectionContext))
+            {
+                subSelectionInfoOption = cardEntity.SubSelects.ToInfo(model, cardEntity);
+            }
+
+            if (!subSelectionInfoOption.TryGetValue(out var subSelectionInfo) ||
+                subSelectionInfo.SelectionInfos.Count !=
+                useCardAction.SubSelectionActions.Count)
+            {
+                return Option.None<GameContext>();
+            }
+
+            var selectedCardGroups =
+                ImmutableDictionary.CreateBuilder<string, ImmutableArray<Guid>>();
+            foreach (var pair in subSelectionInfo.SelectionInfos)
+            {
+                // TODO（T-011／T-012）：目前只接線 ExistCard 的結果 Context；其他選取類型完成後，
+                // 補上各自的結果驗證與保存方式，目前型別限制屬於暫時的實作邊界。
+                if (pair.Value is not ExistCardSelectionInfo selectionInfo ||
+                    !useCardAction.SubSelectionActions.TryGetValue(
+                        pair.Key,
+                        out var selectionAction) ||
+                    selectionAction is not ExistCardSubSelectionAction existCardAction)
+                {
+                    return Option.None<GameContext>();
+                }
+
+                var candidateIdentities = selectionInfo.CardInfos
+                    .Select(cardInfo => cardInfo.Identity)
+                    .ToHashSet();
+                var selectedIdentities = existCardAction.CardIdentity
+                    .Where(candidateIdentities.Contains)
+                    .Distinct()
+                    .Take(selectionInfo.EffectiveCount)
+                    .ToImmutableArray();
+                selectedCardGroups.Add(pair.Key, selectedIdentities);
+            }
+
+            return (mainSelectionContext with
+            {
+                SelectedCardGroups = selectedCardGroups.ToImmutable()
+            }).Some();
         }
 
         public static bool IsSelectable(this SelectType selectType, TargetType targetType)

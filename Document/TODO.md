@@ -23,6 +23,7 @@
 ├─ T-025 FormChanged 生命週期一致化
 ├─ T-026 Buff 資源上限接線
 ├─ T-027 減少好感度事件呈現
+├─ T-028 可配置的卡片出牌條件
 ├─ T-013 敵人動態增減
 └─ T-014 Preview / Simulation
 ```
@@ -38,13 +39,13 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 - **前置**：T-017 已完成。
 - **目標**：讓 Effect 可將擁有者手牌中的卡片排入完整間接出牌流程，執行普通 Effects 與 `CardTriggeredTiming.EffectPlayed`。
 - **已確認契約**：只允許手牌；不支付能量；受 `Sealed` 限制；經過 `PlayingCard`；套用普通 Effects 的完整 `EffectRepeat`，但 `EffectPlayed` 每次出牌只派送一次；共用主動出牌的墓地／排除／回收規則。
-- **自動選取**：無玩家選取階段；共用 `SelectMainTarget` 與 `SelectSubTargets`，並抽出顯式「選取視角玩家」。`TargetLogicTag.ToAlly`／`ToEnemy` 以卡片擁有者為視角，不改寫代表目前行動流程的 `GameStatus.CurrentPlayer`。
+- **自動選取**：無玩家選取階段；共用 `SelectMainTarget` 與 `SelectSubTargets`，並抽出顯式「選取視角玩家」。`TargetCandidateScope.ToAlly`／`ToEnemy` 以卡片擁有者為視角，`Any` 不限陣營；`First`／`Random` 為獨立挑選策略，不改寫代表目前行動流程的 `GameStatus.CurrentPlayer`。
 - **執行模型**：同時只允許一個完整出牌流程；目前出牌中產生的間接出牌請求以 FIFO 延後到目前卡片完成離場後執行，整條出牌鏈需有共同 Budget 防止循環。
 - **事件**：為 `UsedCardEvent` 增加出牌原因，區分主動出牌與 Effect 間接出牌。
 - **失效規則**：卡片不在手牌、已被 `Sealed` 或無法建立合法自動目標時，不移入 `PlayingCard`、不產生出牌事件、不派送 `EffectPlayed`。
-- **程式核對**：目前只有 EffectPlayed 列舉，尚無完整間接出牌 Effect／Queue；UsedCardEvent 也尚無出牌原因。既有 SelectTargetLogic 仍以 CurrentPlayer 為視角，ToRandom 主目標實際取第一個候選；抽出共用入口時應一併修正並測試。
+- **程式核對**：目前只有 EffectPlayed 列舉，尚無完整間接出牌 Effect／Queue；UsedCardEvent 也尚無出牌原因。顯式選取視角、候選範圍、First／Random，以及 ExistCard 群組結果 Context 已完成接線，後續仍需完成共用出牌核心與排程。
 - **依據**：[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[SelectTargetLogic](../Assets/Scripts/GameModel/EnemyLogic/SelectTargetLogic.cs)、[GameEvent](../Assets/Scripts/GameModel/GameEvent.cs)。
-- **狀態**：⬜ 可開始
+- **狀態**：🔄 進行中（第 1～2 個工作已完成實作，第 2 個工作待確認）
 
 ### T-023：完成 `InvokeCardEffects` 原地執行卡效能力
 
@@ -61,8 +62,8 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 
 - **前置**：T-017。
 - **目標**：支援卡片依序要求多次不同來源、數量與條件的目標選取。
-- **既有基礎**：CardData.SubSelects 已是群組集合；SubSelectionPresenter 已逐群組執行 ExistCard 並以 ID 回傳，不能描述為僅支援單次選取。
-- **剩餘缺口**：NewCard／NewPartialCard／NewEffect 仍是預留；GameplayManager 的出牌 Context 目前只套用主選取，未消費 UseCardAction.SubSelectionActions。還需定義步驟順序、取消及候選不足契約。
+- **既有基礎**：CardData.SubSelects 已是群組集合；ExistCard 可由 Presenter／AI 依 ID 回傳，GameplayManager 會將合法結果寫入出牌 Context，Effect 可透過群組 ID 讀取選中卡片。
+- **剩餘缺口**：NewCard／NewPartialCard／NewEffect 仍是預留；還需定義完整多步驟順序、取消語意與其他選取類型的候選及結果契約。
 - **依據**：[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs)、[GameAction](../Assets/Scripts/GameModel/Action/GameAction.cs)、[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)。
 - **開始前需決定**：
   - 每一步的識別方式、來源區域、數量、篩選條件與提示文字。
@@ -157,6 +158,14 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 - **完成條件**：減少好感度事件更新 ViewModel 並交由角色呈現，驗證與增加事件一致的狀態同步。
 - **依據**：[GameplayView](../Assets/Scripts/GameView/GameplayView.cs)。
 - **狀態**：⬜ 待排期。
+
+### T-028：可配置的卡片出牌條件
+
+- **範圍**：CardData／出牌合法性；獨立於 T-022，待實際卡牌需求出現後排期。
+- **現況**：目前主動出牌只受能量與 `Sealed` 限制；主目標與子選取不足採盡量執行，不作為出牌門檻。T-022 的 `EffectPlayed` 沿用相同規則。
+- **工作**：定義可序列化的出牌前置條件、失敗提示、玩家／敵人／間接出牌是否共用，以及條件應在哪個 Context 與時點評估。
+- **完成條件**：企劃可在 CardData 配置必要條件；所有正式出牌入口使用同一合法性規則，失敗時不支付費用、不移入 `PlayingCard`、不產生出牌事件。
+- **狀態**：⬜ 未來待排期。
 
 ## 未來可能方向（非待辦）
 

@@ -114,15 +114,24 @@ namespace MortalGame.GameModel
             return events;
         }
 
-        public Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity)
+        public Option<SubSelectionInfo> QueryCardSubSelectionInfos(
+            Guid cardIdentity,
+            MainSelectionAction mainSelectionAction)
         {
-            return CardEntityExtensions
-                .GetCard(this, cardIdentity)
-                .FlatMap(cardEntity =>
-                {
-                    var cardData = _contextMgr.CardLibrary.GetCardData(cardEntity.CardDataId);
-                    return cardData.SubSelects.ToInfo(this, cardEntity);
-                });
+            if (!this.GetCard(cardIdentity).TryGetValue(out var cardEntity) ||
+                !SelectionInfoUtility.TryCreateMainSelectionContext(
+                        this,
+                        cardEntity,
+                        mainSelectionAction)
+                    .TryGetValue(out var mainSelectionContext))
+            {
+                return Option.None<SubSelectionInfo>();
+            }
+
+            using (_contextMgr.SetContext(mainSelectionContext))
+            {
+                return cardEntity.SubSelects.ToInfo(this, cardEntity);
+            }
         }
 
         private async UniTask _Run(CancellationToken cancellationToken)
@@ -345,14 +354,19 @@ namespace MortalGame.GameModel
                 switch (action)
                 {
                     case UseCardAction useCardAction:
-                        using (_SetUseCardSelectTarget(useCardAction))
+                        if (_TrySetUseCardSelection(
+                                useCardAction,
+                                out var selectionScope))
                         {
-                            _UseCard(_gameStatus.Ally, useCardAction.CardIndentity);
-                            _gameEvents.Add(new PlayerExecuteStartEvent(
-                                Faction: _gameStatus.Ally.Faction,
-                                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
-                                HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
-                            ));
+                            using (selectionScope)
+                            {
+                                _UseCard(_gameStatus.Ally, useCardAction.CardIndentity);
+                                _gameEvents.Add(new PlayerExecuteStartEvent(
+                                    Faction: _gameStatus.Ally.Faction,
+                                    CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
+                                    HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
+                                ));
+                            }
                         }
                         break;
 
@@ -375,14 +389,19 @@ namespace MortalGame.GameModel
 
             while (_gameStatus.Enemy.TryGetNextUseCardAction(this, out var useCardAction))
             {
-                using (_SetUseCardSelectTarget(useCardAction))
+                if (_TrySetUseCardSelection(
+                        useCardAction,
+                        out var selectionScope))
                 {
-                    _UseCard(_gameStatus.Enemy, useCardAction.CardIndentity);
-                    _gameEvents.Add(new PlayerExecuteStartEvent(
-                        Faction: _gameStatus.Enemy.Faction,
-                        CardManagerInfo: _gameStatus.Enemy.CardManager.ToInfo(),
-                        HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
-                    ));
+                    using (selectionScope)
+                    {
+                        _UseCard(_gameStatus.Enemy, useCardAction.CardIndentity);
+                        _gameEvents.Add(new PlayerExecuteStartEvent(
+                            Faction: _gameStatus.Enemy.Faction,
+                            CardManagerInfo: _gameStatus.Enemy.CardManager.ToInfo(),
+                            HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
+                        ));
+                    }
                 }
 
                 _CheckGameEnd();
@@ -453,24 +472,24 @@ namespace MortalGame.GameModel
             }
         }
 
-        private IGameContextManager _SetUseCardSelectTarget(UseCardAction useCardAction)
+        private bool _TrySetUseCardSelection(
+            UseCardAction useCardAction,
+            out IGameContextManager selectionScope)
         {
-            switch (useCardAction.MainSelectionAction.TargetType)
+            selectionScope = null;
+            if (!this.GetCard(useCardAction.CardIndentity)
+                    .TryGetValue(out var cardEntity) ||
+                !SelectionInfoUtility.TryCreateUseCardContext(
+                        this,
+                        cardEntity,
+                        useCardAction)
+                    .TryGetValue(out var selectionContext))
             {
-                case TargetType.AllyCharacter:
-                case TargetType.EnemyCharacter:
-                    var enemyCharacterOpt = useCardAction.MainSelectionAction.SelectedTarget
-                        .FlatMap(enemyCharacterIdentity => this.GetCharacter(enemyCharacterIdentity));
-                    return _contextMgr.SetSelectedCharacter(enemyCharacterOpt);
-                case TargetType.AllyCard:
-                case TargetType.EnemyCard:
-                    var enemyCardOpt = useCardAction.MainSelectionAction.SelectedTarget
-                        .FlatMap(enemyCardIndentity => this.GetCard(enemyCardIndentity));
-                    return _contextMgr.SetSelectedCard(enemyCardOpt);
-                default:
-                case TargetType.None:
-                    return _contextMgr.SetClone();
+                return false;
             }
+
+            selectionScope = _contextMgr.SetContext(selectionContext);
+            return true;
         }
         private void _UseCard(IPlayerEntity player, Guid CardIndentity)
         {

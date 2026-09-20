@@ -25,7 +25,7 @@ GameModel 管理戰鬥規則與可變實體，不依賴 View。Model 聚合事�
 
 ## AI 與亂數
 
-[UseCardLogic](../Assets/Scripts/GameModel/EnemyLogic/UseCardLogic.cs) 依可負擔費用選牌；[SelectTargetLogic](../Assets/Scripts/GameModel/EnemyLogic/SelectTargetLogic.cs) 負責目標。主目標 ToAlly／ToEnemy 依 CurrentPlayer 視角；ToRandom 分支實際取候選集合第一個，尚未隨機抽選。既有卡牌子選取才使用戰鬥亂數洗牌取樣，待修正項目見 [TODO](TODO.md)。
+[UseCardLogic](../Assets/Scripts/GameModel/EnemyLogic/UseCardLogic.cs) 依可負擔費用選牌；[SelectTargetLogic](../Assets/Scripts/GameModel/EnemyLogic/SelectTargetLogic.cs) 負責目標。自動主目標使用顯式選取視角；候選範圍以 ToAlly／ToEnemy／Any 表達，First／Random 為獨立挑選策略。主目標 Context 建立後才計算 ExistCard 子選取，Random 與子選取共用戰鬥亂數。
 
 [GameRandom](../Assets/Scripts/GameModel/GameRandom.cs) 由戰鬥種子建立並注入。固定種子與相同操作可重現已接入的亂數流程，但不代表重播功能已完成。
 

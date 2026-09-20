@@ -121,7 +121,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity);
+            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty);
 
             Assert.That(result.HasValue, Is.False);
         }

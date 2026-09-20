@@ -76,23 +76,24 @@ namespace MortalGame.Presenter
         {
             var isClose = false;
             var isVisible = true;
+            var effectiveSelectCount = existCardSelection.EffectiveCount;
             var selectedCardIds = new List<Guid>();
             var disposables = new CompositeDisposable();
 
             _cardSelectionPanel.Open(CreateProperty());
 
-        try
-        {
-            await _uniTaskPresenter.Run(
-                disposables,
-                () => !isClose,
-                cancellationToken,
-                EventHandler);
-        }
-        finally
-        {
-            _cardSelectionPanel.Close();
-        }
+            try
+            {
+                await _uniTaskPresenter.Run(
+                    disposables,
+                    () => !isClose,
+                    cancellationToken,
+                    EventHandler);
+            }
+            finally
+            {
+                _cardSelectionPanel.Close();
+            }
 
             return new ExistCardSubSelectionAction(selectedCardIds);
 
@@ -108,7 +109,7 @@ namespace MortalGame.Presenter
 
                     case ISubSelectionPresenter.ConfirmEvent:
                         var canClose = existCardSelection.IsMustSelect
-                            ? selectedCardIds.Count >= existCardSelection.Count
+                            ? selectedCardIds.Count >= effectiveSelectCount
                             : true;
                         return UniTask.FromResult<IUniTaskPresenter.Event>(canClose
                             ? new IUniTaskPresenter.Halt()
@@ -125,7 +126,7 @@ namespace MortalGame.Presenter
                             {
                                 selectedCardIds.Remove(selectCardEvent.CardInfo.Identity);
                             }
-                            else if (selectedCardIds.Count < existCardSelection.Count)
+                            else if (selectedCardIds.Count < effectiveSelectCount)
                             {
                                 selectedCardIds.Add(selectCardEvent.CardInfo.Identity);
                             }
@@ -168,8 +169,8 @@ namespace MortalGame.Presenter
             {
                 return new ICardSelectionPanel.Property(
                     existCardSelection.IsMustSelect,
-                    !existCardSelection.IsMustSelect,
-                    existCardSelection.Count,
+                    !existCardSelection.IsMustSelect || effectiveSelectCount == 0,
+                    effectiveSelectCount,
                     existCardSelection.CardInfos
                         .Select(cardInfo => CreateSelectionProperty(cardInfo)),
                     OnClose: () => _uniTaskPresenter.TryEnqueueNextEvent(new ISubSelectionPresenter.CloseEvent()),
@@ -182,9 +183,9 @@ namespace MortalGame.Presenter
                 return new ICardSelectionPanel.UpdateProperty(
                     isVisible,
                     existCardSelection.IsMustSelect
-                        ? selectedCardIds.Count >= existCardSelection.Count
+                        ? selectedCardIds.Count >= effectiveSelectCount
                         : true,
-                    existCardSelection.Count,
+                    effectiveSelectCount,
                     existCardSelection.CardInfos
                         .Where(cardInfo => selectedCardIds.Contains(cardInfo.Identity))
                 );

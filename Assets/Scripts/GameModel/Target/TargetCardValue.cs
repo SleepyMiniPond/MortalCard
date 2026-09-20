@@ -121,6 +121,29 @@ namespace MortalGame.GameModel
                 .ToEnumerable().ToList();
         }
     }
+
+    [Serializable]
+    public class SubSelectedCardCollection : ITargetCardCollectionValue
+    {
+        [HorizontalGroup("1")]
+        public string SelectionId;
+
+        public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            if (string.IsNullOrWhiteSpace(SelectionId) ||
+                !triggerContext.Model.ContextManager.Context.SelectedCardGroups
+                    .TryGetValue(SelectionId, out var selectedCardIdentities))
+            {
+                return Array.Empty<ICardEntity>();
+            }
+
+            return selectedCardIdentities
+                .SelectMany(identity =>
+                    triggerContext.Model.GetCard(identity).ToEnumerable())
+                .ToArray();
+        }
+    }
+
     [Serializable]
     public class CardsOfPlayer : ITargetCardCollectionValue
     {

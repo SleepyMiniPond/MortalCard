@@ -27,6 +27,12 @@ namespace MortalGame.GameData
     public class MainTargetSelectLogic
     {
         public IMainTargetSelectable MainSelectable = new NoneSelectable();
-        public TargetLogicTag LogicTag = TargetLogicTag.None;
+
+        [LabelText("Candidate Scope")]
+        public TargetCandidateScope CandidateScope = TargetCandidateScope.None;
+
+        [LabelText("Automatic Selection")]
+        public AutomaticTargetSelectionStrategy AutomaticSelection =
+            AutomaticTargetSelectionStrategy.First;
     }
 }

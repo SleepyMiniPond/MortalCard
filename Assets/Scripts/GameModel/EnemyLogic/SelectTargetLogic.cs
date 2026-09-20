@@ -3,7 +3,6 @@ using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
-using Optional.Collections;
 using UniRx;
 using UnityEngine;
 namespace MortalGame.GameModel
@@ -17,12 +16,22 @@ namespace MortalGame.GameModel
     public record SelectSubTargetsResult(
         IReadOnlyDictionary<string, ISubSelectionAction> SubSelectionActions);
 
+    public record SelectCardTargetsResult(
+        MainSelectionAction MainSelectionAction,
+        IReadOnlyDictionary<string, ISubSelectionAction> SubSelectionActions);
+
     public static class SelectTargetLogic
     {
         public static SelectMainTargetResult SelectMainTarget(
             IGameplayModel gameplayWatcher,
-            ICardEntity cardEntity)
+            ICardEntity cardEntity,
+            IPlayerEntity selectionPerspective)
         {
+            if (selectionPerspective == null)
+            {
+                return new SelectMainTargetResult(false, TargetType.None, Guid.Empty);
+            }
+
             var mainSelect = cardEntity.MainSelect;
             if (mainSelect == null)
             {
@@ -40,23 +49,46 @@ namespace MortalGame.GameModel
             return selectable switch
             {
                 NoneSelectable => new SelectMainTargetResult(true, TargetType.None, Guid.Empty),
-                CharacterSelectable => SelectCharacterWithLogic(gameplayWatcher, mainSelect.LogicTag),
-                CharacterAllySelectable => SelectAllyCharacter(gameplayWatcher),
-                CharacterEnemySelectable => SelectEnemyCharacter(gameplayWatcher),
-                CardSelectable => SelectCardWithLogic(gameplayWatcher, mainSelect.LogicTag),
-                CardAllySelectable => SelectAllyCard(gameplayWatcher),
-                CardEnemySelectable => SelectEnemyCard(gameplayWatcher),
+                CharacterSelectable => SelectCharacterWithLogic(
+                    gameplayWatcher,
+                    selectionPerspective,
+                    mainSelect.CandidateScope,
+                    mainSelect.AutomaticSelection),
+                CharacterAllySelectable => SelectCharacter(
+                    gameplayWatcher,
+                    gameplayWatcher.GameStatus.Ally.Characters,
+                    mainSelect.AutomaticSelection),
+                CharacterEnemySelectable => SelectCharacter(
+                    gameplayWatcher,
+                    gameplayWatcher.GameStatus.Enemy.Characters,
+                    mainSelect.AutomaticSelection),
+                CardSelectable => SelectCardWithLogic(
+                    gameplayWatcher,
+                    selectionPerspective,
+                    mainSelect.CandidateScope,
+                    mainSelect.AutomaticSelection),
+                CardAllySelectable => SelectCard(
+                    gameplayWatcher,
+                    gameplayWatcher.GameStatus.Ally.CardManager.HandCard.Cards,
+                    mainSelect.AutomaticSelection),
+                CardEnemySelectable => SelectCard(
+                    gameplayWatcher,
+                    gameplayWatcher.GameStatus.Enemy.CardManager.HandCard.Cards,
+                    mainSelect.AutomaticSelection),
                 _ => new SelectMainTargetResult(false, TargetType.None, Guid.Empty)
             };
         }
 
         public static Option<SelectSubTargetsResult> SelectSubTargets(
             IGameplayModel gameplayWatcher,
-            ICardEntity cardEntity)
+            ICardEntity cardEntity,
+            MainSelectionAction mainSelectionAction)
         {
             var subSelectionActions = new Dictionary<string, ISubSelectionAction>();
 
-            var subSelectionInfoOpt = gameplayWatcher.QueryCardSubSelectionInfos(cardEntity.Identity);
+            var subSelectionInfoOpt = gameplayWatcher.QueryCardSubSelectionInfos(
+                cardEntity.Identity,
+                mainSelectionAction);
             if (!subSelectionInfoOpt.TryGetValue(out var subSelectionInfo))
             {
                 return Option.None<SelectSubTargetsResult>();
@@ -64,121 +96,189 @@ namespace MortalGame.GameModel
 
             foreach (var kvp in subSelectionInfo.SelectionInfos)
             {
-                switch (kvp.Value)
+                if (kvp.Value is not ExistCardSelectionInfo existCardGroup)
                 {
-                    case ExistCardSelectionInfo existCardGroup:
-                        subSelectionActions[kvp.Key] =
-                            RandomSelectExistCardSubSelection(
-                                existCardGroup,
-                                gameplayWatcher.ContextManager.GameRandom);
-                        break;
-                    case NewCardSelectionInfo:
-                        subSelectionActions[kvp.Key] = new NewCardSubSelectionAction();
-                        break;
-                    case NewPartialCardSelectionInfo:
-                        subSelectionActions[kvp.Key] = new NewPartialCardSubSelectionAction();
-                        break;
-                    case NewEffectSelectionInfo:
-                        subSelectionActions[kvp.Key] = new NewEffectSubSelectionAction();
-                        break;
+                    // TODO（T-011／T-012）：NewCard、NewPartialCard、NewEffect 的自動選取尚未實作，
+                    // 暫時回傳 None，待各類型的候選與結果契約完成後接線。
+                    return Option.None<SelectSubTargetsResult>();
                 }
+
+                subSelectionActions[kvp.Key] =
+                    RandomSelectExistCardSubSelection(
+                        existCardGroup,
+                        gameplayWatcher.ContextManager.GameRandom);
             }
 
             return new SelectSubTargetsResult(subSelectionActions).Some();
         }
 
-        private static SelectMainTargetResult SelectCharacterWithLogic(IGameplayModel gameplayWatcher, TargetLogicTag logicTag)
+        public static Option<SelectCardTargetsResult> SelectTargets(
+            IGameplayModel gameplayWatcher,
+            ICardEntity cardEntity,
+            IPlayerEntity selectionPerspective)
         {
-            return logicTag switch
+            var mainTarget = SelectMainTarget(
+                gameplayWatcher,
+                cardEntity,
+                selectionPerspective);
+            if (!mainTarget.IsValid)
+                return Option.None<SelectCardTargetsResult>();
+
+            var mainSelectionAction = MainSelectionAction.Create(mainTarget);
+            var subTargetsOption = SelectSubTargets(
+                gameplayWatcher,
+                cardEntity,
+                mainSelectionAction);
+
+            return subTargetsOption.Map(subTargets =>
+                new SelectCardTargetsResult(
+                    mainSelectionAction,
+                    subTargets.SubSelectionActions));
+        }
+
+        private static SelectMainTargetResult SelectCharacterWithLogic(
+            IGameplayModel gameplayWatcher,
+            IPlayerEntity selectionPerspective,
+            TargetCandidateScope candidateScope,
+            AutomaticTargetSelectionStrategy selectionStrategy)
+        {
+            return candidateScope switch
             {
-                TargetLogicTag.ToEnemy => SelectEnemyCharacter(gameplayWatcher),
-                TargetLogicTag.ToAlly => SelectAllyCharacter(gameplayWatcher),
-                TargetLogicTag.ToRandom => SelectRandomCharacter(gameplayWatcher),
+                TargetCandidateScope.ToEnemy => SelectCharacter(
+                    gameplayWatcher,
+                    OppositePlayer(gameplayWatcher, selectionPerspective).Characters,
+                    selectionStrategy),
+                TargetCandidateScope.ToAlly => SelectCharacter(
+                    gameplayWatcher,
+                    selectionPerspective.Characters,
+                    selectionStrategy),
+                TargetCandidateScope.Any => SelectCharacter(
+                    gameplayWatcher,
+                    gameplayWatcher.GameStatus.Ally.Characters
+                        .Concat(gameplayWatcher.GameStatus.Enemy.Characters),
+                    selectionStrategy),
                 _ => new SelectMainTargetResult(false, TargetType.None, Guid.Empty)
             };
         }
 
-        private static SelectMainTargetResult SelectCardWithLogic(IGameplayModel gameplayWatcher, TargetLogicTag logicTag)
+        private static SelectMainTargetResult SelectCardWithLogic(
+            IGameplayModel gameplayWatcher,
+            IPlayerEntity selectionPerspective,
+            TargetCandidateScope candidateScope,
+            AutomaticTargetSelectionStrategy selectionStrategy)
         {
-            return logicTag switch
+            return candidateScope switch
             {
-                TargetLogicTag.ToEnemy => SelectEnemyCard(gameplayWatcher),
-                TargetLogicTag.ToAlly => SelectAllyCard(gameplayWatcher),
-                TargetLogicTag.ToRandom => SelectRandomCard(gameplayWatcher),
+                TargetCandidateScope.ToEnemy => SelectCard(
+                    gameplayWatcher,
+                    OppositePlayer(gameplayWatcher, selectionPerspective)
+                        .CardManager.HandCard.Cards,
+                    selectionStrategy),
+                TargetCandidateScope.ToAlly => SelectCard(
+                    gameplayWatcher,
+                    selectionPerspective.CardManager.HandCard.Cards,
+                    selectionStrategy),
+                TargetCandidateScope.Any => SelectCard(
+                    gameplayWatcher,
+                    gameplayWatcher.GameStatus.Ally.CardManager.HandCard.Cards
+                        .Concat(gameplayWatcher.GameStatus.Enemy.CardManager.HandCard.Cards),
+                    selectionStrategy),
                 _ => new SelectMainTargetResult(false, TargetType.None, Guid.Empty)
             };
         }
 
-        private static SelectMainTargetResult SelectEnemyCharacter(IGameplayModel gameplayWatcher)
+        private static SelectMainTargetResult SelectCharacter(
+            IGameplayModel gameplayWatcher,
+            IEnumerable<ICharacterEntity> candidates,
+            AutomaticTargetSelectionStrategy selectionStrategy)
         {
-            return gameplayWatcher.GameStatus.OppositePlayer.Value
-                .FlatMap(oppositePlayer => LinqEnumerableExtensions.FirstOrNone(oppositePlayer.Characters))
-                .Map(oppositeCharacter => new SelectMainTargetResult(true, TargetType.EnemyCharacter, oppositeCharacter.Identity))
+            var character = SelectCandidate(
+                gameplayWatcher,
+                candidates,
+                selectionStrategy);
+            if (character == null)
+            {
+                return new SelectMainTargetResult(false, TargetType.None, Guid.Empty);
+            }
+
+            return character.Owner(gameplayWatcher)
+                .Map(owner => new SelectMainTargetResult(
+                    true,
+                    CharacterTargetType(owner),
+                    character.Identity))
                 .ValueOr(new SelectMainTargetResult(false, TargetType.None, Guid.Empty));
         }
 
-        private static SelectMainTargetResult SelectAllyCharacter(IGameplayModel gameplayWatcher)
+        private static SelectMainTargetResult SelectCard(
+            IGameplayModel gameplayWatcher,
+            IEnumerable<ICardEntity> candidates,
+            AutomaticTargetSelectionStrategy selectionStrategy)
         {
-            return gameplayWatcher.GameStatus.CurrentPlayer.Value
-                .FlatMap(currentPlayer => LinqEnumerableExtensions.FirstOrNone(currentPlayer.Characters))
-                .Map(currentCharacter => new SelectMainTargetResult(true, TargetType.AllyCharacter, currentCharacter.Identity))
+            var card = SelectCandidate(
+                gameplayWatcher,
+                candidates,
+                selectionStrategy);
+            if (card == null)
+            {
+                return new SelectMainTargetResult(false, TargetType.None, Guid.Empty);
+            }
+
+            return card.Owner(gameplayWatcher)
+                .Map(owner => new SelectMainTargetResult(
+                    true,
+                    CardTargetType(owner),
+                    card.Identity))
                 .ValueOr(new SelectMainTargetResult(false, TargetType.None, Guid.Empty));
         }
 
-        private static SelectMainTargetResult SelectRandomCharacter(IGameplayModel gameplayWatcher)
+        private static T SelectCandidate<T>(
+            IGameplayModel gameplayWatcher,
+            IEnumerable<T> candidates,
+            AutomaticTargetSelectionStrategy selectionStrategy)
+            where T : class
         {
-            return LinqEnumerableExtensions.FirstOrNone(
-                gameplayWatcher.GameStatus.Ally.Characters
-                    .Concat(gameplayWatcher.GameStatus.Enemy.Characters))
-                .FlatMap(randomCharacter => randomCharacter.Owner(gameplayWatcher)
-                    .Map(randomPlayer => (randomPlayer, randomCharacter)))
-                .Map(tuple => new SelectMainTargetResult(true,
-                    tuple.randomPlayer.Faction == Faction.Ally ? TargetType.AllyCharacter : TargetType.EnemyCharacter,
-                    tuple.randomCharacter.Identity))
-                .ValueOr(new SelectMainTargetResult(false, TargetType.None, Guid.Empty));
+            var candidateArray = candidates.ToArray();
+            if (candidateArray.Length == 0)
+            {
+                return null;
+            }
+
+            return selectionStrategy switch
+            {
+                AutomaticTargetSelectionStrategy.First => candidateArray[0],
+                AutomaticTargetSelectionStrategy.Random => candidateArray[
+                    gameplayWatcher.ContextManager.GameRandom.Range(
+                        0,
+                        candidateArray.Length)],
+                _ => null
+            };
         }
 
-        private static SelectMainTargetResult SelectEnemyCard(IGameplayModel gameplayWatcher)
-        {
-            return gameplayWatcher.GameStatus.OppositePlayer.Value
-                .FlatMap(oppositePlayer => LinqEnumerableExtensions.FirstOrNone(oppositePlayer.CardManager.HandCard.Cards))
-                .Map(oppositeCard => new SelectMainTargetResult(true, TargetType.EnemyCard, oppositeCard.Identity))
-                .ValueOr(new SelectMainTargetResult(false, TargetType.None, Guid.Empty));
-        }
+        private static IPlayerEntity OppositePlayer(
+            IGameplayModel gameplayWatcher,
+            IPlayerEntity selectionPerspective)
+            => selectionPerspective.Faction == Faction.Ally
+                ? gameplayWatcher.GameStatus.Enemy
+                : gameplayWatcher.GameStatus.Ally;
 
-        private static SelectMainTargetResult SelectAllyCard(IGameplayModel gameplayWatcher)
-        {
-            return gameplayWatcher.GameStatus.CurrentPlayer.Value
-                .FlatMap(currentPlayer => LinqEnumerableExtensions.FirstOrNone(currentPlayer.CardManager.HandCard.Cards))
-                .Map(currentCard => new SelectMainTargetResult(true, TargetType.AllyCard, currentCard.Identity))
-                .ValueOr(new SelectMainTargetResult(false, TargetType.None, Guid.Empty));
-        }
+        private static TargetType CharacterTargetType(IPlayerEntity owner)
+            => owner.Faction == Faction.Ally
+                ? TargetType.AllyCharacter
+                : TargetType.EnemyCharacter;
 
-        private static SelectMainTargetResult SelectRandomCard(IGameplayModel gameplayWatcher)
-        {
-            return LinqEnumerableExtensions.FirstOrNone(
-                gameplayWatcher.GameStatus.Ally.CardManager.HandCard.Cards
-                    .Concat(gameplayWatcher.GameStatus.Enemy.CardManager.HandCard.Cards))
-                .FlatMap(randomCard => randomCard.Owner(gameplayWatcher)
-                    .Map(randomPlayer => (randomPlayer, randomCard)))
-                .Map(tuple => new SelectMainTargetResult(true,
-                    tuple.randomPlayer.Faction == Faction.Ally ? TargetType.AllyCard : TargetType.EnemyCard,
-                    tuple.randomCard.Identity))
-                .ValueOr(new SelectMainTargetResult(false, TargetType.None, Guid.Empty));
-        }
+        private static TargetType CardTargetType(IPlayerEntity owner)
+            => owner.Faction == Faction.Ally
+                ? TargetType.AllyCard
+                : TargetType.EnemyCard;
 
         private static ExistCardSubSelectionAction RandomSelectExistCardSubSelection(
             ExistCardSelectionInfo existCardGroup,
             IGameRandom gameRandom)
         {
-            var selectCount = Math.Min(
-                existCardGroup.Count,
-                existCardGroup.CardInfos.Count);
-
             var selectedCards = existCardGroup.CardInfos
                 .Select(cardInfo => cardInfo.Identity)
                 .Shuffle(gameRandom)
-                .Take(selectCount)
+                .Take(existCardGroup.EffectiveCount)
                 .ToList();
 
             return new ExistCardSubSelectionAction(selectedCards);

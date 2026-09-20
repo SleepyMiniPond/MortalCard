@@ -165,7 +165,12 @@ namespace MortalGame.Presenter
                     return Option.Some<IGameAction>(new TurnSubmitAction(turnSubmitCommand.Faction));
 
                 case UseCardCommand useCardCommand:
-                    var subSelectionOpt = _gameplayManager.QueryCardSubSelectionInfos(useCardCommand.CardIndentity);
+                    var mainSelectionAction = useCardCommand.SelectionTarget.Match(
+                        some: target => MainSelectionAction.Create(target),
+                        none: () => MainSelectionAction.Empty);
+                    var subSelectionOpt = _gameplayManager.QueryCardSubSelectionInfos(
+                        useCardCommand.CardIndentity,
+                        mainSelectionAction);
                     if (subSelectionOpt.TryGetValue(out var subSelectionInfo))
                     {
                         var subSelectionActions = await _subSelectionPresenter.RunSubSelection(
@@ -174,9 +179,7 @@ namespace MortalGame.Presenter
 
                         var action = new UseCardAction(
                             useCardCommand.CardIndentity,
-                            useCardCommand.SelectionTarget.Match(
-                                some: target => MainSelectionAction.Create(target),
-                                none: () => MainSelectionAction.Empty),
+                            mainSelectionAction,
                             subSelectionActions);
                         return Option.Some<IGameAction>(action);
                     }

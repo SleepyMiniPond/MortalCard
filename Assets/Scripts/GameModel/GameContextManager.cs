@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using Optional;
 using MortalGame.GameData;
 namespace MortalGame.GameModel
@@ -25,6 +26,7 @@ namespace MortalGame.GameModel
 
         GameContext Context { get; }
 
+        IGameContextManager SetContext(GameContext context);
         IGameContextManager SetClone();
         IGameContextManager SetSelectedPlayer(Option<IPlayerEntity> selectedPlayer);
         IGameContextManager SetSelectedCharacter(Option<ICharacterEntity> selectedCharacter);
@@ -116,6 +118,13 @@ namespace MortalGame.GameModel
             _contextStack.Push(Context with { });
             return this;
         }
+
+        public IGameContextManager SetContext(GameContext context)
+        {
+            _contextStack.Push(context);
+            return this;
+        }
+
         public IGameContextManager SetSelectedPlayer(Option<IPlayerEntity> selectedPlayer)
         {
             return selectedPlayer.Match(
@@ -154,9 +163,14 @@ namespace MortalGame.GameModel
     public record GameContext(
         Guid SelectedPlayer,
         Guid SelectedCharacter,
-        Guid SelectedCard)
+        Guid SelectedCard,
+        IImmutableDictionary<string, ImmutableArray<Guid>> SelectedCardGroups)
     {
-        public static GameContext EMPTY => new(Guid.Empty, Guid.Empty, Guid.Empty);
+        public static GameContext EMPTY { get; } = new(
+            Guid.Empty,
+            Guid.Empty,
+            Guid.Empty,
+            ImmutableDictionary<string, ImmutableArray<Guid>>.Empty);
     }
 
 }

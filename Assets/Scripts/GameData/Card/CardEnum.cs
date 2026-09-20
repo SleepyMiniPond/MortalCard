@@ -76,12 +76,18 @@ namespace MortalGame.GameData
         DisposeZone,
     }
 
-    public enum TargetLogicTag
+    public enum TargetCandidateScope
     {
         None = 0,
-        ToEnemy,
-        ToAlly,
-        ToRandom,
+        ToEnemy = 1,
+        ToAlly = 2,
+        Any = 3,
+    }
+
+    public enum AutomaticTargetSelectionStrategy
+    {
+        First = 0,
+        Random = 1,
     }
 
 }

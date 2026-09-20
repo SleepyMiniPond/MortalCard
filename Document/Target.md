@@ -19,9 +19,9 @@ Selected 代表玩家／AI 明確選擇，Triggered 代表目前反應者，Acti
 
 ## 選取與查詢分離
 
-MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取已有處理；NewCard／NewPartialCard／NewEffect 目前為預留結構，不代表已完成互動或效果消費。完整多步驟契約見 T-011。
+MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取結果依群組 ID 存入本次出牌 Context，`SubSelectedCardCollection` 依 ID 讀取卡片集合；候選不足時取實際可選數量，仍允許出牌。NewCard／NewPartialCard／NewEffect 目前為預留結構，遇到這些類型時不建立可執行選取結果。完整多步驟契約見 T-011。
 
-AI 自動選取不是純 Target 查詢；目前主目標視角及 ToRandom 限制見 [GameModel](GameModel.md)，不要由標籤名稱推論行為。
+AI 自動選取不是純 Target 查詢；主目標以顯式玩家決定相對敵我視角，候選範圍與 First／Random 挑選策略分開配置，見 [GameModel](GameModel.md)。
 
 ## 程式導引
 

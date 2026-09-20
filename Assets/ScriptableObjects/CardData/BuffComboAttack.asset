@@ -60,7 +60,7 @@ MonoBehaviour:
     - Name: 
       Entry: 8
       Data: 
-    - Name: LogicTag
+    - Name: CandidateScope
       Entry: 3
       Data: 0
     - Name: 

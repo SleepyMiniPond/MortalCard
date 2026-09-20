@@ -53,11 +53,8 @@ namespace MortalGame.GameModel
         {
             foreach (var selectedCard in enemy.SelectedCards.Cards)
             {
-                var selectResult = SelectTargetLogic.SelectMainTarget(model, selectedCard);
-                if (!selectResult.IsValid) continue;
-
-                if (!SelectTargetLogic.SelectSubTargets(model, selectedCard)
-                        .TryGetValue(out var subSelectResult))
+                if (!SelectTargetLogic.SelectTargets(model, selectedCard, enemy)
+                        .TryGetValue(out var selectResult))
                 {
                     continue;
                 }
@@ -70,8 +67,8 @@ namespace MortalGame.GameModel
                 {
                     useCardAction = new UseCardAction(
                         selectedCard.Identity,
-                        MainSelectionAction.Create(selectResult),
-                        subSelectResult.SubSelectionActions);
+                        selectResult.MainSelectionAction,
+                        selectResult.SubSelectionActions);
                     return true;
                 }
             }

@@ -10,7 +10,9 @@ namespace MortalGame.GameModel
     {
         GameStatus GameStatus { get; }
         IGameContextManager ContextManager { get; }
-        Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity);
+        Option<SubSelectionInfo> QueryCardSubSelectionInfos(
+            Guid cardIdentity,
+            MainSelectionAction mainSelectionAction);
         IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit);
         IEnumerable<IGameEvent> ObserveDerivedAction(
             TriggerContext parentContext,
@@ -32,9 +34,11 @@ namespace MortalGame.GameModel
             _clonedStatus = clonedStatus;
         }
 
-        public Option<SubSelectionInfo> QueryCardSubSelectionInfos(Guid cardIdentity)
+        public Option<SubSelectionInfo> QueryCardSubSelectionInfos(
+            Guid cardIdentity,
+            MainSelectionAction mainSelectionAction)
         {
-            return _baseModel.QueryCardSubSelectionInfos(cardIdentity);
+            return _baseModel.QueryCardSubSelectionInfos(cardIdentity, mainSelectionAction);
         }
 
         public IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit)
