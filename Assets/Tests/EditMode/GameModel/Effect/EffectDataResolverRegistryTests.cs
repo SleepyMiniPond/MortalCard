@@ -11,6 +11,7 @@ namespace MortalGame.Tests
     {
         public static IEnumerable<TestCaseData> CardEffectTypes()
         {
+            yield return new TestCaseData(typeof(PlayCardEffect));
             yield return new TestCaseData(typeof(DamageEffect));
             yield return new TestCaseData(typeof(ShieldEffect));
             yield return new TestCaseData(typeof(HealEffect));
@@ -34,6 +35,7 @@ namespace MortalGame.Tests
 
         public static IEnumerable<TestCaseData> SharedCoreResolverTypes()
         {
+            yield return new TestCaseData(typeof(PlayCardEffectResolver));
             yield return new TestCaseData(typeof(DamageEffectResolver));
             yield return new TestCaseData(typeof(ShieldEffectResolver));
             yield return new TestCaseData(typeof(HealEffectResolver));
@@ -56,6 +58,7 @@ namespace MortalGame.Tests
 
         public static IEnumerable<TestCaseData> PlayerBuffEffectTypes()
         {
+            yield return new TestCaseData(typeof(PlayCardEffect));
             yield return new TestCaseData(typeof(DamageEffect));
             yield return new TestCaseData(typeof(ShieldEffect));
             yield return new TestCaseData(typeof(HealEffect));
@@ -79,6 +82,7 @@ namespace MortalGame.Tests
 
         public static IEnumerable<TestCaseData> CharacterBuffEffectTypes()
         {
+            yield return new TestCaseData(typeof(PlayCardEffect));
             yield return new TestCaseData(typeof(ModifyCardPlayAttributeEffect));
             yield return new TestCaseData(typeof(DamageEffect));
             yield return new TestCaseData(typeof(ShieldEffect));
@@ -102,6 +106,7 @@ namespace MortalGame.Tests
 
         public static IEnumerable<TestCaseData> CardBuffEffectTypes()
         {
+            yield return new TestCaseData(typeof(PlayCardEffect));
             yield return new TestCaseData(typeof(ModifyCardPlayAttributeEffect));
             yield return new TestCaseData(typeof(DamageEffect));
             yield return new TestCaseData(typeof(ShieldEffect));

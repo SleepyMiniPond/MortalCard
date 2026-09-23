@@ -1,12 +1,12 @@
 # Card 卡牌系統
 
-> 核對日期：2026-09-19
+> 核對日期：2026-09-23
 
 卡牌分為設計配置 CardData、跨戰鬥 CardInstance、本場戰鬥 CardEntity。移牌與變形保留 Entity Identity；Runtime 建立及 Clone 的卡片沒有來源 Instance。形態規則見 [CardTransformation](CardTransformation.md)，資料轉換見 [CardEntity](../Assets/Scripts/GameModel/Entity/Card/CardEntity.cs)。
 
 ## 出牌與移牌
 
-主動出牌須在手牌、未被 Sealed，且費用可負擔。主要順序為：進入 PlayingCard → 普通 Effects → UsedCardEvent → Played → CardPlayResultAction → 離場。普通 Effects 依 EffectRepeat 執行至少一次；Played 每次出牌只執行一次，其結果併入同次出牌結果。
+主動出牌須在手牌、未被 Sealed，且費用可負擔。間接出牌由 `PlayCardEffect` 排入請求，輪到請求時須仍在擁有者手牌且未被 Sealed；不支付能量，也不檢查費用。兩者共用單張流程：進入 PlayingCard → 普通 Effects → UsedCardEvent → Played 或 EffectPlayed → CardPlayResultAction → 離場。普通 Effects 依 EffectRepeat 執行至少一次；Played／EffectPlayed 依出牌原因二擇一，每次出牌只執行一次，其結果併入同次出牌結果。間接出牌失效時不產生成功事件或生命週期效果。
 
 不同操作的目的地依各自規則決定，不可只由屬性名稱推測：
 
@@ -31,7 +31,7 @@ Consumable 不等於可重複打出。Sealed 可來自卡片屬性或 CardBuff�
 | Preserved／Discarded | 回合清手後，先全部保留卡，再全部棄牌卡 |
 | EffectDiscarded | DiscardCardEffect 成功移牌後；明確 Consume／Dispose 不派送 |
 | FormChanged | Self 變形／Override 解除有 CardData 入口；Override 套用及 CardBuff 尚未接線，見 [形態文件](CardTransformation.md) |
-| EffectPlayed | 尚無正式間接出牌入口，見 T-022 |
+| EffectPlayed | `PlayCardEffect` 間接出牌；普通 Effects 後、離場前派送，不與 Played 同時派送 |
 
 共用 [CardTriggeredEffectDispatch](../Assets/Scripts/GameModel/Effect/CardTriggeredEffectDispatch.cs) 先快照符合條件的 CardData 效果，再快照當下有效 CardBuff 效果，固定依此順序排程。後續形態或 Buff 變動不回頭修改已建名單。
 

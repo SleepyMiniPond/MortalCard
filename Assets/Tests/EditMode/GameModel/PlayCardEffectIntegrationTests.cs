@@ -4,7 +4,9 @@ using System.Linq;
 using System.Reflection;
 using MortalGame.GameData;
 using MortalGame.GameModel;
+using MortalGame.GameView;
 using NUnit.Framework;
+using UnityEngine;
 
 namespace MortalGame.Tests
 {
@@ -149,12 +151,34 @@ namespace MortalGame.Tests
             if (selected) built.Enemy.SelectedCards.TryAddCard(card);
             using (built.Status.SetCurrentPlayer(built.Ally))
             {
-                Assert.That(_Run(built, card).Events.OfType<UsedCardEvent>().Count(), Is.EqualTo(1));
+                var used = _Run(built, card).Events.OfType<UsedCardEvent>().Single();
+                Assert.That(used.Reason, Is.EqualTo(CardPlayReason.Effect));
+                Assert.That(used.CardManagerInfo.CardZoneInfos[CardCollectionType.HandCard].Contains(card.Identity),
+                    Is.False);
                 Assert.That(built.Status.CurrentPlayer.Value.TryGetValue(out var current), Is.True);
                 Assert.That(current, Is.SameAs(built.Ally));
             }
             Assert.That(built.Enemy.SelectedCards.Cards.Contains(card), Is.False);
             Assert.That(built.Enemy.CardManager.Graveyard.Cards, Does.Contain(card));
+        }
+
+        [Test]
+        public void UndisplayedEnemyCardCanReceiveUsedEventWithoutASelectedCardView()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Enemy.CardManager.HandCard.AddCard(card);
+            var used = _Run(built, card).Events.OfType<UsedCardEvent>().Single();
+            var viewObject = new GameObject("UndisplayedEnemyCardViewTest");
+            try
+            {
+                var view = viewObject.AddComponent<EnemySelectedCardView>();
+                Assert.DoesNotThrow(() => view.RemoveCardView(used));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(viewObject);
+            }
         }
 
         [Test]

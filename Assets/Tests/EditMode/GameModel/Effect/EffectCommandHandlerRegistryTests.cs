@@ -10,6 +10,7 @@ namespace MortalGame.Tests
     {
         public static IEnumerable<TestCaseData> EffectCommandTypes()
         {
+            yield return new TestCaseData(typeof(PlayCardEffectCommand));
             yield return new TestCaseData(typeof(DamageEffectCommand));
             yield return new TestCaseData(typeof(HealEffectCommand));
             yield return new TestCaseData(typeof(ShieldEffectCommand));

@@ -1,17 +1,15 @@
 # 專案待辦事項
 
-> 最後更新：2026-09-19
+> 最後更新：2026-09-23
 > 狀態標記：⬜ 待開始／待排期 | 🟡 已有部分基礎，尚未完成 | 🔄 進行中 | ✅ 已完成
-> 本輪以程式與既有測試原始碼核對進度，未重新執行 Unity 測試。
+> T-022 已完成並封存；下一主線為 T-023。
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
 ## 工作優先順序
 
 ```text
 現在可開始
-└─ T-022 EffectPlayed 間接出牌
-        ↓
-    T-023 InvokeCardEffects 原地執行卡效
+└─ T-023 InvokeCardEffects 原地執行卡效
         ↓
     T-011 多步驟目標選取
         ↓
@@ -29,24 +27,11 @@
 └─ T-014 Preview / Simulation
 ```
 
-T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的卡片生命週期觸發已完成（FormChanged 專用路徑差異另列 T-025），下一步為 T-022 `EffectPlayed` 間接出牌，再由 T-023 接續 `InvokeCardEffects` 原地執行卡效。T-011 與 T-012 依主線順序排在其後；T-013、T-014 影響面較廣，不與這條主線同時進行。
+T-010、T-017～T-020 與 T-022 已完成並封存。T-017 範圍內的卡片生命週期觸發已完成（FormChanged 專用路徑差異另列 T-025）；下一主線為 T-023 `InvokeCardEffects` 原地執行卡效。T-011 與 T-012 依主線順序排在其後；T-013、T-014 影響面較廣，不與這條主線同時進行。
 
 ---
 
 ## 主線依序完成
-
-### T-022：完成 `EffectPlayed` 間接出牌能力
-
-- **前置**：T-017 已完成。
-- **目標**：讓 Effect 可將擁有者手牌中的卡片排入完整間接出牌流程，執行普通 Effects 與 `CardTriggeredTiming.EffectPlayed`。
-- **已確認契約**：只允許手牌；不支付能量；受 `Sealed` 限制；經過 `PlayingCard`；套用普通 Effects 的完整 `EffectRepeat`，但 `EffectPlayed` 每次出牌只派送一次；共用主動出牌的墓地／排除／回收規則。
-- **自動選取**：無玩家選取階段；共用 `SelectMainTarget` 與 `SelectSubTargets`，並抽出顯式「選取視角玩家」。`TargetCandidateScope.ToAlly`／`ToEnemy` 以卡片擁有者為視角，`Any` 不限陣營；`First`／`Random` 為獨立挑選策略，不改寫代表目前行動流程的 `GameStatus.CurrentPlayer`。
-- **執行模型**：同時只允許一個完整出牌流程；目前出牌中產生的間接出牌請求以 FIFO 延後到目前卡片完成離場後執行，整條出牌鏈需有共同 Budget 防止循環。
-- **事件**：為 `UsedCardEvent` 增加出牌原因，區分主動出牌與 Effect 間接出牌。
-- **失效規則**：卡片不在手牌、已被 `Sealed` 或無法建立合法自動目標時，不移入 `PlayingCard`、不產生出牌事件、不派送 `EffectPlayed`。
-- **程式核對**：共用單張出牌核心、出牌原因、支付資料與擁有者公式已建立。顯式選取視角、ExistCard 群組 Context、FIFO 出牌鏈與共同 Budget 已接線至各根入口；PlayCardEffect 已接上四來源 Resolver／Command／Handler，成功間接出牌會清除敵方預選。Validator、序列化與完整呈現驗證待第 6 個工作。
-- **依據**：[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[SelectTargetLogic](../Assets/Scripts/GameModel/EnemyLogic/SelectTargetLogic.cs)、[GameEvent](../Assets/Scripts/GameModel/GameEvent.cs)。
-- **狀態**：🔄 進行中（第 1～4 個工作已確認；第 5 個工作已完成實作與驗證，待確認）
 
 ### T-023：完成 `InvokeCardEffects` 原地執行卡效能力
 
@@ -57,7 +42,7 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 - **Queue 規則**：直接進入既有 Effect Queue，連鎖 `InvokeCardEffects` 共用同一 Queue Budget。
 - **命名**：程式與技術文件使用 `InvokeCardEffects`；題材化名稱只留給未來翻譯與顯示文字。
 - **程式核對**：尚無 InvokeCardEffects 資料型別、Resolver 或正式執行入口；一般 CardEffect Queue 不等於已有此操作。
-- **狀態**：⬜ 待 T-022 共用選取入口完成
+- **狀態**：⬜ 前置已完成，下一主線待開始
 
 ### T-011：多步驟自訂目標選取
 
@@ -174,7 +159,7 @@ T-010、T-017、T-018、T-019 與 T-020 已完成並封存。T-017 範圍內的�
 - **現況**：GameplayManager 同時承擔回合、出牌、效果根入口、事件與勝負收斂，閱讀及修改成本逐漸增加。
 - **工作**：優先評估抽離單張出牌流程與出牌鏈協調，釐清查詢／執行介面及事件擁有權；入口保留可直接閱讀的具名流程，避免只為消除少量重複而引入委派抽象。
 - **完成條件**：責任與依賴清楚，既有 FIFO、Budget、選取作用域、事件順序與中止清理測試全部通過，遊戲行為不變。
-- **狀態**：⬜ 待 T-022 完成後評估；本次只記錄，不實作。
+- **狀態**：⬜ T-022 已完成，待獨立評估排期；本次只記錄，不實作。
 
 ## 未來可能方向（非待辦）
 

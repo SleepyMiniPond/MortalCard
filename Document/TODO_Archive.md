@@ -1,7 +1,7 @@
 # 已完成任務封存
 
-> 整理日期：2026-09-19
-> 以下完成日期與驗證數字沿用各次任務紀錄，本輪未重新執行測試；目前行為以系統文件及程式為準，待辦見 [TODO](TODO.md)。
+> 整理日期：2026-09-23
+> 各項完成日期與驗證數字為當時紀錄；T-022 的驗證於 2026-09-23 執行。現在行為以系統文件及程式為準，待辦見 [TODO](TODO.md)。
 > 完成狀態限於各任務範圍，不代表所有預留列舉、流程入口或後續整合都已完成。
 
 ### T-001：消除 Switch Expression 雙重派發
@@ -54,7 +54,7 @@ PlayerBuff、CharacterBuff、CardBuff 的一般反應時機已接入效果流程
 
 ### T-006：導入戰鬥專用決定性亂數服務
 
-以戰鬥種子建立並注入 IGameRandom，洗牌與既有子選取使用同一服務。這不保證每個名為 Random 的選取分支已使用亂數；目前主目標 ToRandom 仍取第一個，於 T-022 共用選取工作處理。見 [GameModel](GameModel.md)。
+以戰鬥種子建立並注入 IGameRandom，洗牌與既有子選取使用同一服務。當時主目標 ToRandom 仍取第一個；此缺口已於 T-022 的共用選取工作完成。見 [GameModel](GameModel.md)。
 
 - **狀態**：✅ 已完成（2026-07-07）
 - **歷史驗證結果**：
@@ -169,6 +169,15 @@ PlayerBuff、CharacterBuff、CardBuff 的一般反應時機已接入效果流程
   - 生命週期定向回歸：Dispatch 4 passed、Initialize 1 passed、Effect Queue／抽牌 39 passed、出牌 9 passed、清手 8 passed、卡片操作 27 passed。
   - 完整 EditMode：652 passed / 0 failed / 0 skipped。
   - 測試保留 2 則既有 `NoOpCardBuffEffect` 未知類型 Warning，屬測試用安全空 CommandSet 案例。
+
+### T-022：完成 `EffectPlayed` 間接出牌能力
+
+完成擁有者手牌的免付費間接出牌、主動／間接共用單張流程、顯式選取視角與 ExistCard 群組結果、四來源 PlayCardEffect，以及 FIFO 出牌鏈與共同 Budget。成功出牌依原因派送 Played 或 EffectPlayed；失效請求不產生成功事件。Validator、Odin 多型資料與畫面牌區事件已驗證。相關規則見 [Action](Action.md)、[Card](Card.md)、[Effect](Effect.md) 與 [Target](Target.md)。
+
+- **狀態**：✅ 已完成（2026-09-23）。
+- **歷史驗證結果**：Unity 編譯 0 error；正式內容 `GameDataValidator.ValidateAll()` 0 error；完整 EditMode 721 passed / 0 failed / 0 skipped；PlayMode 3 passed / 0 failed / 0 skipped。
+- **驗證限制**：未執行實際 Player Build 或人工遊玩；測試紀錄有 2 則既有 `NoOpCardBuffEffect` Warning 與 3 則預期的 Budget 中止診斷。
+- **後續邊界**：`InvokeCardEffects` 由 T-023 接續；其他子選取類型仍屬 T-011；更一般的出牌條件與 GameplayManager 職責拆分分別由 T-028、T-029 追蹤。
 
 ## 現況導引
 

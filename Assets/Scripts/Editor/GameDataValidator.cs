@@ -1299,6 +1299,20 @@ namespace MortalGame.Editor
                 errors.Add($"{context}.SubSelects 的 Id 重複：{duplicateId}");
             }
 
+            var existCardIds = subSelections
+                .OfType<ExistCardSelectionGroup>()
+                .Select(selection => selection.Id)
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .ToHashSet();
+            foreach (var selectedCards in SerializedDataGraphUtility.Find<SubSelectedCardCollection>(cardData))
+            {
+                if (!string.IsNullOrWhiteSpace(selectedCards.SelectionId) &&
+                    !existCardIds.Contains(selectedCards.SelectionId))
+                {
+                    errors.Add($"{context} 的 SubSelectedCardCollection.SelectionId 找不到 ExistCard 群組：{selectedCards.SelectionId}");
+                }
+            }
+
             _ValidateAddCardBuffDataSemantics(cardData, context, errors);
 
             _ValidateTimingKeys(
@@ -1355,6 +1369,12 @@ namespace MortalGame.Editor
             string context,
             ICollection<string> errors)
         {
+            foreach (var selectedCards in SerializedDataGraphUtility.Find<SubSelectedCardCollection>(data))
+            {
+                if (string.IsNullOrWhiteSpace(selectedCards.SelectionId))
+                    errors.Add($"{context} 的 SubSelectedCardCollection.SelectionId 為空");
+            }
+
             foreach (var cards in SerializedDataGraphUtility.Find<CardsOfPlayer>(data))
             {
                 if (cards.Zone == CardCollectionType.None ||

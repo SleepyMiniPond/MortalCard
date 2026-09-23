@@ -1,6 +1,6 @@
 # Target 目標與選取
 
-> 核對日期：2026-09-19
+> 核對日期：2026-09-23
 
 Target 以可序列化資料描述在 TriggerContext 中要讀取的實體或集合。單一查詢回傳 Option，找不到為 None；集合查詢回傳空集合，不以 Dummy 或 null 代替。
 
@@ -19,7 +19,7 @@ Selected 代表玩家／AI 明確選擇，Triggered 代表目前反應者，Acti
 
 ## 選取與查詢分離
 
-MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取結果依群組 ID 存入本次出牌 Context，`SubSelectedCardCollection` 依 ID 讀取卡片集合；候選不足時取實際可選數量，仍允許出牌。NewCard／NewPartialCard／NewEffect 目前為預留結構，遇到這些類型時不建立可執行選取結果。完整多步驟契約見 T-011。
+MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取結果依群組 ID 存入本次出牌 Context，`SubSelectedCardCollection` 依 ID 讀取卡片集合；卡片資產中的群組 ID 必須非空且對應本張卡宣告的 ExistCard 群組。候選不足時取實際可選數量，仍允許出牌。NewCard／NewPartialCard／NewEffect 目前為預留結構，遇到這些類型時不建立可執行選取結果。完整多步驟契約見 T-011。
 
 AI 自動選取不是純 Target 查詢；主目標以顯式玩家決定相對敵我視角，候選範圍與 First／Random 挑選策略分開配置，見 [GameModel](GameModel.md)。
 

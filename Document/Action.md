@@ -1,6 +1,6 @@
 # Action 與反應上下文
 
-> 核對日期：2026-09-19
+> 核對日期：2026-09-23
 
 Action 描述意圖、目標或已發生的結果，Effect Command 才是狀態變更指令。Action 多以 Record 表達，但其中可參考可變 Entity／屬性容器，不代表整張物件圖不可變。
 
@@ -25,6 +25,8 @@ ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可�
 ## 出牌與卡片時機
 
 [CardPlaySource](../Assets/Scripts/GameModel/Action/ActionSource.cs) 保存出牌卡、手牌位置、出牌原因、支付資料與本次屬性修正。`Payment` 有值代表本次支付的能量（可為 0）；無值表示未支付，預覽亦不偽造支付命令。`UsedCardEvent.Reason` 與 Played／EffectPlayed 派送共用 Source 的原因；結果 Source 聚合普通效果及本次出牌生命週期的 Result。
+
+`UsedCardEvent` 帶出牌當下的牌區快照；View 依陣營移除手牌或敵方預選顯示。間接打出未顯示的敵牌時，畫面上沒有對應卡片是正常情況；異常中止則以真實最終牌區事件同步，不偽造成功出牌事件。
 
 `GameplayManager._UseCard` 建立主動出牌根批次，`_ExecuteSelectedCard` 建立並還原完整 Selected Context，再交給 `_ExecuteCardPlay` 結算單張卡片。PlayCardEffect 的 Handler 只提交請求，經 FIFO 協調器重新建立選取後共用單張核心。CardPlaySource 的公式加成由卡片擁有者取得，不依賴或修改 CurrentPlayer。
 

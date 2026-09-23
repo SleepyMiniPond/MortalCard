@@ -1,6 +1,6 @@
 # Effect 效果管線
 
-> 核對日期：2026-09-19
+> 核對日期：2026-09-23
 
 Effect 將宣告式資料轉成狀態變更：Resolver 解析目標與數值 → Command 表達操作 → Queue 安排順序 → Handler 套用狀態並產生結果與事件。
 
@@ -27,8 +27,9 @@ Card、PlayerBuff、CharacterBuff、CardBuff 各有明確的 Resolver Registry�
 | 傷害、治療、護盾、能量、好感度、抽牌、移牌、建立／複製卡牌、PlayerBuff 與 CardBuff 操作 | 四來源共用 |
 | ModifyCardPlayAttribute | 三種 Buff Reaction 專用 |
 | ApplyCardFormOverride | ICardEffect 路徑，可用於普通或卡片生命週期效果；不開放三種 Buff Registry |
+| PlayCardEffect | 四來源共用；提交擁有者手牌的完整間接出牌請求 |
 
-新增能力須同步確認資料介面、Registry 與 [GameDataValidator](../Assets/Scripts/Editor/GameDataValidator.cs)。型別清單直接閱讀程式，不在文件複製。未知效果在 Runtime 警告並回傳空命令集合，正式資產應於驗證階段被攔截。
+新增能力須同步確認資料介面、Registry 與 [GameDataValidator](../Assets/Scripts/Editor/GameDataValidator.cs)。Validator 會檢查 PlayCardEffect 的必要目標、SubSelectedCardCollection 的非空群組 ID，以及卡片資料中引用的 ExistCard 群組是否存在。型別清單直接閱讀程式，不在文件複製。未知效果在 Runtime 警告並回傳空命令集合，正式資產應於驗證階段被攔截。
 
 ## 排程與預算
 

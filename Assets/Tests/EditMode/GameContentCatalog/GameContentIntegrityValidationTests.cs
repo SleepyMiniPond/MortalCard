@@ -823,6 +823,69 @@ namespace MortalGame.Tests
             }
         }
 
+        [Test]
+        public void PlayCardEffect_ValidatorReportsMissingTargetsAndInvalidSelectionIds()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                card.Data.ID = "invalid-play-card";
+                card.Data.Effects.Add(new PlayCardEffect());
+                card.Data.Effects.Add(new PlayCardEffect
+                {
+                    TargetCards = new SubSelectedCardCollection { SelectionId = " " }
+                });
+                card.Data.Effects.Add(new PlayCardEffect
+                {
+                    TargetCards = new SubSelectedCardCollection { SelectionId = "missing" }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var errors = GameDataValidator.ValidateNestedContent(catalog);
+
+                Assert.That(errors, Has.Some.Contains("Effects[0].TargetCards 為空"));
+                Assert.That(errors, Has.Some.Contains("SubSelectedCardCollection.SelectionId 為空"));
+                Assert.That(errors, Has.Some.Contains("找不到 ExistCard 群組：missing"));
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void PlayCardEffect_ValidatorAcceptsMatchingExistCardSelection()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                card.Data.ID = "valid-play-card";
+                card.Data.SubSelects.Add(new ExistCardSelectionGroup
+                {
+                    Id = "chosen",
+                    CardCandidates = new SingleCardCollection { TargetCard = new TriggeredCard() },
+                    SelectCount = new ConstInteger { Value = 1 },
+                    IsMustSelect = new TrueValue()
+                });
+                card.Data.Effects.Add(new PlayCardEffect
+                {
+                    TargetCards = new SubSelectedCardCollection { SelectionId = "chosen" }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
         private static LocalizeExcelTitleData _CreateTitleInfoRow(string id)
         {
             return new LocalizeExcelTitleData
