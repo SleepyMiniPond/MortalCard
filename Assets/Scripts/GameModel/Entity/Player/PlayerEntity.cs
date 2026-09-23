@@ -3,11 +3,8 @@ using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
-using Unity.VisualScripting;
-using UnityEngine;
 namespace MortalGame.GameModel
 {
-
     public interface IPlayerEntity
     {
         Guid Identity { get; }
@@ -22,6 +19,7 @@ namespace MortalGame.GameModel
         IPlayerBuffManager BuffManager { get; }
         ICharacterEntity MainCharacter { get; }
 
+        Option<CardPlayScope> TryBeginCardPlay(ICardEntity card);
         IGameEvent Update(TriggerContext triggerContext);
     }
 
@@ -68,6 +66,10 @@ namespace MortalGame.GameModel
             _energyManager = new EnergyManager(currentEnergy, maxEnergy);
             _buffManager = new PlayerBuffManager();
         }
+
+        // 牌區移動由 CardManager 執行；玩家可同步維護開始出牌時的自身狀態。
+        public virtual Option<CardPlayScope> TryBeginCardPlay(ICardEntity card)
+            => CardManager.TryPlayCard(card);
 
         public IGameEvent Update(TriggerContext triggerContext)
         {
@@ -159,19 +161,17 @@ namespace MortalGame.GameModel
             return false;
         }
 
-        public bool TryGetNextUseCardAction(IGameplayModel gameplayWatcher, out UseCardAction useCardAction)
+        public override Option<CardPlayScope> TryBeginCardPlay(ICardEntity card)
         {
-            if (UseCardLogic.TryGetNextUseCardAction(gameplayWatcher, this, out useCardAction))
-            {
-                var cardIdentity = useCardAction.CardIndentity;
-                return CardManager.GetCardOrNone(card => card.Identity == cardIdentity)
-                    .Map(card => SelectedCards.RemoveCard(card))
-                    .ValueOr(false);
-            }
-
-            useCardAction = null;
-            return false;
+            var result = base.TryBeginCardPlay(card);
+            if (result.HasValue)
+                SelectedCards.RemoveCard(card);
+            return result;
         }
+
+        public bool TryGetNextUseCardAction(IGameplayModel gameplayWatcher,
+            IReadOnlyCollection<Guid> attemptedCardIdentities, out UseCardAction useCardAction)
+            => UseCardLogic.TryGetNextUseCardAction(gameplayWatcher, this, attemptedCardIdentities, out useCardAction);
     }
 
     public class DummyPlayer : PlayerEntity

@@ -91,11 +91,8 @@ namespace MortalGame.Tests
         public void MoveEffect_TargetingPlayingCard_IsSafeNoOp()
         {
             var setup = _CreateSetup(ReactionSource.PlayerBuff);
-            var (success, _) = setup.Built.Ally.CardManager.TryPlayCard(
-                setup.Card,
-                out _,
-                out _);
-            Assert.That(success, Is.True);
+            var play = setup.Built.Ally.CardManager.TryPlayCard(setup.Card);
+            Assert.That(play.HasValue, Is.True);
 
             var effect = new DiscardCardEffect
             {

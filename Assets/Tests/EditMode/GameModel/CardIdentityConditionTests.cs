@@ -99,9 +99,9 @@ namespace MortalGame.Tests
             var built = new GameplayManagerTestBuilder().Build();
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
-            var playResult = built.Ally.CardManager.TryPlayCard(card, out _, out _);
-            Assert.That(playResult.Success, Is.True);
-            using var playingScope = playResult.PlayCardDisposable;
+            var playResult = built.Ally.CardManager.TryPlayCard(card);
+            Assert.That(playResult.TryGetValue(out var playingScope), Is.True);
+            using var activePlay = playingScope;
             var context = _CreateContext(built, card);
             var condition = _CreateTriggeredCardIsPlayingByOwnerCondition();
 
@@ -132,9 +132,9 @@ namespace MortalGame.Tests
             var playingCard = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(triggeredCard);
             built.Ally.CardManager.HandCard.AddCard(playingCard);
-            var playResult = built.Ally.CardManager.TryPlayCard(playingCard, out _, out _);
-            Assert.That(playResult.Success, Is.True);
-            using var playingScope = playResult.PlayCardDisposable;
+            var playResult = built.Ally.CardManager.TryPlayCard(playingCard);
+            Assert.That(playResult.TryGetValue(out var playingScope), Is.True);
+            using var activePlay = playingScope;
             var context = _CreateContext(built, triggeredCard);
             var condition = _CreateTriggeredCardIsPlayingByOwnerCondition();
 

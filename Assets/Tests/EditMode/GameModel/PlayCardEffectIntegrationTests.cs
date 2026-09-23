@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using NUnit.Framework;
@@ -8,6 +10,86 @@ namespace MortalGame.Tests
 {
     public sealed class PlayCardEffectIntegrationTests
     {
+        [Test]
+        public void EnemyActionQueryPreservesSelectionAndSkipsAttemptedCards()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var first = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            var second = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Enemy.CardManager.HandCard.AddCards(new[] { first, second });
+            built.Enemy.SelectedCards.TryAddCard(first);
+            built.Enemy.SelectedCards.TryAddCard(second);
+            var attempted = new HashSet<Guid>();
+
+            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out var action), Is.True);
+            Assert.That(action.CardIndentity, Is.EqualTo(first.Identity));
+            Assert.That(built.Enemy.SelectedCards.Cards, Is.EqualTo(new[] { first, second }));
+            attempted.Add(first.Identity);
+            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out action), Is.True);
+            Assert.That(action.CardIndentity, Is.EqualTo(second.Identity));
+            attempted.Add(second.Identity);
+            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out _), Is.False);
+            Assert.That(built.Enemy.SelectedCards.Cards.Count, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void BeginEnemyCardPlayClearsSelectionOnlyAfterEnteringPlayingCard()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Enemy.SelectedCards.TryAddCard(card);
+            IPlayerEntity player = built.Enemy;
+
+            var failed = player.TryBeginCardPlay(card);
+            Assert.That(failed.HasValue, Is.False);
+            Assert.That(built.Enemy.SelectedCards.Cards, Does.Contain(card));
+            built.Enemy.CardManager.HandCard.AddCard(card);
+            var started = player.TryBeginCardPlay(card);
+            Assert.That(started.TryGetValue(out var play), Is.True);
+            using (play)
+            {
+                Assert.That(player.CardManager.PlayingCard.HasValue, Is.True);
+                Assert.That(built.Enemy.SelectedCards.Cards, Is.Empty);
+            }
+            Assert.That(player.CardManager.Graveyard.Cards, Does.Contain(card));
+        }
+
+        [Test]
+        public void EnemyExecuteContinuesAfterFailedCardAndClearsRemainingSelectionAtEnd()
+        {
+            var sealedData = CardTestBuilder.CreateCardData("sealed");
+            sealedData.PropertyDatas.Add(new SealedPropertyData());
+            var built = new GameplayManagerTestBuilder().WithCard(sealedData).Build();
+            var failed = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, "sealed");
+            var playable = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Enemy.CardManager.HandCard.AddCards(new[] { failed, playable });
+            built.Enemy.SelectedCards.TryAddCard(failed);
+            built.Enemy.SelectedCards.TryAddCard(playable);
+            // 此測試直接進入敵方階段，補上正式 StartBattle 會建立的輸入佇列。
+            typeof(GameplayManager).GetField("_gameActions", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(built.Manager, new UniTaskAwaitableQueue<IGameAction>());
+
+            typeof(GameplayManager).GetMethod("_EnemyExecute", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(built.Manager, Array.Empty<object>());
+
+            var events = built.Manager.PopAllEvents().ToArray();
+            Assert.That(events.OfType<UsedCardEvent>().Single().UsedCardIdentity, Is.EqualTo(playable.Identity));
+            Assert.That(events.OfType<UsedCardEvent>().Single().Reason, Is.EqualTo(CardPlayReason.Active));
+            Assert.That(events.OfType<EnemyUnselectedCardEvent>().Single().UnselectedCards,
+                Is.EqualTo(new[] { failed.Identity }));
+            Assert.That(built.Enemy.CardManager.HandCard.Cards, Does.Contain(failed));
+            Assert.That(built.Enemy.SelectedCards.Cards, Is.Empty);
+
+            // 每次執行階段都使用新的嘗試集合。
+            built.Enemy.CardManager.Graveyard.RemoveCard(playable);
+            built.Enemy.CardManager.HandCard.AddCard(playable);
+            built.Enemy.SelectedCards.TryAddCard(playable);
+            typeof(GameplayManager).GetMethod("_EnemyExecute", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(built.Manager, Array.Empty<object>());
+            Assert.That(built.Manager.PopAllEvents().OfType<UsedCardEvent>().Single().UsedCardIdentity,
+                Is.EqualTo(playable.Identity));
+        }
+
         [TestCase(0)]
         [TestCase(1)]
         [TestCase(2)]

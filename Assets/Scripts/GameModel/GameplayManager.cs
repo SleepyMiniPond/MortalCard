@@ -392,8 +392,11 @@ namespace MortalGame.GameModel
             _gameEvents.AddRange(_RunTiming(GameTiming.BeforeExecuteStart, executeStartSource));
             _gameEvents.AddRange(_RunTiming(GameTiming.AfterExecuteStart, executeStartSource));
 
-            while (_gameStatus.Enemy.TryGetNextUseCardAction(this, out var useCardAction))
+            // 失敗的出牌仍保留預選，但本次執行階段不重複嘗試同一張牌。
+            var attemptedCardIdentities = new HashSet<Guid>();
+            while (_gameStatus.Enemy.TryGetNextUseCardAction(this, attemptedCardIdentities, out var useCardAction))
             {
+                attemptedCardIdentities.Add(useCardAction.CardIndentity);
                 if (_UseCard(_gameStatus.Enemy, useCardAction))
                 {
                     _gameEvents.Add(new PlayerExecuteStartEvent(
@@ -635,15 +638,13 @@ namespace MortalGame.GameModel
                 payment = new CardPlayPayment(cost).Some();
             }
 
-            var (isSuccess, playCardDisposable) = player.CardManager.TryPlayCard(
-                usedCard, out var handCardIndex, out var handCardsCount);
-            if (!isSuccess)
+            if (!player.TryBeginCardPlay(usedCard).TryGetValue(out var playCardScope))
             {
                 return false;
             }
 
             var cardPlaySource = new CardPlaySource(
-                usedCard, handCardIndex, handCardsCount, reason, payment, new CardPlayAttributeEntity());
+                usedCard, playCardScope.HandCardIndex, playCardScope.HandCardsCount, reason, payment, new CardPlayAttributeEntity());
             var cardPlayTrigger = new CardPlayTrigger(cardPlaySource);
             var cardPlayIntent = new CardPlayIntentAction(cardPlaySource);
             var cardPlayTriggerContext = new TriggerContext(this, cardPlayTrigger, cardPlayIntent);
@@ -651,11 +652,8 @@ namespace MortalGame.GameModel
             var completed = false;
             try
             {
-                using (playCardDisposable)
+                using (playCardScope)
                 {
-                    if (reason == CardPlayReason.Effect && player is EnemyEntity enemy)
-                        enemy.SelectedCards.RemoveCard(usedCard);
-
                     if (payment.TryGetValue(out var paid))
                     {
                         var result = player.EnergyManager.ConsumeEnergy(paid.EnergySpent);

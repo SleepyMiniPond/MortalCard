@@ -28,6 +28,8 @@ ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可�
 
 `GameplayManager._UseCard` 建立主動出牌根批次，`_ExecuteSelectedCard` 建立並還原完整 Selected Context，再交給 `_ExecuteCardPlay` 結算單張卡片。PlayCardEffect 的 Handler 只提交請求，經 FIFO 協調器重新建立選取後共用單張核心。CardPlaySource 的公式加成由卡片擁有者取得，不依賴或修改 CurrentPlayer。
 
+主動與間接出牌通過合法性檢查後，統一呼叫 `IPlayerEntity.TryBeginCardPlay`。底層 `IPlayerCardManager.TryPlayCard` 成功回傳含原手牌位置、張數及離場作用域的 `CardPlayScope`，失敗回傳 None；PlayerEntity 直接轉交此結果，EnemyEntity 在成功後同步移除預選，不依出牌原因分支。敵方 `TryGetNextUseCardAction` 只查詢下一個指令，執行階段另以已嘗試 Identity 集合避免失敗牌被重複嘗試；失敗預選留到階段結束時統一取消。
+
 CardTriggeredTimingAction 表達某張卡的生命週期，其 GameTiming 維持 None，兩套時機不混用。共用派送已接入的時機見 [Card](Card.md)。FormChanged 仍使用 CardFormChangedAction 的 CardData 專用路徑。間接牌建立自己的 CardPlayIntent 根來源，其 Result 不併入發起效果的結果集合。
 
 目標及值的查詢契約見 [Target](Target.md)、[Value](Value.md)、[Condition](Condition.md)，排程與副作用見 [Effect](Effect.md)。

@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using System.Linq;
 using Optional;
 using Optional.Collections;
@@ -49,10 +51,14 @@ namespace MortalGame.GameModel
         public static bool TryGetNextUseCardAction(
             IGameplayModel model,
             EnemyEntity enemy,
+            IReadOnlyCollection<Guid> attemptedCardIdentities,
             out UseCardAction useCardAction)
         {
             foreach (var selectedCard in enemy.SelectedCards.Cards)
             {
+                if (attemptedCardIdentities.Contains(selectedCard.Identity))
+                    continue;
+
                 if (!SelectTargetLogic.SelectTargets(model, selectedCard, enemy)
                         .TryGetValue(out var selectResult))
                 {

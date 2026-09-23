@@ -303,11 +303,11 @@ namespace MortalGame.Tests.CardTransformation
             cardManager.HandCard.AddCard(built.Card);
 
             var foundInHand = cardManager.GetCardOrNone(card => card.Identity == built.Card.Identity);
-            var playResult = cardManager.TryPlayCard(built.Card, out _, out _);
+            var playResult = cardManager.TryPlayCard(built.Card);
             var foundWhilePlaying = cardManager.GetCardOrNone(card => card.Identity == built.Card.Identity);
 
             Assert.That(foundInHand.ValueOr(CardEntity.DummyCard), Is.SameAs(built.Card));
-            Assert.That(playResult.Success, Is.True);
+            Assert.That(playResult.HasValue, Is.True);
             Assert.That(foundWhilePlaying.ValueOr(CardEntity.DummyCard), Is.SameAs(built.Card));
         }
 

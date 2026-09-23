@@ -7,6 +7,10 @@ using Optional;
 using UnityEngine;
 namespace MortalGame.GameModel
 {
+    public sealed record CardPlayScope(int HandCardIndex, int HandCardsCount, IDisposable Scope) : IDisposable
+    {
+        public void Dispose() => Scope.Dispose();
+    }
 
 
     public interface IPlayerCardManager
@@ -19,7 +23,7 @@ namespace MortalGame.GameModel
         Option<ICardEntity> PlayingCard { get; }
         ICardColletionZone GetCardCollectionZone(CardCollectionType type);
 
-        (bool Success, IDisposable PlayCardDisposable) TryPlayCard(ICardEntity card, out int handCardIndex, out int handCardsCount);
+        Option<CardPlayScope> TryPlayCard(ICardEntity card);
         HandClearResult ClearHandOnTurnEnd(IGameplayModel model);
         IEnumerable<IGameEvent> RecycleCardOnPlayEnd(IGameplayModel model, ICardEntity card);
 
@@ -88,20 +92,16 @@ namespace MortalGame.GameModel
             }
         }
 
-        public (bool Success, IDisposable PlayCardDisposable) TryPlayCard(ICardEntity card, out int index, out int cardsCount)
+        public Option<CardPlayScope> TryPlayCard(ICardEntity card)
         {
-            cardsCount = HandCard.Cards.Count;
-            index = HandCard.Cards.ToList().IndexOf(card);
+            var cardsCount = HandCard.Cards.Count;
+            var index = HandCard.Cards.ToList().IndexOf(card);
             if (index < 0)
-            {
-                return (false, this);
-            }
-            else
-            {
-                HandCard.RemoveCard(card);
-                PlayingCard = Option.Some(card);
-                return (true, this);
-            }
+                return Option.None<CardPlayScope>();
+
+            HandCard.RemoveCard(card);
+            PlayingCard = card.Some();
+            return new CardPlayScope(index, cardsCount, this).Some();
         }
         public void Dispose()
         {

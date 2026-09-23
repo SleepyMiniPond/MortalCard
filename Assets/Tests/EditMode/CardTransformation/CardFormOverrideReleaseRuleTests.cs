@@ -73,12 +73,8 @@ namespace MortalGame.Tests.CardTransformation
                 Timing = GameTiming.AfterPlayCardEnd,
                 Conditions = { _CreatePlayedCardIsOverrideOwnerCondition() }
             });
-            var (success, playingScope) = built.Gameplay.Ally.CardManager.TryPlayCard(
-                built.Card,
-                out _,
-                out _);
-
-            Assert.That(success, Is.True);
+            var started = built.Gameplay.Ally.CardManager.TryPlayCard(built.Card);
+            Assert.That(started.TryGetValue(out var playingScope), Is.True);
             playingScope.Dispose();
             built.Gameplay.Ally.CardManager.RecycleCardOnPlayEnd(
                 built.Gameplay.Manager,
@@ -114,12 +110,8 @@ namespace MortalGame.Tests.CardTransformation
                 Timing = GameTiming.BeforePlayCardEnd,
                 Conditions = { new ConstCondition { Value = true } }
             });
-            var (success, playingScope) = built.Gameplay.Ally.CardManager.TryPlayCard(
-                built.Card,
-                out _,
-                out _);
-
-            Assert.That(success, Is.True);
+            var started = built.Gameplay.Ally.CardManager.TryPlayCard(built.Card);
+            Assert.That(started.TryGetValue(out var playingScope), Is.True);
             try
             {
                 var events = built.Gameplay.Manager

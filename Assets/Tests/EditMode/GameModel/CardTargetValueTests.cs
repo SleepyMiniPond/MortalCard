@@ -96,9 +96,9 @@ namespace MortalGame.Tests
             var built = new GameplayManagerTestBuilder().Build();
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
-            var playResult = built.Ally.CardManager.TryPlayCard(card, out _, out _);
-            Assert.That(playResult.Success, Is.True);
-            using var playingScope = playResult.PlayCardDisposable;
+            var playResult = built.Ally.CardManager.TryPlayCard(card);
+            Assert.That(playResult.TryGetValue(out var playingScope), Is.True);
+            using var activePlay = playingScope;
             var context = _CreateContext(
                 built,
                 new PlayerTrigger(built.Ally),
@@ -200,9 +200,9 @@ namespace MortalGame.Tests
             var built = new GameplayManagerTestBuilder().Build();
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
-            var playResult = built.Ally.CardManager.TryPlayCard(card, out _, out _);
-            Assert.That(playResult.Success, Is.True);
-            using var playingScope = playResult.PlayCardDisposable;
+            var playResult = built.Ally.CardManager.TryPlayCard(card);
+            Assert.That(playResult.TryGetValue(out var playingScope), Is.True);
+            using var activePlay = playingScope;
             var context = _CreateContext(
                 built,
                 new PlayerTrigger(built.Ally),
