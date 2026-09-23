@@ -113,6 +113,12 @@ namespace MortalGame.GameData
         public IIntegerValue Value;
     }
     [Serializable]
+    public class PlayCardEffect :
+        ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
+    {
+        public ITargetCardCollectionValue TargetCards;
+    }
+    [Serializable]
     public class DiscardCardEffect :
         ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {

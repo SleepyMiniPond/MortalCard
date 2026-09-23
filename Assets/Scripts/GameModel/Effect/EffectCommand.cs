@@ -48,6 +48,9 @@ namespace MortalGame.GameModel
         string BuffId,
         int DeltaLevel) : IEffectCommand;
 
+    public record PlayCardEffectCommand(
+        CardPlayRequest Request) : IEffectCommand;
+
     public record DrawCardEffectCommand(
         IPlayerEntity Target,
         int DrawCount,

@@ -548,7 +548,6 @@ namespace MortalGame.GameModel
             return _RunCardPlayChain(new EffectBatchRoot(items)).Effects;
         }
 
-        // 根工作只攜帶資料；實際執行分支集中於下方，不傳入委派。
         private abstract record CardPlayChainRoot;
         private sealed record ActiveCardPlayRoot(IPlayerEntity Player, UseCardAction Action) : CardPlayChainRoot;
         private sealed record EffectBatchRoot(IEnumerable<EffectQueueItem> Items) : CardPlayChainRoot;
@@ -654,6 +653,9 @@ namespace MortalGame.GameModel
             {
                 using (playCardDisposable)
                 {
+                    if (reason == CardPlayReason.Effect && player is EnemyEntity enemy)
+                        enemy.SelectedCards.RemoveCard(usedCard);
+
                     if (payment.TryGetValue(out var paid))
                     {
                         var result = player.EnergyManager.ConsumeEnergy(paid.EnergySpent);

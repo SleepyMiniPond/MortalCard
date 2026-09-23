@@ -36,7 +36,9 @@ Card、PlayerBuff、CharacterBuff、CardBuff 各有明確的 Resolver Registry�
 
 正式根入口使用 `IGameplayModel.RunEffectBatch`，由 GameplayManager 建立 [CardPlayChain](../Assets/Scripts/GameModel/Effect/CardPlayChain.cs)。同一張牌的各次 EffectRepeat、Played／EffectPlayed、一般 Timing 與後續間接牌雖使用不同 Runner，仍共用同一 ExecutionScope。獨立根批次及直接建立的 Runner 保持獨立預算；靜態 RunToCompletion 不參與 GameplayManager 出牌鏈。
 
-`EnqueueCardPlay` 只提交卡片／擁有者 Identity 與請求來源，不在 Handler 中執行完整出牌。根批次完成後依 FIFO 處理；A 排入 B、C，B 再排入 D，順序為 A 完整結束 → B → C → D。輪到請求時才重新檢查手牌、Sealed 與自動選取；選取視角為擁有者。每張成功出牌在離場、Recycle、AfterPlayCardEnd 之後判定勝負，結束時清除其餘請求。正式 PlayCardEffect 資料／Resolver／Handler 仍待 T-022 後續接線。
+`EnqueueCardPlay` 只提交卡片／擁有者 Identity 與請求來源，不在 Handler 中執行完整出牌。根批次完成後依 FIFO 處理；A 排入 B、C，B 再排入 D，順序為 A 完整結束 → B → C → D。輪到請求時才重新檢查手牌、Sealed 與自動選取；選取視角為擁有者。每張成功出牌在離場、Recycle、AfterPlayCardEnd 之後判定勝負，結束時清除其餘請求。
+
+`PlayCardEffect.TargetCards` 支援 Card／PlayerBuff／CharacterBuff／CardBuff 四來源。Resolver 依卡片 Identity 在本次候選內去重，固定卡片、擁有者與請求來源；不同效果解析之間不去重，因此 Recycle 後可再次被請求打出。Handler 只入列，不產生成功 Action 或事件。完整出牌核心免付費執行 Effects 與一次 EffectPlayed，不派送 Played；成功進入 PlayingCard 時移除敵方對應預選，失效請求不動預選。
 
 GameplayManager 以 Option<CardPlayChain> 表達是否處於執行鏈內。主動出牌與效果批次以不同的根工作資料呼叫 _RunCardPlayChain，由方法內的 switch 明確執行，不傳入委派。根方法統一處理 Budget、例外事件保存與 finally 清理；正常完成時，主動出牌入口將回傳事件存入 _gameEvents，效果批次入口則將 EffectResult 交給呼叫端，避免重複加入事件。_DrainCardPlayRequests 透過 TryDequeue 取出請求、計算 Budget 並直接執行。
 

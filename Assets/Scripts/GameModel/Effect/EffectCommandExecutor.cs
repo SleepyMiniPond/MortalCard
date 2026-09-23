@@ -38,6 +38,7 @@ namespace MortalGame.GameModel
             [typeof(RemovePlayerBuffEffectCommand)] = new PlayerBuffEffectCommandHandler(),
             [typeof(ModifyPlayerBuffLevelEffectCommand)] = new PlayerBuffEffectCommandHandler(),
             [typeof(DrawCardEffectCommand)] = new DrawCardEffectCommandHandler(),
+            [typeof(PlayCardEffectCommand)] = new PlayCardEffectCommandHandler(),
             [typeof(MoveCardEffectCommand)] = new MoveCardEffectCommandHandler(),
             [typeof(CreateCardEffectCommand)] = new CreateCloneCardEffectCommandHandler(),
             [typeof(CloneCardEffectCommand)] = new CreateCloneCardEffectCommandHandler(),
