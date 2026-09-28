@@ -331,21 +331,21 @@ namespace MortalGame.Tests
 
         private static EffectResult _RunPlayerBuffDamage(TriggerContext context, int value)
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(context.Model.ContextManager);
             runner.Enqueue(new PlayerBuffEffectQueueItem(context, _CreateDamage(value)));
             return runner.RunToCompletion();
         }
 
         private static EffectResult _RunCharacterBuffDamage(TriggerContext context, int value)
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(context.Model.ContextManager);
             runner.Enqueue(new CharacterBuffEffectQueueItem(context, _CreateDamage(value)));
             return runner.RunToCompletion();
         }
 
         private static EffectResult _RunCardBuffDamage(TriggerContext context, int value)
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(context.Model.ContextManager);
             runner.Enqueue(new CardBuffEffectQueueItem(context, _CreateDamage(value)));
             return runner.RunToCompletion();
         }

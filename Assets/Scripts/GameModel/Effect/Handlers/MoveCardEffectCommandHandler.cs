@@ -41,11 +41,11 @@ namespace MortalGame.GameModel
 
             if (c.MoveType == MoveCardType.Discard)
             {
-                queue.EnqueueImmediate(
+                queue.Enqueue(
                     CardTriggeredEffectDispatch.CreateItems(
                         context,
                         cardInStartZone,
-                        CardTriggeredTiming.EffectDiscarded));
+                        CardTriggeredTiming.EffectDiscarded), EffectQueuePosition.Immediate);
             }
 
             return new CommandApplyResult(resultAction.WrapAsEnumerable(), reactorEvents.Append(moveCardEvent));

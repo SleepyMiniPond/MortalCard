@@ -76,7 +76,7 @@ namespace MortalGame.Tests
                 Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
                 Value = new MissingIntegerValue()
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();

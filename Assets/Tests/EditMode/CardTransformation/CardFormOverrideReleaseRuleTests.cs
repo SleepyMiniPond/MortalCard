@@ -192,7 +192,7 @@ namespace MortalGame.Tests.CardTransformation
             var built = _Build();
             _ApplyOverride(built, OverrideCardId);
             built.Card.OverrideFormState.TryGetValue(out var firstState);
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.Gameplay.ContextManager);
             runner.Enqueue(new RemoveCardFormOverrideQueueItem(
                 built.Gameplay.Manager,
                 built.Card,

@@ -151,7 +151,7 @@ namespace MortalGame.Tests
         public void CancellationClearsPendingRequestsWithoutStartingCards()
         {
             using var cancellation = new CancellationTokenSource();
-            var chain = new CardPlayChain(10, cancellation.Token);
+            var chain = new CardPlayChain(GameContextTestBuilder.CreateContextManager(), 10, cancellation.Token);
             chain.Enqueue(new CardPlayRequest(Guid.NewGuid(), Guid.NewGuid(), SystemSource.Instance));
             cancellation.Cancel();
             Assert.Throws<OperationCanceledException>(() => chain.TryDequeue(out _));

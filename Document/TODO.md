@@ -36,13 +36,13 @@ T-010、T-017～T-020 與 T-022 已完成並封存。T-017 範圍內的卡片生
 ### T-023：完成 `InvokeCardEffects` 原地執行卡效能力
 
 - **前置**：T-022 的共用自動選取入口；不依賴完整間接出牌 Queue。
-- **目標**：執行位於牌堆／墓地的指定卡片普通 Effects，但不把卡片視為打出。
+- **目標**：執行雙方手牌／牌堆／墓地中指定卡片的普通 Effects，但不把卡片視為打出；排隊後若移出原區域即略過。
 - **已確認契約**：卡片留在原區域；不進入 `PlayingCard`；不支付能量；不受 `Sealed` 限制；不套用 `EffectRepeat`；只執行一次普通 Effects；不產生 `UsedCardEvent`，也不派送 `Played`／`EffectPlayed`。
-- **自動選取**：無玩家選取階段，沿用 T-022 的主目標與 SubSelection 自動選取能力；`ToAlly`／`ToEnemy` 同樣以卡片擁有者為視角。
+- **自動選取**：無玩家選取階段，沿用 T-022 的主目標與 SubSelection 自動選取能力；`ToAlly`／`ToEnemy` 以本次 Invoke 施放者為視角。Buff 發起時以宿主玩家施放，直接巢狀 Invoke 沿用施放者；PlayerBuff 加成取該施放者，明確 CardOwner 查詢仍取卡片持有者。必要主目標不存在時略過。
 - **Queue 規則**：直接進入既有 Effect Queue，連鎖 `InvokeCardEffects` 共用同一 Queue Budget。
 - **命名**：程式與技術文件使用 `InvokeCardEffects`；題材化名稱只留給未來翻譯與顯示文字。
-- **程式核對**：尚無 InvokeCardEffects 資料型別、Resolver 或正式執行入口；一般 CardEffect Queue 不等於已有此操作。
-- **狀態**：⬜ 前置已完成，下一主線待開始
+- **程式現況**：資料、來源、排隊請求及 caster 查詢已建立；Queue 已支援完整選取快照、衍生工作繼承與逐項還原。ContextManager 由 Runner 建構時注入，入列統一使用 Enqueue 指定排程位置與選取。Resolver、Handler 與正式 Invoke 執行入口尚未接線。
+- **狀態**：🔄 第 2 項已確認；第 3 項待使用者確認，下一步為第 4 項執行流程接線。後續依 `.agents/working/T-023_InvokeCardEffects_工作計畫.md` 逐步進行。
 
 ### T-011：多步驟自訂目標選取
 

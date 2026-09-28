@@ -73,7 +73,7 @@ namespace MortalGame.GameModel
                     CardTriggeredTiming.FormChanged,
                     out var triggeredEffects))
             {
-                queue.EnqueueImmediate(triggeredEffects
+                queue.Enqueue(triggeredEffects
                     .Where(conditionalEffect => conditionalEffect != null &&
                         (conditionalEffect.Conditions ?? new List<ICondition>()).All(
                             condition => condition != null && condition.Eval(formChangedContext)))
@@ -81,7 +81,7 @@ namespace MortalGame.GameModel
                     .Select(conditionalEffect =>
                     new CardTriggeredEffectQueueItem(
                         formChangedContext,
-                        conditionalEffect.Effect)));
+                        conditionalEffect.Effect)), EffectQueuePosition.Immediate);
             }
 
             var formChangedEvent = new CardFormChangedEvent(
@@ -132,7 +132,7 @@ namespace MortalGame.GameModel
                     CardTriggeredTiming.FormChanged,
                     out var triggeredEffects))
             {
-                queue.EnqueueImmediate(triggeredEffects
+                queue.Enqueue(triggeredEffects
                     .Where(conditionalEffect => conditionalEffect != null &&
                         (conditionalEffect.Conditions ?? new List<ICondition>()).All(
                             condition => condition != null && condition.Eval(formChangedContext)))
@@ -140,7 +140,7 @@ namespace MortalGame.GameModel
                     .Select(conditionalEffect =>
                     new CardTriggeredEffectQueueItem(
                         formChangedContext,
-                        conditionalEffect.Effect)));
+                        conditionalEffect.Effect)), EffectQueuePosition.Immediate);
             }
 
             return new EffectResult(
@@ -165,7 +165,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }

@@ -314,7 +314,7 @@ namespace MortalGame.Tests.CardTransformation
         [Test]
         public void EffectQueueRunner_ProcessesFifoItemsAndImmediateItemsBeforeQueueTail()
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(GameContextTestBuilder.CreateContextManager());
             runner.Enqueue(new TestQueueItem(null, 1, enqueueImmediate: true));
             runner.Enqueue(new TestQueueItem(null, 3));
 
@@ -449,7 +449,7 @@ namespace MortalGame.Tests.CardTransformation
             {
                 if (enqueueImmediate)
                 {
-                    queue.EnqueueImmediate(new TestQueueItem(Context, 2));
+                    queue.Enqueue(new TestQueueItem(Context, 2), EffectQueuePosition.Immediate);
                 }
 
                 return new EffectResult(

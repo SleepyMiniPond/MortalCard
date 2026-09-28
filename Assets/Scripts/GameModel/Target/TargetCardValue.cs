@@ -51,6 +51,8 @@ namespace MortalGame.GameModel
                     cardPlaySource.Card.SomeNotNull(),
                 CardPlayResultSource cardPlayResultSource =>
                     cardPlayResultSource.CardPlaySource.Card.SomeNotNull(),
+                InvokeCardEffectsSource invokeSource =>
+                    invokeSource.Card.SomeNotNull(),
                 _ => Option.None<ICardEntity>()
             };
         }

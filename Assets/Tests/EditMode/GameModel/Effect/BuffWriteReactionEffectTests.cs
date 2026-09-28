@@ -474,7 +474,7 @@ namespace MortalGame.Tests
             BuffWriteReactionSetup setup,
             ICardEffect effect)
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(setup.Context.Model.ContextManager);
             switch (setup.Source)
             {
                 case ReactionSource.PlayerBuff:

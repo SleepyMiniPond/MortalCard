@@ -79,7 +79,7 @@ namespace MortalGame.Tests
             var built = new GameplayManagerTestBuilder().Build();
             built.Ally.BuffManager.AddBuff(
                 CreatePlayerBuff(BuffTestBuilder.PlayerBuffId, session));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
             var timingContext = CreateTimingContext(
                 built.Manager,
                 GameTiming.BeforeTurnEnd);

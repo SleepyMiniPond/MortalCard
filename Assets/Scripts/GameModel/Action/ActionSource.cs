@@ -1,6 +1,7 @@
+using System;
 using System.Collections.Generic;
+using MortalGame.GameData;
 using Optional;
-using UnityEngine;
 
 namespace MortalGame.GameModel
 {
@@ -43,6 +44,18 @@ namespace MortalGame.GameModel
     public record CardPlayResultSource(
         CardPlaySource CardPlaySource,
         IReadOnlyList<IEffectResultAction> EffectResults) : IActionSource;
+
+    public record InvokeCardEffectsSource(
+        ICardEntity Card,
+        IPlayerEntity Caster,
+        IActionSource RequestedBy) : IActionSource;
+
+    public record InvokeCardEffectsRequest(
+        Guid CardIdentity,
+        Guid OwnerIdentity,
+        CardCollectionType OriginalZone,
+        Guid CasterIdentity,
+        IActionSource RequestedBy);
 
     public record PlayerBuffSource(IPlayerBuffEntity Buff) : IActionSource;
 

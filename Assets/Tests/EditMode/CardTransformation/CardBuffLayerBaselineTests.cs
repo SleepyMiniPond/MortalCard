@@ -370,7 +370,7 @@ namespace MortalGame.Tests.CardTransformation
             built.Card.BuffManager.AddBuff(overrideBuff);
             built.Card.BuffManager.ReplaceOverrideLayer();
             var handler = new CardBuffEffectCommandHandler();
-            var queue = new EffectQueueRunner();
+            var queue = new EffectQueueRunner(built.Gameplay.ContextManager);
 
             var addResult = handler.Handle(
                 built.Context,

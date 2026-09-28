@@ -107,8 +107,14 @@ namespace MortalGame.GameModel
         {
             if (triggerContext.Action is CardLookIntentAction cardLookIntent)
             {
-                return cardLookIntent.Card.Owner(triggerContext.Model)
+                return (cardLookIntent.Caster != null
+                        ? cardLookIntent.Caster.SomeNotNull()
+                        : cardLookIntent.Card.Owner(triggerContext.Model))
                     .FlatMap(player => player.GetPlayerBuffAdditionProperty(triggerContext, playerBuffProperty));
+            }
+            if (triggerContext.Action.Source is InvokeCardEffectsSource invokeSource)
+            {
+                return invokeSource.Caster.GetPlayerBuffAdditionProperty(triggerContext, playerBuffProperty);
             }
             if (triggerContext.Action.Source is CardPlaySource cardPlaySource)
             {
@@ -125,6 +131,10 @@ namespace MortalGame.GameModel
             EffectAttributeRatioType attribute,
             PlayerBuffProperty playerBuffProperty)
         {
+            if (triggerContext.Action.Source is InvokeCardEffectsSource invokeSource)
+            {
+                return invokeSource.Caster.GetPlayerBuffRatioProperty(triggerContext, playerBuffProperty);
+            }
             if (triggerContext.Action.Source is CardPlaySource cardPlaySource)
             {
                 var cardPlayAttribute = cardPlaySource.Attribute.FloatValues

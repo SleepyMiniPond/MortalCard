@@ -35,7 +35,7 @@ namespace MortalGame.GameModel
     }
 
     // LookAction
-    public record CardLookIntentAction(ICardEntity Card) : IActionUnit
+    public record CardLookIntentAction(ICardEntity Card, IPlayerEntity Caster = null) : IActionUnit
     {
         public GameTiming Timing => GameTiming.None;
         public IActionSource Source => SystemSource.Instance;
@@ -66,6 +66,12 @@ namespace MortalGame.GameModel
     {
         public GameTiming Timing => GameTiming.CardPlayIntent;
         public IActionSource Source => CardPlaySource;
+    };
+
+    public record InvokeCardEffectsAction(InvokeCardEffectsSource InvokeSource) : IActionUnit
+    {
+        public GameTiming Timing => GameTiming.None;
+        public IActionSource Source => InvokeSource;
     };
 
     public record CardPlayResultAction(CardPlayResultSource CardPlayResultSource) : IActionUnit

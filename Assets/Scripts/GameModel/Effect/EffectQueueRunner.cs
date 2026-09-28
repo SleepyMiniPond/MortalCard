@@ -3,17 +3,23 @@ using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
+using Optional;
 
 namespace MortalGame.GameModel
 {
+    public enum EffectQueuePosition
+    {
+        Tail,
+        Immediate
+    }
 
     public interface IEffectQueueContext
     {
         int ProcessedItemCount { get; }
-        void Enqueue(EffectQueueItem item);
-        void EnqueueImmediateCommands(TriggerContext context, EffectCommandSet commands);
-        void EnqueueImmediate(EffectQueueItem item);
-        void EnqueueImmediate(IEnumerable<EffectQueueItem> items);
+        void Enqueue(
+            IEnumerable<EffectQueueItem> items, 
+            EffectQueuePosition position = EffectQueuePosition.Tail,
+            Option<GameContext> selection = default);
     }
 
     internal sealed class EffectQueueExecutionScope
@@ -61,79 +67,71 @@ namespace MortalGame.GameModel
 
         private sealed record PendingEffectQueueItem(
             EffectQueueItem Item,
-            IReadOnlyList<string> TriggerPath);
+            IReadOnlyList<string> TriggerPath,
+            Option<GameContext> Selection);
 
         private readonly LinkedList<PendingEffectQueueItem> _items = new();
+        private readonly IGameContextManager _contextManager;
         private readonly EffectQueueExecutionScope _executionScope;
         private readonly Action<IEnumerable<IGameEvent>> _recordEvents;
         private readonly CancellationToken _cancellationToken;
         private IReadOnlyList<string> _currentTriggerPath = Array.Empty<string>();
+        private Option<GameContext> _currentSelection = Option.None<GameContext>();
 
         public bool IsHalted => _executionScope.IsHalted;
         public int ProcessedItemCount => _executionScope.ProcessedItemCount;
         public int PendingItemCount => _items.Count;
         public EffectQueueHaltDiagnostic HaltDiagnostic => _executionScope.HaltDiagnostic;
 
-        public EffectQueueRunner()
-            : this(new EffectQueueExecutionScope(BUDGET_COUNT), _ => { }, CancellationToken.None)
+        public EffectQueueRunner(IGameContextManager contextManager)
+            : this(contextManager, new EffectQueueExecutionScope(BUDGET_COUNT), _ => { }, CancellationToken.None)
         {
         }
 
         internal EffectQueueRunner(
+            IGameContextManager contextManager,
             EffectQueueExecutionScope executionScope,
             Action<IEnumerable<IGameEvent>> recordEvents,
             CancellationToken cancellationToken)
         {
+            _contextManager = contextManager;
             _executionScope = executionScope;
             _recordEvents = recordEvents;
             _cancellationToken = cancellationToken;
         }
 
-        public static EffectResult RunToCompletion(IEnumerable<EffectQueueItem> items)
+        public static EffectResult RunToCompletion(IGameContextManager contextManager, IEnumerable<EffectQueueItem> items)
         {
-            var runner = new EffectQueueRunner();
-            runner.EnqueueRange(items);
+            var runner = new EffectQueueRunner(contextManager);
+            runner.Enqueue(items);
             return runner.RunToCompletion();
         }
 
-        public void Enqueue(EffectQueueItem item)
+        public void Enqueue(IEnumerable<EffectQueueItem> items,
+            EffectQueuePosition position = EffectQueuePosition.Tail, Option<GameContext> selection = default)
         {
-            _items.AddLast(CreatePendingItem(item));
-        }
+            var effectiveSelection = selection.HasValue ? selection : _currentSelection;
+            var bufferedItems = items
+                .Select(CreatePendingItem)
+                .ToArray();
 
-        public void EnqueueRange(IEnumerable<EffectQueueItem> items)
-        {
-            if (items == null)
-                throw new ArgumentNullException(nameof(items));
-
-            foreach (var item in items)
-                Enqueue(item);
-        }
-
-        public void EnqueueCommands(TriggerContext context, EffectCommandSet commands)
-        {
-            EnqueueRange(CreateCommandQueueItems(context, commands));
-        }
-
-        public void EnqueueImmediateCommands(TriggerContext context, EffectCommandSet commands)
-        {
-            EnqueueImmediate(CreateCommandQueueItems(context, commands));
-        }
-
-        public void EnqueueImmediate(EffectQueueItem item)
-        {
-            _items.AddFirst(CreatePendingItem(item));
-        }
-
-        public void EnqueueImmediate(IEnumerable<EffectQueueItem> items)
-        {
-            if (items == null)
-                throw new ArgumentNullException(nameof(items));
-
-            var bufferedItems = new List<EffectQueueItem>(items);
-            for (var i = bufferedItems.Count - 1; i >= 0; i--)
+            if (position == EffectQueuePosition.Tail)
             {
-                _items.AddFirst(CreatePendingItem(bufferedItems[i]));
+                foreach (var item in bufferedItems)
+                    _items.AddLast(item);
+            }
+            else
+            {
+                for (var i = bufferedItems.Length - 1; i >= 0; i--)
+                    _items.AddFirst(bufferedItems[i]);
+            }
+
+            PendingEffectQueueItem CreatePendingItem(EffectQueueItem item)
+            {
+                var triggerPath = _currentTriggerPath
+                    .Append(item.GetType().Name)
+                    .ToArray();
+                return new PendingEffectQueueItem(item, triggerPath, effectiveSelection);
             }
         }
 
@@ -151,9 +149,15 @@ namespace MortalGame.GameModel
 
                 _items.RemoveFirst();
                 var previousTriggerPath = _currentTriggerPath;
+                var previousSelection = _currentSelection;
                 _currentTriggerPath = pendingItem.TriggerPath;
+                _currentSelection = pendingItem.Selection;
                 try
                 {
+                    // 每個工作各自開關作用域；中止時不依賴尚未執行的清理工作。
+                    using var selectionScope = _currentSelection
+                        .Map(selection => _contextManager.SetContext(selection))
+                        .ValueOr(() => null);
                     var result = pendingItem.Item.Execute(this);
                     actions.AddRange(result.Actions);
                     events.AddRange(result.Events);
@@ -162,35 +166,35 @@ namespace MortalGame.GameModel
                 finally
                 {
                     _currentTriggerPath = previousTriggerPath;
+                    _currentSelection = previousSelection;
                 }
             }
 
             return new EffectResult(actions, events);
         }
 
-        private PendingEffectQueueItem CreatePendingItem(EffectQueueItem item)
+    }
+
+    public static class EffectQueueContextExtensions
+    {        
+        public static void Enqueue(
+            this IEffectQueueContext runner,
+            EffectQueueItem item,
+            EffectQueuePosition position = EffectQueuePosition.Tail,
+            Option<GameContext> selection = default)
+            => runner.Enqueue(new[] { item }, position, selection);
+
+        public static void Enqueue(
+            this IEffectQueueContext runner,
+            TriggerContext context, 
+            EffectCommandSet commands,
+            EffectQueuePosition position = EffectQueuePosition.Tail, 
+            Option<GameContext> selection = default)
         {
-            if (item == null)
-                throw new ArgumentNullException(nameof(item));
-
-            var triggerPath = _currentTriggerPath
-                .Concat(new[] { item.GetType().Name })
-                .ToArray();
-            return new PendingEffectQueueItem(item, triggerPath);
-        }
-
-        private static IReadOnlyList<EffectQueueItem> CreateCommandQueueItems(
-            TriggerContext context,
-            EffectCommandSet commands)
-        {
-            if (context == null)
-                throw new ArgumentNullException(nameof(context));
-            if (commands == null)
-                throw new ArgumentNullException(nameof(commands));
-
-            return commands.Commands
+            var commandQueueItems = commands.Commands
                 .Select(command => (EffectQueueItem)new EffectCommandQueueItem(context, command))
                 .ToArray();
+            runner.Enqueue(commandQueueItems, position, selection);
         }
     }
 
@@ -216,7 +220,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -228,7 +232,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolvePlayerBuffEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -240,7 +244,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -252,7 +256,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }

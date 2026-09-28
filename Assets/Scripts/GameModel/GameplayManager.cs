@@ -558,7 +558,7 @@ namespace MortalGame.GameModel
 
         private CardPlayChainResult _RunCardPlayChain(CardPlayChainRoot root)
         {
-            var chain = new CardPlayChain(CardPlayChainBudget, _battleCancellationToken);
+            var chain = new CardPlayChain(_contextMgr, CardPlayChainBudget, _battleCancellationToken);
             _activeCardPlayChain = chain.Some();
             var result = EffectResult.Empty;
             var rootCompleted = false;

@@ -34,9 +34,26 @@ namespace MortalGame.GameModel
                 PlayerBuffTrigger playerBuffTrigger => playerBuffTrigger.Buff.Caster,
                 CharacterBuffTrigger characterBuffTrigger => characterBuffTrigger.Buff.Caster,
                 CardBuffTrigger cardBuffTrigger => cardBuffTrigger.Buff.Caster,
+                CardTrigger when triggerContext.Action.Source is InvokeCardEffectsSource invokeSource =>
+                    invokeSource.Caster.SomeNotNull(),
                 ICardTriggeredSource cardSource =>
                     cardSource.Card.Owner(triggerContext.Model),
                 _ => Option.None<IPlayerEntity>()
+            };
+        }
+
+        /// <summary>取得本次 Invoke 的施放者；Buff 發起時使用宿主，直接連鎖則沿用外層施放者。</summary>
+        public static Option<IPlayerEntity> InvokeCaster(TriggerContext triggerContext)
+        {
+            return triggerContext.Triggered switch
+            {
+                PlayerBuffTrigger playerBuffTrigger => playerBuffTrigger.Player.SomeNotNull(),
+                CharacterBuffTrigger characterBuffTrigger =>
+                    characterBuffTrigger.Character.Owner(triggerContext.Model),
+                CardBuffTrigger cardBuffTrigger => cardBuffTrigger.Card.Owner(triggerContext.Model),
+                CardTrigger when triggerContext.Action.Source is InvokeCardEffectsSource invokeSource =>
+                    invokeSource.Caster.SomeNotNull(),
+                _ => Owner(triggerContext)
             };
         }
     }

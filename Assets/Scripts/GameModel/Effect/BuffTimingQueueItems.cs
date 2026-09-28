@@ -52,7 +52,7 @@ namespace MortalGame.GameModel
             var items = TimingDispatchPlanner.Create(Manager, snapshot).OrderedItems;
             for (var i = items.Count - 1; i >= 0; i--)
             {
-                queue.EnqueueImmediate(items[i]);
+                queue.Enqueue(items[i], EffectQueuePosition.Immediate);
             }
 
             return new EffectResult(Array.Empty<BaseResultAction>(), events);
@@ -67,12 +67,12 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            queue.EnqueueImmediate(new EffectQueueItem[]
+            queue.Enqueue(new EffectQueueItem[]
             {
                 new TriggerTimingQueueItem(Manager, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
                 new PlayerBuffEffectExecutionQueueItem(Context, Effect),
                 new TriggerTimingQueueItem(Manager, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
-            });
+            }, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -85,12 +85,12 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            queue.EnqueueImmediate(new EffectQueueItem[]
+            queue.Enqueue(new EffectQueueItem[]
             {
                 new TriggerTimingQueueItem(Manager, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
                 new CharacterBuffEffectExecutionQueueItem(Context, Effect),
                 new TriggerTimingQueueItem(Manager, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
-            });
+            }, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -103,12 +103,12 @@ namespace MortalGame.GameModel
     {
         public override EffectResult Execute(IEffectQueueContext queue)
         {
-            queue.EnqueueImmediate(new EffectQueueItem[]
+            queue.Enqueue(new EffectQueueItem[]
             {
                 new TriggerTimingQueueItem(Manager, GameTiming.BeforeTriggerBuffEffect, TriggerBuffSource),
                 new CardBuffEffectExecutionQueueItem(Context, Effect),
                 new TriggerTimingQueueItem(Manager, GameTiming.AfterTriggerBuffEffect, TriggerBuffSource)
-            });
+            }, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -120,7 +120,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolvePlayerBuffEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -132,7 +132,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCharacterBuffEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }
@@ -144,7 +144,7 @@ namespace MortalGame.GameModel
         public override EffectResult Execute(IEffectQueueContext queue)
         {
             var commands = EffectDataResolver.ResolveCardBuffEffect(Context, Effect);
-            queue.EnqueueImmediateCommands(Context, commands);
+            queue.Enqueue(Context, commands, EffectQueuePosition.Immediate);
             return EffectResult.Empty;
         }
     }

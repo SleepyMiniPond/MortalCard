@@ -121,7 +121,7 @@ namespace MortalGame.Tests
             {
                 TargetCards = new SingleCardCollection { TargetCard = new TriggeredCard() }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(setup.Context.Model.ContextManager);
             var cardContext = setup.Context with { Triggered = new CardTrigger(setup.Card) };
             runner.Enqueue(new CardEffectQueueItem(cardContext, effect));
             runner.Enqueue(new CardEffectQueueItem(cardContext, effect));
@@ -182,7 +182,7 @@ namespace MortalGame.Tests
                 }
             };
 
-            var result = EffectQueueRunner.RunToCompletion(
+            var result = EffectQueueRunner.RunToCompletion(built.ContextManager,
                 new[] { new CardEffectQueueItem(context, effect) });
 
             var lifecycleEvents = result.Events
@@ -241,7 +241,7 @@ namespace MortalGame.Tests
             built.Ally.CardManager.HandCard.AddCard(card);
             var context = _CreateSystemContext(built);
 
-            var result = EffectQueueRunner.RunToCompletion(new[]
+            var result = EffectQueueRunner.RunToCompletion(built.ContextManager, new[]
             {
                 new CardEffectQueueItem(
                     context,
@@ -278,7 +278,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary, cardId);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var result = EffectQueueRunner.RunToCompletion(new[]
+            var result = EffectQueueRunner.RunToCompletion(built.ContextManager, new[]
             {
                 new CardEffectQueueItem(
                     _CreateSystemContext(built),
@@ -316,8 +316,8 @@ namespace MortalGame.Tests
                 CardCollectionType.HandCard,
                 CardCollectionType.Graveyard,
                 MoveCardType.Discard);
-            var runner = new EffectQueueRunner();
-            runner.EnqueueCommands(
+            var runner = new EffectQueueRunner(built.ContextManager);
+            runner.Enqueue(
                 _CreateSystemContext(built),
                 new EffectCommandSet(new IEffectCommand[] { command, command }));
 
@@ -370,7 +370,7 @@ namespace MortalGame.Tests
                 cardId,
                 buffId);
             built.Ally.CardManager.HandCard.AddCard(card);
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
             runner.Enqueue(new CardEffectQueueItem(
                 context,
                 _CreateMoveEffect(typeof(DiscardCardEffect))));
@@ -698,7 +698,7 @@ namespace MortalGame.Tests
             CardOperationSetup setup,
             ICardEffect effect)
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(setup.Context.Model.ContextManager);
             switch (setup.Source)
             {
                 case ReactionSource.PlayerBuff:
@@ -727,7 +727,7 @@ namespace MortalGame.Tests
             TriggerContext context,
             IPlayerBuffEffect effect)
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(context.Model.ContextManager);
             runner.Enqueue(new PlayerBuffEffectQueueItem(context, effect));
             return runner.RunToCompletion();
         }

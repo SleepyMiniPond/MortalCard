@@ -20,7 +20,7 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new DrawCardIntentAction(SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
             var handler = new DrawCardEffectCommandHandler();
 
             var result = handler.Handle(
@@ -64,9 +64,9 @@ namespace MortalGame.Tests
             {
                 new DrawCardEffectCommand(built.Ally, cards.Length, isSystemInitiated)
             });
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, commands);
+            runner.Enqueue(context, commands);
             var result = runner.RunToCompletion();
 
             Assert.That(runner.ProcessedItemCount, Is.EqualTo(cards.Length + 1));
@@ -108,9 +108,9 @@ namespace MortalGame.Tests
                 new DrawCardEffectCommand(built.Ally, allyCards.Length, true),
                 new DrawCardEffectCommand(built.Enemy, 1, true)
             });
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, commands);
+            runner.Enqueue(context, commands);
             var result = runner.RunToCompletion();
 
             Assert.That(runner.ProcessedItemCount, Is.EqualTo(5));
@@ -164,9 +164,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new DrawCardEffectCommand(built.Ally, cards.Length, true)
             }));
@@ -234,9 +234,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new UpdateTimingAction(GameTiming.AfterTurnEnd, SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new DrawCardEffectCommand(built.Ally, 1, false)
             }));
@@ -273,9 +273,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new UpdateTimingAction(GameTiming.AfterTurnEnd, SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new DrawCardEffectCommand(built.Ally, cards.Length, false)
             }));
@@ -337,9 +337,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new UpdateTimingAction(GameTiming.AfterTurnEnd, SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new DrawCardEffectCommand(built.Ally, 1, false)
             }));
@@ -401,9 +401,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new DrawCardEffectCommand(built.Ally, 1, true)
             }));
@@ -427,9 +427,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new DrawCardEffectCommand(built.Ally, 1, true)
             }));
@@ -456,9 +456,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new CreateCardEffectCommand(built.Ally, createdCard, CardCollectionType.HandCard),
                 new CloneCardEffectCommand(
@@ -493,9 +493,9 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new DrawCardIntentTargetAction(SystemSource.Instance, new PlayerTarget(built.Ally)));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
-            runner.EnqueueCommands(context, new EffectCommandSet(new IEffectCommand[]
+            runner.Enqueue(context, new EffectCommandSet(new IEffectCommand[]
             {
                 new MoveCardEffectCommand(
                     built.Ally,
@@ -521,7 +521,7 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerTrigger(built.Ally),
                 new GainEnergyIntentAction(SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
             var firstEffect = new GainEnergyEffect
             {
                 Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
@@ -564,7 +564,7 @@ namespace MortalGame.Tests
                 },
                 Value = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -596,7 +596,7 @@ namespace MortalGame.Tests
                 },
                 Value = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -627,7 +627,7 @@ namespace MortalGame.Tests
                 },
                 Value = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -653,7 +653,7 @@ namespace MortalGame.Tests
                 Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
                 Value = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -679,7 +679,7 @@ namespace MortalGame.Tests
                 Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
                 Value = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -715,7 +715,7 @@ namespace MortalGame.Tests
                 BuffId = BuffTestBuilder.PlayerBuffId,
                 Level = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -748,7 +748,7 @@ namespace MortalGame.Tests
                 BuffId = BuffTestBuilder.PlayerBuffId,
                 Level = new ConstInteger { Value = 5 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -775,7 +775,7 @@ namespace MortalGame.Tests
                 BuffId = BuffTestBuilder.PlayerBuffId,
                 DeltaLevel = new ConstInteger { Value = -2 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -801,7 +801,7 @@ namespace MortalGame.Tests
                 BuffId = BuffTestBuilder.PlayerBuffId,
                 DeltaLevel = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -825,7 +825,7 @@ namespace MortalGame.Tests
                 Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
                 Value = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -851,7 +851,7 @@ namespace MortalGame.Tests
                 Targets = new SinglePlayerCollection { Target = new CurrentPlayer() },
                 Value = new ConstInteger { Value = -1 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -908,7 +908,7 @@ namespace MortalGame.Tests
                     }
                 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -961,7 +961,7 @@ namespace MortalGame.Tests
                     }
                 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -1021,7 +1021,7 @@ namespace MortalGame.Tests
                     }
                 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -1080,7 +1080,7 @@ namespace MortalGame.Tests
                     }
                 }
             };
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new PlayerBuffEffectQueueItem(context, effect));
             var result = runner.RunToCompletion();
@@ -1099,7 +1099,7 @@ namespace MortalGame.Tests
                 built.Manager,
                 new PlayerBuffTrigger(built.Ally, BuffTestBuilder.CreatePlayerBuff()),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
             var effect = new DamageEffect
             {
                 Type = DamageType.Effective,
@@ -1129,7 +1129,7 @@ namespace MortalGame.Tests
                     built.Enemy.MainCharacter,
                     BuffTestBuilder.CreateCharacterBuff()),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
             var effect = new DamageEffect
             {
                 Type = DamageType.Effective,
@@ -1171,7 +1171,7 @@ namespace MortalGame.Tests
                 built.Manager,
                 new CardBuffTrigger(CardEntity.DummyCard, buff),
                 new UpdateTimingAction(GameTiming.BeforeTurnEnd, SystemSource.Instance));
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(built.ContextManager);
 
             runner.Enqueue(new CardBuffEffectQueueItem(context, new NoOpCardBuffEffect()));
             var result = runner.RunToCompletion();
@@ -1183,7 +1183,7 @@ namespace MortalGame.Tests
         [Test]
         public void RunToCompletion_WhenItemEnqueuesAnotherItem_ProcessesEnqueuedItemBeforeReturning()
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(GameContextTestBuilder.CreateContextManager());
 
             runner.Enqueue(new ChainedQueueItem(null, 1, 2));
             var result = runner.RunToCompletion();
@@ -1194,9 +1194,9 @@ namespace MortalGame.Tests
         [Test]
         public void EnqueueRange_PreservesProvidedOrderInExistingScope()
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(GameContextTestBuilder.CreateContextManager());
 
-            runner.EnqueueRange(new EffectQueueItem[]
+            runner.Enqueue(new EffectQueueItem[]
             {
                 new StaticQueueItem(null, 1),
                 new StaticQueueItem(null, 2)
@@ -1213,7 +1213,7 @@ namespace MortalGame.Tests
         [Test]
         public void StaticRunToCompletion_CreatesScopeAndProcessesFollowUpItems()
         {
-            var result = EffectQueueRunner.RunToCompletion(new EffectQueueItem[]
+            var result = EffectQueueRunner.RunToCompletion(GameContextTestBuilder.CreateContextManager(), new EffectQueueItem[]
             {
                 new ChainedQueueItem(null, 1, 2)
             });
@@ -1226,7 +1226,7 @@ namespace MortalGame.Tests
         [Test]
         public void RunToCompletion_WhenItemEnqueuesImmediateItem_ProcessesItBeforeQueuedTail()
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(GameContextTestBuilder.CreateContextManager());
 
             runner.Enqueue(new ImmediateQueueItem(null));
             runner.Enqueue(new StaticQueueItem(null, 3));
@@ -1238,7 +1238,7 @@ namespace MortalGame.Tests
         [Test]
         public void RunToCompletion_WhenImmediateItemsUseExecutionOrder_PreservesProvidedOrder()
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(GameContextTestBuilder.CreateContextManager());
 
             runner.Enqueue(new ImmediateSequenceQueueItem(null));
             runner.Enqueue(new StaticQueueItem(null, 4));
@@ -1252,8 +1252,8 @@ namespace MortalGame.Tests
         [Test]
         public void RunToCompletion_TwoRunners_HaveIndependentBudgets()
         {
-            var firstRunner = new EffectQueueRunner();
-            var secondRunner = new EffectQueueRunner();
+            var firstRunner = new EffectQueueRunner(GameContextTestBuilder.CreateContextManager());
+            var secondRunner = new EffectQueueRunner(GameContextTestBuilder.CreateContextManager());
 
             firstRunner.Enqueue(new StaticQueueItem(null, 1));
             firstRunner.Enqueue(new StaticQueueItem(null, 2));
@@ -1354,7 +1354,7 @@ public sealed record ImmediateQueueItem(TriggerContext Context) : EffectQueueIte
 {
     public override EffectResult Execute(IEffectQueueContext queue)
     {
-        queue.EnqueueImmediate(new StaticQueueItem(Context, 2));
+        queue.Enqueue(new StaticQueueItem(Context, 2), EffectQueuePosition.Immediate);
         return new EffectResult(Array.Empty<BaseResultAction>(), new IGameEvent[] { new TestQueueEvent(1) });
     }
 }
@@ -1371,11 +1371,11 @@ public sealed record ImmediateSequenceQueueItem(TriggerContext Context) : Effect
 {
     public override EffectResult Execute(IEffectQueueContext queue)
     {
-        queue.EnqueueImmediate(new EffectQueueItem[]
+        queue.Enqueue(new EffectQueueItem[]
         {
             new StaticQueueItem(Context, 2),
             new StaticQueueItem(Context, 3)
-        });
+        }, EffectQueuePosition.Immediate);
         return new EffectResult(
             Array.Empty<BaseResultAction>(),
             new IGameEvent[] { new TestQueueEvent(1) });

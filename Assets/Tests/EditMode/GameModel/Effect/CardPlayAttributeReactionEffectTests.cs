@@ -167,7 +167,7 @@ namespace MortalGame.Tests
 
         private static void _Run(AttributeReactionSetup setup)
         {
-            var runner = new EffectQueueRunner();
+            var runner = new EffectQueueRunner(setup.Context.Model.ContextManager);
             var effect = _CreateEffect();
             switch (setup.Source)
             {

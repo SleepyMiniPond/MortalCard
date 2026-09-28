@@ -13,6 +13,7 @@ namespace MortalGame.GameModel
     {
         private readonly Queue<CardPlayRequest> _pending = new();
         private readonly CancellationToken _cancellationToken;
+        private readonly IGameContextManager _contextManager;
         private readonly EffectQueueExecutionScope _scope;
         private readonly List<IGameEvent> _events = new();
 
@@ -20,8 +21,9 @@ namespace MortalGame.GameModel
         internal int PendingCount => _pending.Count;
         internal int ProcessedItemCount => _scope.ProcessedItemCount;
 
-        internal CardPlayChain(int budget, CancellationToken cancellationToken)
+        internal CardPlayChain(IGameContextManager contextManager, int budget, CancellationToken cancellationToken)
         {
+            _contextManager = contextManager;
             _scope = new EffectQueueExecutionScope(budget);
             _cancellationToken = cancellationToken;
         }
@@ -33,8 +35,8 @@ namespace MortalGame.GameModel
         internal EffectResult RunEffects(IEnumerable<EffectQueueItem> items)
         {
             _cancellationToken.ThrowIfCancellationRequested();
-            var runner = new EffectQueueRunner(_scope, Record, _cancellationToken);
-            runner.EnqueueRange(items);
+            var runner = new EffectQueueRunner(_contextManager, _scope, Record, _cancellationToken);
+            runner.Enqueue(items);
             var result = runner.RunToCompletion();
             if (_scope.IsHalted)
                 throw new CardPlayChainHaltedException(result);

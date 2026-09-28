@@ -13,11 +13,11 @@ namespace MortalGame.GameModel
 
             if (c.DrawCount > 0)
             {
-                queue.EnqueueImmediate(Enumerable.Range(0, c.DrawCount)
+                queue.Enqueue(Enumerable.Range(0, c.DrawCount)
                     .Select(_ => (EffectQueueItem)new DrawCardQueueItem(
                         context,
                         c.Target,
-                        c.IsSystemInitiated)));
+                        c.IsSystemInitiated)), EffectQueuePosition.Immediate);
             }
 
             return CommandApplyResult.Empty;
@@ -93,10 +93,10 @@ namespace MortalGame.GameModel
                 var timing = IsSystemInitiated
                     ? CardTriggeredTiming.Drawed
                     : CardTriggeredTiming.EffectDrawed;
-                queue.EnqueueImmediate(CardTriggeredEffectDispatch.CreateItems(
+                queue.Enqueue(CardTriggeredEffectDispatch.CreateItems(
                     Context,
                     drawnCard,
-                    timing));
+                    timing), EffectQueuePosition.Immediate);
             }
 
             return drawResult.EffectResult;

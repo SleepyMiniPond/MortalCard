@@ -152,8 +152,8 @@ namespace MortalGame.Tests.CardTransformation
             TriggerContext context,
             EffectCommandSet commands)
         {
-            var runner = new EffectQueueRunner();
-            runner.EnqueueCommands(context, commands);
+            var runner = new EffectQueueRunner(context.Model.ContextManager);
+            runner.Enqueue(context, commands);
             return runner.RunToCompletion();
         }
 
