@@ -51,6 +51,9 @@ namespace MortalGame.GameModel
     public record PlayCardEffectCommand(
         CardPlayRequest Request) : IEffectCommand;
 
+    public record InvokeCardEffectsCommand(
+        InvokeCardEffectsRequest Request) : IEffectCommand;
+
     public record DrawCardEffectCommand(
         IPlayerEntity Target,
         int DrawCount,

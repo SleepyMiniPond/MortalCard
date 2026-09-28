@@ -29,11 +29,39 @@ namespace MortalGame.Tests
             Assert.That(GameFormula.NormalDamagePoint(context, 2).ValueOr(-1), Is.EqualTo(9));
             Assert.That(GameFormula.CardPower(context, card).ValueOr(-1),
                 Is.EqualTo(card.OriginPower + 7));
-            var lookContext = context with { Action = new CardLookIntentAction(card, built.Ally) };
+            var lookContext = context with { Action = new CardLookIntentAction(card, ((IPlayerEntity)built.Ally).Some()) };
             Assert.That(GameFormula.CardPower(lookContext, card).ValueOr(-1),
                 Is.EqualTo(card.OriginPower + 7));
             Assert.That(new InvokeCardEffectsAction(source).Timing,
                 Is.EqualTo(MortalGame.GameData.GameTiming.None));
+        }
+
+        [Test]
+        public void CardLook_WithExplicitNoCaster_DoesNotFallBackToExistingOwner()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Enemy.CardManager.HandCard.AddCard(card);
+            built.Enemy.BuffManager.AddBuff(_CreateDamageBuff(built.Enemy, 11));
+            var context = new TriggerContext(built.Manager, new CardTrigger(card),
+                new CardLookIntentAction(card, Option.None<IPlayerEntity>()));
+
+            Assert.That(card.Owner(built.Manager).HasValue, Is.True);
+            Assert.That(ReactionContextQuery.Caster(context).HasValue, Is.False);
+            Assert.That(GameFormula.CardPower(context, card).HasValue, Is.False);
+        }
+
+        [Test]
+        public void CardInfo_ResolvesOwnerAtEntryAndKeepsOwnerlessValuesMissing()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            Assert.That(card.ToInfo(built.Manager).Power.HasValue, Is.False);
+
+            built.Enemy.CardManager.HandCard.AddCard(card);
+            built.Enemy.BuffManager.AddBuff(_CreateDamageBuff(built.Enemy, 11));
+
+            Assert.That(card.ToInfo(built.Manager).Power.ValueOr(-1), Is.EqualTo(card.OriginPower + 11));
         }
 
         [Test]

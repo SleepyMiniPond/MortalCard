@@ -13,7 +13,8 @@ namespace MortalGame.GameModel
         void EnqueueCardPlay(CardPlayRequest request);
         Option<SubSelectionInfo> QueryCardSubSelectionInfos(
             Guid cardIdentity,
-            MainSelectionAction mainSelectionAction);
+            MainSelectionAction mainSelectionAction,
+            IPlayerEntity caster);
         IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit);
         IEnumerable<IGameEvent> ObserveDerivedAction(
             TriggerContext parentContext,
@@ -43,9 +44,10 @@ namespace MortalGame.GameModel
 
         public Option<SubSelectionInfo> QueryCardSubSelectionInfos(
             Guid cardIdentity,
-            MainSelectionAction mainSelectionAction)
+            MainSelectionAction mainSelectionAction,
+            IPlayerEntity caster)
         {
-            return _baseModel.QueryCardSubSelectionInfos(cardIdentity, mainSelectionAction);
+            return _baseModel.QueryCardSubSelectionInfos(cardIdentity, mainSelectionAction, caster);
         }
 
         public IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit)

@@ -297,7 +297,7 @@ namespace MortalGame.Tests
             var setupContext = new TriggerContext(
                 built.Manager,
                 new PlayerTrigger(built.Ally),
-                new CardLookIntentAction(CardEntity.DummyCard));
+                new CardLookIntentAction(CardEntity.DummyCard, Optional.Option.None<IPlayerEntity>()));
             var card = CardTestBuilder.CreateCardWithBuff(
                 setupContext,
                 built.ContextManager.CardBuffLibrary,

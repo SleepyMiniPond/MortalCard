@@ -18,7 +18,7 @@ namespace MortalGame.Tests
             var context = new TriggerContext(
                 built.Manager,
                 new CardTrigger(card),
-                new CardLookIntentAction(card));
+                new CardLookIntentAction(card, card.Owner(built.Manager)));
 
             var items = CardTriggeredEffectDispatch.CreateItems(
                 context,
@@ -162,7 +162,7 @@ namespace MortalGame.Tests
             var context = new TriggerContext(
                 built.Manager,
                 new CardTrigger(card),
-                new CardLookIntentAction(card));
+                new CardLookIntentAction(card, card.Owner(built.Manager)));
 
             var items = CardTriggeredEffectDispatch.CreateItems(
                 context,

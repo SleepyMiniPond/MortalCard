@@ -41,8 +41,8 @@ T-010、T-017～T-020 與 T-022 已完成並封存。T-017 範圍內的卡片生
 - **自動選取**：無玩家選取階段，沿用 T-022 的主目標與 SubSelection 自動選取能力；`ToAlly`／`ToEnemy` 以本次 Invoke 施放者為視角。Buff 發起時以宿主玩家施放，直接巢狀 Invoke 沿用施放者；PlayerBuff 加成取該施放者，明確 CardOwner 查詢仍取卡片持有者。必要主目標不存在時略過。
 - **Queue 規則**：直接進入既有 Effect Queue，連鎖 `InvokeCardEffects` 共用同一 Queue Budget。
 - **命名**：程式與技術文件使用 `InvokeCardEffects`；題材化名稱只留給未來翻譯與顯示文字。
-- **程式現況**：資料、來源、排隊請求及 caster 查詢已建立；Queue 已支援完整選取快照、衍生工作繼承與逐項還原。ContextManager 由 Runner 建構時注入，入列統一使用 Enqueue 指定排程位置與選取。Resolver、Handler 與正式 Invoke 執行入口尚未接線。
-- **狀態**：🔄 第 2 項已確認；第 3 項待使用者確認，下一步為第 4 項執行流程接線。後續依 `.agents/working/T-023_InvokeCardEffects_工作計畫.md` 逐步進行。
+- **程式現況**：四來源 Resolver／Command／Handler 已接線，在原 Effect Queue 重新檢查持有者與牌區、以 caster 自動選取並執行一次當前普通 Effects。Queue 保存完整選取快照並逐項還原，巢狀 Invoke 與正式間接出牌共用鏈預算。選取流程必填 caster；一般 CardLook 查詢明確傳入施放者 Option，不再隱含改用 Owner。企劃序列化／Validator 專項驗證與正式文件收尾尚待第 5 項。
+- **狀態**：🔄 第 1～3 項已確認；第 4 項實作與介面 review 修正完成，待使用者確認。Invoke 整合測試 28/28、完整 EditMode 760/760 通過；下一步為第 5 項企劃配置驗證與文件收尾。後續依 `.agents/working/T-023_InvokeCardEffects_工作計畫.md` 逐步進行。
 
 ### T-011：多步驟自訂目標選取
 

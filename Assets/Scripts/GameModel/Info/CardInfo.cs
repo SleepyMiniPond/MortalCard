@@ -90,7 +90,7 @@ namespace MortalGame.GameModel
             var cardLookTriggerContext = new TriggerContext(
                 gameWatcher,
                 new CardTrigger(card),
-                new CardLookIntentAction(card));
+                new CardLookIntentAction(card, card.Owner(gameWatcher)));
             return CardInfo.Create(card, cardLookTriggerContext);
         }
         public static CardInfo ToPreviewInfo(

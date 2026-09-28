@@ -36,6 +36,8 @@ namespace MortalGame.GameModel
                 CardBuffTrigger cardBuffTrigger => cardBuffTrigger.Buff.Caster,
                 CardTrigger when triggerContext.Action.Source is InvokeCardEffectsSource invokeSource =>
                     invokeSource.Caster.SomeNotNull(),
+                CardTrigger when triggerContext.Action is CardLookIntentAction look =>
+                    look.Caster,
                 ICardTriggeredSource cardSource =>
                     cardSource.Card.Owner(triggerContext.Model),
                 _ => Option.None<IPlayerEntity>()

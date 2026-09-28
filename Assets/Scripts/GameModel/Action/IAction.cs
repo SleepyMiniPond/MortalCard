@@ -35,7 +35,8 @@ namespace MortalGame.GameModel
     }
 
     // LookAction
-    public record CardLookIntentAction(ICardEntity Card, IPlayerEntity Caster = null) : IActionUnit
+    // 查詢入口明確決定視角；None 表示沒有施放者，不自動改用卡片持有者。
+    public record CardLookIntentAction(ICardEntity Card, Option<IPlayerEntity> Caster) : IActionUnit
     {
         public GameTiming Timing => GameTiming.None;
         public IActionSource Source => SystemSource.Instance;

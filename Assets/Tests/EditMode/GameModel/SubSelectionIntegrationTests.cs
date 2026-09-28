@@ -41,7 +41,7 @@ namespace MortalGame.Tests
                 IsMustSelect = new TrueValue()
             });
 
-            var result = built.Manager.QueryCardSubSelectionInfos(playedCard.Identity, MainSelectionAction.Empty);
+            var result = built.Manager.QueryCardSubSelectionInfos(playedCard.Identity, MainSelectionAction.Empty, built.Ally);
 
             Assert.That(result.TryGetValue(out var info), Is.True);
             Assert.That(
@@ -57,6 +57,23 @@ namespace MortalGame.Tests
                 }));
             Assert.That(existCardInfo.Count, Is.EqualTo(5));
             Assert.That(existCardInfo.EffectiveCount, Is.EqualTo(2));
+        }
+
+        [Test]
+        public void Selection_WithNullCaster_RejectsInsteadOfUsingCardOwner()
+        {
+            var built = new GameplayManagerTestBuilder().Build();
+            var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
+            built.Ally.CardManager.HandCard.AddCard(card);
+            var action = new UseCardAction(card.Identity, MainSelectionAction.Empty,
+                new Dictionary<string, ISubSelectionAction>());
+
+            Assert.That(SelectTargetLogic.SelectTargets(built.Manager, card, null).HasValue, Is.False);
+            Assert.That(built.Manager.QueryCardSubSelectionInfos(
+                card.Identity, MainSelectionAction.Empty, null).HasValue, Is.False);
+            Assert.That(SelectionInfoUtility.TryCreateUseCardContext(
+                built.Manager, card, action, null).HasValue, Is.False);
+            Assert.That(built.ContextManager.Context, Is.EqualTo(GameContext.EMPTY));
         }
 
         [Test]
@@ -76,7 +93,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty);
+            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty, built.Ally);
 
             Assert.That(result.HasValue, Is.False);
         }
@@ -92,7 +109,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty);
+            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty, built.Ally);
 
             Assert.That(result.HasValue, Is.False);
         }
@@ -185,7 +202,8 @@ namespace MortalGame.Tests
 
             var result = built.Manager.QueryCardSubSelectionInfos(
                 playedCard.Identity,
-                mainSelection);
+                mainSelection,
+                built.Ally);
 
             Assert.That(result.TryGetValue(out var info), Is.True);
             Assert.That(
@@ -246,7 +264,8 @@ namespace MortalGame.Tests
             var result = SelectionInfoUtility.TryCreateUseCardContext(
                 built.Manager,
                 playedCard,
-                action);
+                action,
+                built.Ally);
 
             Assert.That(result.TryGetValue(out var context), Is.True);
             Assert.That(
@@ -265,7 +284,7 @@ namespace MortalGame.Tests
                 var triggerContext = new TriggerContext(
                     built.Manager,
                     new CardTrigger(playedCard),
-                    new CardLookIntentAction(playedCard));
+                    new CardLookIntentAction(playedCard, playedCard.Owner(built.Manager)));
                 Assert.That(
                     new SubSelectedCardCollection { SelectionId = "first-group" }
                         .Eval(triggerContext)
@@ -353,7 +372,8 @@ namespace MortalGame.Tests
             var result = SelectionInfoUtility.TryCreateUseCardContext(
                 built.Manager,
                 playedCard,
-                action);
+                action,
+                built.Ally);
 
             Assert.That(result.HasValue, Is.False);
         }

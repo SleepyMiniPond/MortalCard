@@ -170,7 +170,8 @@ namespace MortalGame.Presenter
                         none: () => MainSelectionAction.Empty);
                     var subSelectionOpt = _gameplayManager.QueryCardSubSelectionInfos(
                         useCardCommand.CardIndentity,
-                        mainSelectionAction);
+                        mainSelectionAction,
+                        ((IGameplayModel)_gameplayManager).GameStatus.Ally);
                     if (subSelectionOpt.TryGetValue(out var subSelectionInfo))
                     {
                         var subSelectionActions = await _subSelectionPresenter.RunSubSelection(

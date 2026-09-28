@@ -37,6 +37,7 @@ namespace MortalGame.GameModel
         private static readonly AddCardBuffEffectResolver _addCardBuffResolver = new();
         private static readonly RemoveCardBuffEffectResolver _removeCardBuffResolver = new();
         private static readonly PlayCardEffectResolver _playCardResolver = new();
+        private static readonly InvokeCardEffectsResolver _invokeCardEffectsResolver = new();
         private static readonly DiscardCardEffectResolver _discardCardResolver = new();
         private static readonly ConsumeCardEffectResolver _consumeCardResolver = new();
         private static readonly DisposeCardEffectResolver _disposeCardResolver = new();
@@ -59,6 +60,7 @@ namespace MortalGame.GameModel
             [typeof(DrawCardEffect)] = _drawCardResolver,
             [typeof(DiscardCardEffect)] = _discardCardResolver,
             [typeof(PlayCardEffect)] = _playCardResolver,
+            [typeof(InvokeCardEffects)] = _invokeCardEffectsResolver,
             [typeof(ConsumeCardEffect)] = _consumeCardResolver,
             [typeof(DisposeCardEffect)] = _disposeCardResolver,
             [typeof(CreateCardEffect)] = _createCardResolver,
@@ -80,6 +82,7 @@ namespace MortalGame.GameModel
             [typeof(DrawCardEffect)] = _drawCardResolver,
             [typeof(DiscardCardEffect)] = _discardCardResolver,
             [typeof(PlayCardEffect)] = _playCardResolver,
+            [typeof(InvokeCardEffects)] = _invokeCardEffectsResolver,
             [typeof(ConsumeCardEffect)] = _consumeCardResolver,
             [typeof(DisposeCardEffect)] = _disposeCardResolver,
             [typeof(CreateCardEffect)] = _createCardResolver,
@@ -104,6 +107,7 @@ namespace MortalGame.GameModel
             [typeof(DrawCardEffect)] = _drawCardResolver,
             [typeof(DiscardCardEffect)] = _discardCardResolver,
             [typeof(PlayCardEffect)] = _playCardResolver,
+            [typeof(InvokeCardEffects)] = _invokeCardEffectsResolver,
             [typeof(ConsumeCardEffect)] = _consumeCardResolver,
             [typeof(DisposeCardEffect)] = _disposeCardResolver,
             [typeof(CreateCardEffect)] = _createCardResolver,
@@ -128,6 +132,7 @@ namespace MortalGame.GameModel
             [typeof(DrawCardEffect)] = _drawCardResolver,
             [typeof(DiscardCardEffect)] = _discardCardResolver,
             [typeof(PlayCardEffect)] = _playCardResolver,
+            [typeof(InvokeCardEffects)] = _invokeCardEffectsResolver,
             [typeof(ConsumeCardEffect)] = _consumeCardResolver,
             [typeof(DisposeCardEffect)] = _disposeCardResolver,
             [typeof(CreateCardEffect)] = _createCardResolver,

@@ -29,7 +29,7 @@ namespace MortalGame.GameModel
             var candidateCards = enemy.CardManager.HandCard.Cards
                 .Where(card => !enemy.SelectedCards.Cards.Contains(card))
                 .Select(card => GameFormula.CardCost(
-                        new TriggerContext(model, new CardTrigger(card), new CardLookIntentAction(card)),
+                        new TriggerContext(model, new CardTrigger(card), new CardLookIntentAction(card, ((IPlayerEntity)enemy).Some())),
                         card)
                     .Map(cost => (Card: card, Cost: cost)))
                 .Values()
@@ -66,7 +66,12 @@ namespace MortalGame.GameModel
                 }
 
                 if (GameFormula.CardCost(
-                            new TriggerContext(model, new CardTrigger(selectedCard), new CardLookIntentAction(selectedCard)),
+                            new TriggerContext(
+                                model, 
+                                new CardTrigger(selectedCard), 
+                                new CardLookIntentAction(
+                                    selectedCard, 
+                                    ((IPlayerEntity)enemy).Some())),
                             selectedCard)
                         .TryGetValue(out var cardRuntimeCost) &&
                     cardRuntimeCost <= enemy.CurrentEnergy)

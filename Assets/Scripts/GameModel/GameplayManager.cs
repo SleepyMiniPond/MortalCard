@@ -127,7 +127,8 @@ namespace MortalGame.GameModel
 
         public Option<SubSelectionInfo> QueryCardSubSelectionInfos(
             Guid cardIdentity,
-            MainSelectionAction mainSelectionAction)
+            MainSelectionAction mainSelectionAction,
+            IPlayerEntity caster)
         {
             if (!this.GetCard(cardIdentity).TryGetValue(out var cardEntity) ||
                 !SelectionInfoUtility.TryCreateMainSelectionContext(
@@ -141,7 +142,7 @@ namespace MortalGame.GameModel
 
             using (_contextMgr.SetContext(mainSelectionContext))
             {
-                return cardEntity.SubSelects.ToInfo(this, cardEntity);
+                return cardEntity.SubSelects.ToInfo(this, cardEntity, caster);
             }
         }
 
@@ -476,6 +477,7 @@ namespace MortalGame.GameModel
 
         private bool _TrySetUseCardSelection(
             UseCardAction useCardAction,
+            IPlayerEntity caster,
             out IGameContextManager selectionScope)
         {
             selectionScope = null;
@@ -484,7 +486,8 @@ namespace MortalGame.GameModel
                 !SelectionInfoUtility.TryCreateUseCardContext(
                         this,
                         cardEntity,
-                        useCardAction)
+                        useCardAction,
+                        caster)
                     .TryGetValue(out var selectionContext))
             {
                 return false;
@@ -505,7 +508,7 @@ namespace MortalGame.GameModel
 
         private bool _ExecuteSelectedCard(CardPlayChain chain, IPlayerEntity player, UseCardAction action, CardPlayReason reason)
         {
-            if (!_TrySetUseCardSelection(action, out var selectionScope))
+            if (!_TrySetUseCardSelection(action, player, out var selectionScope))
                 return false;
 
             bool succeeded;
@@ -621,7 +624,12 @@ namespace MortalGame.GameModel
                 return false;
             }
 
-            var lookContext = new TriggerContext(this, new CardTrigger(usedCard), new CardLookIntentAction(usedCard));
+            var lookContext = new TriggerContext(
+                this, 
+                new CardTrigger(usedCard), 
+                new CardLookIntentAction(
+                    usedCard, 
+                    player.Some()));
             if (!usedCard.GetCardProperty(lookContext, CardProperty.EffectRepeat).TryGetValue(out var effectRepeat))
             {
                 return false;

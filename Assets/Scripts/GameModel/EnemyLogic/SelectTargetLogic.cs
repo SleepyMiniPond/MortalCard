@@ -25,9 +25,9 @@ namespace MortalGame.GameModel
         public static SelectMainTargetResult SelectMainTarget(
             IGameplayModel gameplayWatcher,
             ICardEntity cardEntity,
-            IPlayerEntity selectionPerspective)
+            IPlayerEntity caster)
         {
-            if (selectionPerspective == null)
+            if (caster == null)
             {
                 return new SelectMainTargetResult(false, TargetType.None, Guid.Empty);
             }
@@ -51,7 +51,7 @@ namespace MortalGame.GameModel
                 NoneSelectable => new SelectMainTargetResult(true, TargetType.None, Guid.Empty),
                 CharacterSelectable => SelectCharacterWithLogic(
                     gameplayWatcher,
-                    selectionPerspective,
+                    caster,
                     mainSelect.CandidateScope,
                     mainSelect.AutomaticSelection),
                 CharacterAllySelectable => SelectCharacter(
@@ -64,7 +64,7 @@ namespace MortalGame.GameModel
                     mainSelect.AutomaticSelection),
                 CardSelectable => SelectCardWithLogic(
                     gameplayWatcher,
-                    selectionPerspective,
+                    caster,
                     mainSelect.CandidateScope,
                     mainSelect.AutomaticSelection),
                 CardAllySelectable => SelectCard(
@@ -82,13 +82,15 @@ namespace MortalGame.GameModel
         public static Option<SelectSubTargetsResult> SelectSubTargets(
             IGameplayModel gameplayWatcher,
             ICardEntity cardEntity,
-            MainSelectionAction mainSelectionAction)
+            MainSelectionAction mainSelectionAction,
+            IPlayerEntity caster)
         {
             var subSelectionActions = new Dictionary<string, ISubSelectionAction>();
 
             var subSelectionInfoOpt = gameplayWatcher.QueryCardSubSelectionInfos(
                 cardEntity.Identity,
-                mainSelectionAction);
+                mainSelectionAction,
+                caster);
             if (!subSelectionInfoOpt.TryGetValue(out var subSelectionInfo))
             {
                 return Option.None<SelectSubTargetsResult>();
@@ -115,12 +117,12 @@ namespace MortalGame.GameModel
         public static Option<SelectCardTargetsResult> SelectTargets(
             IGameplayModel gameplayWatcher,
             ICardEntity cardEntity,
-            IPlayerEntity selectionPerspective)
+            IPlayerEntity caster)
         {
             var mainTarget = SelectMainTarget(
                 gameplayWatcher,
                 cardEntity,
-                selectionPerspective);
+                caster);
             if (!mainTarget.IsValid)
                 return Option.None<SelectCardTargetsResult>();
 
@@ -128,7 +130,8 @@ namespace MortalGame.GameModel
             var subTargetsOption = SelectSubTargets(
                 gameplayWatcher,
                 cardEntity,
-                mainSelectionAction);
+                mainSelectionAction,
+                caster);
 
             return subTargetsOption.Map(subTargets =>
                 new SelectCardTargetsResult(
@@ -138,7 +141,7 @@ namespace MortalGame.GameModel
 
         private static SelectMainTargetResult SelectCharacterWithLogic(
             IGameplayModel gameplayWatcher,
-            IPlayerEntity selectionPerspective,
+            IPlayerEntity caster,
             TargetCandidateScope candidateScope,
             AutomaticTargetSelectionStrategy selectionStrategy)
         {
@@ -146,11 +149,11 @@ namespace MortalGame.GameModel
             {
                 TargetCandidateScope.ToEnemy => SelectCharacter(
                     gameplayWatcher,
-                    OppositePlayer(gameplayWatcher, selectionPerspective).Characters,
+                    OppositePlayer(gameplayWatcher, caster).Characters,
                     selectionStrategy),
                 TargetCandidateScope.ToAlly => SelectCharacter(
                     gameplayWatcher,
-                    selectionPerspective.Characters,
+                    caster.Characters,
                     selectionStrategy),
                 TargetCandidateScope.Any => SelectCharacter(
                     gameplayWatcher,
@@ -163,7 +166,7 @@ namespace MortalGame.GameModel
 
         private static SelectMainTargetResult SelectCardWithLogic(
             IGameplayModel gameplayWatcher,
-            IPlayerEntity selectionPerspective,
+            IPlayerEntity caster,
             TargetCandidateScope candidateScope,
             AutomaticTargetSelectionStrategy selectionStrategy)
         {
@@ -171,12 +174,12 @@ namespace MortalGame.GameModel
             {
                 TargetCandidateScope.ToEnemy => SelectCard(
                     gameplayWatcher,
-                    OppositePlayer(gameplayWatcher, selectionPerspective)
+                    OppositePlayer(gameplayWatcher, caster)
                         .CardManager.HandCard.Cards,
                     selectionStrategy),
                 TargetCandidateScope.ToAlly => SelectCard(
                     gameplayWatcher,
-                    selectionPerspective.CardManager.HandCard.Cards,
+                    caster.CardManager.HandCard.Cards,
                     selectionStrategy),
                 TargetCandidateScope.Any => SelectCard(
                     gameplayWatcher,
@@ -256,8 +259,8 @@ namespace MortalGame.GameModel
 
         private static IPlayerEntity OppositePlayer(
             IGameplayModel gameplayWatcher,
-            IPlayerEntity selectionPerspective)
-            => selectionPerspective.Faction == Faction.Ally
+            IPlayerEntity caster)
+            => caster.Faction == Faction.Ally
                 ? gameplayWatcher.GameStatus.Enemy
                 : gameplayWatcher.GameStatus.Ally;
 

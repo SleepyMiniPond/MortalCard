@@ -107,9 +107,7 @@ namespace MortalGame.GameModel
         {
             if (triggerContext.Action is CardLookIntentAction cardLookIntent)
             {
-                return (cardLookIntent.Caster != null
-                        ? cardLookIntent.Caster.SomeNotNull()
-                        : cardLookIntent.Card.Owner(triggerContext.Model))
+                return cardLookIntent.Caster
                     .FlatMap(player => player.GetPlayerBuffAdditionProperty(triggerContext, playerBuffProperty));
             }
             if (triggerContext.Action.Source is InvokeCardEffectsSource invokeSource)

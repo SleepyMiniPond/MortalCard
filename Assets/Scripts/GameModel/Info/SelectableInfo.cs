@@ -42,8 +42,12 @@ namespace MortalGame.GameModel
         public static Option<SubSelectionInfo> ToInfo(
             this IEnumerable<ISubSelectionGroup> subSelectionGroups,
             IGameplayModel model,
-            ICardEntity cardEntity)
+            ICardEntity cardEntity,
+            IPlayerEntity caster)
         {
+            if (caster == null)
+                return Option.None<SubSelectionInfo>();
+
             var selectionInfos = new Dictionary<string, ISubSelectionGroupInfo>();
             foreach (var group in subSelectionGroups)
             {
@@ -53,7 +57,7 @@ namespace MortalGame.GameModel
                         var cardLookTriggerContext = new TriggerContext(
                             model,
                             new CardTrigger(cardEntity),
-                            new CardLookIntentAction(cardEntity));
+                            new CardLookIntentAction(cardEntity, caster.Some()));
                         if (!existCardGroup.SelectCount
                                 .Eval(cardLookTriggerContext)
                                 .TryGetValue(out var selectCount) ||
@@ -131,12 +135,26 @@ namespace MortalGame.GameModel
         internal static Option<GameContext> TryCreateUseCardContext(
             IGameplayModel model,
             ICardEntity cardEntity,
-            UseCardAction useCardAction)
+            UseCardAction useCardAction,
+            IPlayerEntity caster)
+            => TryCreateCardEffectContext(
+                model, 
+                cardEntity,
+                useCardAction.MainSelectionAction,
+                useCardAction.SubSelectionActions, 
+                caster);
+
+        internal static Option<GameContext> TryCreateCardEffectContext(
+            IGameplayModel model,
+            ICardEntity cardEntity,
+            MainSelectionAction mainSelectionAction,
+            IReadOnlyDictionary<string, ISubSelectionAction> subSelectionActions,
+            IPlayerEntity caster)
         {
             if (!TryCreateMainSelectionContext(
                         model,
                         cardEntity,
-                        useCardAction.MainSelectionAction)
+                        mainSelectionAction)
                     .TryGetValue(out var mainSelectionContext))
             {
                 return Option.None<GameContext>();
@@ -145,12 +163,12 @@ namespace MortalGame.GameModel
             Option<SubSelectionInfo> subSelectionInfoOption;
             using (model.ContextManager.SetContext(mainSelectionContext))
             {
-                subSelectionInfoOption = cardEntity.SubSelects.ToInfo(model, cardEntity);
+                subSelectionInfoOption = cardEntity.SubSelects.ToInfo(model, cardEntity, caster);
             }
 
             if (!subSelectionInfoOption.TryGetValue(out var subSelectionInfo) ||
                 subSelectionInfo.SelectionInfos.Count !=
-                useCardAction.SubSelectionActions.Count)
+                subSelectionActions.Count)
             {
                 return Option.None<GameContext>();
             }
@@ -162,7 +180,7 @@ namespace MortalGame.GameModel
                 // TODO（T-011／T-012）：目前只接線 ExistCard 的結果 Context；其他選取類型完成後，
                 // 補上各自的結果驗證與保存方式，目前型別限制屬於暫時的實作邊界。
                 if (pair.Value is not ExistCardSelectionInfo selectionInfo ||
-                    !useCardAction.SubSelectionActions.TryGetValue(
+                    !subSelectionActions.TryGetValue(
                         pair.Key,
                         out var selectionAction) ||
                     selectionAction is not ExistCardSubSelectionAction existCardAction)

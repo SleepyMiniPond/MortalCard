@@ -61,7 +61,7 @@ namespace MortalGame.GameModel
                 var triggerContext = new TriggerContext(
                     model,
                     new CardTrigger(card),
-                    new CardLookIntentAction(card));
+                    new CardLookIntentAction(card, card.Owner(model)));
                 if (!GameFormula.CardCost(triggerContext, card)
                         .FlatMap(cost => GameplayIntegerMath.Add(totalCost, cost))
                         .TryGetValue(out var newTotalCost))
