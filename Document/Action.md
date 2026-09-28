@@ -1,6 +1,6 @@
 # Action 與反應上下文
 
-> 核對日期：2026-09-23
+> 核對日期：2026-09-28
 
 Action 描述意圖、目標或已發生的結果，Effect Command 才是狀態變更指令。Action 多以 Record 表達，但其中可參考可變 Entity／屬性容器，不代表整張物件圖不可變。
 
@@ -16,11 +16,17 @@ ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可�
 |---|---|
 | Action.Source／Target | 發生何事、由誰發起、作用於誰 |
 | TriggerContext.Triggered | 目前正在回應該事件的卡片、玩家或 Buff |
-| GameContext.Selected* | 玩家或 AI 出牌操作中明確選擇的主目標與 ExistCard 群組結果 |
+| GameContext.Selected* | 出牌或 Invoke 中選定的主目標與 ExistCard 群組結果 |
 
 [TriggerContext](../Assets/Scripts/GameModel/Action/TriggerSource.cs) 沿衍生反應保留最初 ReactionOriginAction／Timing，避免後續效果失去根源。Buff Trigger 保存宿主，不能以 CurrentPlayer 或覆寫 Selected 目標代替。
 
-每次出牌會建立完整且獨立的選取作用域；主目標與 ExistCard 群組結果在結算結束後一併還原，不沿用上一張牌的 Selected 欄位。群組結果以不可變卡片 Identity 集合保存，Effect 於執行時再解析仍存在的卡片。
+每次出牌或 Invoke 會建立完整且獨立的選取作用域；主目標與 ExistCard 群組結果在結算結束後一併還原，不沿用上一張牌的 Selected 欄位。群組結果以不可變卡片 Identity 集合保存，Effect 於執行時再解析仍存在的卡片。
+
+## 原地卡效與預覽來源
+
+InvokeCardEffectsSource 保存被呼叫卡、本次 Caster 與 RequestedBy；被呼叫效果的 CardTrigger 也改指該卡，因此 ActionCard 與 TriggeredCard 都是被呼叫卡，外層 ReactionOriginAction 則保留。InvokeCardEffectsAction 的 GameTiming 為 None，不新增呼叫開始／完成反應；效果真正造成的傷害等結果仍沿既有管線觀察。完整規則見 [Effect](Effect.md#原地卡效-invokecardeffects)。
+
+CardLookIntentAction 明確接收施放者 Option，沒有預設值。選取流程必須傳入 caster；一般預覽由入口解析卡片持有者，查不到才傳 None。None 表示缺少施放者，查詢與公式不再偷偷回退到 Owner。
 
 ## 出牌與卡片時機
 

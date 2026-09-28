@@ -1,6 +1,6 @@
 # Effect Queue 觸發循環圖解
 
-> 核對日期：2026-09-20  
+> 核對日期：2026-09-28
 > 用途：隔一段時間回來時，快速重建對排程與連鎖的理解。  
 > 本文解釋運作方式；來源能力與領域規則以 [Effect](Effect.md)、[Card](Card.md) 為準。
 
@@ -13,8 +13,8 @@
 | EffectQueueRunner | 工作人員 | 取出工作、執行、收集結果，直到隊伍清空或預算耗盡 |
 | EffectQueueItem | 工作單 | 定義這一步要做什麼，以及要排入什麼後續工作 |
 | Queue | 待辦隊伍 | 保存尚未執行的工作及其順序 |
-| Enqueue | 排到隊尾 | 既有工作先做 |
-| EnqueueImmediate | 插到隊首 | 目前這一步結束後，優先做新工作 |
+| Enqueue，位置 Tail | 排到隊尾 | 既有工作先做；預設位置 |
+| Enqueue，位置 Immediate | 插到隊首 | 目前這一步結束後，優先做新工作 |
 | EffectResult | 完成紀錄 | 本步產生的結果 Action 與畫面 Event |
 
 **Immediate 表示「下一步優先」，不是「現在立刻呼叫新工作的 Execute」。** 排入與執行是兩件事，這是閱讀整套流程最重要的區分。
@@ -130,11 +130,13 @@ C 的所有立即衍生工作完成後：
 
 | X 的排程方式 | X 結束後的隊伍 |
 |---|---|
-| A、B 依序 Enqueue | `[Y] [Z] [A] [B]` |
-| 以一批 `[A, B]` EnqueueImmediate | `[A] [B] [Y] [Z]` |
+| A、B 依序 Enqueue，位置 Tail | `[Y] [Z] [A] [B]` |
+| 以一批 `[A, B]` Enqueue，位置 Immediate | `[A] [B] [Y] [Z]` |
 | 先單獨 Immediate A，再單獨 Immediate B | `[B] [A] [Y] [Z]` |
 
 批次 Immediate 會保留該批順序；連續單筆插到隊首則會反轉。這也是某些呼叫端反向走訪清單的原因：它想保留最後真正執行的順序。
+
+工作單也可記住自己的選取結果：外層選 X、內層 Invoke 選 Y，內層完成後，外層仍用 X。這只保存目標與群組 Identity，不複製整場戰鬥或 ContextManager；作用域與入列介面見 [Effect](Effect.md#上下文與失效)。
 
 ## 三種入口，不必都從 Timing 開始
 
@@ -154,7 +156,7 @@ flowchart LR
 
 普通卡牌效果直接開始解析；一般 GameTiming 的 Buff 反應才使用前述三步包裝。共用卡片生命週期派送目前直接建立 CardData／CardBuff 效果執行工作，**不會自動套上一般 Buff 的 Before／After 包裝**。
 
-FormChanged 仍有專用路徑，EffectPlayed 尚無正式間接出牌入口；完整接線範圍見 [Card](Card.md)，不要由列舉或類別名稱推論。
+FormChanged 仍有專用路徑；EffectPlayed 已接入 PlayCardEffect 正式間接出牌。Invoke 則只加入普通效果工作，不派送出牌生命週期。完整接線範圍見 [Card](Card.md)。
 
 來源：[CardTriggeredEffectDispatch](../Assets/Scripts/GameModel/Effect/CardTriggeredEffectDispatch.cs)。
 
@@ -170,9 +172,9 @@ Runner 收集 GameEvent，不在這個循環內等待動畫。呼叫端取得結
 
 ## 分清楚一個 Runner 與一次完整出牌
 
-同一 Runner 的工作共用 Budget；靜態 RunToCompletion 每次建立新 Runner 與新預算。因此目前一次完整出牌可以先後使用多個 Runner，例如不同次普通效果重複、Played 與一般 Timing 根入口。
+同一 Runner 的工作共用 Budget；正式根入口還會以 CardPlayChain 讓不同 Runner 共用 ExecutionScope，因此普通效果重複、出牌時機、Invoke 與後續間接出牌受同一條鏈的預算保護。獨立使用靜態 RunToCompletion 則建立新 Runner 與新預算。
 
-**單個 Runner 有連鎖保護，不等於整次出牌或整條間接出牌鏈已有共同保護。** 現況與後續範圍集中於 [Effect 的排程與預算](Effect.md#排程與預算)。
+**Runner 負責取工作，CardPlayChain 負責跨 Runner 的共同保護。** 詳見 [Effect 的排程與預算](Effect.md#排程與預算)。
 
 ## 下次忘記時，照這個順序找回來
 

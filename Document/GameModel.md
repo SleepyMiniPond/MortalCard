@@ -29,6 +29,8 @@ GameModel 管理戰鬥規則與可變實體，不依賴 View。Model 聚合事�
 
 [GameRandom](../Assets/Scripts/GameModel/GameRandom.cs) 由戰鬥種子建立並注入。固定種子與相同操作可重現已接入的亂數流程，但不代表重播功能已完成。
 
+選取入口必須傳入 caster，主目標、ExistCard 候選與數量查詢沿用同一視角；正式出牌傳出牌玩家，Invoke 傳本次施放者，不以可省略的 null 猜測卡片持有者。原地卡效的施放者與略過條件見 [Effect](Effect.md#原地卡效-invokecardeffects)。
+
 ## 子系統
 
 - [Action](Action.md)：意圖、結果與反應上下文。

@@ -1,7 +1,7 @@
 # 已完成任務封存
 
-> 整理日期：2026-09-23
-> 各項完成日期與驗證數字為當時紀錄；T-022 的驗證於 2026-09-23 執行。現在行為以系統文件及程式為準，待辦見 [TODO](TODO.md)。
+> 整理日期：2026-09-29
+> 各項完成日期與驗證數字為當時紀錄；T-023 的驗證於 2026-09-28 執行，2026-09-29 確認封存。現在行為以系統文件及程式為準，待辦見 [TODO](TODO.md)。
 > 完成狀態限於各任務範圍，不代表所有預留列舉、流程入口或後續整合都已完成。
 
 ### T-001：消除 Switch Expression 雙重派發
@@ -178,6 +178,15 @@ PlayerBuff、CharacterBuff、CardBuff 的一般反應時機已接入效果流程
 - **歷史驗證結果**：Unity 編譯 0 error；正式內容 `GameDataValidator.ValidateAll()` 0 error；完整 EditMode 721 passed / 0 failed / 0 skipped；PlayMode 3 passed / 0 failed / 0 skipped。
 - **驗證限制**：未執行實際 Player Build 或人工遊玩；測試紀錄有 2 則既有 `NoOpCardBuffEffect` Warning 與 3 則預期的 Budget 中止診斷。
 - **後續邊界**：`InvokeCardEffects` 由 T-023 接續；其他子選取類型仍屬 T-011；更一般的出牌條件與 GameplayManager 職責拆分分別由 T-028、T-029 追蹤。
+
+### T-023：完成 `InvokeCardEffects` 原地執行卡效能力
+
+完成 Card／PlayerBuff／CharacterBuff／CardBuff 四來源原地卡效，支援雙方手牌、牌堆與墓地；執行前重新檢查持有者與原牌區。選取及玩家加成採明確 caster，Buff 發起時使用宿主玩家。Queue 統一入列介面，逐項保存與還原選取，巢狀 Invoke 與間接出牌共用鏈預算。四來源序列化與既有 Validator 已驗證。正式規則見 [Effect](Effect.md#原地卡效-invokecardeffects)、[Action](Action.md) 與 [Target](Target.md)。
+
+- **狀態**：✅ 五項工作均已確認完成，2026-09-29 封存。
+- **歷史驗證（2026-09-28）**：Unity 編譯成功；新增資產測試 15/15，完整 EditMode 775 passed / 0 failed / 0 skipped；差異格式檢查通過。
+- **驗證限制**：本項未執行 PlayMode、實際 Player Build 或人工遊玩；測試保留既有 Render Graph 相容模式與 NoOpCardBuffEffect 警告，以及預期的 Budget 中止診斷。封存當日僅更新文件，未重跑測試。
+- **後續邊界**：其他子選取類型與完整多步驟契約仍屬 T-011；未新增獨立 Invoke GameTiming、專用演出或正式測試卡牌資產。下一主線 T-011 尚未開始。
 
 ## 現況導引
 

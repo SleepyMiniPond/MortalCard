@@ -6,7 +6,7 @@ Target 以可序列化資料描述在 TriggerContext 中要讀取的實體或集
 
 ## 視角
 
-Selected 代表玩家／AI 明確選擇，Triggered 代表目前反應者，ActionCard 代表出牌 Action／Result 的來源卡片。它們不互相替代，詳見 [Action](Action.md)。
+Selected 代表本次明確選取，Triggered 代表目前反應者，ActionCard 代表出牌 Action／Result 或 Invoke 來源中的卡片。它們不互相替代，詳見 [Action](Action.md)。
 
 玩家可由陣營、卡片／角色擁有者、Buff 的 Owner／Caster 等關係解析。無 CurrentPlayer 的全域時機可使用 PlayerByFaction；無效陣營回傳缺值。角色集合保留 Runtime 順序，不自動略過死亡角色。
 
@@ -19,7 +19,7 @@ Selected 代表玩家／AI 明確選擇，Triggered 代表目前反應者，Acti
 
 ## 選取與查詢分離
 
-MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取結果依群組 ID 存入本次出牌 Context，`SubSelectedCardCollection` 依 ID 讀取卡片集合；卡片資產中的群組 ID 必須非空且對應本張卡宣告的 ExistCard 群組。候選不足時取實際可選數量，仍允許出牌。NewCard／NewPartialCard／NewEffect 目前為預留結構，遇到這些類型時不建立可執行選取結果。完整多步驟契約見 T-011。
+MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取結果依群組 ID 存入本次出牌或 Invoke 的 Context，`SubSelectedCardCollection` 依 ID 讀取卡片集合；卡片資產中的群組 ID 必須非空且對應本張卡宣告的 ExistCard 群組。ExistCard 候選不足時取實際可選數量；這不代表必要主目標也能省略，自動選取遇到必要主目標無候選時會略過該次執行。NewCard／NewPartialCard／NewEffect 目前為預留結構，遇到這些類型時不建立可執行選取結果。完整多步驟契約見 T-011。
 
 AI 自動選取不是純 Target 查詢；主目標以顯式玩家決定相對敵我視角，候選範圍與 First／Random 挑選策略分開配置，見 [GameModel](GameModel.md)。
 
