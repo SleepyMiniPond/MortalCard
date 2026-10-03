@@ -70,7 +70,7 @@ namespace MortalGame.GameView
         private readonly SerialDisposable _dragSubscription = new();
         private readonly ReactiveProperty<Option<Guid>> _currentFocusIdentity = new(Option.None<Guid>());
         private readonly ReactiveProperty<Option<(Guid, Vector2)>> _currentDragInfo = new(Option.None<(Guid, Vector2)>());
-        private IReadOnlyReactiveProperty<bool> IsDragging => _currentDragInfo.Select(info => info.HasValue).ToReactiveProperty();
+        private bool IsDragging => _currentDragInfo.Value.HasValue;
 
         public void Init(
             IGameplayModel statusWatcher,
@@ -100,55 +100,43 @@ namespace MortalGame.GameView
 
         public void RemoveCardView(UsedCardEvent usedCardEvent)
         {
-            if (_cardViewDict.TryGetValue(usedCardEvent.UsedCardIdentity, out var cardView))
-            {
-                _cardViews.Remove(cardView);
-                _cardViewDict.Remove(usedCardEvent.UsedCardIdentity);
-                _cardViewFactory.RecyclePrefab(cardView as CardView);
-
-                foreach (var view in _cardViews)
-                    view.RemoveLocationOffset(usedCardEvent.UsedCardIdentity, _focusDuration);
+            if (_TryRecycleCardView(usedCardEvent.UsedCardIdentity))
                 _RearrangeCardViews();
-            }
         }
 
         public void RemoveCardView(MoveCardEvent moveCardEvent)
         {
-            if (_cardViewDict.TryGetValue(moveCardEvent.CardIdentity, out var cardView))
-            {
-                _cardViews.Remove(cardView);
-                _cardViewDict.Remove(moveCardEvent.CardIdentity);
-                _cardViewFactory.RecyclePrefab(cardView as CardView);
-
-                foreach (var view in _cardViews)
-                    view.RemoveLocationOffset(moveCardEvent.CardIdentity, _focusDuration);
+            if (_TryRecycleCardView(moveCardEvent.CardIdentity))
                 _RearrangeCardViews();
-            }
         }
 
         public void RecycleHandCards(DiscardHandCardEvent recycleHandCardEvent)
         {
             foreach (var cardIdentity in recycleHandCardEvent.DiscardedCardIdentities.Concat(recycleHandCardEvent.ExcludedCardIdentities))
-            {
-                if (_cardViewDict.TryGetValue(cardIdentity, out var cardView))
-                {
-                    _cardViews.Remove(cardView);
-                    _cardViewDict.Remove(cardIdentity);
-
-                    _cardViewFactory.RecyclePrefab(cardView as CardView);
-                    foreach (var view in _cardViews)
-                        view.RemoveLocationOffset(cardIdentity, _focusDuration);
-                }
-            }
+                _TryRecycleCardView(cardIdentity);
 
             _RearrangeCardViews();
+        }
+
+        private bool _TryRecycleCardView(Guid identity)
+        {
+            if (!_cardViewDict.TryGetValue(identity, out var cardView))
+                return false;
+
+            _cardViews.Remove(cardView);
+            _cardViewDict.Remove(identity);
+            _cardViewFactory.RecyclePrefab(cardView as CardView);
+            foreach (var view in _cardViews)
+                view.RemoveLocationOffset(identity, _focusDuration);
+
+            return true;
         }
 
         public void EnableHandCardsUseCardAction(PlayerExecuteStartEvent playerExecuteStartEvent)
         {
             void OnPointerEnter(Guid identity)
             {
-                if (IsDragging.Value) return;
+                if (IsDragging) return;
                 _currentFocusIdentity.Value = identity.Some();
             }
             void OnDragging(Guid identity, Vector2 position)
@@ -378,28 +366,24 @@ namespace MortalGame.GameView
         #region TargetEventLogic
         private bool _TryUseCardOnEndDrag(CardInfo dragCardInfo, Vector2 dragCardPosition, ICardView dragCardView)
         {
-            if (dragCardInfo.MainSelectable.SelectType != SelectType.None)
+            var (status, target) = _GetDragCardStatusAndTargetView(
+                dragCardInfo, dragCardPosition, dragCardView);
+            switch (status)
             {
-                return OptionCollectionExtensions.FirstOrNone(_reciever.SelectableViews
-                    .Where(view => view != dragCardView &&
-                        dragCardInfo.MainSelectable.SelectType.IsSelectable(view.TargetType) &&
-                        RectTransformUtility.RectangleContainsScreenPoint(
-                            view.RectTransform, dragCardPosition, dragCardView.Canvas.worldCamera)))
-                    .Match(
+                case IDragableCardView.DradTargetStatus.ValidTarget:
+                    return target.Match(
                         selectView =>
                         {
                             _reciever.RecieveEvent(new UseCardCommand(dragCardInfo.Identity, (selectView as ISelectionTarget).Some()));
                             return true;
                         },
                         () => false);
+                case IDragableCardView.DradTargetStatus.WithoutTarget:
+                    _reciever.RecieveEvent(new UseCardCommand(dragCardInfo.Identity));
+                    return true;
+                default:
+                    return false;
             }
-            else if (RectTransformUtility.RectangleContainsScreenPoint(
-                    _reciever.BasicSelectableView.RectTransform, dragCardPosition, dragCardView.Canvas.worldCamera))
-            {
-                _reciever.RecieveEvent(new UseCardCommand(dragCardInfo.Identity));
-                return true;
-            }
-            return false;
         }
 
         private (IDragableCardView.DradTargetStatus Status, Option<ISelectableView> SelectView) _GetDragCardStatusAndTargetView(

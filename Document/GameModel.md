@@ -1,6 +1,6 @@
 # GameModel 核心遊戲邏輯
 
-> 核對日期：2026-09-19
+> 核對日期：2026-10-03
 
 GameModel 管理戰鬥規則與可變實體，不依賴 View。Model 聚合事件，由 Presenter 取出並交給畫面；目前不是可用事件還原整場戰鬥的事件溯源系統。
 
@@ -15,6 +15,14 @@ GameModel 管理戰鬥規則與可變實體，不依賴 View。Model 聚合事�
 5. BeforeTurnEnd 後依序處理 Ally、Enemy 清手；每方先完成移牌，再派送全部 Preserved、全部 Discarded，最後執行 AfterTurnEnd。
 
 勝負在流程檢查點判定，玩家死亡依主角色，不必等所有助戰角色死亡。能量恢復在回合開始；Recycle 是本次卡片出牌離場後的回收，不是回合結束掃描整個墓地。
+
+## 單張出牌與出牌鏈
+
+[CardPlayExecutor](../Assets/Scripts/GameModel/Effect/CardPlayExecutor.cs) 集中處理單張卡的合法性、付費、普通效果重複、出牌觸發、結果與離場清理。GameplayManager 保留選取作用域、成功通知、勝負檢查與出牌鏈協調；成功通知仍在本次選取作用域內發出。
+
+出牌準備先確認卡片、重複次數及主動出牌費用，成功後才進入 PlayingCard 並付費。主流程明示開始／結束時機與出牌觸發；普通效果依已決定的次數執行，每次重複仍讀取當前形態的效果。中止路徑在 PlayingCard 作用域釋放後同步真實離場狀態，保留已發生的支付與效果，不補發成功結果。
+
+Executor 將事件記入傳入的 CardPlayChain，效果及時機沿用 Model 的執行入口，共用原本的佇列與預算。FIFO 請求在目前卡片完成後由 GameplayManager 繼續處理；原地卡效 InvokeCardEffects 維持獨立的普通效果展開路徑。出牌與根批次的事件歸屬及順序見 [Effect](Effect.md)。
 
 ## 計算與狀態
 

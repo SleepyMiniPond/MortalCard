@@ -4,13 +4,18 @@
   "references": [
     "MortalGame.Runtime",
     "MortalGame.GameView",
+    "MortalGame.Presentation.Abstractions",
+    "Unity.ugui",
     "UniTask"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],
   "allowUnsafeCode": false,
-  "overrideReferences": false,
-  "precompiledReferences": [],
+  "overrideReferences": true,
+  "precompiledReferences": [
+    "Optional.dll",
+    "System.Collections.Immutable.dll"
+  ],
   "autoReferenced": false,
   "defineConstraints": [
     "UNITY_INCLUDE_TESTS"

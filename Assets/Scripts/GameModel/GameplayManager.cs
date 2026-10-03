@@ -514,7 +514,9 @@ namespace MortalGame.GameModel
             bool succeeded;
             using (selectionScope)
             {
-                succeeded = _ExecuteCardPlay(chain, player, action.CardIndentity, reason);
+                succeeded = CardPlayExecutor.Execute(this, chain, player, action.CardIndentity, reason);
+                if (succeeded)
+                    OnUseCard?.Invoke();
             }
             if (succeeded)
                 _CheckGameEnd();
@@ -612,145 +614,6 @@ namespace MortalGame.GameModel
             }
         }
 
-        private bool _ExecuteCardPlay(CardPlayChain chain, IPlayerEntity player, Guid cardIdentity, CardPlayReason reason)
-        {
-            if (_gameStatus.Ally.CardManager.PlayingCard.HasValue ||
-                _gameStatus.Enemy.CardManager.PlayingCard.HasValue)
-                return false;
-
-            var usedCard = player.CardManager.HandCard.Cards.FirstOrDefault(c => c.Identity == cardIdentity);
-            if (usedCard == null || usedCard.HasProperty(CardProperty.Sealed))
-            {
-                return false;
-            }
-
-            var lookContext = new TriggerContext(
-                this, 
-                new CardTrigger(usedCard), 
-                new CardLookIntentAction(
-                    usedCard, 
-                    player.Some()));
-            if (!usedCard.GetCardProperty(lookContext, CardProperty.EffectRepeat).TryGetValue(out var effectRepeat))
-            {
-                return false;
-            }
-
-            var payment = Option.None<CardPlayPayment>();
-            if (reason == CardPlayReason.Active)
-            {
-                if (!GameFormula.CardCost(lookContext, usedCard).TryGetValue(out var cost) ||
-                    cost > player.CurrentEnergy)
-                {
-                    return false;
-                }
-                payment = new CardPlayPayment(cost).Some();
-            }
-
-            if (!player.TryBeginCardPlay(usedCard).TryGetValue(out var playCardScope))
-            {
-                return false;
-            }
-
-            var cardPlaySource = new CardPlaySource(
-                usedCard, playCardScope.HandCardIndex, playCardScope.HandCardsCount, reason, payment, new CardPlayAttributeEntity());
-            var cardPlayTrigger = new CardPlayTrigger(cardPlaySource);
-            var cardPlayIntent = new CardPlayIntentAction(cardPlaySource);
-            var cardPlayTriggerContext = new TriggerContext(this, cardPlayTrigger, cardPlayIntent);
-            CardPlayResultSource cardPlayResultSource;
-            var completed = false;
-            try
-            {
-                using (playCardScope)
-                {
-                    if (payment.TryGetValue(out var paid))
-                    {
-                        var result = player.EnergyManager.ConsumeEnergy(paid.EnergySpent);
-                        chain.Record(new LoseEnergyEvent(player.Faction, player.EnergyManager.ToInfo(), result));
-                    }
-                    _RunTiming(
-                        GameTiming.BeforePlayCardStart,
-                        cardPlaySource);
-
-                    chain.Record(ObserveRootAction(cardPlayIntent));
-
-                    // TODO：檢查並移除過期 Buff，派送對應移除事件。
-
-                    _RunTiming(
-                        GameTiming.AfterPlayCardStart,
-                        cardPlaySource);
-
-                    var effectActionResults = new List<BaseResultAction>();
-
-                    var repeatTimes = Math.Max(1, effectRepeat);
-                    for (int i = 0; i < repeatTimes; i++)
-                    {
-                        chain.BeginStep($"CardEffectRepeat:{usedCard.Identity}:{i}");
-                        var effectResult = RunEffectBatch(
-                            usedCard.Effects.Select(effect =>
-                                new CardEffectQueueItem(
-                                    cardPlayTriggerContext,
-                                    effect)));
-
-                        effectActionResults.AddRange(effectResult.Actions);
-                    }
-
-                    var usedCardEvent = new UsedCardEvent(
-                        Faction: player.Faction,
-                        UsedCardIdentity: usedCard.Identity,
-                        CardManagerInfo: player.CardManager.ToInfo(),
-                        Reason: cardPlaySource.Reason);
-                    chain.Record(usedCardEvent);
-
-                    var playedResult = RunEffectBatch(
-                        CardTriggeredEffectDispatch.CreateItems(
-                            cardPlayTriggerContext,
-                            usedCard,
-                            cardPlaySource.Reason == CardPlayReason.Active
-                            ? CardTriggeredTiming.Played
-                            : CardTriggeredTiming.EffectPlayed));
-
-                    effectActionResults.AddRange(playedResult.Actions);
-
-                    cardPlayResultSource = cardPlaySource.CreateResultSource(effectActionResults);
-
-                    chain.Record(
-                        ObserveRootAction(new CardPlayResultAction(cardPlayResultSource)));
-                    _RunTiming(
-                        GameTiming.BeforePlayCardEnd,
-                        cardPlayResultSource);
-                }
-
-                if (usedCard.HasProperty(CardProperty.Recycle))
-                {
-                    var recycleResult = EffectManager.RecycleCardOnPlayEnd(this, player, usedCard);
-                    chain.Record(recycleResult.Events);
-                }
-
-                _RunTiming(
-                    GameTiming.AfterPlayCardEnd,
-                    cardPlayResultSource);
-                completed = true;
-            }
-            finally
-            {
-                if (!completed)
-                {
-                    // PlayingCard 的 Dispose 已完成；只同步真實離場，不偽造 UsedCard 或 Result。
-                    if (player.CardManager.HandCard.Cards.Any(c => c.Identity == usedCard.Identity))
-                        chain.Record(new PlayerExecuteEndEvent(player.Faction, player.CardManager.ToInfo()));
-                    else
-                    {
-                        var destination = player.CardManager.ExclusionZone.Cards.Any(c => c.Identity == usedCard.Identity)
-                            ? CardCollectionType.ExclusionZone : CardCollectionType.Graveyard;
-                        chain.Record(new MoveCardEvent(player.Faction, usedCard.Identity,
-                            CardCollectionType.HandCard, destination, player.CardManager.ToInfo()));
-                    }
-                }
-            }
-
-            OnUseCard?.Invoke();
-            return true;
-        }
 
         public IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit)
         {

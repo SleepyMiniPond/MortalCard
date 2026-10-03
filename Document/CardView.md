@@ -1,6 +1,6 @@
 # CardView 卡牌視圖
 
-> 核對日期：2026-09-19
+> 核對日期：2026-10-03
 
 卡牌視圖負責手牌排列、拖曳、聚焦及詳情展示。顯示資料以 [CardInfo](../Assets/Scripts/GameModel/Info/CardInfo.cs) 為準，其中 Cost／Power 可缺值；CreatePreview 更新同一 Power 欄位，沒有獨立 PreviewPower 欄位，也不是完整模擬能力。
 
@@ -9,6 +9,8 @@
 [CardView](../Assets/Scripts/GameView/CardView/CardView.cs) 區分手牌互動、點擊選取與純展示。Callback 傳 Identity，需判斷規則時再查最新 CardInfo，避免形態變更後操作舊資料。
 
 [AllyHandCardView](../Assets/Scripts/GameView/CardView/AllyHandCardView.cs) 管理弧形排列、聚焦及拖曳。拖曳中形態改變會重新驗證主選取與目前目標，失效時清除選取與指向線；放開時再次查詢。
+
+拖曳提示與放開出牌共用目標判斷，依當前目標型別及滑鼠位置選取第一個合法目標；無目標卡仍需放在基本出牌區。出牌、移牌及批次棄牌共用單張回收流程，負責移除索引、回收 View 與清除其他卡片的焦點位移；批次棄牌結束後才重新排列。
 
 [AiCardView](../Assets/Scripts/GameView/CardView/AiCardView.cs) 與 [EnemySelectedCardView](../Assets/Scripts/GameView/CardView/EnemySelectedCardView.cs) 顯示敵人已選卡片，沒有友軍手牌的拖曳流程。
 
