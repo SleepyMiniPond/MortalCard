@@ -195,7 +195,7 @@ namespace MortalGame.Tests
             {
                 Id = "discard", CardCandidates = new CardsOfPlayer { Player = new ReactionCasterPlayer() },
                 SelectCount = new ObservedValue(context => GameFormula.CardPower(context, ((CardTrigger)context.Triggered).Card).ValueOr(-1)),
-                IsMustSelect = new TrueValue()
+                CountRule = CardSelectionCountRule.RequiredAvailable
             });
             data.Effects.Add(new DiscardCardEffect { TargetCards = new SubSelectedCardCollection { SelectionId = "discard" } });
             var built = new GameplayManagerTestBuilder().WithCard(data).WithCardBuff(cardBuff).Build();

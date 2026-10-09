@@ -1,14 +1,14 @@
 # 專案待辦事項
 
-> 最後更新：2026-10-03
+> 最後更新：2026-10-09
 > 狀態標記：⬜ 待開始／待排期 | 🟡 已有部分基礎，尚未完成 | 🔄 進行中 | ✅ 已完成
-> T-023 已確認完成並封存；下一主線為 T-011，尚未開始。
+> T-023 已確認完成並封存；目前主線為 T-011，第 2 個工作 review 中，第 3 個工作已保存至 stash、未套用於工作區。
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
 
 ## 工作優先順序
 
 ```text
-下一主線（待開始）
+目前主線（第 2 個工作 review 中，第 3 個工作已暫存）
 └─ T-011 多步驟目標選取
         ↓
     T-012 卡片合成
@@ -36,18 +36,29 @@ T-010、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的�
 - **前置**：T-017。
 - **目標**：支援卡片依序要求多次不同來源、數量與條件的目標選取。
 - **既有基礎**：CardData.SubSelects 已是群組集合；ExistCard 可由 Presenter／AI 依 ID 回傳，GameplayManager 會將合法結果寫入出牌 Context，Effect 可透過群組 ID 讀取選中卡片。
-- **剩餘缺口**：NewCard／NewPartialCard／NewEffect 仍是預留；還需定義完整多步驟順序、取消語意與其他選取類型的候選及結果契約。
+- **本次範圍（2026-10-04 使用者確認）**：先完成 ExistCard 多步驟選取，涵蓋玩家主動出牌、敵方出牌、效果間接出牌與 InvokeCardEffects 四個入口。玩家主動出牌使用 UI；其餘入口自動選取，共用選取規則與結果契約。Invoke 以本次施放者視角建立選取，維持不經正式出牌流程的語意。
+- **本次工作**：步驟順序與唯一 ID、候選與數量規則、取消與不足處理、結果驗證及 Effect 消費、UI／場景生命週期，以及各自動選取入口的相容性。AI 先沿用既有隨機選取，不擴充戰術策略。
+- **延後範圍**：NewCard／NewPartialCard／NewEffect 仍為預留，本次不實作。NewPartialCard 等 PartialCard 定義與功能就緒；NewEffect 等效果片段與合成契約確定；NewCard 依實際需求另行安排。Invoke 暫停效果並開啟玩家選取 UI 另行規劃。
 - **依據**：[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs)、[GameAction](../Assets/Scripts/GameModel/Action/GameAction.cs)、[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)。
-- **開始前需決定**：
-  - 每一步的識別方式、來源區域、數量、篩選條件與提示文字。
-  - 玩家取消、中途無合法目標及選取不足時的處理方式。
-  - 各步驟結果如何交給 Action 與 Effect 管線。
-- **建議階段**：
-  1. 釐清既有群組集合的順序及識別契約，補足其他選取來源。
-  2. 沿用 Presenter 群組流程，補足結果傳遞至 Model／Effect 的消費端。
-  3. 補 UI 取消／關閉流程與 EditMode 測試。
-- **完成條件**：多步驟選取順序穩定、結果能依步驟識別取得，取消與場景生命週期可正確收斂。
-- **狀態**：🟡 已有選取基礎；完整功能待開始
+- **已實作的數量契約**：以 CardSelectionCountRule 的 Optional（可選 0～可達數量）、RequiredAvailable（必須選滿可達數量）、RequiredExact（必須選滿原始需求，候選不足則整次操作不成立）取代 IsMustSelect，不另加 ShortagePolicy。可達數量為需求與合法候選數量的較小值；此規則不等同效果代價的實際支付機制。
+- **已確認的取消與配置**：關閉面板取消整次出牌，必選亦可取消；Optional 可選零張確認。本次不提供上一步。零候選且允許空結果時自動前進。SubSelects 清單決定順序，穩定 ID 識別結果；候選沿用 Target／Condition。提示使用 CardSelection.{CardDataId}.{SubSelectionId}，缺少專屬文字時顯示通用提示，移除獨立 PromptKey。UI 實作目前保存在第 3 個工作的 stash，恢復時同步更新兩個 ID 的接線。
+- **已實作的提交驗證**：正式執行前依序重新驗證群組、候選與數量；非法或過期結果拒絕整次操作，不自動修剪。玩家取消／拒絕後恢復合法互動的接線目前保存在第 3 個工作的 stash；執行開始後的目標失效沿既有 Runtime 規則安全略過。
+- **已實作的步驟相依**：逐步使用主目標及前面已確認結果計算候選與需求數量，禁止自我及向後引用；選取期間只保存結果，不執行效果。區分未選群組與已確認的空群組，查詢明確接收選取快照，不跨 UI 等待持有共用 Context。純查詢不改變正式狀態或消耗正式亂數，為 T-014 預覽保留相容性；預覽功能仍另行排期。
+- **工作階段**：
+  1. 規則與詳細設計：使用者已確認完成。
+  2. 共用選取契約、逐步驗證、Validator 與資料遷移：review 中（待使用者確認），保留於工作區。
+  3. 玩家、敵方、間接出牌與 Invoke 接線，完成 UI 取消／關閉及互動恢復：2026-10-05 依使用者要求保存至 stash，未套用於工作區；等待指示恢復。
+  4. 四入口驗收、回歸與正式文件更新。
+- **資產盤點結果**：透過 Unity 檢查 38 個專案 ScriptableObject，找到 20 份 CardData、0 個選取群組，沒有需轉換舊值的資產；移除舊欄位後重新 import 全部卡片資產正常。
+- **遷移方式（使用者指定）**：第 2 個工作直接以 CountRule 取代 IsMustSelect，先匯出舊值，再批次更新所有受影響的既有資產；不保留向下相容欄位或雙軌讀取邏輯。
+- **本階段完成條件**：ExistCard 多步驟選取順序穩定、結果能依步驟識別取得，四個入口遵循確認後的規則，取消與場景生命週期可正確收斂；其他選取類型保留後續擴充追蹤。
+- **目前工作區驗證（2026-10-05）**：第 3 個工作退回後，Unity 編譯 0 error，完整 EditMode 815／815 通過。暫存前的第 3 個工作曾通過完整 EditMode 830／830、PlayMode 15／15；該紀錄屬 stash 版本。既有 warning 包含 OneTurnStart／OnTurnEnd 未使用事件、NoOpCardBuffEffect 測試及 Render Graph 相容模式。
+- **下一步**：先 review 第 2 個工作，再依使用者指示恢復第 3 個工作的四入口與 UI 接線；第 4 個工作待開始。
+- **第 3 個工作補正（2026-10-05）**：依使用者決策省略選取期間形態比對保護，移除 Action／草稿的起始 CardData ID；仍依當下卡牌配置完整重驗選取。補正後 Unity 編譯 0 error，完整 EditMode 830／830、定向 PlayMode 4／4 通過。
+- **暫存位置**：Git stash 06058ede70418fcf39426f87ba651f790f93bf79「T-011 第 3 步：四入口與 UI 收斂（暫存，保留第 2 步）」；保留既有 staged 內容與使用者的 Attack_Special.asset 修改。
+- **第 2 個工作 review 補正（2026-10-05）**：以 CombinedCardCollection 與通用 SetOperationType 取代專用 ExcludedCardCollection，支援差集、聯集、交集；以卡片 Identity 去重並保留穩定順序。Unity 編譯 0 error，完整 EditMode 826／826 通過；第 3 個工作維持暫存。
+- **狀態**：🟡 第 2 個工作 review 中；第 3 個工作已暫存、待恢復；第 4 個工作待開始。
+- **提示識別補正（2026-10-09）**：已移除 PromptKey 配置與驗證，查詢資訊提供 CardDataId 及群組 Id；專屬提示可缺省。Unity 編譯 0 error，完整 EditMode 826／826 通過。第 3 個工作恢復時再依兩個 ID 組合 key 並接上通用提示。
 
 ---
 
@@ -58,6 +69,7 @@ T-010、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的�
 - **目標**：讓玩家透過多輪選擇效果片段，組合或轉換成新的卡片結果。
 - **前置**：T-010 卡片變身、T-011 多步驟目標選取。
 - **開始前需決定**：採用動態效果組合，或使用預先定義的 CardData 組合表。
+- **選取前置邊界**：T-011 本階段只完成 ExistCard 與共用多步驟流程；合成若需要 PartialCard／效果片段，仍需先定義相關功能，再接入 NewPartialCard／NewEffect，不能視為 T-011 本階段已提供。
 - **建議階段**：先完成單一固定配方的垂直切片，再擴充多種片段與組合規則。
 - **完成條件**：合成選取、結果建立、狀態保存與畫面更新形成完整流程。
 - **狀態**：⬜ 未開始
@@ -88,6 +100,7 @@ T-010、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的�
 
 - **目標**：在不修改正式戰鬥狀態的情況下，預覽卡片效果、目標與結果。
 - **主要方向**：區分 `Preview`、`Simulation`、`Execution` 三種用途。
+- **已提出的使用需求（2026-10-04）**：手牌顯示加成後數字，指向敵人時顯示預測傷害。T-011 設計需保留部分選取與完整選取的區別，以及不污染正式狀態的查詢方式；預覽功能仍歸本項，未納入 T-011 實作範圍。
 - **建議階段**：先做 Resolver 層的輕量 Preview；完整 Simulation sandbox 等 AI 或除錯需求明確後再設計。
 - **既有基礎**：T-001 Resolver／Handler、T-003 Effect Queue、T-006 決定性亂數；CardInfo.CreatePreview 只提供卡牌威力預覽，尚非效果結果預演或獨立狀態沙盒。
 - **完成條件**：Preview 不污染正式狀態，且相同輸入能產生穩定、可供 UI 使用的預演資訊。

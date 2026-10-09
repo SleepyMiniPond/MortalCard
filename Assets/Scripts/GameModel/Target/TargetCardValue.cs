@@ -165,6 +165,32 @@ namespace MortalGame.GameModel
     }
 
     [Serializable]
+    public class CombinedCardCollection : ITargetCardCollectionValue
+    {
+        public ITargetCardCollectionValue FirstCollection;
+        public ITargetCardCollectionValue SecondCollection;
+        public SetOperationType Operation;
+
+        public IReadOnlyCollection<ICardEntity> Eval(TriggerContext triggerContext)
+        {
+            var first = FirstCollection.Eval(triggerContext);
+            var second = SecondCollection.Eval(triggerContext);
+            var secondIdentities = second.Select(card => card.Identity).ToHashSet();
+            var combined = Operation switch
+            {
+                SetOperationType.Difference => first.Where(card => !secondIdentities.Contains(card.Identity)),
+                SetOperationType.Union => first.Concat(second),
+                SetOperationType.Intersection => first.Where(card => secondIdentities.Contains(card.Identity)),
+                _ => throw new ArgumentOutOfRangeException(nameof(Operation), Operation, "不支援的集合運算")
+            };
+
+            // 依 Identity 去重，保留每張卡第一次出現的順序。
+            var seen = new HashSet<Guid>();
+            return combined.Where(card => seen.Add(card.Identity)).ToArray();
+        }
+    }
+
+    [Serializable]
     public class FilteredCardCollection : ITargetCardCollectionValue
     {
         [HorizontalGroup("1")]

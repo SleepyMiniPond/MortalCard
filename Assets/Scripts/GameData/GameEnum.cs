@@ -23,6 +23,13 @@ namespace MortalGame.GameData
         GreaterThanOrEqual,
         LessThanOrEqual,
     }
+    public enum SetOperationType
+    {
+        Difference = 0,
+        Union = 1,
+        Intersection = 2
+    }
+
     public enum SetConditionType
     {
         None = 0,

@@ -76,7 +76,7 @@ namespace MortalGame.Presenter
         {
             var isClose = false;
             var isVisible = true;
-            var effectiveSelectCount = existCardSelection.EffectiveCount;
+            var effectiveSelectCount = existCardSelection.MaxCount;
             var selectedCardIds = new List<Guid>();
             var disposables = new CompositeDisposable();
 
@@ -103,12 +103,12 @@ namespace MortalGame.Presenter
                 {
                     case ISubSelectionPresenter.CloseEvent:
                         return UniTask.FromResult<IUniTaskPresenter.Event>(
-                            existCardSelection.IsMustSelect
+                            (existCardSelection.CountRule != CardSelectionCountRule.Optional)
                             ? new IUniTaskPresenter.None()
                             : new IUniTaskPresenter.Halt());
 
                     case ISubSelectionPresenter.ConfirmEvent:
-                        var canClose = existCardSelection.IsMustSelect
+                        var canClose = (existCardSelection.CountRule != CardSelectionCountRule.Optional)
                             ? selectedCardIds.Count >= effectiveSelectCount
                             : true;
                         return UniTask.FromResult<IUniTaskPresenter.Event>(canClose
@@ -168,8 +168,8 @@ namespace MortalGame.Presenter
             ICardSelectionPanel.Property CreateProperty()
             {
                 return new ICardSelectionPanel.Property(
-                    existCardSelection.IsMustSelect,
-                    !existCardSelection.IsMustSelect || effectiveSelectCount == 0,
+                    existCardSelection.CountRule,
+                    (existCardSelection.CountRule == CardSelectionCountRule.Optional) || effectiveSelectCount == 0,
                     effectiveSelectCount,
                     existCardSelection.CardInfos
                         .Select(cardInfo => CreateSelectionProperty(cardInfo)),
@@ -182,7 +182,7 @@ namespace MortalGame.Presenter
             {
                 return new ICardSelectionPanel.UpdateProperty(
                     isVisible,
-                    existCardSelection.IsMustSelect
+                    (existCardSelection.CountRule != CardSelectionCountRule.Optional)
                         ? selectedCardIds.Count >= effectiveSelectCount
                         : true,
                     effectiveSelectCount,

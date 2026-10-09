@@ -26,7 +26,7 @@ namespace MortalGame.Tests
                 card.Data.SubSelects.Add(new ExistCardSelectionGroup
                 {
                     Id = "chosen", CardCandidates = invoke.TargetCards,
-                    SelectCount = new ConstInteger { Value = 1 }, IsMustSelect = new TrueValue()
+                    SelectCount = new ConstInteger { Value = 1 }, CountRule = CardSelectionCountRule.RequiredAvailable
                 });
                 invoke.TargetCards = new SubSelectedCardCollection { SelectionId = "chosen" };
             }
@@ -48,7 +48,7 @@ namespace MortalGame.Tests
                     var group = (ExistCardSelectionGroup)loadedCard.Data.SubSelects[0];
                     Assert.That(group.Id, Is.EqualTo("chosen"));
                     Assert.That(((ConstInteger)group.SelectCount).Value, Is.EqualTo(1));
-                    Assert.That(group.IsMustSelect, Is.TypeOf<TrueValue>());
+                    Assert.That(group.CountRule, Is.EqualTo(CardSelectionCountRule.RequiredAvailable));
                     _AssertNestedTargets(group.CardCandidates, zone);
                 }
                 else

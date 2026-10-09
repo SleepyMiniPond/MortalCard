@@ -35,7 +35,7 @@ namespace MortalGame.Tests
                     Id = "chosen",
                     CardCandidates = new SingleCardCollection { TargetCard = new TriggeredCard() },
                     SelectCount = new ConstInteger { Value = 1 },
-                    IsMustSelect = new TrueValue()
+                    CountRule = CardSelectionCountRule.RequiredAvailable
                 });
                 card.Data.Effects.Add(new PlayCardEffect
                 {

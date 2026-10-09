@@ -868,7 +868,7 @@ namespace MortalGame.Tests
                     Id = "chosen",
                     CardCandidates = new SingleCardCollection { TargetCard = new TriggeredCard() },
                     SelectCount = new ConstInteger { Value = 1 },
-                    IsMustSelect = new TrueValue()
+                    CountRule = CardSelectionCountRule.RequiredAvailable
                 });
                 card.Data.Effects.Add(new PlayCardEffect
                 {
@@ -883,6 +883,86 @@ namespace MortalGame.Tests
             {
                 UnityEngine.Object.DestroyImmediate(catalog);
                 UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void ValidateNestedContent_CommonRulesPreserveDiagnosticsAcrossAllAssetKinds()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            var cardBuff = ScriptableObject.CreateInstance<CardBuffScriptable>();
+            var playerBuff = ScriptableObject.CreateInstance<PlayerBuffDataScriptable>();
+            var characterBuff = ScriptableObject.CreateInstance<CharacterBuffDataScriptable>();
+            try
+            {
+                // 同時包含重複條件錯誤與算術錯誤，保護分組順序及訊息去重。
+                var conditions = new List<ICondition> { new AllCondition(), new AllCondition() };
+                var divisor = new ConstInteger { Value = 0 };
+                var effect = new DamageEffect
+                {
+                    Targets = new NoneCharacters(),
+                    Value = new ArithmeticInteger
+                    {
+                        Operation = ArithmeticType.Divide,
+                        Left = new ConstInteger { Value = 1 },
+                        Right = divisor
+                    }
+                };
+                card.Data.ID = "diagnostic-card";
+                card.Data.TriggeredEffects[CardTriggeredTiming.Drawed] = new[]
+                {
+                    new ConditionalCardEffect { Conditions = conditions, Effect = effect }
+                };
+                cardBuff.Data.ID = "diagnostic-card-buff";
+                cardBuff.Data.LifeTimeData = new AlwaysLifeTimeCardBuffData();
+                cardBuff.Data.BuffEffects[GameTiming.BeforeTurnEnd] = new[]
+                {
+                    new ConditionalCardBuffEffect { Conditions = conditions, Effect = effect }
+                };
+                playerBuff.Data.ID = "diagnostic-player-buff";
+                playerBuff.Data.MaxLevel = 1;
+                playerBuff.Data.LifeTimeData = new AlwaysLifeTimePlayerBuffData();
+                playerBuff.Data.BuffEffects[GameTiming.BeforeTurnEnd] = new[]
+                {
+                    new ConditionalPlayerBuffEffect { Conditions = conditions, Effect = effect }
+                };
+                characterBuff.Data.ID = "diagnostic-character-buff";
+                characterBuff.Data.MaxLevel = 1;
+                characterBuff.Data.LifeTimeData = new AlwaysLifeTimeCharacterBuffData();
+                characterBuff.Data.BuffEffects[GameTiming.BeforeTurnEnd] = new[]
+                {
+                    new ConditionalCharacterBuffEffect { Conditions = conditions.ToArray(), Effect = effect }
+                };
+                _SetCatalogArray(catalog, "_cardAssets", card);
+                _SetCatalogArray(catalog, "_cardBuffAssets", cardBuff);
+                _SetCatalogArray(catalog, "_playerBuffAssets", playerBuff);
+                _SetCatalogArray(catalog, "_characterBuffAssets", characterBuff);
+
+                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.EqualTo(new[]
+                {
+                    " / CardData 的 AllCondition.Conditions 至少需要一項",
+                    " / CardData 的 ArithmeticInteger.Divide 除數不可為 0",
+                    " / CardBuffData 的 AllCondition.Conditions 至少需要一項",
+                    " / CardBuffData 的 ArithmeticInteger.Divide 除數不可為 0",
+                    " / PlayerBuffData 的 AllCondition.Conditions 至少需要一項",
+                    " / PlayerBuffData 的 ArithmeticInteger.Divide 除數不可為 0",
+                    " / CharacterBuffData 的 AllCondition.Conditions 至少需要一項",
+                    " / CharacterBuffData 的 ArithmeticInteger.Divide 除數不可為 0"
+                }));
+
+                foreach (var condition in conditions.Cast<AllCondition>())
+                    condition.Conditions.Add(new ConstCondition { Value = true });
+                divisor.Value = 1;
+                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+                UnityEngine.Object.DestroyImmediate(cardBuff);
+                UnityEngine.Object.DestroyImmediate(playerBuff);
+                UnityEngine.Object.DestroyImmediate(characterBuff);
             }
         }
 

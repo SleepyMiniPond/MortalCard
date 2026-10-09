@@ -38,7 +38,7 @@ namespace MortalGame.Tests
                     secondCandidate,
                     firstCandidate),
                 SelectCount = new ConstInteger { Value = 5 },
-                IsMustSelect = new TrueValue()
+                CountRule = CardSelectionCountRule.RequiredAvailable
             });
 
             var result = built.Manager.QueryCardSubSelectionInfos(playedCard.Identity, MainSelectionAction.Empty, built.Ally);
@@ -56,7 +56,7 @@ namespace MortalGame.Tests
                     secondCandidate.Identity
                 }));
             Assert.That(existCardInfo.Count, Is.EqualTo(5));
-            Assert.That(existCardInfo.EffectiveCount, Is.EqualTo(2));
+            Assert.That(existCardInfo.MaxCount, Is.EqualTo(2));
         }
 
         [Test]
@@ -85,7 +85,7 @@ namespace MortalGame.Tests
                 Id = "targets",
                 CardCandidates = new FixedCardCollection(),
                 SelectCount = new ConstInteger { Value = -1 },
-                IsMustSelect = new TrueValue()
+                CountRule = CardSelectionCountRule.RequiredAvailable
             });
             var built = new GameplayManagerTestBuilder()
                 .WithCard(cardData)
@@ -133,7 +133,7 @@ namespace MortalGame.Tests
                     TargetCard = new SelectedCard()
                 },
                 SelectCount = new ConstInteger { Value = 1 },
-                IsMustSelect = new TrueValue()
+                CountRule = CardSelectionCountRule.RequiredAvailable
             });
             var built = new GameplayManagerTestBuilder()
                 .WithCard(cardData)
@@ -181,7 +181,7 @@ namespace MortalGame.Tests
                     TargetCard = new SelectedCard()
                 },
                 SelectCount = new ConstInteger { Value = 1 },
-                IsMustSelect = new TrueValue()
+                CountRule = CardSelectionCountRule.RequiredAvailable
             });
             var built = new GameplayManagerTestBuilder()
                 .WithCard(cardData)
@@ -215,7 +215,7 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void TryCreateUseCardContext_NormalizesAndIsolatesGroups()
+        public void TryCreateUseCardContext_PreservesValidOrderAndIsolatesGroups()
         {
             const string cardId = "sub-selection-groups";
             var cardData = CardTestBuilder.CreateCardData(cardId);
@@ -251,8 +251,6 @@ namespace MortalGame.Tests
                     ["first-group"] = new ExistCardSubSelectionAction(new[]
                     {
                         secondCandidate.Identity,
-                        secondCandidate.Identity,
-                        Guid.NewGuid(),
                         firstCandidate.Identity
                     }),
                     ["second-group"] = new ExistCardSubSelectionAction(new[]
@@ -388,7 +386,7 @@ namespace MortalGame.Tests
                 Id = id,
                 CardCandidates = new FixedCardCollection(candidates),
                 SelectCount = new ConstInteger { Value = count },
-                IsMustSelect = new TrueValue()
+                CountRule = CardSelectionCountRule.RequiredAvailable
             };
         }
 

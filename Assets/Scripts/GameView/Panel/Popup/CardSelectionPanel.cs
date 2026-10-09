@@ -14,7 +14,7 @@ namespace MortalGame.GameView
     public interface ICardSelectionPanel
     {
         public record Property(
-            bool IsMustSelect,
+            CardSelectionCountRule CountRule,
             bool IsConfirmable,
             int MaxSelectCount,
             IEnumerable<SelectionProperty> Selections,
@@ -119,7 +119,7 @@ namespace MortalGame.GameView
                 obj.SetActive(true);
             }
 
-            _closeObject.SetActive(!property.IsMustSelect);
+            _closeObject.SetActive(property.CountRule == CardSelectionCountRule.Optional);
             _confirmButton.interactable = property.IsConfirmable;
 
             _selectionDescriptionText.text = string.Format(

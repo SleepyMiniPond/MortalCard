@@ -70,7 +70,15 @@ namespace MortalGame.GameModel
 
         public IIntegerValue SelectCount;
 
-        public IBooleanValue IsMustSelect;
+        public CardSelectionCountRule CountRule;
+
+    }
+
+    public enum CardSelectionCountRule
+    {
+        Optional = 0,
+        RequiredAvailable = 1,
+        RequiredExact = 2
     }
 
     [Serializable]

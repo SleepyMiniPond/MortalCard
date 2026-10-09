@@ -16,6 +16,8 @@ GameData 定義卡牌、Buff、玩家與反應規則的配置。ScriptableObject
 
 依 [資產製作規範](GameData_Asset_Guidelines.md) 重新產生目錄並驗證。Build／Play Mode Gate 共用 [GameDataValidator](../Assets/Scripts/Editor/GameDataValidator.cs)，防止目錄遺漏、引用錯誤與不支援的效果進入 Runtime。
 
+巢狀內容驗證先執行共同規則，再執行各資產專屬規則；卡牌及三種 Buff 共用同一份檢查清單。[ValueConditionValidator](../Assets/Scripts/Editor/ValueConditionValidator.cs) 負責條件、整數運算與靜態溢位檢查，GameDataValidator 保留資產路徑、驗證順序及訊息去重。新增共同規則應接到共同入口，避免漏驗某種資產。
+
 ## 宣告式資料
 
 卡牌配置主／子目標、普通效果、生命週期效果、屬性及形態規則。Buff 配置屬性、壽命、Session 與一般反應效果；CardBuff 另有卡片生命週期效果。領域規則見 [Card](Card.md)、[CardBuff](CardBuff.md)、[Player](Player.md)、[Character](Character.md)。

@@ -281,7 +281,7 @@ namespace MortalGame.GameModel
             var selectedCards = existCardGroup.CardInfos
                 .Select(cardInfo => cardInfo.Identity)
                 .Shuffle(gameRandom)
-                .Take(existCardGroup.EffectiveCount)
+                .Take(existCardGroup.MaxCount)
                 .ToList();
 
             return new ExistCardSubSelectionAction(selectedCards);

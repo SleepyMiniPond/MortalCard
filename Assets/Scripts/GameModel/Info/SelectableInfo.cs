@@ -1,10 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Collections.Immutable;
 using MortalGame.GameData;
-using System.Linq;
 using Optional;
-using UnityEngine;
+using System.Linq;
 
 namespace MortalGame.GameModel
 {
@@ -14,20 +12,25 @@ namespace MortalGame.GameModel
         TargetCandidateScope CandidateScope,
         AutomaticTargetSelectionStrategy AutomaticSelection);
 
-    public record SubSelectionInfo(
-        IReadOnlyDictionary<string, ISubSelectionGroupInfo> SelectionInfos);
-
+    public record SubSelectionInfo(IReadOnlyDictionary<string, ISubSelectionGroupInfo> SelectionInfos);
     public interface ISubSelectionGroupInfo { }
-    public record ExistCardSelectionInfo(
-        IReadOnlyList<CardInfo> CardInfos,
-        int Count,
-        bool IsMustSelect) : ISubSelectionGroupInfo
-    {
-        public int EffectiveCount => Math.Min(Count, CardInfos.Count);
-    }
     public record NewCardSelectionInfo() : ISubSelectionGroupInfo;
     public record NewPartialCardSelectionInfo() : ISubSelectionGroupInfo;
     public record NewEffectSelectionInfo() : ISubSelectionGroupInfo;
+
+    public record ExistCardSelectionInfo(
+        IReadOnlyList<CardInfo> CardInfos,
+        int Count,
+        CardSelectionCountRule CountRule,
+        string Id,
+        int StepIndex,
+        int StepCount,
+        string CardDataId) : ISubSelectionGroupInfo
+    {
+        public int MaxCount => Math.Min(Count, CardInfos.Count);
+        public int MinCount => CountRule == CardSelectionCountRule.Optional ? 0 : MaxCount;
+        public bool IsValidCount(int count) => count >= MinCount && count <= MaxCount;
+    }
 
     public static class SelectionInfoUtility
     {
@@ -73,11 +76,14 @@ namespace MortalGame.GameModel
                             .Select(grouping => grouping.First().ToInfo(model))
                             .ToList();
 
+                        if (existCardGroup.CountRule == CardSelectionCountRule.RequiredExact && cardInfos.Count < selectCount)
+                            return Option.None<SubSelectionInfo>();
+
                         selectionInfos[group.Id] =
                             new ExistCardSelectionInfo(
                                 cardInfos,
                                 selectCount,
-                                existCardGroup.IsMustSelect.Eval(cardLookTriggerContext));
+                                existCardGroup.CountRule, group.Id, 0, subSelectionGroups.Count(), cardEntity.CardDataId);
                         break;
                     default:
                         // TODO（T-011／T-012）：NewCard、NewPartialCard、NewEffect 尚未實作資訊與結果流程，
@@ -151,60 +157,11 @@ namespace MortalGame.GameModel
             IReadOnlyDictionary<string, ISubSelectionAction> subSelectionActions,
             IPlayerEntity caster)
         {
-            if (!TryCreateMainSelectionContext(
-                        model,
-                        cardEntity,
-                        mainSelectionAction)
-                    .TryGetValue(out var mainSelectionContext))
-            {
-                return Option.None<GameContext>();
-            }
-
-            Option<SubSelectionInfo> subSelectionInfoOption;
-            using (model.ContextManager.SetContext(mainSelectionContext))
-            {
-                subSelectionInfoOption = cardEntity.SubSelects.ToInfo(model, cardEntity, caster);
-            }
-
-            if (!subSelectionInfoOption.TryGetValue(out var subSelectionInfo) ||
-                subSelectionInfo.SelectionInfos.Count !=
-                subSelectionActions.Count)
-            {
-                return Option.None<GameContext>();
-            }
-
-            var selectedCardGroups =
-                ImmutableDictionary.CreateBuilder<string, ImmutableArray<Guid>>();
-            foreach (var pair in subSelectionInfo.SelectionInfos)
-            {
-                // TODO（T-011／T-012）：目前只接線 ExistCard 的結果 Context；其他選取類型完成後，
-                // 補上各自的結果驗證與保存方式，目前型別限制屬於暫時的實作邊界。
-                if (pair.Value is not ExistCardSelectionInfo selectionInfo ||
-                    !subSelectionActions.TryGetValue(
-                        pair.Key,
-                        out var selectionAction) ||
-                    selectionAction is not ExistCardSubSelectionAction existCardAction)
-                {
-                    return Option.None<GameContext>();
-                }
-
-                var candidateIdentities = selectionInfo.CardInfos
-                    .Select(cardInfo => cardInfo.Identity)
-                    .ToHashSet();
-                var selectedIdentities = existCardAction.CardIdentity
-                    .Where(candidateIdentities.Contains)
-                    .Distinct()
-                    .Take(selectionInfo.EffectiveCount)
-                    .ToImmutableArray();
-                selectedCardGroups.Add(pair.Key, selectedIdentities);
-            }
-
-            return (mainSelectionContext with
-            {
-                SelectedCardGroups = selectedCardGroups.ToImmutable()
-            }).Some();
+            return CardSelectionQuery.ValidateComplete(model, cardEntity, caster, mainSelectionAction, subSelectionActions)
+                is CardSelectionQueryResult.Completed completed
+                ? completed.Context.Some()
+                : Option.None<GameContext>();
         }
-
         public static bool IsSelectable(this SelectType selectType, TargetType targetType)
         {
             switch (selectType)
