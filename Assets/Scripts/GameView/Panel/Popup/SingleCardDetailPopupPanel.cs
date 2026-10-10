@@ -9,7 +9,13 @@ using UnityEngine.UI;
 namespace MortalGame.GameView
 {
 
-    public class SingleCardDetailPopupPanel : MonoBehaviour
+    public interface ISingleCardDetailPopupPanel
+    {
+        void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary);
+        UniTask Run(CardDetailProperty property, CancellationToken cancellationToken);
+    }
+
+    public class SingleCardDetailPopupPanel : MonoBehaviour, ISingleCardDetailPopupPanel
     {
         [SerializeField]
         private Button[] _closeButtons;
@@ -62,13 +68,13 @@ namespace MortalGame.GameView
 
             using (disposables)
             {
-                _panel.SetActive(true);
-
-                _cardBuffHint.ShowHint(property.CardBuffHint, _cardView.RectTransform);
-                _cardKeywordHint.ShowHint(property.CardKeywordHint, _cardView.RectTransform);
-
                 try
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    _panel.SetActive(true);
+                    _cardBuffHint.ShowHint(property.CardBuffHint, _cardView.RectTransform);
+                    _cardKeywordHint.ShowHint(property.CardKeywordHint, _cardView.RectTransform);
+
                     while (!isClose)
                     {
                         await UniTask.NextFrame(cancellationToken);

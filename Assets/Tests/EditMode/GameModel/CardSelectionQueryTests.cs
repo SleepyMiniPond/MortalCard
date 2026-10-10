@@ -26,13 +26,14 @@ namespace MortalGame.Tests
         {
             var setup = _Create(rule, requested, candidates);
             var step = (CardSelectionQueryResult.NextStep)CardSelectionQuery.QueryNext(setup.Model, setup.Draft);
-            Assert.That(step.Info.MinCount, Is.EqualTo(min));
-            Assert.That(step.Info.MaxCount, Is.EqualTo(max));
+            var info = (ExistCardSelectionInfo)step.Info;
+            Assert.That(info.MinCount, Is.EqualTo(min));
+            Assert.That(info.MaxCount, Is.EqualTo(max));
             Assert.That(step.Info.Id, Is.EqualTo("first"));
             Assert.That(step.Info.CardDataId, Is.EqualTo(setup.Card.CardDataId));
             for (var count = 0; count <= candidates; count++)
             {
-                var selected = setup.Draft.WithSelection("first", setup.Candidates.Take(count).Select(card => card.Identity));
+                var selected = _WithSelection(setup.Draft, "first", setup.Candidates.Take(count).Select(card => card.Identity));
                 Assert.That(_ValidateSubmitted(setup, selected)
                     is CardSelectionQueryResult.Completed, Is.EqualTo(count >= min && count <= max), $"選取張數：{count}");
             }
@@ -69,14 +70,14 @@ namespace MortalGame.Tests
             {
                 var first = (CardSelectionQueryResult.NextStep)CardSelectionQuery.QueryNext(setup.Model, setup.Draft);
                 Assert.That(first.Info.StepIndex, Is.Zero);
-                var draft = setup.Draft.WithSelection("first", new[] { setup.Candidates[0].Identity });
+                var draft = _WithSelection(setup.Draft, "first", new[] { setup.Candidates[0].Identity });
                 var second = (CardSelectionQueryResult.NextStep)CardSelectionQuery.QueryNext(setup.Model, draft);
                 Assert.That(second.Info.StepIndex, Is.EqualTo(1));
                 Assert.That(second.Info.StepCount, Is.EqualTo(2));
-                Assert.That(second.Info.CardInfos.Select(card => card.Identity),
+                Assert.That(((ExistCardSelectionInfo)second.Info).CardInfos.Select(card => card.Identity),
                     Is.EqualTo(setup.Candidates.Skip(1).Select(card => card.Identity)));
                 var complete = (CardSelectionQueryResult.Completed)_ValidateSubmitted(setup,
-                    draft.WithSelection("second", new[] { setup.Candidates[1].Identity }));
+                    _WithSelection(draft, "second", new[] { setup.Candidates[1].Identity }));
                 Assert.That(complete.Context.SelectedCard, Is.EqualTo(Guid.Empty));
                 Assert.That(complete.Context.SelectedCardGroups["first"], Is.EqualTo(new[] { setup.Candidates[0].Identity }));
                 Assert.That(setup.Model.ContextManager.Context, Is.SameAs(outer));
@@ -94,10 +95,10 @@ namespace MortalGame.Tests
                 Id = "second", CardCandidates = new FixedCards(setup.Candidates.Take(1).ToArray()),
                 SelectCount = new SelectedCount("first"), CountRule = CardSelectionCountRule.RequiredExact
             });
-            var empty = setup.Draft.WithSelection("first", Array.Empty<Guid>());
+            var empty = _WithSelection(setup.Draft, "first", Array.Empty<Guid>());
             var zero = (CardSelectionQueryResult.NextStep)CardSelectionQuery.QueryNext(setup.Model, empty);
-            Assert.That(zero.Info.MaxCount, Is.Zero);
-            var full = setup.Draft.WithSelection("first", setup.Candidates.Select(card => card.Identity));
+            Assert.That(((ExistCardSelectionInfo)zero.Info).MaxCount, Is.Zero);
+            var full = _WithSelection(setup.Draft, "first", setup.Candidates.Select(card => card.Identity));
             _AssertFailure(CardSelectionQuery.QueryNext(setup.Model, full), CardSelectionFailureReason.InsufficientCandidates);
         }
 
@@ -106,7 +107,7 @@ namespace MortalGame.Tests
         {
             var setup = _Create(CardSelectionCountRule.Optional, 0, 0);
             _AssertFailure(_ValidateSubmitted(setup, setup.Draft), CardSelectionFailureReason.MissingGroup);
-            var confirmed = setup.Draft.WithSelection("first", Array.Empty<Guid>());
+            var confirmed = _WithSelection(setup.Draft, "first", Array.Empty<Guid>());
             Assert.That(_ValidateSubmitted(setup, confirmed), Is.TypeOf<CardSelectionQueryResult.Completed>());
             Assert.That(setup.Draft.SelectedGroups.ContainsKey("first"), Is.False);
         }
@@ -128,7 +129,7 @@ namespace MortalGame.Tests
                 "short" => Array.Empty<Guid>(),
                 _ => new[] { first }
             };
-            var draft = setup.Draft.WithSelection(input == "extra-group" ? "unknown" : "first", ids);
+            var draft = _WithSelection(setup.Draft, input == "extra-group" ? "unknown" : "first", ids);
             Assert.That(_ValidateSubmitted(setup, draft), Is.TypeOf<CardSelectionQueryResult.Rejected>());
             Assert.That(setup.Model.ContextManager.Context, Is.EqualTo(GameContext.EMPTY));
         }
@@ -143,11 +144,31 @@ namespace MortalGame.Tests
                 CardCandidates = new FixedCards(Array.Empty<ICardEntity>())
             });
             _AssertFailure(CardSelectionQuery.QueryNext(setup.Model,
-                setup.Draft.WithSelection("second", Array.Empty<Guid>())), CardSelectionFailureReason.OutOfOrder);
+                _WithSelection(setup.Draft, "second", Array.Empty<Guid>())), CardSelectionFailureReason.OutOfOrder);
             var ids = new List<Guid> { setup.Candidates[0].Identity };
-            var draft = setup.Draft.WithSelection("first", ids);
+            var draft = setup.Draft.WithSelection("first", new ExistCardSubSelectionAction(ids));
             ids.Clear();
-            Assert.That(draft.SelectedGroups["first"].Length, Is.EqualTo(1));
+            Assert.That(((ExistCardSubSelectionAction)draft.SelectedGroups["first"]).CardIdentity.Count, Is.EqualTo(1));
+        }
+
+        [TestCase("wrong-type")]
+        [TestCase("null-result")]
+        [TestCase("null-cards")]
+        [TestCase("default-cards")]
+        public void TypedResult_RejectsMismatchedOrMissingCardSelection(string input)
+        {
+            var setup = _Create(CardSelectionCountRule.Optional, 1, 1);
+            ISubSelectionAction result = input switch
+            {
+                "wrong-type" => new NewCardSubSelectionAction(),
+                "null-result" => null,
+                "null-cards" => new ExistCardSubSelectionAction(null),
+                _ => new ExistCardSubSelectionAction(default(ImmutableArray<Guid>))
+            };
+            var draft = setup.Draft.WithSelection("first", result);
+            _AssertFailure(CardSelectionQuery.QueryNext(setup.Model, draft), CardSelectionFailureReason.InvalidSelection);
+            _AssertFailure(_ValidateSubmitted(setup, draft), CardSelectionFailureReason.InvalidSelection);
+            Assert.That(setup.Model.ContextManager.Context, Is.EqualTo(GameContext.EMPTY));
         }
 
         [Test]
@@ -155,7 +176,7 @@ namespace MortalGame.Tests
         {
             var setup = _Create(CardSelectionCountRule.Optional, 1, 1);
             var group = (ExistCardSelectionGroup)setup.Data.SubSelects[0];
-            var draft = setup.Draft.WithSelection("first", new[] { setup.Candidates[0].Identity });
+            var draft = _WithSelection(setup.Draft, "first", new[] { setup.Candidates[0].Identity });
             Assert.That(_ValidateSubmitted(setup, draft), Is.TypeOf<CardSelectionQueryResult.Completed>());
             group.CardCandidates = new FixedCards(Array.Empty<ICardEntity>());
             _AssertFailure(_ValidateSubmitted(setup, draft), CardSelectionFailureReason.InvalidSelection);
@@ -274,12 +295,12 @@ namespace MortalGame.Tests
 
         private static CardSelectionQueryResult _ValidateSubmitted(Setup setup, CardSelectionDraft draft)
         {
-            var actions = draft.SelectedGroups.ToDictionary(
-                pair => pair.Key,
-                pair => (ISubSelectionAction)new ExistCardSubSelectionAction(pair.Value));
             return CardSelectionQuery.ValidateComplete(
-                setup.Model, setup.Card, setup.Caster, draft.MainSelectionAction, actions);
+                setup.Model, setup.Card, setup.Caster, draft.MainSelectionAction, draft.SelectedGroups);
         }
+
+        private static CardSelectionDraft _WithSelection(CardSelectionDraft draft, string groupId, IEnumerable<Guid> identities)
+            => draft.WithSelection(groupId, new ExistCardSubSelectionAction(identities.ToArray()));
 
         private static void _AssertFailure(CardSelectionQueryResult result, CardSelectionFailureReason reason)
         {

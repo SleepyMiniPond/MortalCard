@@ -85,33 +85,48 @@ namespace MortalGame.GameModel
             MainSelectionAction mainSelectionAction,
             IPlayerEntity caster)
         {
-            var subSelectionActions = new Dictionary<string, ISubSelectionAction>();
-
-            var subSelectionInfoOpt = gameplayWatcher.QueryCardSubSelectionInfos(
-                cardEntity.Identity,
-                mainSelectionAction,
-                caster);
-            if (!subSelectionInfoOpt.TryGetValue(out var subSelectionInfo))
+            var draft = CardSelectionDraft.Create(cardEntity, caster, mainSelectionAction);
+            var stepCount = cardEntity.SubSelects.Count();
+            for (var stepIndex = 0; stepIndex < stepCount; stepIndex++)
             {
-                return Option.None<SelectSubTargetsResult>();
-            }
-
-            foreach (var kvp in subSelectionInfo.SelectionInfos)
-            {
-                if (kvp.Value is not ExistCardSelectionInfo existCardGroup)
-                {
-                    // TODO（T-011／T-012）：NewCard、NewPartialCard、NewEffect 的自動選取尚未實作，
-                    // 暫時回傳 None，待各類型的候選與結果契約完成後接線。
+                if (CardSelectionQuery.QueryNext(gameplayWatcher, draft) is not CardSelectionQueryResult.NextStep next)
                     return Option.None<SelectSubTargetsResult>();
-                }
 
-                subSelectionActions[kvp.Key] =
-                    RandomSelectExistCardSubSelection(
-                        existCardGroup,
-                        gameplayWatcher.ContextManager.GameRandom);
+                if (!SelectSubTarget(next.Info, gameplayWatcher.ContextManager.GameRandom).TryGetValue(out var selected))
+                    return Option.None<SelectSubTargetsResult>();
+
+                draft = draft.WithSelection(next.Info.Id, selected);
             }
 
-            return new SelectSubTargetsResult(subSelectionActions).Some();
+            // 確認最後一步及整份結果仍合法；沒有子選取時也須驗證來源與主目標。
+            return CardSelectionQuery.QueryNext(gameplayWatcher, draft) is CardSelectionQueryResult.Completed
+                ? new SelectSubTargetsResult(draft.SelectedGroups).Some()
+                : Option.None<SelectSubTargetsResult>();
+
+            static Option<ISubSelectionAction> SelectSubTarget(
+                SubSelectionStepInfo info, IGameRandom gameRandom)
+                => info switch
+                {
+                    ExistCardSelectionInfo cards
+                        => Option.Some<ISubSelectionAction>(RandomSelectExistCardSubSelection(cards, gameRandom)),
+                    _ => Option.None<ISubSelectionAction>()
+                };
+
+            static ExistCardSubSelectionAction RandomSelectExistCardSubSelection(
+                ExistCardSelectionInfo existCardGroup,
+                IGameRandom gameRandom)
+            {
+                if (existCardGroup.MaxCount == 0)
+                    return new ExistCardSubSelectionAction(Array.Empty<Guid>());
+
+                var selectedCards = existCardGroup.CardInfos
+                    .Select(cardInfo => cardInfo.Identity)
+                    .Shuffle(gameRandom)
+                    .Take(existCardGroup.MaxCount)
+                    .ToList();
+
+                return new ExistCardSubSelectionAction(selectedCards);
+            }
         }
 
         public static Option<SelectCardTargetsResult> SelectTargets(
@@ -273,19 +288,6 @@ namespace MortalGame.GameModel
             => owner.Faction == Faction.Ally
                 ? TargetType.AllyCard
                 : TargetType.EnemyCard;
-
-        private static ExistCardSubSelectionAction RandomSelectExistCardSubSelection(
-            ExistCardSelectionInfo existCardGroup,
-            IGameRandom gameRandom)
-        {
-            var selectedCards = existCardGroup.CardInfos
-                .Select(cardInfo => cardInfo.Identity)
-                .Shuffle(gameRandom)
-                .Take(existCardGroup.MaxCount)
-                .ToList();
-
-            return new ExistCardSubSelectionAction(selectedCards);
-        }
     }
 
 }

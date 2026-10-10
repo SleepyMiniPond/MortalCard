@@ -11,10 +11,6 @@ namespace MortalGame.GameModel
         IGameContextManager ContextManager { get; }
         EffectResult RunEffectBatch(IEnumerable<EffectQueueItem> items);
         void EnqueueCardPlay(CardPlayRequest request);
-        Option<SubSelectionInfo> QueryCardSubSelectionInfos(
-            Guid cardIdentity,
-            MainSelectionAction mainSelectionAction,
-            IPlayerEntity caster);
         IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit);
         IEnumerable<IGameEvent> ObserveDerivedAction(
             TriggerContext parentContext,
@@ -40,14 +36,6 @@ namespace MortalGame.GameModel
         {
             _baseModel = baseModel;
             _clonedStatus = clonedStatus;
-        }
-
-        public Option<SubSelectionInfo> QueryCardSubSelectionInfos(
-            Guid cardIdentity,
-            MainSelectionAction mainSelectionAction,
-            IPlayerEntity caster)
-        {
-            return _baseModel.QueryCardSubSelectionInfos(cardIdentity, mainSelectionAction, caster);
         }
 
         public IEnumerable<IGameEvent> ObserveRootAction(IActionUnit actionUnit)

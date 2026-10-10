@@ -101,4 +101,11 @@ public class LocalizeLibrary
         return new LocalizeInfoData(
             $"{localizeType}|{key}_Info");
     }
+
+    public bool TryGet(LocalizeInfoType localizeType, string key, out LocalizeInfoData value)
+    {
+        value = null;
+        return _localizeInfoDatas.TryGetValue(localizeType, out var table)
+            && table.TryGetValue(key, out value);
+    }
 }

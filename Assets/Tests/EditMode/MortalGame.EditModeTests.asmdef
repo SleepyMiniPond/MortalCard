@@ -5,6 +5,7 @@
     "MortalGame.Runtime",
     "MortalGame.GameView",
     "MortalGame.Presenter",
+    "MortalGame.Presentation.Abstractions",
     "MortalGame.Editor",
     "UniRx",
     "UniTask"

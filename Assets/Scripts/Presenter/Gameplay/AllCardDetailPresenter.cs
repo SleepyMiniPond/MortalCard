@@ -61,18 +61,18 @@ namespace MortalGame.Presenter
             var cardCollectionInfo = _gameViewModel.ObservableCardCollectionInfo(faction, type);
             _ShowCardCollectionInfos(cardCollectionInfo.Value);
 
-        try
-        {
-            await _uniTaskPresenter.Run(
-                _SetupSubscriptions(faction),
-                () => !_isClose,
-                cancellationToken,
-                EventHandler);
-        }
-        finally
-        {
-            _detailPanel.Close();
-        }
+            try
+            {
+                await _uniTaskPresenter.Run(
+                    _SetupSubscriptions(faction),
+                    () => !_isClose,
+                    cancellationToken,
+                    EventHandler);
+            }
+            finally
+            {
+                _detailPanel.Close();
+            }
 
             async UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)
             {

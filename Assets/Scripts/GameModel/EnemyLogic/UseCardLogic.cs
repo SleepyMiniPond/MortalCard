@@ -29,7 +29,12 @@ namespace MortalGame.GameModel
             var candidateCards = enemy.CardManager.HandCard.Cards
                 .Where(card => !enemy.SelectedCards.Cards.Contains(card))
                 .Select(card => GameFormula.CardCost(
-                        new TriggerContext(model, new CardTrigger(card), new CardLookIntentAction(card, ((IPlayerEntity)enemy).Some())),
+                        new TriggerContext(
+                            model, 
+                            new CardTrigger(card), 
+                            new CardLookIntentAction(
+                                card, 
+                                ((IPlayerEntity)enemy).Some())),
                         card)
                     .Map(cost => (Card: card, Cost: cost)))
                 .Values()

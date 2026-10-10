@@ -12,6 +12,8 @@ namespace MortalGame.GameView
         [SerializeField]
         private Button _submitButton;
 
+        public void SetInteractable(bool interactable) => _submitButton.interactable = interactable;
+
         public void Init(IGameplayActionReciever reciever)
         {
             _submitButton.OnClickAsObservable()

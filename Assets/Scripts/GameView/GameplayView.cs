@@ -24,6 +24,7 @@ namespace MortalGame.GameView
         void Render(IReadOnlyCollection<IGameEvent> events, IGameplayActionReciever reciever);
         void DisableAllHandCards();
         void DisableAllInteraction();
+        void RestorePlayerInteraction(CardManagerInfo managerInfo, CardCollectionInfo handInfo);
         UniTask DisposeCharacterViews();
 
         IEnumerable<ISelectableView> SelectableViews { get; }
@@ -248,7 +249,17 @@ namespace MortalGame.GameView
         public void DisableAllInteraction()
         {
             DisableAllHandCards();
+            _submitView.SetInteractable(false);
             // TODO: disable other interaction
+        }
+
+        public void RestorePlayerInteraction(CardManagerInfo managerInfo, CardCollectionInfo handInfo)
+        {
+            _gameViewModel.UpdateCardManagerInfo(Faction.Ally, managerInfo);
+            _gameViewModel.UpdateCardCollectionInfo(Faction.Ally, handInfo);
+            _gameViewModel.EnableHandCardsAction();
+            _allyHandCardView.EnableHandCardsUseCardAction(handInfo);
+            _submitView.SetInteractable(true);
         }
 
         public async UniTask DisposeCharacterViews()
@@ -422,14 +433,18 @@ namespace MortalGame.GameView
 
         private void _PlayerExecuteStart(PlayerExecuteStartEvent playerExecuteStartEvent)
         {
-            _gameViewModel.EnableHandCardsAction();
             _gameViewModel.UpdateCardManagerInfo(playerExecuteStartEvent.Faction, playerExecuteStartEvent.CardManagerInfo);
             _gameViewModel.UpdateCardCollectionInfo(playerExecuteStartEvent.Faction, playerExecuteStartEvent.HandCardInfo);
-            _allyHandCardView.EnableHandCardsUseCardAction(playerExecuteStartEvent);
+            if (playerExecuteStartEvent.Faction == Faction.Ally)
+            {
+                _gameViewModel.EnableHandCardsAction();
+                _allyHandCardView.EnableHandCardsUseCardAction(playerExecuteStartEvent.HandCardInfo);
+                _submitView.SetInteractable(true);
+            }
         }
         private void _PlayerExecuteEnd(PlayerExecuteEndEvent playerExecuteEndEvent)
         {
-            _gameViewModel.DisableHandCardsAction();
+            DisableAllInteraction();
             _gameViewModel.UpdateCardManagerInfo(playerExecuteEndEvent.Faction, playerExecuteEndEvent.CardManagerInfo);
         }
         private void _UsedCardView(UsedCardEvent usedCardEvent)

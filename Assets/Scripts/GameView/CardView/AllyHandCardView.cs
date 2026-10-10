@@ -132,7 +132,7 @@ namespace MortalGame.GameView
             return true;
         }
 
-        public void EnableHandCardsUseCardAction(PlayerExecuteStartEvent playerExecuteStartEvent)
+        public void EnableHandCardsUseCardAction(CardCollectionInfo handCardInfo)
         {
             void OnPointerEnter(Guid identity)
             {
@@ -153,7 +153,7 @@ namespace MortalGame.GameView
             var handleSubscriptions = new CompositeDisposable();
             _handleSubscription.Disposable = handleSubscriptions;
 
-            var handCardInfos = playerExecuteStartEvent.HandCardInfo.CardInfos;
+            var handCardInfos = handCardInfo.CardInfos;
             var handCardInfoIndexes = handCardInfos.ToDictionary(
                 pair => pair.Key.Identity,
                 pair => pair.Value);

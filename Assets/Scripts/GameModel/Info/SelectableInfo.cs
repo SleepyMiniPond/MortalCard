@@ -12,11 +12,11 @@ namespace MortalGame.GameModel
         TargetCandidateScope CandidateScope,
         AutomaticTargetSelectionStrategy AutomaticSelection);
 
-    public record SubSelectionInfo(IReadOnlyDictionary<string, ISubSelectionGroupInfo> SelectionInfos);
-    public interface ISubSelectionGroupInfo { }
-    public record NewCardSelectionInfo() : ISubSelectionGroupInfo;
-    public record NewPartialCardSelectionInfo() : ISubSelectionGroupInfo;
-    public record NewEffectSelectionInfo() : ISubSelectionGroupInfo;
+    public abstract record SubSelectionStepInfo(
+        string Id,
+        int StepIndex,
+        int StepCount,
+        string CardDataId);
 
     public record ExistCardSelectionInfo(
         IReadOnlyList<CardInfo> CardInfos,
@@ -25,7 +25,7 @@ namespace MortalGame.GameModel
         string Id,
         int StepIndex,
         int StepCount,
-        string CardDataId) : ISubSelectionGroupInfo
+        string CardDataId) : SubSelectionStepInfo(Id, StepIndex, StepCount, CardDataId)
     {
         public int MaxCount => Math.Min(Count, CardInfos.Count);
         public int MinCount => CountRule == CardSelectionCountRule.Optional ? 0 : MaxCount;
@@ -40,59 +40,6 @@ namespace MortalGame.GameModel
                 mainTargetLogic.MainSelectable.SelectType,
                 mainTargetLogic.CandidateScope,
                 mainTargetLogic.AutomaticSelection);
-        }
-
-        public static Option<SubSelectionInfo> ToInfo(
-            this IEnumerable<ISubSelectionGroup> subSelectionGroups,
-            IGameplayModel model,
-            ICardEntity cardEntity,
-            IPlayerEntity caster)
-        {
-            if (caster == null)
-                return Option.None<SubSelectionInfo>();
-
-            var selectionInfos = new Dictionary<string, ISubSelectionGroupInfo>();
-            foreach (var group in subSelectionGroups)
-            {
-                switch (group)
-                {
-                    case ExistCardSelectionGroup existCardGroup:
-                        var cardLookTriggerContext = new TriggerContext(
-                            model,
-                            new CardTrigger(cardEntity),
-                            new CardLookIntentAction(cardEntity, caster.Some()));
-                        if (!existCardGroup.SelectCount
-                                .Eval(cardLookTriggerContext)
-                                .TryGetValue(out var selectCount) ||
-                            selectCount < 0)
-                        {
-                            return Option.None<SubSelectionInfo>();
-                        }
-
-                        var candidates = existCardGroup.CardCandidates
-                            .Eval(cardLookTriggerContext);
-                        var cardInfos = candidates
-                            .GroupBy(card => card.Identity)
-                            .Select(grouping => grouping.First().ToInfo(model))
-                            .ToList();
-
-                        if (existCardGroup.CountRule == CardSelectionCountRule.RequiredExact && cardInfos.Count < selectCount)
-                            return Option.None<SubSelectionInfo>();
-
-                        selectionInfos[group.Id] =
-                            new ExistCardSelectionInfo(
-                                cardInfos,
-                                selectCount,
-                                existCardGroup.CountRule, group.Id, 0, subSelectionGroups.Count(), cardEntity.CardDataId);
-                        break;
-                    default:
-                        // TODO（T-011／T-012）：NewCard、NewPartialCard、NewEffect 尚未實作資訊與結果流程，
-                        // 暫時回傳 None；功能完成後補齊轉換，這不是永久禁止這些選取類型的規則。
-                        return Option.None<SubSelectionInfo>();
-                }
-            }
-
-            return new SubSelectionInfo(selectionInfos).Some();
         }
 
         internal static Option<GameContext> TryCreateMainSelectionContext(

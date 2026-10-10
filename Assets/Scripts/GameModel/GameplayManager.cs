@@ -125,27 +125,6 @@ namespace MortalGame.GameModel
             return events;
         }
 
-        public Option<SubSelectionInfo> QueryCardSubSelectionInfos(
-            Guid cardIdentity,
-            MainSelectionAction mainSelectionAction,
-            IPlayerEntity caster)
-        {
-            if (!this.GetCard(cardIdentity).TryGetValue(out var cardEntity) ||
-                !SelectionInfoUtility.TryCreateMainSelectionContext(
-                        this,
-                        cardEntity,
-                        mainSelectionAction)
-                    .TryGetValue(out var mainSelectionContext))
-            {
-                return Option.None<SubSelectionInfo>();
-            }
-
-            using (_contextMgr.SetContext(mainSelectionContext))
-            {
-                return cardEntity.SubSelects.ToInfo(this, cardEntity, caster);
-            }
-        }
-
         private async UniTask _Run(CancellationToken cancellationToken)
         {
             try
@@ -366,14 +345,15 @@ namespace MortalGame.GameModel
                 switch (action)
                 {
                     case UseCardAction useCardAction:
-                        if (_UseCard(_gameStatus.Ally, useCardAction))
-                        {
-                            _gameEvents.Add(new PlayerExecuteStartEvent(
-                                Faction: _gameStatus.Ally.Faction,
-                                CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
-                                HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this)
-                            ));
-                        }
+                        if (!_UseCard(_gameStatus.Ally, useCardAction))
+                            _gameEvents.Add(new CardPlayRejectedEvent(_gameStatus.Ally.Faction, useCardAction.CardIndentity));
+
+                        _gameEvents.Add(new PlayerExecuteStartEvent(
+                            Faction: _gameStatus.Ally.Faction,
+                            CardManagerInfo: _gameStatus.Ally.CardManager.ToInfo(),
+                            HandCardInfo: _gameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(this),
+                            CompletedCardIdentity: Option.Some(useCardAction.CardIndentity)
+                        ));
                         break;
 
                     case TurnSubmitAction turnSubmitAction:

@@ -7,6 +7,7 @@ using MortalGame.GameData;
 using MortalGame.GameModel;
 using MortalGame.GameView;
 using MortalGame.Presentation.Abstractions;
+using MortalGame.Presenter;
 using NUnit.Framework;
 using Optional;
 using UnityEngine;
@@ -37,6 +38,32 @@ namespace MortalGame.Tests
 
         [TearDown]
         public void TearDown() => UnityEngine.Object.DestroyImmediate(_root);
+
+        [Test]
+        public void ExecuteEnd_DisablesSubmitAndDisposesHandSubscriptions()
+        {
+            var view = _root.AddComponent<GameplayView>();
+            var submit = _root.AddComponent<SubmitView>();
+            var button = _root.AddComponent<Button>();
+            button.interactable = true;
+            _Set(submit, "_submitButton", button);
+            _Set(view, "_submitView", submit);
+            _Set(view, "_allyHandCardView", _hand);
+            _Set(view, "_gameViewModel", new GameViewModel());
+            var handle = _Get(_hand, "_handleSubscription");
+            var drag = _Get(_hand, "_dragSubscription");
+            var handleLifetime = new Disposal();
+            var dragLifetime = new Disposal();
+            handle.GetType().GetProperty("Disposable").SetValue(handle, handleLifetime);
+            drag.GetType().GetProperty("Disposable").SetValue(drag, dragLifetime);
+
+            view.Render(new[] { new PlayerExecuteEndEvent(Faction.Ally,
+                new CardManagerInfo(ImmutableDictionary<CardCollectionType, ImmutableArray<Guid>>.Empty)) }, _receiver);
+
+            Assert.That(button.interactable, Is.False);
+            Assert.That(handleLifetime.IsDisposed, Is.True);
+            Assert.That(dragLifetime.IsDisposed, Is.True);
+        }
 
         [Test]
         public void Release_SkipsSelfAndWrongType_UsesFirstMatchingTarget()
@@ -174,6 +201,12 @@ namespace MortalGame.Tests
             public IEnumerable<ISelectableView> SelectableViews => Targets;
             public ISelectableView BasicSelectableView { get; set; }
             public void RecieveEvent(IGameCommand command) => Commands.Add((UseCardCommand)command);
+        }
+
+        private sealed class Disposal : IDisposable
+        {
+            public bool IsDisposed;
+            public void Dispose() => IsDisposed = true;
         }
 
         private sealed class Target : ISelectableView

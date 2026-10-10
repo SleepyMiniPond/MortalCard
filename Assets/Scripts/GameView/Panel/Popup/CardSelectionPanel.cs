@@ -14,13 +14,13 @@ namespace MortalGame.GameView
     public interface ICardSelectionPanel
     {
         public record Property(
-            CardSelectionCountRule CountRule,
             bool IsConfirmable,
-            int MaxSelectCount,
             IEnumerable<SelectionProperty> Selections,
             Action OnClose,
             Action OnConfirm,
-            Action OnVisibleToggle);
+            Action OnVisibleToggle,
+            string Description,
+            bool CanToggleVisibility = true);
         public record SelectionProperty(
             string Id,
             CardInfo CardInfo,
@@ -29,8 +29,8 @@ namespace MortalGame.GameView
         public record UpdateProperty(
             bool IsVisible,
             bool IsConfirmable,
-            int MaxSelectCount,
-            IEnumerable<CardInfo> SelectedCards);
+            IEnumerable<CardInfo> SelectedCards,
+            string Description);
 
         void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary);
         void Open(Property property);
@@ -75,8 +75,6 @@ namespace MortalGame.GameView
         private string _visibleButtonLocalizeKey;
         [SerializeField]
         private string _confirmButtonLocalizeKey;
-        [SerializeField]
-        private string _selectionInfoLocalizeKey;
 
         private Action _OnClose;
         private Action _OnConfirm;
@@ -119,17 +117,16 @@ namespace MortalGame.GameView
                 obj.SetActive(true);
             }
 
-            _closeObject.SetActive(property.CountRule == CardSelectionCountRule.Optional);
+            _closeObject.SetActive(true);
+            _visibleToggleButton.interactable = property.CanToggleVisibility;
             _confirmButton.interactable = property.IsConfirmable;
 
-            _selectionDescriptionText.text = string.Format(
-                _localizeLibrary.Get(LocalizeInfoType.UI, _selectionInfoLocalizeKey).Info,
-                0,
-                property.MaxSelectCount);
+            _selectionDescriptionText.text = property.Description;
 
             foreach (var selection in property.Selections)
             {
                 var cardView = _cardViewFactory.CreatePrefab();
+                _cardViewMap.Add(selection.CardInfo.Identity, cardView);
                 cardView.transform.SetParent(_cardViewParent, false);
                 cardView.Initialize(_gameViewModel, _localizeLibrary);
                 cardView.Render(
@@ -138,7 +135,6 @@ namespace MortalGame.GameView
                         true,
                         selection.OnClick,
                         selection.OnLongPress));
-                _cardViewMap.Add(selection.CardInfo.Identity, cardView);
             }
         }
         public void RenderUpdate(ICardSelectionPanel.UpdateProperty property)
@@ -150,10 +146,7 @@ namespace MortalGame.GameView
 
             _confirmButton.interactable = property.IsConfirmable;
 
-            _selectionDescriptionText.text = string.Format(
-                _localizeLibrary.Get(LocalizeInfoType.UI, _selectionInfoLocalizeKey).Info,
-                property.SelectedCards.Count(),
-                property.MaxSelectCount);
+            _selectionDescriptionText.text = property.Description;
 
             var selectedCardIdentities = property.SelectedCards
                 .Select(cardInfo => cardInfo.Identity)

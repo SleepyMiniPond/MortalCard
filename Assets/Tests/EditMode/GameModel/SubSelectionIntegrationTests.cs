@@ -10,6 +10,17 @@ namespace MortalGame.Tests
 {
     public sealed class SubSelectionIntegrationTests
     {
+        private static Optional.Option<ExistCardSelectionInfo> QueryFirst(
+            IGameplayModel model, Guid cardId, MainSelectionAction main, IPlayerEntity caster)
+        {
+            if (caster == null || !model.GetCard(cardId).TryGetValue(out var card))
+                return Optional.Option.None<ExistCardSelectionInfo>();
+            return CardSelectionQuery.QueryNext(model, CardSelectionDraft.Create(card, caster, main))
+                is CardSelectionQueryResult.NextStep { Info: ExistCardSelectionInfo info }
+                ? Optional.Option.Some(info)
+                : Optional.Option.None<ExistCardSelectionInfo>();
+        }
+
         [Test]
         public void QueryInfo_DeduplicatesCandidatesAndUsesAchievableCount()
         {
@@ -41,13 +52,13 @@ namespace MortalGame.Tests
                 CountRule = CardSelectionCountRule.RequiredAvailable
             });
 
-            var result = built.Manager.QueryCardSubSelectionInfos(playedCard.Identity, MainSelectionAction.Empty, built.Ally);
+            var result = QueryFirst(built.Manager, playedCard.Identity, MainSelectionAction.Empty, built.Ally);
 
             Assert.That(result.TryGetValue(out var info), Is.True);
             Assert.That(
-                info.SelectionInfos["targets"],
+                info,
                 Is.TypeOf<ExistCardSelectionInfo>());
-            var existCardInfo = (ExistCardSelectionInfo)info.SelectionInfos["targets"];
+            var existCardInfo = (ExistCardSelectionInfo)info;
             Assert.That(
                 existCardInfo.CardInfos.Select(card => card.Identity),
                 Is.EqualTo(new[]
@@ -69,7 +80,7 @@ namespace MortalGame.Tests
                 new Dictionary<string, ISubSelectionAction>());
 
             Assert.That(SelectTargetLogic.SelectTargets(built.Manager, card, null).HasValue, Is.False);
-            Assert.That(built.Manager.QueryCardSubSelectionInfos(
+            Assert.That(QueryFirst(built.Manager,
                 card.Identity, MainSelectionAction.Empty, null).HasValue, Is.False);
             Assert.That(SelectionInfoUtility.TryCreateUseCardContext(
                 built.Manager, card, action, null).HasValue, Is.False);
@@ -93,7 +104,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty, built.Ally);
+            var result = QueryFirst(built.Manager, card.Identity, MainSelectionAction.Empty, built.Ally);
 
             Assert.That(result.HasValue, Is.False);
         }
@@ -109,7 +120,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty, built.Ally);
+            var result = QueryFirst(built.Manager, card.Identity, MainSelectionAction.Empty, built.Ally);
 
             Assert.That(result.HasValue, Is.False);
         }
@@ -200,14 +211,14 @@ namespace MortalGame.Tests
                     TargetType.EnemyCard,
                     enemyCard.Identity));
 
-            var result = built.Manager.QueryCardSubSelectionInfos(
+            var result = QueryFirst(built.Manager,
                 playedCard.Identity,
                 mainSelection,
                 built.Ally);
 
             Assert.That(result.TryGetValue(out var info), Is.True);
             Assert.That(
-                ((ExistCardSelectionInfo)info.SelectionInfos["main-target"])
+                ((ExistCardSelectionInfo)info)
                     .CardInfos
                     .Select(card => card.Identity),
                 Is.EqualTo(new[] { enemyCard.Identity }));

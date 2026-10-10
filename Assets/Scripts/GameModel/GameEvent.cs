@@ -58,9 +58,12 @@ namespace MortalGame.GameModel
 
     public record EnemySelectCardEvent(CardInfo SelectedCardInfo, ImmutableArray<Guid> SelectedCards) : IGameEvent;
     public record EnemyUnselectedCardEvent(ImmutableArray<Guid> UnselectedCards) : IGameEvent;
-    public record PlayerExecuteStartEvent(Faction Faction, CardManagerInfo CardManagerInfo, CardCollectionInfo HandCardInfo) : IGameEvent;
+    
+    public record PlayerExecuteStartEvent(Faction Faction, CardManagerInfo CardManagerInfo,
+        CardCollectionInfo HandCardInfo, Option<Guid> CompletedCardIdentity = default) : IGameEvent;
     public record PlayerExecuteEndEvent(Faction Faction, CardManagerInfo CardManagerInfo) : IGameEvent;
     public record UsedCardEvent(Faction Faction, Guid UsedCardIdentity, CardManagerInfo CardManagerInfo, CardPlayReason Reason) : IGameEvent;
+    public record CardPlayRejectedEvent(Faction Faction, Guid CardIdentity) : IGameEvent;
 
     public record GainEnergyEvent(Faction Faction, EnergyInfo Info, GainEnergyResult GainEnergyResult) : IGameEvent, IAnimationNumberEvent;
     public record LoseEnergyEvent(Faction Faction, EnergyInfo Info, LoseEnergyResult LoseEnergyResult) : IGameEvent, IAnimationNumberEvent;

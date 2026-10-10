@@ -4,6 +4,7 @@
   "references": [
     "MortalGame.Runtime",
     "MortalGame.GameView",
+    "MortalGame.Presenter",
     "MortalGame.Presentation.Abstractions",
     "Unity.ugui",
     "UniTask"

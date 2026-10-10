@@ -10,6 +10,30 @@ namespace MortalGame.Tests
 {
     public sealed class UniTaskPresenterCancellationTests
     {
+        private record CloseEvent : IUniTaskPresenter.Event;
+
+        [UnityTest]
+        public IEnumerator Cancellation_DiscardsLateCallbacksAndAllowsAnotherRun() => UniTask.ToCoroutine(async () =>
+        {
+            var presenter = new UniTaskPresenter();
+            var handled = 0;
+            using var cancellation = new CancellationTokenSource();
+            var run = presenter.Run(Disposable.Empty, () => true, cancellation.Token, Handle);
+            cancellation.Cancel();
+            Assert.That(await run.SuppressCancellationThrow(), Is.True);
+            presenter.TryEnqueueNextEvent(new CloseEvent());
+            Assert.That(handled, Is.Zero);
+            await presenter.Run(Disposable.Empty, () => true, CancellationToken.None, Handle,
+                onStarted: () => presenter.TryEnqueueNextEvent(new CloseEvent()));
+            Assert.That(handled, Is.EqualTo(1));
+
+            UniTask<IUniTaskPresenter.Event> Handle(IUniTaskPresenter.Event evt)
+            {
+                handled++;
+                return UniTask.FromResult<IUniTaskPresenter.Event>(new IUniTaskPresenter.Halt());
+            }
+        });
+
         [UnityTest]
         public IEnumerator Run_WhenCanceled_CompletesAsCanceled()
         {

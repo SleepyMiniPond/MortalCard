@@ -10,15 +10,25 @@ namespace MortalGame.GameModel
         Guid CardIdentity,
         Guid CasterIdentity,
         MainSelectionAction MainSelectionAction,
-        IImmutableDictionary<string, ImmutableArray<Guid>> SelectedGroups)
+        IImmutableDictionary<string, ISubSelectionAction> SelectedGroups)
     {
         public static CardSelectionDraft Create(
             ICardEntity card, IPlayerEntity caster, MainSelectionAction mainSelection)
             => new(card.Identity, caster.Identity, mainSelection,
-                ImmutableDictionary<string, ImmutableArray<Guid>>.Empty);
+                ImmutableDictionary<string, ISubSelectionAction>.Empty);
 
-        public CardSelectionDraft WithSelection(string groupId, IEnumerable<Guid> identities)
-            => this with { SelectedGroups = SelectedGroups.Add(groupId, identities.ToImmutableArray()) };
+        public CardSelectionDraft WithSelection(string groupId, ISubSelectionAction selection)
+        {
+            // 確認結果保存為快照，外部集合之後的變動不影響本次選取。
+            var snapshot = selection switch
+            {
+                ExistCardSubSelectionAction { CardIdentity: not null } cards
+                    when cards.CardIdentity is not ImmutableArray<Guid>
+                    => cards with { CardIdentity = cards.CardIdentity.ToImmutableArray() },
+                _ => selection
+            };
+            return this with { SelectedGroups = SelectedGroups.Add(groupId, snapshot) };
+        }
     }
 
     public enum CardSelectionFailureReason
@@ -38,7 +48,7 @@ namespace MortalGame.GameModel
 
     public abstract record CardSelectionQueryResult
     {
-        public sealed record NextStep(ExistCardSelectionInfo Info) : CardSelectionQueryResult;
+        public sealed record NextStep(SubSelectionStepInfo Info) : CardSelectionQueryResult;
         public sealed record Completed(GameContext Context) : CardSelectionQueryResult;
         public sealed record Rejected(CardSelectionFailure Failure) : CardSelectionQueryResult;
     }
@@ -64,10 +74,9 @@ namespace MortalGame.GameModel
             var draft = CardSelectionDraft.Create(card, caster, mainSelection);
             foreach (var pair in actions)
             {
-                if (string.IsNullOrWhiteSpace(pair.Key) ||
-                    pair.Value is not ExistCardSubSelectionAction selected || selected.CardIdentity == null)
+                if (string.IsNullOrWhiteSpace(pair.Key))
                     return _Reject(CardSelectionFailureReason.InvalidSelection, pair.Key);
-                draft = draft.WithSelection(pair.Key, selected.CardIdentity);
+                draft = draft.WithSelection(pair.Key, pair.Value);
             }
             return _Evaluate(model, draft, true);
         }
@@ -98,25 +107,48 @@ namespace MortalGame.GameModel
 
                 CardSelectionQueryResult step;
                 using (model.ContextManager.SetContext(context))
-                    step = QueryStep(model, card, caster, group, index, groups.Length);
+                    step = _QueryStep(model, card, caster, group, index, groups.Length);
                 if (step is not CardSelectionQueryResult.NextStep nextStep)
                     return step;
                 if (!hasResult)
                     return requireComplete ? _Reject(CardSelectionFailureReason.MissingGroup, group.Id) : step;
 
-                var info = nextStep.Info;
-                var candidates = info.CardInfos.Select(candidate => candidate.Identity).ToHashSet();
-                if (selected.IsDefault || !info.IsValidCount(selected.Length) ||
-                    selected.Distinct().Count() != selected.Length || selected.Any(id => !candidates.Contains(id)))
+                if (!_ApplySelection(nextStep.Info, selected, context).TryGetValue(out var nextContext))
                     return _Reject(CardSelectionFailureReason.InvalidSelection, group.Id);
-
-                context = context with { SelectedCardGroups = context.SelectedCardGroups.Add(group.Id, selected) };
+                context = nextContext;
             }
 
             return new CardSelectionQueryResult.Completed(context);
         }
 
-        private static CardSelectionQueryResult QueryStep(
+        private static Option<GameContext> _ApplySelection(
+            SubSelectionStepInfo info, ISubSelectionAction selection, GameContext context)
+            => (info, selection) switch
+            {
+                (ExistCardSelectionInfo cards, ExistCardSubSelectionAction selected)
+                    => _ApplyExistCardSelection(cards, selected, context),
+                _ => Option.None<GameContext>()
+            };
+
+        private static Option<GameContext> _ApplyExistCardSelection(
+            ExistCardSelectionInfo info, ExistCardSubSelectionAction selection, GameContext context)
+        {
+            var selected = selection.CardIdentity;
+            if (selected == null || selected is ImmutableArray<Guid> { IsDefault: true })
+                return Option.None<GameContext>();
+
+            var candidates = info.CardInfos.Select(candidate => candidate.Identity).ToHashSet();
+            if (!info.IsValidCount(selected.Count) || selected.Distinct().Count() != selected.Count ||
+                selected.Any(id => !candidates.Contains(id)))
+                return Option.None<GameContext>();
+
+            return (context with
+            {
+                SelectedCardGroups = context.SelectedCardGroups.Add(info.Id, selected.ToImmutableArray())
+            }).Some();
+        }
+
+        private static CardSelectionQueryResult _QueryStep(
             IGameplayModel model, ICardEntity card, IPlayerEntity caster,
             ISubSelectionGroup group, int index, int total)
         {

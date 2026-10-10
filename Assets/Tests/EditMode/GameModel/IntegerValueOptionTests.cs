@@ -9,6 +9,17 @@ namespace MortalGame.Tests
 {
     public class IntegerValueOptionTests
     {
+        private static Optional.Option<ExistCardSelectionInfo> QueryFirst(
+            IGameplayModel model, Guid cardId, MainSelectionAction main, IPlayerEntity caster)
+        {
+            if (caster == null || !model.GetCard(cardId).TryGetValue(out var card))
+                return Optional.Option.None<ExistCardSelectionInfo>();
+            return CardSelectionQuery.QueryNext(model, CardSelectionDraft.Create(card, caster, main))
+                is CardSelectionQueryResult.NextStep { Info: ExistCardSelectionInfo info }
+                ? Optional.Option.Some(info)
+                : Optional.Option.None<ExistCardSelectionInfo>();
+        }
+
         [Test]
         public void ConstInteger_WhenValueIsZero_ReturnsSomeZero()
         {
@@ -107,7 +118,7 @@ namespace MortalGame.Tests
         }
 
         [Test]
-        public void QueryCardSubSelectionInfos_WhenSelectCountIsMissing_ReturnsNone()
+        public void QueryNext_WhenSelectCountIsMissing_RejectsSelection()
         {
             var cardData = CardTestBuilder.CreateCardData();
             cardData.SubSelects.Add(new ExistCardSelectionGroup
@@ -121,7 +132,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
 
-            var result = built.Manager.QueryCardSubSelectionInfos(card.Identity, MainSelectionAction.Empty, built.Ally);
+            var result = QueryFirst(built.Manager, card.Identity, MainSelectionAction.Empty, built.Ally);
 
             Assert.That(result.HasValue, Is.False);
         }
