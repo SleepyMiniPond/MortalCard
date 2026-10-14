@@ -82,3 +82,6 @@
 
 - 流程進度優先透過 UniTask、await 與函式串接表達，避免用多個 bool 或手動 enum 記錄執行位置。必要的輸入防重入或真正共享狀態可保留；並行流程須管理取消、例外傳遞並等待清理。
 - 控制 UI Panel 的 Presenter 使用 IUniTaskPresenter，以明確的按鈕 Event 與 EventHandler 表達操作、子面板等待及結束；不要改成按鈕 callback 設定旗標後逐幀輪詢。
+- 面板 Presenter 專注單一 Panel；多步驟選取等上層流程放在另外持有 Presenter 的流程類別。文字警告使用獨立 Popup Panel／Presenter，不借用選卡面板。
+- 面板開關由各 Presenter 依 Open → Run → finally Close 管理；不為測試的同步按鈕操作在共用 IUniTaskPresenter 增加 onStarted callback，測試應在 Run 啟動後模擬輸入。
+- 固定面板按鈕由 Presenter._SetupSubscriptions 訂閱 View 的 Button，訂閱交由 IUniTaskPresenter.Run 管理；動態卡片點擊／長按可保留渲染 Property 的 callback，與既有 AllCardDetailPresenter 對齊。

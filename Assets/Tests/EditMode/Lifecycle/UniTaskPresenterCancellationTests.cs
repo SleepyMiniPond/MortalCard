@@ -4,6 +4,7 @@ using Cysharp.Threading.Tasks;
 using MortalGame.Presenter;
 using NUnit.Framework;
 using UniRx;
+using UnityEditor;
 using UnityEngine.TestTools;
 
 namespace MortalGame.Tests
@@ -23,8 +24,10 @@ namespace MortalGame.Tests
             Assert.That(await run.SuppressCancellationThrow(), Is.True);
             presenter.TryEnqueueNextEvent(new CloseEvent());
             Assert.That(handled, Is.Zero);
-            await presenter.Run(Disposable.Empty, () => true, CancellationToken.None, Handle,
-                onStarted: () => presenter.TryEnqueueNextEvent(new CloseEvent()));
+            var nextRun = presenter.Run(Disposable.Empty, () => true, CancellationToken.None, Handle);
+            presenter.TryEnqueueNextEvent(new CloseEvent());
+            EditorApplication.QueuePlayerLoopUpdate();
+            await nextRun;
             Assert.That(handled, Is.EqualTo(1));
 
             UniTask<IUniTaskPresenter.Event> Handle(IUniTaskPresenter.Event evt)

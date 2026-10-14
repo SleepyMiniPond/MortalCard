@@ -4,15 +4,13 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
-using UniRx;
 using MortalGame.GameModel;
 using MortalGame.GameView;
 using Optional;
-
+using UniRx;
 
 namespace MortalGame.Presenter
 {
-
     public interface ISubSelectionPresenter
     {
         public record CloseEvent : IUniTaskPresenter.Event;
@@ -21,175 +19,118 @@ namespace MortalGame.Presenter
         public record SelectCardEvent(CardInfo CardInfo, ICardView CardView) : IUniTaskPresenter.Event;
         public record LongTouchCardEvent(CardInfo CardInfo, ICardView CardView) : IUniTaskPresenter.Event;
 
-    UniTask<IReadOnlyDictionary<string, ISubSelectionAction>> RunSubSelection(
-        SubSelectionInfo subSelectionInfoOpt,
-        CancellationToken cancellationToken);
+        UniTask<Option<IReadOnlyList<Guid>>> Run(
+            ExistCardSelectionInfo info, CancellationToken cancellationToken);
     }
 
     public class SubSelectionPresenter : ISubSelectionPresenter
     {
         private readonly ICardSelectionPanel _cardSelectionPanel;
-        private readonly SingleCardDetailPopupPanel _singleCardDetailPopupPanel;
-        private readonly IUniTaskPresenter _uniTaskPresenter;
-        private readonly IGameViewModel _gameViewModel;
+        private readonly ISingleCardDetailPopupPanel _singleCardDetailPopupPanel;
+        private readonly LocalizeLibrary _localizeLibrary;
 
-        public SubSelectionPresenter(
-            IGameViewModel gameViewModel,
-            LocalizeLibrary localizeLibrary,
-            SingleCardDetailPopupPanel singleCardDetailPopupPanel,
-            ICardSelectionPanel cardSelectionPanel)
+        public SubSelectionPresenter(IGameViewModel gameViewModel, LocalizeLibrary localizeLibrary,
+            ISingleCardDetailPopupPanel singleCardDetailPopupPanel, ICardSelectionPanel cardSelectionPanel)
         {
-            _gameViewModel = gameViewModel;
+            _localizeLibrary = localizeLibrary;
             _singleCardDetailPopupPanel = singleCardDetailPopupPanel;
             _singleCardDetailPopupPanel.Init(gameViewModel, localizeLibrary);
             _cardSelectionPanel = cardSelectionPanel;
             _cardSelectionPanel.Init(gameViewModel, localizeLibrary);
-
-            _uniTaskPresenter = new UniTaskPresenter();
         }
 
-        public async UniTask<IReadOnlyDictionary<string, ISubSelectionAction>> RunSubSelection(
-            SubSelectionInfo subSelectionInfo,
-            CancellationToken cancellationToken)
+        public async UniTask<Option<IReadOnlyList<Guid>>> Run(
+            ExistCardSelectionInfo info, CancellationToken cancellationToken)
         {
-            var subSelectionActions = new Dictionary<string, ISubSelectionAction>();
-
-            foreach (var kvp in subSelectionInfo.SelectionInfos)
-            {
-                switch (kvp.Value)
-                {
-                    case ExistCardSelectionInfo existCardSelection:
-                    var subSelectionAction = await _RunExistCardSelection(
-                        existCardSelection,
-                        cancellationToken);
-                        subSelectionActions[kvp.Key] = subSelectionAction;
-                        break;
-                }
-            }
-
-            return subSelectionActions;
-        }
-
-        private async UniTask<ExistCardSubSelectionAction> _RunExistCardSelection(
-            ExistCardSelectionInfo existCardSelection,
-            CancellationToken cancellationToken)
-        {
-            var isClose = false;
-            var isVisible = true;
-            var effectiveSelectCount = existCardSelection.MaxCount;
-            var selectedCardIds = new List<Guid>();
-            var disposables = new CompositeDisposable();
-
-            _cardSelectionPanel.Open(CreateProperty());
-
+            var selected = new List<Guid>();
+            var result = Option.None<IReadOnlyList<Guid>>();
+            var visible = true;
+            IUniTaskPresenter presenter = new UniTaskPresenter();
+            var promptKey = $"CardSelection.{info.CardDataId}.{info.Id}";
+            var prompt = _localizeLibrary.TryGet(LocalizeInfoType.UI, promptKey, out var localized)
+                ? localized.Info : _Text("CardSelection_Default");
             try
             {
-                await _uniTaskPresenter.Run(
-                    disposables,
-                    () => !isClose,
-                    cancellationToken,
+                cancellationToken.ThrowIfCancellationRequested();
+                _cardSelectionPanel.Open(new ICardSelectionPanel.Property(
+                    info.IsValidCount(0),
+                    info.CardInfos.Select(card => new ICardSelectionPanel.SelectionProperty(
+                        card.Identity.ToString(), card,
+                        (_, view) => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.SelectCardEvent(card, view)),
+                        (_, view) => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.LongTouchCardEvent(card, view)))),
+                    Description()));
+                await presenter.Run(
+                    _SetupSubscriptions(presenter), 
+                    () => true, 
+                    cancellationToken, 
                     EventHandler);
             }
             finally
             {
                 _cardSelectionPanel.Close();
             }
+            return result;
 
-            return new ExistCardSubSelectionAction(selectedCardIds);
-
-            UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)
+            async UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)
             {
                 switch (evt)
                 {
                     case ISubSelectionPresenter.CloseEvent:
-                        return UniTask.FromResult<IUniTaskPresenter.Event>(
-                            (existCardSelection.CountRule != CardSelectionCountRule.Optional)
-                            ? new IUniTaskPresenter.None()
-                            : new IUniTaskPresenter.Halt());
-
+                        return new IUniTaskPresenter.Halt();
                     case ISubSelectionPresenter.ConfirmEvent:
-                        var canClose = (existCardSelection.CountRule != CardSelectionCountRule.Optional)
-                            ? selectedCardIds.Count >= effectiveSelectCount
-                            : true;
-                        return UniTask.FromResult<IUniTaskPresenter.Event>(canClose
-                            ? new IUniTaskPresenter.Halt()
-                            : new IUniTaskPresenter.None());
-
-                    case ISubSelectionPresenter.VisibleToggleEvent:
-                        isVisible = !isVisible;
-                        _cardSelectionPanel.RenderUpdate(GetUpdateProperty());
-                        break;
-
-                    case ISubSelectionPresenter.SelectCardEvent selectCardEvent:
+                        if (info.IsValidCount(selected.Count))
                         {
-                            if (selectedCardIds.Contains(selectCardEvent.CardInfo.Identity))
-                            {
-                                selectedCardIds.Remove(selectCardEvent.CardInfo.Identity);
-                            }
-                            else if (selectedCardIds.Count < effectiveSelectCount)
-                            {
-                                selectedCardIds.Add(selectCardEvent.CardInfo.Identity);
-                            }
-
-                            _cardSelectionPanel.RenderUpdate(GetUpdateProperty());
+                            result = Option.Some<IReadOnlyList<Guid>>(selected.ToArray());
+                            return new IUniTaskPresenter.Halt();
                         }
                         break;
-
-                    case ISubSelectionPresenter.LongTouchCardEvent longTouchCardEvent:
-                    return _singleCardDetailPopupPanel
-                        .Run(
-                            CardDetailProperty.Create(longTouchCardEvent.CardInfo),
-                            cancellationToken)
-                            .ContinueWith<IUniTaskPresenter.Event>(
-                                () => new IUniTaskPresenter.None());
+                    case ISubSelectionPresenter.SelectCardEvent select:
+                        if (!selected.Remove(select.CardInfo.Identity) && selected.Count < info.MaxCount)
+                            selected.Add(select.CardInfo.Identity);
+                        Update();
+                        break;
+                    case ISubSelectionPresenter.VisibleToggleEvent:
+                        visible = !visible;
+                        Update();
+                        break;
+                    case ISubSelectionPresenter.LongTouchCardEvent detail:
+                        await _singleCardDetailPopupPanel.Run(CardDetailProperty.Create(detail.CardInfo), cancellationToken);
+                        break;
                 }
-
-                return UniTask.FromResult<IUniTaskPresenter.Event>(
-                    new IUniTaskPresenter.None());
+                return new IUniTaskPresenter.None();
             }
 
-            ICardSelectionPanel.SelectionProperty CreateSelectionProperty(CardInfo cardInfo)
-            {
-                return new ICardSelectionPanel.SelectionProperty(
-                    cardInfo.Identity.ToString(),
-                    cardInfo,
-                    (identity, cardView) =>
-                        _gameViewModel.GetCardInfoOrNone(identity)
-                            .MatchSome(info =>
-                                _uniTaskPresenter.TryEnqueueNextEvent(
-                                    new ISubSelectionPresenter.SelectCardEvent(info, cardView))),
-                    (identity, cardView) =>
-                        _gameViewModel.GetCardInfoOrNone(identity)
-                            .MatchSome(info =>
-                                _uniTaskPresenter.TryEnqueueNextEvent(
-                                    new ISubSelectionPresenter.LongTouchCardEvent(info, cardView)))
-                );
-            }
-            ICardSelectionPanel.Property CreateProperty()
-            {
-                return new ICardSelectionPanel.Property(
-                    existCardSelection.CountRule,
-                    (existCardSelection.CountRule == CardSelectionCountRule.Optional) || effectiveSelectCount == 0,
-                    effectiveSelectCount,
-                    existCardSelection.CardInfos
-                        .Select(cardInfo => CreateSelectionProperty(cardInfo)),
-                    OnClose: () => _uniTaskPresenter.TryEnqueueNextEvent(new ISubSelectionPresenter.CloseEvent()),
-                    OnConfirm: () => _uniTaskPresenter.TryEnqueueNextEvent(new ISubSelectionPresenter.ConfirmEvent()),
-                    OnVisibleToggle: () => _uniTaskPresenter.TryEnqueueNextEvent(new ISubSelectionPresenter.VisibleToggleEvent())
-                );
-            }
-            ICardSelectionPanel.UpdateProperty GetUpdateProperty()
-            {
-                return new ICardSelectionPanel.UpdateProperty(
-                    isVisible,
-                    (existCardSelection.CountRule != CardSelectionCountRule.Optional)
-                        ? selectedCardIds.Count >= effectiveSelectCount
-                        : true,
-                    effectiveSelectCount,
-                    existCardSelection.CardInfos
-                        .Where(cardInfo => selectedCardIds.Contains(cardInfo.Identity))
-                );
-            }
+            string Description() => string.Join("\n",
+                prompt,
+                string.Format(_Text("CardSelection_Step"), info.StepIndex + 1, info.StepCount),
+                string.Format(_Text(info.CountRule == CardSelectionCountRule.Optional
+                    ? "CardSelection_Optional" : "CardSelection_Required"), selected.Count, info.MaxCount));
+
+            void Update() => _cardSelectionPanel.RenderUpdate(
+                new ICardSelectionPanel.UpdateProperty(
+                    visible, 
+                    info.IsValidCount(selected.Count),
+                    info.CardInfos.Where(card => selected.Contains(card.Identity)), 
+                    Description()));
         }
+
+        private IDisposable _SetupSubscriptions(IUniTaskPresenter presenter)
+        {
+            var disposables = new CompositeDisposable();
+            _cardSelectionPanel.CloseButtons
+                .Select(button => button.OnClickAsObservable())
+                .Merge()
+                .Subscribe(_ => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.CloseEvent()))
+                .AddTo(disposables);
+            _cardSelectionPanel.ConfirmButton.OnClickAsObservable()
+                .Subscribe(_ => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.ConfirmEvent()))
+                .AddTo(disposables);
+            _cardSelectionPanel.VisibleToggleButton.OnClickAsObservable()
+                .Subscribe(_ => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.VisibleToggleEvent()))
+                .AddTo(disposables);
+            return disposables;
+        }
+
+        private string _Text(string key) => _localizeLibrary.Get(LocalizeInfoType.UI, key).Info;
     }
 }

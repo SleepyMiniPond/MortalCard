@@ -20,7 +20,8 @@ namespace MortalGame.Presenter
         private GameViewModel _gameInfoModel;
         private GameplayManager _gameplayManager;
         private IUIPresenter _uiPresenter;
-        private ISubSelectionPresenter _subSelectionPresenter;
+        private ICardSelectionFlow _cardSelectionFlow;
+        private IWarningPopupPresenter _warningPopupPresenter;
         private IGameResultLosePresenter _gameResultLosePresenter;
         private IGameResultWinPresenter _gameResultWinPresenter;
 
@@ -46,7 +47,10 @@ namespace MortalGame.Presenter
             _uiPresenter = new UIPresenter(_gameplayView, _gameplayView, _gameInfoModel, gameContextManager.LocalizeLibrary);
             _gameResultWinPresenter = new GameResultWinPresenter(gameResultWinPanel);
             _gameResultLosePresenter = new GameResultLosePresenter(gameResultLosePanel);
-            _subSelectionPresenter = new SubSelectionPresenter(_gameInfoModel, gameContextManager.LocalizeLibrary, _gameplayView.SinglePopupPanel, _gameplayView.CardSelectionPanel);
+            _cardSelectionFlow = new CardSelectionFlow(new SubSelectionPresenter(
+                _gameInfoModel, gameContextManager.LocalizeLibrary,
+                _gameplayView.SinglePopupPanel, _gameplayView.CardSelectionPanel));
+            _warningPopupPresenter = new WarningPopupPresenter(_gameplayView.WarningPopupPanel);
         }
 
         public async UniTask<GameplayResultCommand> Run(CancellationToken cancellationToken)
@@ -169,7 +173,7 @@ namespace MortalGame.Presenter
                         !_gameplayManager.BattleResult.HasValue)
                     {
                         _gameplayView.DisableAllInteraction();
-                        await _subSelectionPresenter.ShowFailure(token);
+                        await _ShowSelectionFailure(token);
                     }
                     _CompletePendingCommand(gameEvent);
 
@@ -221,6 +225,17 @@ namespace MortalGame.Presenter
                 model.GameStatus.Ally.CardManager.HandCard.ToCardCollectionInfo(model));
         }
 
+        private UniTask _ShowSelectionFailure(
+            CancellationToken cancellationToken, CardSelectionFailure failure = null)
+        {
+            var key = failure?.Reason == CardSelectionFailureReason.InsufficientCandidates
+                ? "CardSelection_InsufficientCandidates" 
+                : "CardSelection_Rejected";
+            var library = ((IGameplayModel)_gameplayManager).ContextManager.LocalizeLibrary;
+            var message = library.Get(LocalizeInfoType.UI, key).Info;
+            return _warningPopupPresenter.Run(message, cancellationToken);
+        }
+
         private async UniTask<Option<IGameAction>> _PostProcessAction(
             IGameCommand gameCommand,
             CancellationToken cancellationToken)
@@ -239,7 +254,7 @@ namespace MortalGame.Presenter
                     {
                         var selectionDraft = CardSelectionDraft.Create(
                             card, model.GameStatus.Ally, mainSelectionAction);
-                        var result = await _subSelectionPresenter.RunSubSelection(
+                        var result = await _cardSelectionFlow.RunSubSelection(
                             model,
                             selectionDraft,
                             cancellationToken);
@@ -250,11 +265,11 @@ namespace MortalGame.Presenter
                             return Option.None<IGameAction>();
                         if (result is CardSelectionPresentationResult.Rejected rejected)
                         {
-                            await _subSelectionPresenter.ShowFailure(cancellationToken, rejected.Failure);
+                            await _ShowSelectionFailure(cancellationToken, rejected.Failure);
                             return Option.None<IGameAction>();
                         }
                     }
-                    await _subSelectionPresenter.ShowFailure(cancellationToken);
+                    await _ShowSelectionFailure(cancellationToken);
                     return Option.None<IGameAction>();
 
                 default:

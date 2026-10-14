@@ -1,6 +1,6 @@
 # Presenter 協調層
 
-> 核對日期：2026-09-19
+> 核對日期：2026-10-15（本次更新選取與警告面板職責）
 
 Presenter 將 UI 命令轉成 Model 動作，並將 Model 事件交給 View 呈現。View／Presenter 的共享契約位於 [Presentation Abstractions](../Assets/Scripts/Presentation/Abstractions/)，協調實作位於 [Presenter](../Assets/Scripts/Presenter/)，不混放在 Panel。
 
@@ -14,7 +14,13 @@ Presenter 將 UI 命令轉成 Model 動作，並將 Model 事件交給 View 呈�
 
 [GameCommand](../Assets/Scripts/Presentation/Abstractions/GameCommand.cs) 描述 View 操作，[GameAction](../Assets/Scripts/GameModel/Action/GameAction.cs) 描述交給 Model 的動作。命令先入列，由單一流程依序處理，不在接收時提前啟動非同步選取。
 
-[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 已逐群組處理 ExistCard 選取並以群組 ID 回傳結果；其他子選取類型仍是預留，完整多步驟契約見 T-011。卡片互動依 Identity 查最新 CardInfo，避免變形後使用舊規則。
+[CardSelectionFlow](../Assets/Scripts/Presenter/Gameplay/CardSelectionFlow.cs) 依序查詢選取步驟、累積 Draft，並在每步確認後重新驗證結果。[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 只控制單一步驟的選卡面板，透過 IUniTaskPresenter 的按鈕事件處理選取、確認、取消、收合及卡片詳情；不持有 Model 或管理多步驟草稿。目前支援 ExistCard，其他類型見 T-011 後續範圍。
+
+GameplayPresenter 將失敗原因轉成已本地化的文字，交由 [WarningPopupPresenter](../Assets/Scripts/Presenter/Gameplay/WarningPopupPresenter.cs) 顯示。該 Presenter 搭配獨立 [WarningPopupPanel](../Assets/Scripts/GameView/Panel/Popup/WarningPopupPanel.cs)，只接收文字並等待 CloseEvent，不依賴選取規則，也不使用選卡面板顯示警告。Panel 提供關閉按鈕與顯示方法；Presenter.Run 訂閱按鈕，透過 IUniTaskPresenter 管理事件及訂閱清理，Panel 不在 Awake 綁定 callback。
+
+面板 Presenter 自己執行 Open → await IUniTaskPresenter.Run → finally Close。共用執行器處理事件與工作清理，不提供開啟面板的 onStarted callback。
+
+固定面板按鈕由 View 提供 Button 參考，Presenter._SetupSubscriptions 訂閱點擊並送出對應 Event，訂閱隨 Run 結束釋放。選卡面板的關閉、確認與收合均沿用此方式；動態卡片的點擊／長按則由 SelectionProperty 隨渲染配置 callback，與卡片詳情面板的做法一致。
 
 ## 建構與顯示狀態
 

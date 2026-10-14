@@ -8,7 +8,8 @@
     "MortalGame.Presentation.Abstractions",
     "MortalGame.Editor",
     "UniRx",
-    "UniTask"
+    "UniTask",
+    "Unity.ugui"
   ],
   "includePlatforms": [
     "Editor"

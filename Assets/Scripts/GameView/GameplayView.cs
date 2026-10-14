@@ -29,6 +29,7 @@ namespace MortalGame.GameView
 
         IEnumerable<ISelectableView> SelectableViews { get; }
         ISelectableView BasicSelectableView { get; }
+        IWarningPopupPanel WarningPopupPanel { get; }
     }
 
     public interface IInteractionButtonView
@@ -107,6 +108,11 @@ namespace MortalGame.GameView
         [BoxGroup("Popup")]
         [SerializeField]
         private CardSelectionPanel _cardSelectionPanel;
+        [BoxGroup("Popup")]
+        [SerializeField]
+        private WarningPopupPanel _warningPopupPanel;
+
+        public IWarningPopupPanel WarningPopupPanel => _warningPopupPanel;
 
         AllCardDetailPanel IAllCardDetailPanelView.DetailPanel => _allCardDetailPanel;
         SingleCardDetailPopupPanel IAllCardDetailPanelView.SinglePopupPanel => _singleCardDetailPopupPanel;

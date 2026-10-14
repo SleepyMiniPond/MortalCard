@@ -19,6 +19,31 @@ namespace MortalGame.Tests
 {
     public sealed class GameplaySelectionFlowTests
     {
+        [UnityTest]
+        public IEnumerator SelectionShortage_ShowsWarningAndRestoresWithoutSubmitting() => UniTask.ToCoroutine(async () =>
+        {
+            var s = _Create();
+            using var cancellation = new CancellationTokenSource();
+            var run = _RunLoop(s.Presenter, cancellation.Token);
+            try
+            {
+                s.Presenter.RecieveEvent(new UseCardCommand(s.Card.Identity, Option.None<ISelectionTarget>()));
+                await _Wait(() => s.Selection.RunCount == 1);
+                s.Selection.Result.TrySetResult(new CardSelectionPresentationResult.Rejected(
+                    new CardSelectionFailure(CardSelectionFailureReason.InsufficientCandidates, "first".Some())));
+                await _Wait(() => s.View.RestoreCount == 1);
+                Assert.That(s.Warning.RunCount, Is.EqualTo(1));
+                Assert.That(s.Warning.Message, Is.EqualTo("候選不足"));
+                Assert.That(s.Model.PopAllEvents(), Is.Empty);
+                Assert.That(_Pending(s.Presenter).Count, Is.Zero);
+            }
+            finally
+            {
+                cancellation.Cancel();
+                await _Cancel(run);
+            }
+        });
+
         private record OpenDetailEvent : IUniTaskPresenter.Event;
         private record CloseEvent : IUniTaskPresenter.Event;
         private sealed class PresenterLifetime : IDisposable
@@ -34,8 +59,8 @@ namespace MortalGame.Tests
             var lifetime = new PresenterLifetime();
             var detailClosed = new UniTaskCompletionSource();
             var handled = 0;
-            var run = presenter.Run(lifetime, () => true, CancellationToken.None, Handle,
-                onStarted: () => presenter.TryEnqueueNextEvent(new OpenDetailEvent()));
+            var run = presenter.Run(lifetime, () => true, CancellationToken.None, Handle);
+            presenter.TryEnqueueNextEvent(new OpenDetailEvent());
             await UniTask.NextFrame();
             presenter.TryEnqueueNextEvent(new CloseEvent());
             Assert.That(handled, Is.EqualTo(1));
@@ -91,7 +116,7 @@ namespace MortalGame.Tests
                 _AddEvent(s, new CardPlayRejectedEvent(Faction.Ally, s.Card.Identity));
                 await _Wait(() => s.View.Events.OfType<CardPlayRejectedEvent>().Any());
                 Assert.That(s.View.Disabled, Is.True);
-                Assert.That(s.Selection.FailureCount, Is.Zero);
+                Assert.That(s.Warning.RunCount, Is.Zero);
                 s.Selection.Result.TrySetResult(new CardSelectionPresentationResult.Cancelled());
                 await _Wait(() => _Pending(s.Presenter).Count == 0);
                 Assert.That(s.View.RestoreCount, Is.Zero);
@@ -275,7 +300,7 @@ namespace MortalGame.Tests
                 await _Wait(() => s.View.Events.OfType<UsedCardEvent>().Any());
                 Assert.That(s.View.Events.OfType<UsedCardEvent>().Count(), Is.EqualTo(1));
                 Assert.That(s.Selection.RunCount, Is.EqualTo(1));
-                Assert.That(s.Selection.FailureCount, Is.Zero);
+                Assert.That(s.Warning.RunCount, Is.Zero);
                 Assert.That(s.View.RestoreCount, Is.Zero, "成功出牌由操作開始事件恢復互動");
                 Assert.That(s.View.Disabled, Is.False);
                 var starts = s.View.Events.OfType<PlayerExecuteStartEvent>().ToArray();
@@ -308,7 +333,7 @@ namespace MortalGame.Tests
                 Assert.That(s.View.Events.OfType<PlayerExecuteEndEvent>(), Is.Empty);
                 Assert.That(s.View.Hand.CardInfos.Keys.Select(card => card.Identity), Does.Contain(s.Card.Identity));
                 Assert.That(s.View.Events.OfType<UsedCardEvent>(), Is.Empty);
-                Assert.That(s.Selection.FailureCount, Is.Zero);
+                Assert.That(s.Warning.RunCount, Is.Zero);
             }
             finally { cts.Cancel(); await _Cancel(modelTask); await _Cancel(presenterTask); }
             Assert.That(s.View.Disabled, Is.True);
@@ -318,7 +343,7 @@ namespace MortalGame.Tests
         public IEnumerator RejectionNotice_BlocksInputUntilReadyEventIsPresented() => UniTask.ToCoroutine(async () =>
         {
             var s = _Create();
-            s.Selection.FailureClosed = new UniTaskCompletionSource();
+            s.Warning.Closed = new UniTaskCompletionSource();
             using var cts = new CancellationTokenSource();
             var modelTask = s.Model._PlayerExecute(cts.Token);
             var presenterTask = _RunLoop(s.Presenter, cts.Token);
@@ -328,12 +353,12 @@ namespace MortalGame.Tests
                 await _Wait(() => s.Selection.RunCount == 1);
                 s.Selection.Result.TrySetResult(new CardSelectionPresentationResult.Completed(
                     s.Draft.WithSelection("unexpected-group", new ExistCardSubSelectionAction(Array.Empty<Guid>()))));
-                await _Wait(() => s.Selection.FailureCount == 1);
+                await _Wait(() => s.Warning.RunCount == 1);
                 Assert.That(s.View.Events.OfType<CardPlayRejectedEvent>().Count(), Is.EqualTo(1));
                 Assert.That(s.View.Events.OfType<PlayerExecuteStartEvent>().Count(), Is.EqualTo(1));
                 Assert.That(s.View.Disabled, Is.True);
                 s.Presenter.RecieveEvent(new TurnSubmitCommand(Faction.Ally));
-                s.Selection.FailureClosed.TrySetResult();
+                s.Warning.Closed.TrySetResult();
                 await _Wait(() => s.View.Events.OfType<PlayerExecuteStartEvent>().Count() == 2);
                 Assert.That(s.View.Disabled, Is.False);
                 Assert.That(s.View.RestoreCount, Is.Zero);
@@ -347,7 +372,7 @@ namespace MortalGame.Tests
         public IEnumerator SceneCancellationDuringRejection_DoesNotPresentReadyEvent() => UniTask.ToCoroutine(async () =>
         {
             var s = _Create();
-            s.Selection.FailureClosed = new UniTaskCompletionSource();
+            s.Warning.Closed = new UniTaskCompletionSource();
             using var cts = new CancellationTokenSource();
             var modelTask = s.Model._PlayerExecute(cts.Token);
             var presenterTask = _RunLoop(s.Presenter, cts.Token);
@@ -355,7 +380,7 @@ namespace MortalGame.Tests
             await _Wait(() => s.Selection.RunCount == 1);
             s.Selection.Result.TrySetResult(new CardSelectionPresentationResult.Completed(
                 s.Draft.WithSelection("unexpected-group", new ExistCardSubSelectionAction(Array.Empty<Guid>()))));
-            await _Wait(() => s.Selection.FailureCount == 1);
+            await _Wait(() => s.Warning.RunCount == 1);
             cts.Cancel();
             await _Cancel(modelTask);
             await _Cancel(presenterTask);
@@ -378,7 +403,7 @@ namespace MortalGame.Tests
                 s.Selection.Result.TrySetResult(new CardSelectionPresentationResult.Completed(
                     s.Draft.WithSelection("unexpected-group", new ExistCardSubSelectionAction(Array.Empty<Guid>()))));
                 await _Wait(() => s.View.Events.OfType<PlayerExecuteStartEvent>().Count() == 2);
-                Assert.That(s.Selection.FailureCount, Is.EqualTo(1));
+                Assert.That(s.Warning.RunCount, Is.EqualTo(1));
                 Assert.That(s.View.Events.OfType<UsedCardEvent>(), Is.Empty);
                 var rejected = s.View.Events.OfType<CardPlayRejectedEvent>().Single();
                 Assert.That(rejected.CardIdentity, Is.EqualTo(s.Card.Identity));
@@ -440,7 +465,14 @@ namespace MortalGame.Tests
                 new CharacterBuffLibrary(new Dictionary<string, CharacterBuffData>()),
                 new DispositionLibrary(new[] { new DispositionData("test", 1, 0, 0) }),
                 new LocalizeLibrary(new Dictionary<LocalizeTitleInfoType, IReadOnlyDictionary<string, LocalizeTitleInfoData>>(),
-                    new Dictionary<LocalizeInfoType, IReadOnlyDictionary<string, LocalizeInfoData>>()),
+                    new Dictionary<LocalizeInfoType, IReadOnlyDictionary<string, LocalizeInfoData>>
+                    {
+                        [LocalizeInfoType.UI] = new Dictionary<string, LocalizeInfoData>
+                        {
+                            ["CardSelection_Rejected"] = new("請重新操作"),
+                            ["CardSelection_InsufficientCandidates"] = new("候選不足")
+                        }
+                    }),
                 new GameRandom(1), CardPropertyEntityFactory.CreateDefault(),
                 CardBuffPropertyEntityFactory.CreateDefault(), CardBuffLifeTimeEntityFactory.CreateDefault(),
                 ReactionSessionEntityFactory.CreateDefault(), PlayerBuffPropertyEntityFactory.CreateDefault(),
@@ -460,16 +492,18 @@ namespace MortalGame.Tests
                 .SetValue(manager, new UniTaskAwaitableQueue<IGameAction>());
             var view = new View();
             var selection = new Selection();
+            var warning = new Warning();
             // 測試僅執行操作迴圈，所需替身在此注入，不為正式 Presenter 增加測試建構子。
             var presenter = (GameplayPresenter)FormatterServices.GetUninitializedObject(typeof(GameplayPresenter));
             SetField("_gameplayView", view);
             SetField("_gameplayManager", manager);
-            SetField("_subSelectionPresenter", selection);
+            SetField("_cardSelectionFlow", selection);
+            SetField("_warningPopupPresenter", warning);
             var queueField = typeof(GameplayPresenter).GetField("_pendingGameCommands",
                 BindingFlags.Instance | BindingFlags.NonPublic);
             queueField.SetValue(presenter, Activator.CreateInstance(queueField.FieldType));
             return new Setup(manager, card, CardSelectionDraft.Create(card, ally, MainSelectionAction.Empty),
-                presenter, view, selection);
+                presenter, view, selection, warning);
 
             void SetField(string name, object value) => typeof(GameplayPresenter)
                 .GetField(name, BindingFlags.Instance | BindingFlags.NonPublic).SetValue(presenter, value);
@@ -531,15 +565,15 @@ namespace MortalGame.Tests
             public readonly GameplayPresenter Presenter;
             public readonly View View;
             public readonly Selection Selection;
+            public readonly Warning Warning;
             public Setup(GameplayManager model, ICardEntity card, CardSelectionDraft draft,
-                GameplayPresenter presenter, View view, Selection selection)
-            { Model = model; Card = card; Draft = draft; Presenter = presenter; View = view; Selection = selection; }
+                GameplayPresenter presenter, View view, Selection selection, Warning warning)
+            { Model = model; Card = card; Draft = draft; Presenter = presenter; View = view; Selection = selection; Warning = warning; }
         }
-        private sealed class Selection : ISubSelectionPresenter
+        private sealed class Selection : ICardSelectionFlow
         {
-            public int RunCount, FailureCount;
+            public int RunCount;
             public bool Exited;
-            public UniTaskCompletionSource FailureClosed;
             public readonly UniTaskCompletionSource<CardSelectionPresentationResult> Result = new();
             public async UniTask<CardSelectionPresentationResult> RunSubSelection(IGameplayModel model,
                 CardSelectionDraft draft, CancellationToken token)
@@ -548,14 +582,21 @@ namespace MortalGame.Tests
                 try { return await Result.Task.AttachExternalCancellation(token); }
                 finally { Exited = true; }
             }
-            public async UniTask ShowFailure(CancellationToken token, CardSelectionFailure failure = null)
-            {
-                token.ThrowIfCancellationRequested();
-                FailureCount++;
-                if (FailureClosed != null) await FailureClosed.Task.AttachExternalCancellation(token);
-            }
         }
 
+        private sealed class Warning : IWarningPopupPresenter
+        {
+            public int RunCount;
+            public string Message;
+            public UniTaskCompletionSource Closed;
+            public async UniTask Run(string message, CancellationToken token)
+            {
+                token.ThrowIfCancellationRequested();
+                RunCount++;
+                Message = message;
+                if (Closed != null) await Closed.Task.AttachExternalCancellation(token);
+            }
+        }
         private sealed class UIWorker : IUIPresenter
         {
             private readonly Action _onRun;
@@ -585,6 +626,7 @@ namespace MortalGame.Tests
             public SingleCardDetailPopupPanel SinglePopupPanel => null;
             public FocusCardDetailView FocusCardDetailView => null;
             public ICardSelectionPanel CardSelectionPanel => null;
+            public IWarningPopupPanel WarningPopupPanel => null;
             public void Init(IGameViewModel model, IGameplayActionReciever receiver, IGameplayModel watcher,
                 LocalizeLibrary library, DispositionLibrary disposition) { }
             public void Render(IReadOnlyCollection<IGameEvent> events, IGameplayActionReciever receiver)

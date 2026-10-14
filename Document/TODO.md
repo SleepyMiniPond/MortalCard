@@ -1,6 +1,6 @@
 # 專案待辦事項
 
-> 最後更新：2026-10-10
+> 最後更新：2026-10-15
 > 狀態標記：⬜ 待開始／待排期 | 🟡 已有部分基礎，尚未完成 | 🔄 進行中 | ✅ 已完成
 > T-023 已確認完成並封存；目前主線為 T-011，第 2 個工作已由使用者確認並提交，第 3 個工作已整合及驗證、待使用者確認。
 > 已完成任務與驗證紀錄請查看 [TODO_Archive.md](TODO_Archive.md)。
@@ -46,13 +46,13 @@ T-010、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的�
 - **已實作的步驟相依**：逐步使用主目標及前面已確認結果計算候選與需求數量，禁止自我及向後引用；選取期間只保存結果，不執行效果。區分未選群組與已確認的空群組，查詢明確接收選取快照，不跨 UI 等待持有共用 Context。純查詢不改變正式狀態或消耗正式亂數，為 T-014 預覽保留相容性；預覽功能仍另行排期。
 - **工作階段**：
   1. 規則與詳細設計：使用者已確認完成。
-  2. 共用選取契約、逐步驗證、Validator 與資料遷移：2026-10-09 使用者確認 review 完成並已 commit，目前 HEAD 為 b377075（cardSelectionQuery）。
+  2. 共用選取契約、逐步驗證、Validator 與資料遷移：2026-10-09 使用者確認 review 完成並已 commit，該步提交為 b377075（cardSelectionQuery）。
   3. 玩家、敵方、間接出牌與 Invoke 接線，完成 UI 取消／關閉及互動恢復：2026-10-09 已重新檢查 stash、整合第 2 步 review 修正並通過驗證，待使用者確認。
   4. 四入口驗收、回歸與正式文件更新。
 - **資產盤點結果**：透過 Unity 檢查 38 個專案 ScriptableObject，找到 20 份 CardData、0 個選取群組，沒有需轉換舊值的資產；移除舊欄位後重新 import 全部卡片資產正常。
 - **遷移方式（使用者指定）**：第 2 個工作直接以 CountRule 取代 IsMustSelect，先匯出舊值，再批次更新所有受影響的既有資產；不保留向下相容欄位或雙軌讀取邏輯。
 - **本階段完成條件**：ExistCard 多步驟選取順序穩定、結果能依步驟識別取得，四個入口遵循確認後的規則，取消與場景生命週期可正確收斂；其他選取類型保留後續擴充追蹤。
-- **目前工作區驗證（2026-10-10）**：本輪 Unity 編譯與 GameDataValidator.ValidateAll 均 0 error；完整 EditMode 850／850、PlayMode 29／29 通過，0 fail、0 skip。既有 warning 包含 OneTurnStart／OnTurnEnd 未使用事件、NoOpCardBuffEffect 測試及 Render Graph 相容模式。
+- **目前工作區驗證（2026-10-15）**：固定選卡面板按鈕改由 Presenter 訂閱後，本輪 Unity 編譯與 GameDataValidator.ValidateAll 均 0 error；完整 EditMode 853／853 通過，0 fail、0 skip。PlayMode 本輪未重跑，最近完整結果為 2026-10-14 的 30／30。既有 warning 包含 OneTurnStart／OnTurnEnd 未使用事件、NoOpCardBuffEffect 測試及 Render Graph 相容模式。獨立警告 Popup 的 Prefab／Scene 接線及實際畫面驗收待使用者完成。
 - **下一步**：使用者 review 第 3 個工作；確認後進入第 4 個工作「驗收與文件」，包含實際遊戲 UI 驗收及正式系統文件更新。
 - **第 3 個工作補正（2026-10-05）**：依使用者決策省略選取期間形態比對保護，移除 Action／草稿的起始 CardData ID；仍依當下卡牌配置完整重驗選取。補正後 Unity 編譯 0 error，完整 EditMode 830／830、定向 PlayMode 4／4 通過。
 - **暫存備份**：Git stash 06058ede70418fcf39426f87ba651f790f93bf79「T-011 第 3 步：四入口與 UI 收斂（暫存，保留第 2 步）」仍保留。已抽取第 3 步差異並整合，不覆蓋第 2 步提交，不使用 stash pop 或 --index。
@@ -64,7 +64,11 @@ T-010、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的�
 - **第 3 步四流程整理（2026-10-10）**：RunBattle、ProcessCommands、RenderEvents、UI 於 _Run 同層並聯，共用一次取消及清理管理；移除 _GameplayBattleActions。正常戰鬥結束及任一例外都等待所有流程清理，背景流程提早返回會回報錯誤。
 - **第 3 步互動責任補正（2026-10-10）**：移除 CanAcceptPlayerAction，以開始／結束事件控制 View 互動，操作佇列阻擋重複輸入，取消與 BattleResult 限制恢復時機。啟動流程前關閉互動；結束事件完整解除手牌與拖曳訂閱。新增初始停用、結束事件解除訂閱及戰鬥結束不恢復／不接收輸入測試，完整 PlayMode 28／28 通過。
 - **第 3 步自動選取迴圈補正（2026-10-10）**：SelectSubTargets 改依 SubSelects 配置步數執行 for；每步仍由 QueryNext 計算相依候選，最後確認 Completed。Unity 編譯 0 error，定向選取整合與呈現測試 27／27 通過。其他選取類型的 Info 與結果契約仍待後續功能接入。
-- **第 3 步子選取面板補正（2026-10-10）**：RunSubSelection 改依 StepIndex／StepCount 執行 for，最後重新確認完整結果。恢復 IUniTaskPresenter 與明確的按鈕 Event／EventHandler，詳情以 await 串接，移除流程旗標與輪詢。共用執行器先準備事件再開啟面板，等待期間阻擋底層事件，結束時清除回呼與工作。ShowFailure 沿用空選項的選卡面板顯示候選不足或操作拒絕訊息，只允許關閉。新增剩餘步驟、取消清理與詳情等待回歸測試，等待影格推進的案例放在 PlayMode。
+- **第 3 步子選取面板補正（2026-10-10）**：選取改依 StepIndex／StepCount 執行 for，最後重新確認完整結果。恢復 IUniTaskPresenter 與明確的按鈕 Event／EventHandler，詳情以 await 串接，移除流程旗標與輪詢。共用執行器等待期間阻擋底層事件，結束時清除回呼與工作。新增剩餘步驟、取消清理與詳情等待回歸測試，等待影格推進的案例放在 PlayMode。
+- **第 3 步職責拆分（2026-10-14）**：RunSubSelection 移至 CardSelectionFlow，該流程持有 SubSelectionPresenter；SubSelectionPresenter.Run 只控制單一步驟面板。文字警告拆成 WarningPopupPresenter／WarningPopupPanel，由 GameplayPresenter 轉譯失敗訊息；移除選卡面板為警告用途增加的 CanToggleVisibility。Prefab 與 Scene 未修改，使用者自行建立警告面板、設定 _panel／_messageText／_closeButtons，並接到 GameplayView._warningPopupPanel；此接線及實際畫面驗收仍待處理。
+- **第 3 步警告按鈕補正（2026-10-14）**：WarningPopupPanel 移除 Awake 與 callback 綁定；WarningPopupPresenter.Run 依既有 UI Presenter 慣例，使用 _SetupSubscriptions 訂閱 CloseButtons、送出 CloseEvent，並在 Run 結束時解除訂閱及關閉面板。Inspector 接線欄位不變。
+- **第 3 步面板啟動補正（2026-10-14）**：移除 IUniTaskPresenter.Run 的 onStarted 參數，選取與警告 Presenter 恢復 Open → Run → finally Close；測試在 Run 啟動後模擬輸入，EditMode 的 PlayerLoop 推進由測試端管理。保留取消、詳情等待及訂閱清理，未改動 Prefab／Scene。
+- **第 3 步固定按鈕接線補正（2026-10-15）**：選卡面板提供 CloseButtons／ConfirmButton／VisibleToggleButton，由 SubSelectionPresenter._SetupSubscriptions 建立及管理點擊訂閱。移除 Property 固定按鈕 callback 與 Panel.Init 轉接訂閱，動態卡片點擊／長按仍由 SelectionProperty 配置。測試改用實際 Button，新增重開與關閉後的收合行為驗證；Inspector 序列化欄位不變，未修改 Prefab／Scene。
 - **第 3 步共用步驟契約補正（2026-10-10）**：NextStep 改使用 SubSelectionStepInfo，ExistCardSelectionInfo 繼承共用步驟資訊。Draft 保存 ISubSelectionAction，ExistCard 結果保留不可變快照；玩家與自動選取透過型別分派，共用迴圈不直接建立 ExistCard 結果。提交驗證依 Info／Action 型別分派；其他選取類型仍未實作。
 - **第 3 步重新檢查與優化（2026-10-09）**：自動選取只維護 Draft，全部完成後才轉為 Actions；本步取消以 Option 區分空選取；移除 Panel 不使用的 CountRule／MaxSelectCount 及正式 Presenter 的測試專用建構子。擴大詳情面板 finally 清理範圍。新增測試找出並修正回合開始事件延後顯示時提早解除操作鎖的問題；補提示 fallback、後續步取消重試、詳情期間阻擋回呼及面板開啟失敗清理測試。
 

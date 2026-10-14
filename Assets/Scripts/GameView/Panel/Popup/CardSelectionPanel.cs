@@ -2,9 +2,7 @@ using System;
 using MortalGame.Presentation.Abstractions;
 using System.Collections.Generic;
 using System.Linq;
-using Sirenix.Utilities;
 using TMPro;
-using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 using MortalGame.GameModel;
@@ -16,11 +14,7 @@ namespace MortalGame.GameView
         public record Property(
             bool IsConfirmable,
             IEnumerable<SelectionProperty> Selections,
-            Action OnClose,
-            Action OnConfirm,
-            Action OnVisibleToggle,
-            string Description,
-            bool CanToggleVisibility = true);
+            string Description);
         public record SelectionProperty(
             string Id,
             CardInfo CardInfo,
@@ -31,6 +25,10 @@ namespace MortalGame.GameView
             bool IsConfirmable,
             IEnumerable<CardInfo> SelectedCards,
             string Description);
+
+        Button[] CloseButtons { get; }
+        Button ConfirmButton { get; }
+        Button VisibleToggleButton { get; }
 
         void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary);
         void Open(Property property);
@@ -76,9 +74,9 @@ namespace MortalGame.GameView
         [SerializeField]
         private string _confirmButtonLocalizeKey;
 
-        private Action _OnClose;
-        private Action _OnConfirm;
-        private Action _OnVisibleToggle;
+        public Button[] CloseButtons => _closeButtons;
+        public Button ConfirmButton => _confirmButton;
+        public Button VisibleToggleButton => _visibleToggleButton;
 
         private IGameViewModel _gameViewModel;
         private LocalizeLibrary _localizeLibrary;
@@ -91,25 +89,11 @@ namespace MortalGame.GameView
 
             _visibleButtonText.text = _localizeLibrary.Get(LocalizeInfoType.UI, _visibleButtonLocalizeKey).Info;
             _confirmButtonText.text = _localizeLibrary.Get(LocalizeInfoType.UI, _confirmButtonLocalizeKey).Info;
-
-            _closeButtons.ForEach(button => button.OnClickAsObservable()
-                .Subscribe(_ => _OnClose?.Invoke())
-                .AddTo(this));
-            _confirmButton.OnClickAsObservable()
-                .Subscribe(_ => _OnConfirm?.Invoke())
-                .AddTo(this);
-            _visibleToggleButton.OnClickAsObservable()
-                .Subscribe(_ => _OnVisibleToggle?.Invoke())
-                .AddTo(this);
         }
 
         public void Open(ICardSelectionPanel.Property property)
         {
             _Clear();
-
-            _OnClose = property.OnClose;
-            _OnConfirm = property.OnConfirm;
-            _OnVisibleToggle = property.OnVisibleToggle;
 
             _panel.SetActive(true);
             foreach (var obj in _visibleToggleObjects)
@@ -118,7 +102,7 @@ namespace MortalGame.GameView
             }
 
             _closeObject.SetActive(true);
-            _visibleToggleButton.interactable = property.CanToggleVisibility;
+            _visibleToggleButton.interactable = true;
             _confirmButton.interactable = property.IsConfirmable;
 
             _selectionDescriptionText.text = property.Description;
@@ -178,10 +162,6 @@ namespace MortalGame.GameView
             }
 
             _cardViewMap.Clear();
-
-            _OnClose = null;
-            _OnConfirm = null;
-            _OnVisibleToggle = null;
         }
     }
 }
