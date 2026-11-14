@@ -1,6 +1,6 @@
 # 文件索引
 
-> 核對日期：2026-09-19
+> 更新日期：2026-11-13
 > 索引描述文件範圍，不以日期勾選標記暗示功能已完成；工作狀態以 TODO 為準。
 
 ## 工作與維護
@@ -11,7 +11,7 @@
 | [Coding_Standards](Coding_Standards.md) | 開發準則與責任邊界 |
 | [Documentation_Guidelines](Documentation_Guidelines.md) | 文件蒸餾與核對原則 |
 | [TODO](TODO.md) | 工作順序、既有基礎及剩餘缺口 |
-| [TODO_Archive](TODO_Archive.md) | 各次任務的歷史完成與驗證紀錄 |
+| [TODO_Archive](TODO_Archive.md) | 已完成任務，以及進行中任務已結束階段的歷史紀錄 |
 | [AI_Notes_Index](AI_Notes_Index.md) | 本索引 |
 
 ## 架構與資料

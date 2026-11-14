@@ -1,6 +1,6 @@
 # Target 目標與選取
 
-> 核對日期：2026-09-23
+> 核對日期：2026-10-15
 
 Target 以可序列化資料描述在 TriggerContext 中要讀取的實體或集合。單一查詢回傳 Option，找不到為 None；集合查詢回傳空集合，不以 Dummy 或 null 代替。
 
@@ -14,12 +14,37 @@ Selected 代表本次明確選取，Triggered 代表目前反應者，ActionCard
 
 - CardsOfPlayer 支援五種一般牌區，維持原順序；PlayingCard 必須另行查詢，不混入手牌。
 - FilteredCardCollection 對同一卡片的條件採 AND，保留符合項目的原順序。
+- CombinedCardCollection 依 SetOperationType 合併兩個集合：Difference 為第一集合減去第二集合，Union 為聯集，Intersection 為交集。以卡片 Identity 去重，保留結果中第一次出現的順序。
 - 索引查詢只接受 Ascending／Descending；Random、None 或無效值回傳 None。純查詢不消耗亂數。
 - Buff ById 查不到回傳 None；CardBuff 集合只看當下有效 Layer，不同時讀取被 Override 凍結的 Base Layer。
 
 ## 選取與查詢分離
 
-MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取結果依群組 ID 存入本次出牌或 Invoke 的 Context，`SubSelectedCardCollection` 依 ID 讀取卡片集合；卡片資產中的群組 ID 必須非空且對應本張卡宣告的 ExistCard 群組。ExistCard 候選不足時取實際可選數量；這不代表必要主目標也能省略，自動選取遇到必要主目標無候選時會略過該次執行。NewCard／NewPartialCard／NewEffect 目前為預留結構，遇到這些類型時不建立可執行選取結果。完整多步驟契約見 T-011。
+MainTargetSelectable 描述 UI／AI 可選範圍，Target 描述 Effect／Condition 實際讀取的來源。ExistCard 子選取結果依群組 ID 存入本次出牌或 Invoke 的 Context，`SubSelectedCardCollection` 依 ID 讀取仍存在的卡片集合。
+
+CardData.SubSelects 的清單順序就是選取順序。每步用主目標與前面已確認結果計算本步候選及數量；群組只能引用前面的群組，不可自我或向後引用。不同群組可選同一卡片，需要排除前一步結果時，明確配置集合差集或條件。群組 ID 的製作及驗證規則見 [GameData](GameData.md#子選取配置)。
+
+### 數量與候選不足
+
+需求數量由 SelectCount 求值，可達數量為需求與去重後候選數量的較小值。
+
+| CountRule | 本步合法確認數量 | 候選少於需求時 |
+|---|---|---|
+| Optional | 0～可達數量 | 可選空結果或任意合法數量 |
+| RequiredAvailable | 必須等於可達數量 | 必須選完現有候選 |
+| RequiredExact | 必須等於原始需求 | 拒絕整次操作，不回傳可執行結果 |
+
+需求為零時三種規則都允許空結果。候選為零、需求大於零時，Optional／RequiredAvailable 自動記錄空結果，RequiredExact 拒絕操作。數量缺值或動態求得負值時也拒絕操作；數量規則不等同效果代價的實際支付。
+
+這些規則不省略必要主目標。自動選取找不到必要主目標，或任一步不成立時，略過該次出牌／呼叫。自動入口目前沿用隨機挑卡並選滿可達數量，包含 Optional，尚未加入戰術策略。
+
+### 逐步查詢與完整驗證
+
+[CardSelectionQuery](../Assets/Scripts/GameModel/Info/CardSelectionQuery.cs) 的 QueryNext 依當下卡牌配置重驗已確認前綴，再回傳下一步、完成或拒絕。查詢不執行效果、不改變正式戰鬥狀態、不消耗亂數；暫時套用的 Context 在同步查詢後還原，不跨 UI 等待保存。
+
+全部步驟確認後，Model 以 ValidateComplete 重新驗證主目標、群組、結果型別、候選及數量。非法、重複、缺漏或過期結果會拒絕整次操作，不自動修剪。未選群組與已確認的空群組有不同語意，草稿及提交契約見 [Action](Action.md#選取草稿與提交)。這些純查詢可供未來預覽使用；完整傷害預覽仍歸 T-014。
+
+目前只支援 ExistCard。NewCard／NewPartialCard／NewEffect 是預留結構，尚不建立可執行選取結果；後續功能範圍見 [TODO](TODO.md)。
 
 AI 自動選取不是純 Target 查詢；主目標以顯式玩家決定相對敵我視角，候選範圍與 First／Random 挑選策略分開配置，見 [GameModel](GameModel.md)。
 

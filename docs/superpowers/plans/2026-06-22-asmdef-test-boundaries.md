@@ -1,15 +1,16 @@
-# MortalGame asmdef 與測試邊界 Implementation Plan
+# MortalGame asmdef 與測試邊界實作計畫
 
 > **歷史計畫備註：** 本文件記錄已完成的 asmdef 邊界工作；checkbox 僅保留作為歷史驗收紀錄，不是目前待辦。
 
-**Goal:** 建立 Runtime、Editor、EditMode Tests 與 PlayMode Tests 四個 Unity 程序集邊界，並以 Unity 正式編譯確認 0 error。
+**目標：** 建立 Runtime、Editor、EditMode Tests 與 PlayMode Tests 四個 Unity 程序集邊界，並以 Unity 正式編譯確認 0 error。
 
-**Architecture:** 先以單一 `MortalGame.Runtime` 包住現有執行期程式，避免 GameData 與 GameModel 現有反向依賴形成循環。Editor 與兩種測試程序集只引用 Runtime；本次不修改 `.cs`、不拆分業務模組，也不新增測試案例。
+**架構：** 先以單一 `MortalGame.Runtime` 包住現有執行期程式，避免 GameData 與 GameModel 現有反向依賴形成循環。Editor 與兩種測試程序集只引用 Runtime；本次不修改 `.cs`、不拆分業務模組，也不新增測試案例。
 
-**Tech Stack:** Unity 6000.0.3f1、Unity Assembly Definition、Unity Test Framework 1.4.4、UniTask、UniRx
+**技術：** Unity 6000.0.3f1、Unity Assembly Definition、Unity Test Framework 1.4.4、UniTask、UniRx
 
 > **狀態：✅ 已完成（2026-06-22）**
 >
+> 現行程序集已經過 T-007 模組拆分，見 [系統架構](../../../Document/SystemArchitecture.md)。
 > 本文件是歷史實作計畫，不是目前待辦。四套 asmdef 已建立並持續存在；實際的
 > `rootNamespace`、references 與測試程序集設定以 `Assets/` 下現行 JSON 為準，後續若要拆分
 > Runtime 模組，請另建新的工作計畫。

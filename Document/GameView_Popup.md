@@ -1,6 +1,6 @@
 # Popup 彈窗互動
 
-> 核對日期：2026-09-19
+> 核對日期：2026-11-12
 
 Popup 顯示臨時互動內容；Presenter 非同步等待操作，完成或取消時清理面板及訂閱。
 
@@ -12,9 +12,17 @@ Popup 顯示臨時互動內容；Presenter 非同步等待操作，完成或取�
 
 ## 子選取
 
-[CardSelectionPanel](../Assets/Scripts/GameView/Panel/Popup/CardSelectionPanel.cs) 呈現候選卡、已選項與確認狀態。[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 已能逐群組處理 ExistCard，依群組 ID 回傳結果。
+[CardSelectionFlow](../Assets/Scripts/Presenter/Gameplay/CardSelectionFlow.cs) 管理多步驟草稿及逐步查詢；[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 只處理單一步驟。[CardSelectionPanel](../Assets/Scripts/GameView/Panel/Popup/CardSelectionPanel.cs) 呈現候選、選中標記、提示與確認狀態。
 
-必選時不能直接關閉，須達指定數量；非必選可提早結束。目前尚無完整的候選不足、整次出牌取消與新卡／效果片段選取契約，因此不等同 T-011 已完成，見 [TODO](TODO.md)。
+關閉任一步都會取消整次出牌，必選也能取消；確認按鈕只有在數量合法時可用。Optional 可確認零張，與取消不同。前一步只保存結果，全部完成並通過 Model 重驗後才正式出牌。數量與候選不足的完整規則集中於 [Target](Target.md#數量與候選不足)。
+
+固定按鈕由 Presenter 訂閱，隨 Run 結束清理；收合及卡片詳情不推進步驟。詳情等待期間不處理底層選取操作。NewCard／NewPartialCard／NewEffect 仍未實作；T-011 的完成範圍與驗收紀錄見 [任務封存](TODO_Archive.md#t-011多步驟自訂目標選取已完成)。
+
+## 文字警告
+
+[WarningPopupPresenter](../Assets/Scripts/Presenter/Gameplay/WarningPopupPresenter.cs) 接收 GameplayPresenter 已轉譯的失敗文字，開啟獨立 [WarningPopupPanel](../Assets/Scripts/GameView/Panel/Popup/WarningPopupPanel.cs)，等待關閉後清理訂閱與畫面。警告不借用選卡面板；正式提交被拒絕時，等待警告關閉後才處理恢復互動事件。
+
+目前 [WarningPopup Prefab](../Assets/Prefab/UI/OverlayCanvas/WarningPopup.prefab) 與 [Gameplay 場景](../Assets/Scenes/Gameplay.unity) 已有序列化接線，場景實例預設停用；本輪僅靜態核對，未驗收實際排版及點擊。
 
 ## 勝負結果
 

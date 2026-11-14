@@ -12,6 +12,7 @@
 - 臨時設計與分析放在 .agents/working/，不混入 Document，也不納入 Git；長期偏好記錄於 .agents/memory.md。
 - 除非明確要求，不 stage、commit 或 unstage 使用者的變更。
 - 修改 Assets/Scripts 下 C# 後依專案指令執行 Unity 刷新／重新編譯，修正至 0 error，並回報 warning。
+- 任務最後驗收時，依功能評估是否適合由 AI 批次製作單一功能測試卡或其他最小測試資產，交給使用者直接 Play 確認；製作與清理遵循 [臨時功能驗收資產](GameData_Asset_Guidelines.md#臨時功能驗收資產)。
 - 交付說明變更、驗證範圍、未解限制及 Git 狀態。既有測試紀錄不冒充本輪驗證。
 
 ## 逐步工作與續接

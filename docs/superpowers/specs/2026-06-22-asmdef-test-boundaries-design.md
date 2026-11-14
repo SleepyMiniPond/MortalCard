@@ -1,6 +1,7 @@
 # MortalGame asmdef 與測試邊界設計
 
 > 設計日期：2026-06-22
+> 歷史設計：初期四程序集邊界已建立，後續 T-007 已再拆出 UI、Presentation Abstractions、GameView、Presenter 與 Scene。本文的「不拆分」及 Data 建立 Entity 描述僅代表當時背景；現況見 [系統架構](../../../Document/SystemArchitecture.md)，實際依賴以現行 asmdef 為準。
 
 ## 目標
 

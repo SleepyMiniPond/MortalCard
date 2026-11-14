@@ -20,9 +20,11 @@ namespace MortalGame.GameView
 
         public T CreatePrefab()
         {
-            if (_pool.Count > 0)
+            while (_pool.Count > 0)
             {
-                return _pool.Pop();
+                var view = _pool.Pop();
+                if (view != null)
+                    return view;
             }
 
             return Instantiate(_prefab, transform);
@@ -30,6 +32,15 @@ namespace MortalGame.GameView
 
         public void RecyclePrefab(T view)
         {
+            // 停止 Play 或卸載場景後，動畫的 finally 仍可能回到此處。
+            if (view == null)
+                return;
+            if (this == null || _recycleRoot == null)
+            {
+                Destroy(view.gameObject);
+                return;
+            }
+
             view.Reset();
             view.transform.SetParent(_recycleRoot, false);
             _pool.Push(view);

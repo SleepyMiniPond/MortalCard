@@ -66,6 +66,56 @@ namespace MortalGame.Tests
         }
 
         [Test]
+        public void SubmitInteractable_LiveButtonCanBeDisabledAndEnabled()
+        {
+            var submit = _root.AddComponent<SubmitView>();
+            var button = _root.AddComponent<Button>();
+            _Set(submit, "_submitButton", button);
+
+            submit.SetInteractable(false);
+            Assert.IsFalse(button.interactable);
+            submit.SetInteractable(true);
+            Assert.IsTrue(button.interactable);
+        }
+
+        [TestCase(0)]
+        [TestCase(1)]
+        [TestCase(2)]
+        [TestCase(3)]
+        public void DisableAfterControlsDestroyed_CompletesRemainingCleanup(int destroyedTarget)
+        {
+            var view = _root.AddComponent<GameplayView>();
+            var submit = _root.AddComponent<SubmitView>();
+            var button = _root.AddComponent<Button>();
+            _Set(submit, "_submitButton", button);
+            _Set(view, "_submitView", submit);
+            _Set(view, "_allyHandCardView", _hand);
+            _Set(view, "_gameViewModel", new GameViewModel());
+            var handleLifetime = new Disposal();
+            var dragLifetime = new Disposal();
+            _Get(_hand, "_handleSubscription").GetType().GetProperty("Disposable")
+                .SetValue(_Get(_hand, "_handleSubscription"), handleLifetime);
+            _Get(_hand, "_dragSubscription").GetType().GetProperty("Disposable")
+                .SetValue(_Get(_hand, "_dragSubscription"), dragLifetime);
+
+            // 分別模擬按鈕、SubmitView、手牌 View 或整個戰鬥 View 先被銷毀。
+            switch (destroyedTarget)
+            {
+                case 0: UnityEngine.Object.DestroyImmediate(button); break;
+                case 1: UnityEngine.Object.DestroyImmediate(submit); break;
+                case 2: UnityEngine.Object.DestroyImmediate(_hand); break;
+                case 3: UnityEngine.Object.DestroyImmediate(_root); break;
+            }
+
+            Assert.DoesNotThrow(() => view.DisableAllInteraction());
+            Assert.DoesNotThrow(() => view.DisableAllInteraction());
+            Assert.IsTrue(handleLifetime.IsDisposed);
+            Assert.IsTrue(dragLifetime.IsDisposed);
+            if (button != null && submit != null)
+                Assert.IsFalse(button.interactable);
+        }
+
+        [Test]
         public void Release_SkipsSelfAndWrongType_UsesFirstMatchingTarget()
         {
             var wrong = new Target(_CreateRect(), TargetType.AllyCharacter);

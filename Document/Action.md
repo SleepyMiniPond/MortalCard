@@ -1,6 +1,6 @@
 # Action 與反應上下文
 
-> 核對日期：2026-09-28
+> 核對日期：2026-10-15
 
 Action 描述意圖、目標或已發生的結果，Effect Command 才是狀態變更指令。Action 多以 Record 表達，但其中可參考可變 Entity／屬性容器，不代表整張物件圖不可變。
 
@@ -21,6 +21,14 @@ ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可�
 [TriggerContext](../Assets/Scripts/GameModel/Action/TriggerSource.cs) 沿衍生反應保留最初 ReactionOriginAction／Timing，避免後續效果失去根源。Buff Trigger 保存宿主，不能以 CurrentPlayer 或覆寫 Selected 目標代替。
 
 每次出牌或 Invoke 會建立完整且獨立的選取作用域；主目標與 ExistCard 群組結果在結算結束後一併還原，不沿用上一張牌的 Selected 欄位。群組結果以不可變卡片 Identity 集合保存，Effect 於執行時再解析仍存在的卡片。
+
+## 選取草稿與提交
+
+玩家選取期間由 CardSelectionDraft 保存卡片、施放者、主目標及已確認群組。確認一步只保存結果快照，不扣費、搬牌或執行效果；尚未確認的群組不寫入字典，已確認零張則保留空結果。
+
+完整結果透過 UseCardAction.SubSelectionActions 交給 Model；目前 ExistCardSubSelectionAction 保存既有卡片 Identity，群組依字串 ID 識別。Model 重驗當下卡牌配置、候選及數量後，才建立 SelectedCardGroups 作用域並進入出牌核心；沒有另外比對選取開始時的 CardData ID。取消任一步放棄整份草稿，結果失效時拒絕整次操作，詳見 [Target](Target.md#逐步查詢與完整驗證)。
+
+玩家透過 UI 建立草稿；敵方、PlayCardEffect 與 InvokeCardEffects 透過相同步驟自動建立結果。Invoke 也建立自己的選取作用域，但沒有正式出牌 Action 的支付及離場語意。
 
 ## 原地卡效與預覽來源
 

@@ -1,6 +1,6 @@
 # GameModel 核心遊戲邏輯
 
-> 核對日期：2026-10-03
+> 核對日期：2026-10-15
 
 GameModel 管理戰鬥規則與可變實體，不依賴 View。Model 聚合事件，由 Presenter 取出並交給畫面；目前不是可用事件還原整場戰鬥的事件溯源系統。
 
@@ -36,6 +36,8 @@ Executor 將事件記入傳入的 CardPlayChain，效果及時機沿用 Model �
 [UseCardLogic](../Assets/Scripts/GameModel/EnemyLogic/UseCardLogic.cs) 依可負擔費用選牌；[SelectTargetLogic](../Assets/Scripts/GameModel/EnemyLogic/SelectTargetLogic.cs) 負責目標。自動主目標使用顯式選取視角；候選範圍以 ToAlly／ToEnemy／Any 表達，First／Random 為獨立挑選策略。主目標 Context 建立後才計算 ExistCard 子選取，Random 與子選取共用戰鬥亂數。
 
 [GameRandom](../Assets/Scripts/GameModel/GameRandom.cs) 由戰鬥種子建立並注入。固定種子與相同操作可重現已接入的亂數流程，但不代表重播功能已完成。
+
+敵方、間接出牌與 Invoke 共用 SelectTargetLogic 的逐步選取，完整結果須通過 CardSelectionQuery.ValidateComplete 才建立效果 Context。選取查詢本身不消耗亂數，只有實際自動挑選消耗戰鬥亂數；任一步不成立便略過該次嘗試。數量與候選不足規則見 [Target](Target.md#數量與候選不足)。玩家 UI 由 CardSelectionFlow 收集結果，再提交相同的完整驗證。
 
 選取入口必須傳入 caster，主目標、ExistCard 候選與數量查詢沿用同一視角；正式出牌傳出牌玩家，Invoke 傳本次施放者，不以可省略的 null 猜測卡片持有者。原地卡效的施放者與略過條件見 [Effect](Effect.md#原地卡效-invokecardeffects)。
 

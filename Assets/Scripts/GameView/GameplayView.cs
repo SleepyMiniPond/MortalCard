@@ -250,12 +250,14 @@ namespace MortalGame.GameView
         public void DisableAllHandCards()
         {
             _gameViewModel.DisableHandCardsAction();
-            _allyHandCardView.DisableAllHandCardsAction();
+            if (_allyHandCardView != null)
+                _allyHandCardView.DisableAllHandCardsAction();
         }
         public void DisableAllInteraction()
         {
             DisableAllHandCards();
-            _submitView.SetInteractable(false);
+            if (_submitView != null)
+                _submitView.SetInteractable(false);
             // TODO: disable other interaction
         }
 

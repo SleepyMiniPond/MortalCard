@@ -1,6 +1,6 @@
 # Card 卡牌系統
 
-> 核對日期：2026-09-28
+> 核對日期：2026-10-15
 
 卡牌分為設計配置 CardData、跨戰鬥 CardInstance、本場戰鬥 CardEntity。移牌與變形保留 Entity Identity；Runtime 建立及 Clone 的卡片沒有來源 Instance。形態規則見 [CardTransformation](CardTransformation.md)，資料轉換見 [CardEntity](../Assets/Scripts/GameModel/Entity/Card/CardEntity.cs)。
 
@@ -43,6 +43,8 @@ Consumable 不等於可重複打出。Sealed 可來自卡片屬性或 CardBuff�
 
 InvokeCardEffects 可借用指定卡片的一次普通 Effects，但不代表出牌，也不派送出牌生命週期。牌區、施放者、選取與巢狀執行規則集中於 [原地卡效](Effect.md#原地卡效-invokecardeffects)。
 
-主目標宣告可互動對象；子選取已有依群組逐次處理 ExistCard 的基礎。NewCard／NewPartialCard／NewEffect 仍是預留結構，多步驟取消、不足及 Model 消費契約尚未完整，見 T-011。選取宣告見 [TargetSelectable](../Assets/Scripts/GameModel/Target/TargetSelectable.cs)，UI 處理見 [SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs)。
+主目標宣告可互動對象；ExistCard 已接入玩家 UI、敵方、PlayCardEffect 與 InvokeCardEffects 的多步驟選取，共用順序、數量與完整結果驗證。玩家關閉任一步取消整次出牌；自動入口選取不成立時略過該次操作。規則見 [Target](Target.md#選取與查詢分離)，草稿與消費見 [Action](Action.md#選取草稿與提交)，UI 分工見 [Presenter](Presenter.md#輸入與選取)。
+
+NewCard／NewPartialCard／NewEffect 仍為預留結構，未提供可執行選取；PartialCard、效果片段及卡片合成依 [TODO](TODO.md) 後續安排。本次選取契約也不代表傷害預覽已完成。
 
 屬性 Entity 由 [CardPropertyEntityFactory](../Assets/Scripts/GameModel/Factory/CardPropertyEntityFactory.cs) 建立；卡牌修正器見 [CardBuff](CardBuff.md)。

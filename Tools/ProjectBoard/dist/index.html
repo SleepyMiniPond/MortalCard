@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="MortalGame 個人專案進度、任務步驟與系統筆記。">
+  <title>MortalGame · 專案進度</title>
+  <link rel="stylesheet" href="style.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <aside class="sidebar">
+    <a class="brand" href="#home" aria-label="專案進度首頁"><span class="brand-mark">M</span><span>MortalGame<small>專案進度看板</small></span></a>
+    <nav aria-label="主要導覽">
+      <a href="#home" data-page="home"><span aria-hidden="true">⌂</span> 進度總覽</a>
+      <a href="#work" data-page="work"><span aria-hidden="true">▣</span> 目前工作 <small id="work-count"></small></a>
+      <a href="#tasks" data-page="tasks"><span aria-hidden="true">▤</span> 任務與步驟 <small id="pending-count"></small></a>
+      <a href="#systems" data-page="systems"><span aria-hidden="true">◇</span> 系統地圖</a>
+      <a href="#history" data-page="history"><span aria-hidden="true">◷</span> 已完成任務</a>
+      <a href="#notes" data-page="notes"><span aria-hidden="true">▧</span> 專案筆記</a>
+    </nav>
+    <div class="sidebar-bottom"><div><span class="local-dot"></span> 本機唯讀服務</div><span id="source-date"></span></div>
+  </aside>
+  <div class="workspace">
+    <header class="topbar"><div><span class="crumb">MortalCard</span><span class="slash">/</span><span id="breadcrumb">進度總覽</span></div><div class="reader-controls"><a href="#notes/SystemArchitecture.md" class="quiet-link">架構總覽</a><button id="reload-project" class="button secondary-button">重新讀取</button></div></header>
+    <p id="reader-status" role="status" aria-live="polite"></p>
+    <main id="main" tabindex="-1"></main>
+    <footer>資料來源：Document 與目前工作索引<span>文件更新後可按「重新讀取」</span></footer>
+  </div>
+  <dialog id="detail" aria-labelledby="detail-title"><div class="dialog-top"><span id="detail-eyebrow"></span><button class="icon-button" id="close-detail" aria-label="關閉詳細內容">×</button></div><div id="detail-body"></div></dialog>
+  <noscript>請啟用 JavaScript 以閱讀本機進度看板。</noscript>
+</body>
+</html>

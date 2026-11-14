@@ -1,6 +1,6 @@
 # AI 工作記憶
 
-> 最後更新：2026-09-05
+> 最後更新：2026-11-14
 
 ## 文件與草稿偏好
 
@@ -23,6 +23,10 @@
 
 ## 工作計畫與對話銜接偏好
 
+- 2026-11-13：使用本機唯讀閱讀器查看 Document 與目前草稿／計畫；不為閱讀器維護第二份進度或要求 Document 同步快照。
+- `.agents/working/目前工作.md` 只索引當前檔案；每次推進、驗證或使用者確認後，先更新原計畫中的最近完成、目前步驟、下一步、狀態、驗證與待確認事項，使閱讀器呈現相同資訊。
+- 閱讀器文案直接描述資訊與操作，不使用情緒標語；內文 18px，輔助資訊至少 16px。
+
 - 工作計畫 Markdown 已產出後，若使用者要求一次一個步驟，AI 應只處理目前步驟。
 - 每次交付要明確說明「目前完成第 N 個工作，下一步是第 N+1 個工作」。
 - AI 完成實作與驗證時先記為「待使用者確認」；使用者確認 OK 後，才立即在計畫中標示「已完成」並推進下一步狀態。
@@ -31,12 +35,13 @@
 
 ## 目前工作脈絡
 
-- 專案已加入 asmdef 基礎：`MortalGame.Runtime`、`MortalGame.Editor`、EditMode Tests、PlayMode Tests。
-- asmdef 後的建議下一步是先補核心 EditMode 測試基礎，而不是急著切更多程序集。
-- 第一批測試應優先保護 Effect Resolver / Command Handler registry，以及後續 T-003、T-015 會碰到的核心契約。
+- 目前任務狀態以 Document/TODO.md 與 .agents/working/目前工作.md 指向的原計畫為準，不在長期記憶複製進度。
+- 早期 asmdef／測試基礎的下一步建議已屬歷史，不可當成目前排期。
 
 ## Unity 驗證偏好
 
+- 2026-11-14：使用者肯定由 AI 批次製作單一功能測試卡，交由使用者直接 Play 驗收的方式。未來每項任務最後驗收時依功能評估是否適用，適合就主動準備最小測試卡／資產與可用入口，無須使用者花時間手動製卡；不要求每個任務一律製卡。
+- 測試數值以容易觀察為主，不考慮平衡與正式效果敘述；資產獨立、可整包刪除，提供預期與異常判準。驗收後清除臨時資產，保留正式修正與回歸測試，不只加 ignore。完整流程見 Document/GameData_Asset_Guidelines.md「臨時功能驗收資產」。
 - 本專案需要 Unity 驗證、AssetDatabase refresh、編譯檢查或 EditMode/PlayMode 測試時，優先使用 Unity MCP，連到使用者已開啟的 Unity Editor。
 - 若原生 MCP tool 沒有直接暴露，改用 `unity-mcp-cli run-tool ...` 呼叫 MCP，例如 `unity-mcp-cli run-tool tests-run --input-file <json>`。
 - 不要優先使用 Unity `-batchmode` 開第二個 Editor；本專案常態會有 Unity Editor 開著，batchmode 容易被 project lock 擋住。

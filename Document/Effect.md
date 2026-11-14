@@ -1,6 +1,6 @@
 # Effect 效果管線
 
-> 核對日期：2026-09-28
+> 核對日期：2026-10-15
 
 Effect 將宣告式資料轉成狀態變更：Resolver 解析目標與數值 → Command 表達操作 → Queue 安排順序 → Handler 套用狀態並產生結果與事件。
 
@@ -40,7 +40,7 @@ Invoke 是「借用卡片的普通效果」，不是正式出牌。`TargetCards`
 
 呼叫本身不搬牌、不付費、不檢查 Sealed、不套用 EffectRepeat，也不產生 UsedCardEvent、Played／EffectPlayed、正式出牌前後時機、Recycle 或出牌離場。普通效果本身若會移牌、消耗能量或提交 PlayCardEffect，仍照原規則執行。
 
-自動主目標、ExistCard 候選與選取數量皆使用明確傳入的 caster；必要主目標選不到、施放者無法解析，或遇到未支援的子選取類型時略過該次呼叫。沒有主選取需求可正常執行；ExistCard 候選不足取可達數量。一次呼叫的所有普通效果共用同一份完整選取結果。
+自動主目標、ExistCard 候選與選取數量皆使用明確傳入的 caster；依序選取並重驗完整結果後，才展開被呼叫卡片的普通效果。必要主目標選不到、施放者無法解析、任一步不成立，或遇到未支援的子選取類型時，略過該次呼叫；RequiredExact 候選不足也不執行普通效果。沒有選取需求可正常執行，一次呼叫的所有普通效果共用同一份完整結果。數量模式見 [Target](Target.md#數量與候選不足)，Invoke 不開啟玩家選取 UI。
 
 | 發起情境 | 本次 Invoke 的 caster |
 |---|---|

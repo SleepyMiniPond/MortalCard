@@ -15,15 +15,22 @@ namespace MortalGame.GameView
 
         public async UniTask PlayAnimation(CancellationToken cancellationToken)
         {
+            using var animationCancellation = CancellationTokenSource.CreateLinkedTokenSource(
+                cancellationToken, this.GetCancellationTokenOnDestroy());
+            var token = animationCancellation.Token;
+            token.ThrowIfCancellationRequested();
             gameObject.SetActive(true);
             try
             {
-                await _playableDirector.PlayAsync(cancellationToken);
+                await _playableDirector.PlayAsync(token);
             }
             finally
             {
-                _playableDirector.Stop();
-                gameObject.SetActive(false);
+                // 場景卸載可能先銷毀 Director 或特效，再恢復非同步清理。
+                if (_playableDirector != null)
+                    _playableDirector.Stop();
+                if (this != null)
+                    gameObject.SetActive(false);
             }
         }
 

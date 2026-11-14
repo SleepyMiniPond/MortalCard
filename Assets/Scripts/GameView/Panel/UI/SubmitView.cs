@@ -12,7 +12,12 @@ namespace MortalGame.GameView
         [SerializeField]
         private Button _submitButton;
 
-        public void SetInteractable(bool interactable) => _submitButton.interactable = interactable;
+        public void SetInteractable(bool interactable)
+        {
+            // 場景關閉時，Presenter 的清理可能晚於按鈕銷毀。
+            if (_submitButton != null)
+                _submitButton.interactable = interactable;
+        }
 
         public void Init(IGameplayActionReciever reciever)
         {
