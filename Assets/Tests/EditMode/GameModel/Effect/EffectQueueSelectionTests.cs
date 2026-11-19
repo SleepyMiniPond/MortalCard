@@ -167,7 +167,9 @@ namespace MortalGame.Tests
         {
             return new GameContext(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(),
                 ImmutableDictionary<string, ImmutableArray<Guid>>.Empty
-                    .Add("selected", ImmutableArray.Create(Guid.NewGuid())));
+                    .Add("selected", ImmutableArray.Create(Guid.NewGuid())),
+                ImmutableDictionary<string, string>.Empty,
+                ImmutableDictionary<string, SelectedCardEffect>.Empty);
         }
 
         private sealed record CallbackItem(Action<IEffectQueueContext> Callback) : EffectQueueItem((TriggerContext)null)

@@ -8,7 +8,7 @@ using UnityEditor;
 
 namespace MortalGame.Editor
 {
-    public static class GameDataValidator
+    public static partial class GameDataValidator
     {
         public static IReadOnlyList<string> ValidateAll()
         {
@@ -58,6 +58,7 @@ namespace MortalGame.Editor
                 var context = $"{AssetDatabase.GetAssetPath(asset)} / CardData";
                 _ValidateCommonNestedSemantics(asset.CardData, context, errors);
                 _ValidateCardNestedSemantics(asset.CardData, context, errors);
+                _ValidateCardComposition(asset.CardData, context, catalog, errors);
             }
 
             foreach (var asset in catalog.CardBuffAssets.Where(asset => asset != null))
@@ -141,6 +142,14 @@ namespace MortalGame.Editor
                 localizationData.LocalizeUI,
                 nameof(ExcelDatas.LocalizeUI),
                 errors);
+
+            var uiKeys = (localizationData.LocalizeUI ?? new List<LocalizeExcelData>())
+                .Where(row => row != null).Select(row => row.Id).ToHashSet();
+            foreach (var asset in catalog.CardAssets.Where(asset => asset != null))
+                _ValidateLocalizationKeys(
+                    SerializedDataGraphUtility.Find<CardEffectOption>(asset.CardData)
+                        .Select(option => (option.DescriptionKey, $"CardData[{asset.CardData?.ID}] 的 CardEffectOption.DescriptionKey")),
+                    uiKeys, nameof(ExcelDatas.LocalizeUI), errors);
 
             _ValidateLocalizationKeys(
                 catalog.CardAssets
@@ -911,6 +920,14 @@ namespace MortalGame.Editor
                 return;
             }
 
+            foreach (var option in SerializedDataGraphUtility.Find<CardEffectOption>(cardData))
+            {
+                foreach (var effect in option.Effects ?? Enumerable.Empty<ICardEffect>())
+                    ValidateCardEffectResolver(effect, $"{assetPath} / 選項[{option.Id}].Effects", errors);
+                foreach (var pair in option.TriggeredEffects ?? new Dictionary<CardTriggeredTiming, ConditionalCardEffect[]>())
+                    foreach (var item in pair.Value ?? Array.Empty<ConditionalCardEffect>())
+                        ValidateCardEffectResolver(item?.Effect, $"{assetPath} / 選項[{option.Id}].TriggeredEffects", errors);
+            }
             foreach (var effect in cardData.Effects ?? Enumerable.Empty<ICardEffect>())
                 ValidateCardEffectResolver(effect, $"{assetPath} / CardData[{cardData.ID}].Effects", errors);
 
@@ -1157,6 +1174,14 @@ namespace MortalGame.Editor
 
         private static IEnumerable<ICardEffect> EnumerateCardEffects(CardData cardData)
         {
+            foreach (var option in SerializedDataGraphUtility.Find<CardEffectOption>(cardData))
+            {
+                foreach (var effect in option.Effects ?? Enumerable.Empty<ICardEffect>())
+                    yield return effect;
+                foreach (var pair in option.TriggeredEffects ?? new Dictionary<CardTriggeredTiming, ConditionalCardEffect[]>())
+                    foreach (var effect in pair.Value ?? Array.Empty<ConditionalCardEffect>())
+                        if (effect?.Effect != null) yield return effect.Effect;
+            }
             foreach (var effect in cardData.Effects ?? Enumerable.Empty<ICardEffect>())
                 yield return effect;
 
@@ -1296,7 +1321,8 @@ namespace MortalGame.Editor
                 if (!string.IsNullOrWhiteSpace(group.Id))
                     precedingIds.Add(group.Id);
             }
-            foreach (var selectedCards in SerializedDataGraphUtility.Find<SubSelectedCardCollection>(cardData))
+            foreach (var selectedCards in SerializedDataGraphUtility.Find<SubSelectedCardCollection>(
+                cardData, value => value is not CardEffectOption))
             {
                 if (!string.IsNullOrWhiteSpace(selectedCards.SelectionId) &&
                     !existCardIds.Contains(selectedCards.SelectionId))
@@ -1783,6 +1809,8 @@ namespace MortalGame.Editor
             {
                 if (Convert.ToInt32(timing) == 0)
                     errors.Add($"{context} 的 Timing 不可為 None");
+                else if (!Enum.IsDefined(typeof(T), timing))
+                    errors.Add($"{context} 的 Timing 無效：{timing}");
             }
         }
 

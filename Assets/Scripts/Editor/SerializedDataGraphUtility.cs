@@ -21,11 +21,11 @@ namespace MortalGame.Editor
             return errors;
         }
 
-        public static IReadOnlyList<T> Find<T>(object root)
+        public static IReadOnlyList<T> Find<T>(object root, Func<object, bool> descend = null)
         {
             var results = new List<T>();
             var visited = new HashSet<object>(ReferenceComparer.Instance);
-            _Find(root, visited, results);
+            _Find(root, visited, results, descend);
             return results;
         }
 
@@ -87,9 +87,10 @@ namespace MortalGame.Editor
         private static void _Find<T>(
             object value,
             ISet<object> visited,
-            ICollection<T> results)
+            ICollection<T> results,
+            Func<object, bool> descend)
         {
-            if (value == null || value is UnityEngine.Object)
+            if (value == null || value is UnityEngine.Object || descend != null && !descend(value))
                 return;
 
             if (value is T match)
@@ -101,14 +102,14 @@ namespace MortalGame.Editor
             if (value is IDictionary dictionary)
             {
                 foreach (DictionaryEntry entry in dictionary)
-                    _Find(entry.Value, visited, results);
+                    _Find(entry.Value, visited, results, descend);
                 return;
             }
 
             if (value is IEnumerable enumerable)
             {
                 foreach (var item in enumerable)
-                    _Find(item, visited, results);
+                    _Find(item, visited, results, descend);
                 return;
             }
 
@@ -116,7 +117,7 @@ namespace MortalGame.Editor
                 BindingFlags.Instance | BindingFlags.Public))
             {
                 if (field.FieldType != typeof(string))
-                    _Find(field.GetValue(value), visited, results);
+                    _Find(field.GetValue(value), visited, results, descend);
             }
         }
 

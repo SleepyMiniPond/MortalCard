@@ -8,6 +8,8 @@
   let pending = [], completed = [], current, next;
   let loading = false;
   const dialog = document.querySelector('#detail');
+  let pageOutlineCleanup = () => {};
+  let dialogOutlineCleanup = () => {};
   let lastFocus;
   const badge = status => `<span class="badge ${status}">${status === 'done' ? '✓ ' : status === 'active' ? '● ' : ''}${labels[status]}</span>`;
   const taskButton = (task, className, body) => `<button class="${className}" data-task="${task.id}">${body}</button>`;
@@ -39,6 +41,7 @@
   function markdown(text, source = 'TODO.md') {
     const lines = text.split('\n');
     const output = [];
+    const usedIds = new Set();
     for (let index = 0; index < lines.length;) {
       const line = lines[index];
       if (!line.trim()) { index++; continue; }
@@ -49,7 +52,15 @@
         output.push(`<pre><code>${escape(code.join('\n'))}</code></pre>`); index++; continue;
       }
       const title = line.match(/^(#{1,6}) (.+)$/);
-      if (title) { const level = title[1].length; output.push(`<h${level} id="${escape(slug(title[2]))}">${inline(title[2], source)}</h${level}>`); index++; continue; }
+      if (title) {
+        const level = title[1].length;
+        const base = slug(title[2]) || 'section';
+        let id = base;
+        for (let suffix = 1; usedIds.has(id); suffix++) id = `${base}-${suffix}`;
+        usedIds.add(id);
+        output.push(`<h${level} id="${escape(id)}">${inline(title[2], source)}</h${level}>`);
+        index++; continue;
+      }
       if (/^\|/.test(line)) {
         const rows = [];
         while (index < lines.length && /^\|/.test(lines[index])) rows.push(lines[index++]);
@@ -75,24 +86,130 @@
     return output.join('');
   }
 
+  function mountOutline(content, layout, scrollRoot = window) {
+    const headings = [...content.querySelectorAll('h1,h2,h3,h4,h5,h6')];
+    if (headings.length < 2) return () => {};
+    const usedIds = new Set();
+    headings.forEach((title, index) => {
+      const base = title.id || `section-${index + 1}`;
+      let id = base;
+      for (let suffix = 1; usedIds.has(id); suffix++) id = `${base}-${suffix}`;
+      usedIds.add(id); title.id = id;
+    });
+    const minimumLevel = Math.min(...headings.map(title => Number(title.tagName.slice(1))));
+    const outline = document.createElement('aside');
+    outline.className = 'document-outline';
+    const panel = document.createElement('details');
+    panel.className = 'outline-panel';
+    panel.open = !window.matchMedia('(max-width: 999px)').matches;
+    panel.innerHTML = '<summary>段落目錄</summary><nav aria-label="段落目錄"></nav>';
+    outline.append(panel); layout.append(outline);
+    const nav = panel.querySelector('nav');
+    const buttons = headings.map(title => {
+      const button = document.createElement('button');
+      button.type = 'button'; button.className = 'outline-link';
+      button.textContent = title.textContent;
+      button.style.setProperty('--heading-depth', Number(title.tagName.slice(1)) - minimumLevel);
+      nav.append(button); return button;
+    });
+    const isDialog = scrollRoot !== window;
+    let frame = 0;
+    let selected = -1;
+    function updateActive() {
+      frame = 0;
+      if (!layout.isConnected || (isDialog && !dialog.open)) return;
+      const threshold = isDialog
+        ? dialog.getBoundingClientRect().top + Math.max(document.querySelector('.dialog-top').offsetHeight + 24, parseFloat(getComputedStyle(headings[0]).scrollMarginTop) || 0) + 2
+        : 32;
+      const visible = headings.map((title, index) => ({ title, index })).filter(({ title }) => title.getClientRects().length);
+      let active = visible[0]?.index ?? 0;
+      for (const item of visible) if (item.title.getBoundingClientRect().top <= threshold) active = item.index;
+      const atEnd = isDialog ? scrollRoot.scrollTop + scrollRoot.clientHeight >= scrollRoot.scrollHeight - 2 : window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2;
+      if (atEnd && visible.length) active = visible.at(-1).index;
+      if (active === selected) return;
+      selected = active;
+      buttons.forEach((button, index) => {
+        button.classList.toggle('current', index === active);
+        if (index === active) button.setAttribute('aria-current', 'location');
+        else button.removeAttribute('aria-current');
+      });
+      // 只捲動目錄自己的容器，不讓目前段落標示拉動文章。
+      if (panel.open) {
+        const buttonBox = buttons[active].getBoundingClientRect();
+        const navBox = nav.getBoundingClientRect();
+        if (buttonBox.top < navBox.top) nav.scrollTop -= navBox.top - buttonBox.top;
+        else if (buttonBox.bottom > navBox.bottom) nav.scrollTop += buttonBox.bottom - navBox.bottom;
+      }
+    }
+    const schedule = () => { if (!frame) frame = requestAnimationFrame(updateActive); };
+    function navigate(event) {
+      const button = event.target.closest('.outline-link');
+      const index = buttons.indexOf(button);
+      if (index < 0) return;
+      const title = headings[index];
+      for (let parent = title.parentElement; parent && content.contains(parent); parent = parent.parentElement) {
+        if (parent instanceof HTMLDetailsElement) parent.open = true;
+      }
+      if (window.matchMedia('(max-width: 999px)').matches) panel.open = false;
+      title.setAttribute('tabindex', '-1');
+      title.focus({ preventScroll: true });
+      title.scrollIntoView({ block: 'start', behavior: 'instant' });
+      updateActive();
+    }
+    nav.addEventListener('click', navigate);
+    scrollRoot.addEventListener('scroll', schedule, { passive: true });
+    content.addEventListener('toggle', schedule, true);
+    window.addEventListener('resize', schedule);
+    schedule();
+    return () => {
+      cancelAnimationFrame(frame);
+      nav.removeEventListener('click', navigate);
+      scrollRoot.removeEventListener('scroll', schedule);
+      content.removeEventListener('toggle', schedule, true);
+      window.removeEventListener('resize', schedule);
+    };
+  }
+
+  function pageOutline() {
+    pageOutlineCleanup();
+    const article = main.querySelector(':scope > .reading');
+    const layout = document.createElement('div');
+    layout.className = 'reading-layout';
+    const content = article || document.createElement('div');
+    content.classList.add('reading-content');
+    if (article) article.replaceWith(layout);
+    else { content.append(...main.childNodes); main.append(layout); }
+    layout.append(content);
+    pageOutlineCleanup = mountOutline(content, layout);
+    if (!layout.querySelector('.document-outline')) layout.classList.add('without-outline');
+  }
+
   function stepList(task) {
     return `<ol class="steps">${task.steps.map((step, index) => `<li class="step ${step.status}"><span class="step-marker">${step.status === 'done' ? '✓' : index + 1}</span><div><strong>${escape(step.title.replace(/^\d+\. /, ''))}</strong><small>${escape(step.detail)}</small></div></li>`).join('')}</ol>`;
   }
   function showTask(id) {
     const task = data.tasks.find(task => task.id === id);
     if (!task) return;
+    dialogOutlineCleanup();
     lastFocus = document.activeElement;
     document.querySelector('#detail-eyebrow').textContent = `${task.id} / 任務詳細`;
     const dependencies = task.dependencies.map(id => {
       const dependency = data.tasks.find(item => item.id === id);
       return dependency ? taskButton(dependency, 'button secondary-button', `${escape(id)} · ${escape(dependency.title)} ${dependency.status === 'done' ? '✓' : ''}`) : escape(id);
     }).join(' ');
-    document.querySelector('#detail-body').innerHTML = `${badge(task.status)}<h2 id="detail-title">${escape(task.title)}</h2><p class="summary">${escape(intro(task))}</p>${task.status === 'done' ? '<div class="info-strip">這是當時完成範圍與驗證紀錄，並非本次重新執行測試的結果。</div>' : ''}${dependencies ? `<div class="details-block"><h3>開始前需要</h3><div class="hero-actions">${dependencies}</div></div>` : ''}${task.steps.length ? `<div class="details-block"><h3>工作步驟</h3>${stepList(task)}</div>` : ''}${task.checks.length ? `<div class="details-block"><h3>剩餘驗收 · ${task.checks.length} 個檢查</h3><p class="note">這些項目尚待實際驗收；看板不會將點閱視為完成。</p><ol class="checklist">${task.checks.map(check => `<li>${escape(check)}</li>`).join('')}</ol></div>` : ''}<details class="details-block" ${!task.steps.length && !task.checks.length ? 'open' : ''}><summary>範圍、決策與原始紀錄</summary><div class="markdown">${markdown(task.body, task.source)}</div></details>`;
+    document.querySelector('#detail-body').innerHTML = `${badge(task.status)}<h2 id="detail-title">${escape(task.title)}</h2><p class="summary">${escape(intro(task))}</p>${task.status === 'done' ? '<div class="info-strip">這是當時完成範圍與驗證紀錄，並非本次重新執行測試的結果。</div>' : ''}${dependencies ? `<div class="details-block"><h3>開始前需要</h3><div class="hero-actions">${dependencies}</div></div>` : ''}${task.steps.length ? `<div class="details-block"><h3>工作步驟</h3>${stepList(task)}</div>` : ''}${task.checks.length ? `<div class="details-block"><h3>剩餘驗收 · ${task.checks.length} 個檢查</h3><p class="note">這些項目尚待實際驗收；看板不會將點閱視為完成。</p><ol class="checklist">${task.checks.map(check => `<li>${escape(check)}</li>`).join('')}</ol></div>` : ''}<details class="details-block" ${!task.steps.length && !task.checks.length ? 'open' : ''}><summary><h3>範圍、決策與原始紀錄</h3></summary><div class="markdown">${markdown(task.body, task.source)}</div></details>`;
+    const detailBody = document.querySelector('#detail-body');
+    const content = document.createElement('div');
+    content.className = 'detail-content'; content.append(...detailBody.childNodes);
+    detailBody.append(content);
     if (!dialog.open) dialog.showModal();
     dialog.scrollTop = 0;
+    dialogOutlineCleanup = mountOutline(content, detailBody, dialog);
+    detailBody.classList.toggle('with-outline', !!detailBody.querySelector('.document-outline'));
   }
   function closeDialog() { dialog.close(); lastFocus?.focus(); }
   document.querySelector('#close-detail').addEventListener('click', closeDialog);
+  dialog.addEventListener('close', () => { dialogOutlineCleanup(); dialogOutlineCleanup = () => {}; });
   dialog.addEventListener('click', event => { if (event.target === dialog) { const box = dialog.getBoundingClientRect(); if (event.clientX < box.left || event.clientX > box.right || event.clientY < box.top || event.clientY > box.bottom) closeDialog(); } });
 
   function home() {
@@ -137,6 +254,7 @@
     if (filename) {
       const doc = data.documents[filename];
       main.innerHTML = doc ? `<article class="reading"><a class="quiet-link" href="#notes">← 回到專案筆記</a><div class="markdown">${markdown(doc.body, filename)}</div></article>` : '<p class="empty">找不到這份文件。<a href="#notes">回到文件列表</a></p>';
+      if (doc) pageOutline();
       if (anchor) main.querySelector(`[id="${CSS.escape(anchor)}"]`)?.scrollIntoView({ block: 'start' });
       return;
     }
@@ -151,16 +269,19 @@
   }
 
   function workingPage(filename, anchor) {
+    pageOutlineCleanup();
     const items = data.working?.items ?? [];
     if (filename) {
       const item = items.find(item => item.filename === filename);
       main.innerHTML = item ? '<article class="reading"><a class="quiet-link" href="#work">← 目前工作</a><div class="markdown">' + markdown(item.body, item.filename) + '</div></article>' : '<p class="empty">目前工作索引中沒有這份文件。</p>';
+      if (item) pageOutline();
       if (anchor) main.querySelector('[id="' + CSS.escape(anchor) + '"]')?.scrollIntoView({ block: 'start' });
       return;
     }
     main.innerHTML = heading('目前工作', '目前正在處理的草稿與計畫。進度直接讀取原始工作計畫。') +
       (data.working?.warnings ?? []).map(warning => '<p class="info-strip">' + escape(warning) + '</p>').join('') +
       (items.length ? items.map(item => '<section class="panel working-plan"><h2>' + escape(item.title) + '</h2><p class="note">.agents/working/' + escape(item.filename) + '</p><dl class="work-summary">' + ['目前步驟', '最近完成', '下一步', '驗證結果', '待確認事項'].map(key => '<div><dt>' + key + '</dt><dd>' + escape(item.fields[key] ?? (key === '目前步驟' ? item.fields['目前'] : undefined) ?? '未記錄') + '</dd></div>').join('') + '</dl>' + (item.steps.length ? stepList(item) : '') + '<a class="button secondary-button plan-link" href="#work/' + encodeURIComponent(item.filename) + '">閱讀完整計畫</a></section>').join('') : '<div class="empty">目前沒有登記中的草稿或計畫。來源：.agents/working/目前工作.md</div>');
+    if (items.length) pageOutline();
   }
 
   async function loadProject() {
@@ -208,7 +329,10 @@
       document.querySelector('#work-count').textContent = working.items.length;
       const parts = location.hash.slice(1).split('/').map(part => decodeURIComponent(part));
       const scroll = window.scrollY;
+      const outlineOpen = main.querySelector('.outline-panel')?.open;
       workingPage(parts[1], parts[2]);
+      const outlinePanel = main.querySelector('.outline-panel');
+      if (outlinePanel && outlineOpen !== undefined) outlinePanel.open = outlineOpen;
       if (!parts[2]) window.scrollTo(0, scroll);
       const status = document.querySelector('#reader-status');
       status.className = '';
@@ -221,6 +345,7 @@
   }
 
   function route() {
+    pageOutlineCleanup(); pageOutlineCleanup = () => {};
     if (dialog.open) dialog.close();
     const parts = location.hash.slice(1).split('/').map(part => { try { return decodeURIComponent(part); } catch { return ''; } });
     const page = ['tasks', 'systems', 'history', 'notes', 'work'].includes(parts[0]) ? parts[0] : 'home';

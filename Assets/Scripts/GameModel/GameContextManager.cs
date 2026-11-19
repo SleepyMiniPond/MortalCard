@@ -164,13 +164,17 @@ namespace MortalGame.GameModel
         Guid SelectedPlayer,
         Guid SelectedCharacter,
         Guid SelectedCard,
-        IImmutableDictionary<string, ImmutableArray<Guid>> SelectedCardGroups)
+        IImmutableDictionary<string, ImmutableArray<Guid>> SelectedCardGroups,
+        IImmutableDictionary<string, string> SelectedTemplateGroups,
+        IImmutableDictionary<string, SelectedCardEffect> SelectedEffectGroups)
     {
         public static GameContext EMPTY { get; } = new(
             Guid.Empty,
             Guid.Empty,
             Guid.Empty,
-            ImmutableDictionary<string, ImmutableArray<Guid>>.Empty);
+            ImmutableDictionary<string, ImmutableArray<Guid>>.Empty,
+            ImmutableDictionary<string, string>.Empty,
+            ImmutableDictionary<string, SelectedCardEffect>.Empty);
     }
 
 }

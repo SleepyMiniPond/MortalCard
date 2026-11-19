@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
+using MortalGame.GameData;
 using Optional;
 
 namespace MortalGame.GameModel
@@ -127,6 +128,20 @@ namespace MortalGame.GameModel
             {
                 (ExistCardSelectionInfo cards, ExistCardSubSelectionAction selected)
                     => _ApplyExistCardSelection(cards, selected, context),
+                (CardTemplateSelectionInfo templates, CardTemplateSubSelectionAction selected)
+                    when templates.TemplateCardDataIds.Contains(selected.TemplateCardDataId)
+                    => (context with
+                    {
+                        SelectedTemplateGroups = context.SelectedTemplateGroups.Add(
+                            templates.Id, selected.TemplateCardDataId)
+                    }).Some(),
+                (CardEffectSelectionInfo effects, CardEffectSubSelectionAction selected)
+                    when effects.Options.Any(option => option.Id == selected.OptionId)
+                    => (context with
+                    {
+                        SelectedEffectGroups = context.SelectedEffectGroups.Add(effects.Id,
+                            new SelectedCardEffect(effects.TemplateSelectionId, selected.OptionId))
+                    }).Some(),
                 _ => Option.None<GameContext>()
             };
 
@@ -152,6 +167,30 @@ namespace MortalGame.GameModel
             IGameplayModel model, ICardEntity card, IPlayerEntity caster,
             ISubSelectionGroup group, int index, int total)
         {
+            if (group is CardTemplateSelectionGroup templates)
+            {
+                if (templates.TemplateCardDataIds.Count == 0)
+                    return _Reject(CardSelectionFailureReason.InsufficientCandidates, group.Id);
+                return new CardSelectionQueryResult.NextStep(new CardTemplateSelectionInfo(
+                    templates.TemplateCardDataIds.ToImmutableArray(), templates.OfferCount,
+                    group.Id, index, total, card.CardDataId));
+            }
+            if (group is CardEffectSelectionGroup effects)
+            {
+                var context = model.ContextManager.Context;
+                if (!context.SelectedTemplateGroups.TryGetValue(effects.TemplateSelectionId, out var templateId))
+                    return _Reject(CardSelectionFailureReason.InvalidSelection, group.Id);
+                var selectedIds = context.SelectedEffectGroups.Values
+                    .Select(selected => selected.OptionId).ToHashSet();
+                var optionCandidates = effects.PoolsByTemplateId[templateId]
+                    .Where(option => !effects.ExcludePreviouslySelected || !selectedIds.Contains(option.Id))
+                    .Select(option => new CardEffectOptionInfo(option.Id, option.DescriptionKey)).ToImmutableArray();
+                if (optionCandidates.Length == 0)
+                    return _Reject(CardSelectionFailureReason.InsufficientCandidates, group.Id);
+                return new CardSelectionQueryResult.NextStep(new CardEffectSelectionInfo(
+                    optionCandidates, effects.TemplateSelectionId, effects.OfferCount,
+                    group.Id, index, total, card.CardDataId));
+            }
             if (group is not ExistCardSelectionGroup selection)
                 return _Reject(CardSelectionFailureReason.UnsupportedGroup, group.Id);
             var trigger = new TriggerContext(model, new CardTrigger(card), new CardLookIntentAction(card, caster.Some()));
