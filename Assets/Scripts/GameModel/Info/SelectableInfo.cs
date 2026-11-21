@@ -16,7 +16,10 @@ namespace MortalGame.GameModel
         string Id,
         int StepIndex,
         int StepCount,
-        string CardDataId);
+        string CardDataId)
+    {
+        public Guid OfferIdentity { get; init; }
+    }
 
     public record ExistCardSelectionInfo(
         IReadOnlyList<CardInfo> CardInfos,
@@ -104,7 +107,7 @@ namespace MortalGame.GameModel
             IReadOnlyDictionary<string, ISubSelectionAction> subSelectionActions,
             IPlayerEntity caster)
         {
-            return CardSelectionQuery.ValidateComplete(model, cardEntity, caster, mainSelectionAction, subSelectionActions)
+            return model.ContextManager.SelectionSessionRegistry.Complete(model, cardEntity, caster, mainSelectionAction, subSelectionActions)
                 is CardSelectionQueryResult.Completed completed
                 ? completed.Context.Some()
                 : Option.None<GameContext>();

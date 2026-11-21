@@ -375,8 +375,9 @@ namespace MortalGame.GameModel
 
             // 失敗的出牌仍保留預選，但本次執行階段不重複嘗試同一張牌。
             var attemptedCardIdentities = new HashSet<Guid>();
-            while (_gameStatus.Enemy.TryGetNextUseCardAction(this, attemptedCardIdentities, out var useCardAction))
+            while (_gameStatus.Enemy.TryGetNextUseCardAction(this, attemptedCardIdentities, out var useCardAction, out var session))
             {
+                using var selectionSession = session;
                 attemptedCardIdentities.Add(useCardAction.CardIndentity);
                 if (_UseCard(_gameStatus.Enemy, useCardAction))
                 {
@@ -515,6 +516,7 @@ namespace MortalGame.GameModel
             {
                 if (!SelectTargetLogic.SelectTargets(this, card, owner).TryGetValue(out var selection))
                     return;
+                using var selectionSession = selection;
                 _ExecuteSelectedCard(chain, owner,
                     new UseCardAction(card.Identity, selection.MainSelectionAction, selection.SubSelectionActions),
                     CardPlayReason.Effect);

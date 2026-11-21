@@ -23,14 +23,16 @@ namespace MortalGame.Tests
             built.Enemy.SelectedCards.TryAddCard(second);
             var attempted = new HashSet<Guid>();
 
-            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out var action), Is.True);
+            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out var action, out var firstSession), Is.True);
+            using var firstSelection = firstSession;
             Assert.That(action.CardIndentity, Is.EqualTo(first.Identity));
             Assert.That(built.Enemy.SelectedCards.Cards, Is.EqualTo(new[] { first, second }));
             attempted.Add(first.Identity);
-            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out action), Is.True);
+            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out action, out var secondSession), Is.True);
+            using var secondSelection = secondSession;
             Assert.That(action.CardIndentity, Is.EqualTo(second.Identity));
             attempted.Add(second.Identity);
-            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out _), Is.False);
+            Assert.That(built.Enemy.TryGetNextUseCardAction(built.Manager, attempted, out _, out _), Is.False);
             Assert.That(built.Enemy.SelectedCards.Cards.Count, Is.EqualTo(2));
         }
 

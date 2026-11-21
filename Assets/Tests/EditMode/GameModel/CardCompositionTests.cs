@@ -14,7 +14,7 @@ namespace MortalGame.Tests
         [TestCase("template-b", "shield")]
         public void Query_UsesSelectedTemplatePoolAndConfiguredOfferCount(string templateId, string expected)
         {
-            var setup = _Create();
+            using var setup = _Create();
             var initial = (CardTemplateSelectionInfo)((CardSelectionQueryResult.NextStep)
                 CardSelectionQuery.QueryNext(setup.Model, setup.Draft)).Info;
             Assert.That(initial.OfferCount, Is.EqualTo(2));
@@ -31,7 +31,7 @@ namespace MortalGame.Tests
         [TestCase(false, "damage,shield")]
         public void Query_ExcludesPreviouslySelectedOptionIds(bool exclude, string expected)
         {
-            var setup = _Create();
+            using var setup = _Create();
             setup.Data.SubSelects.Add(new CardEffectSelectionGroup
             {
                 Id = "second", TemplateSelectionId = "template", OfferCount = 2, ExcludePreviouslySelected = exclude,
@@ -52,7 +52,7 @@ namespace MortalGame.Tests
         [Test]
         public void Query_RejectsEmptyPoolAfterExclusionWithoutChangingBattleState()
         {
-            var setup = _Create();
+            using var setup = _Create();
             setup.Data.SubSelects.Add(new CardEffectSelectionGroup
             {
                 Id = "second", TemplateSelectionId = "template", OfferCount = 1,
@@ -78,7 +78,7 @@ namespace MortalGame.Tests
         [TestCase("out-of-order")]
         public void Complete_RejectsMalformedInput(string input)
         {
-            var setup = _Create();
+            using var setup = _Create();
             var actions = new Dictionary<string, ISubSelectionAction>
             {
                 ["template"] = new CardTemplateSubSelectionAction("template-a"),
@@ -100,7 +100,7 @@ namespace MortalGame.Tests
         [Test]
         public void Complete_PreservesTypedSnapshotsAndDoesNotInheritOuterSelectionOrConsumeRandom()
         {
-            var setup = _Create();
+            using var setup = _Create();
             var outer = GameContext.EMPTY with
             {
                 SelectedTemplateGroups = ImmutableDictionary<string, string>.Empty.Add("outer", "template-b"),
@@ -109,9 +109,10 @@ namespace MortalGame.Tests
             };
             using (setup.Model.ContextManager.SetContext(outer))
             {
-                var draft = setup.Draft
-                    .WithSelection("template", new CardTemplateSubSelectionAction("template-a"))
-                    .WithSelection("first", new CardEffectSubSelectionAction("damage"));
+                var templates = ((CardSelectionQueryResult.NextStep)CardSelectionQuery.PrepareNext(setup.Model, setup.Draft)).Info;
+                var draft = setup.Draft.WithSelection("template", new CardTemplateSubSelectionAction("template-a", templates.OfferIdentity));
+                var effects = ((CardSelectionQueryResult.NextStep)CardSelectionQuery.PrepareNext(setup.Model, draft)).Info;
+                draft = draft.WithSelection("first", new CardEffectSubSelectionAction("damage", effects.OfferIdentity));
                 var completed = (CardSelectionQueryResult.Completed)CardSelectionQuery.ValidateComplete(
                     setup.Model, setup.Card, setup.Player, MainSelectionAction.Empty, draft.SelectedGroups);
                 Assert.That(completed.Context.SelectedTemplateGroups.Count, Is.EqualTo(1));
@@ -119,8 +120,10 @@ namespace MortalGame.Tests
                     Is.EqualTo(new SelectedCardEffect("template", "damage")));
                 Assert.That(completed.Context.SelectedCardGroups, Is.Empty);
                 Assert.That(setup.Model.ContextManager.Context, Is.SameAs(outer));
+                var expectedRandom = new GameRandom(1);
+                Enumerable.Range(0, 2).Shuffle(expectedRandom).ToArray();
                 Assert.That(Enumerable.Range(0, 10).Shuffle(setup.Model.ContextManager.GameRandom),
-                    Is.EqualTo(Enumerable.Range(0, 10).Shuffle(new GameRandom(1))));
+                    Is.EqualTo(Enumerable.Range(0, 10).Shuffle(expectedRandom)));
             }
         }
 
@@ -200,10 +203,14 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
             return new Setup(built.Manager, data, card, built.Ally,
-                CardSelectionDraft.Create(card, built.Ally, MainSelectionAction.Empty));
+                CardSelectionDraft.Create(card, built.Ally, MainSelectionAction.Empty),
+                CardSelectionSession.Begin(built.Manager, card.Identity));
         }
 
         private sealed record Setup(IGameplayModel Model, StandardCardData Data,
-            ICardEntity Card, IPlayerEntity Player, CardSelectionDraft Draft);
+            ICardEntity Card, IPlayerEntity Player, CardSelectionDraft Draft, CardSelectionSession Session) : IDisposable
+        {
+            public void Dispose() => Session.Dispose();
+        }
     }
 }

@@ -66,7 +66,7 @@ namespace MortalGame.GameView
 
             _cardIdentity = cardInfo.Identity;
             _title.text = cardLocalizeData.Title;
-            _info.text = cardLocalizeData.Info.ReplaceTemplateKeys(templateValue);
+            _info.text = CardDescriptionText.Format(cardInfo, _localizeLibrary, templateValue);
             _cost.text = cardInfo.Cost
                 .Map(cost => cost.ToString())
                 .ValueOr(string.Empty);

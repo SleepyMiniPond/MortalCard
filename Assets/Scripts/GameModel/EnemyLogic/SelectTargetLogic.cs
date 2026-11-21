@@ -14,11 +14,19 @@ namespace MortalGame.GameModel
         Guid TargetIdentity) : ISelectionTarget;
 
     public record SelectSubTargetsResult(
-        IReadOnlyDictionary<string, ISubSelectionAction> SubSelectionActions);
+        IReadOnlyDictionary<string, ISubSelectionAction> SubSelectionActions,
+        CardSelectionSession Session) : IDisposable
+    {
+        public void Dispose() => Session.Dispose();
+    }
 
     public record SelectCardTargetsResult(
         MainSelectionAction MainSelectionAction,
-        IReadOnlyDictionary<string, ISubSelectionAction> SubSelectionActions);
+        IReadOnlyDictionary<string, ISubSelectionAction> SubSelectionActions,
+        CardSelectionSession Session) : IDisposable
+    {
+        public void Dispose() => Session.Dispose();
+    }
 
     public static class SelectTargetLogic
     {
@@ -85,47 +93,66 @@ namespace MortalGame.GameModel
             MainSelectionAction mainSelectionAction,
             IPlayerEntity caster)
         {
-            var draft = CardSelectionDraft.Create(cardEntity, caster, mainSelectionAction);
-            var stepCount = cardEntity.SubSelects.Count();
-            for (var stepIndex = 0; stepIndex < stepCount; stepIndex++)
+            var session = CardSelectionSession.Begin(gameplayWatcher, cardEntity.Identity);
+            try
             {
-                if (CardSelectionQuery.QueryNext(gameplayWatcher, draft) is not CardSelectionQueryResult.NextStep next)
-                    return Option.None<SelectSubTargetsResult>();
-
-                if (!SelectSubTarget(next.Info, gameplayWatcher.ContextManager.GameRandom).TryGetValue(out var selected))
-                    return Option.None<SelectSubTargetsResult>();
-
-                draft = draft.WithSelection(next.Info.Id, selected);
-            }
-
-            // 確認最後一步及整份結果仍合法；沒有子選取時也須驗證來源與主目標。
-            return CardSelectionQuery.QueryNext(gameplayWatcher, draft) is CardSelectionQueryResult.Completed
-                ? new SelectSubTargetsResult(draft.SelectedGroups).Some()
-                : Option.None<SelectSubTargetsResult>();
-
-            static Option<ISubSelectionAction> SelectSubTarget(
-                SubSelectionStepInfo info, IGameRandom gameRandom)
-                => info switch
+                var draft = CardSelectionDraft.Create(cardEntity, caster, mainSelectionAction);
+                var stepCount = cardEntity.SubSelects.Count();
+                for (var stepIndex = 0; stepIndex < stepCount; stepIndex++)
                 {
-                    ExistCardSelectionInfo cards
-                        => Option.Some<ISubSelectionAction>(RandomSelectExistCardSubSelection(cards, gameRandom)),
-                    _ => Option.None<ISubSelectionAction>()
-                };
+                    if (CardSelectionQuery.PrepareNext(gameplayWatcher, draft) is not CardSelectionQueryResult.NextStep next)
+                        return Reject();
 
-            static ExistCardSubSelectionAction RandomSelectExistCardSubSelection(
-                ExistCardSelectionInfo existCardGroup,
-                IGameRandom gameRandom)
+                    if (!SelectSubTarget(next.Info, gameplayWatcher.ContextManager.GameRandom).TryGetValue(out var selected))
+                        return Reject();
+
+                    draft = draft.WithSelection(next.Info.Id, selected);
+                }
+
+                // 確認最後一步及整份結果仍合法；沒有子選取時也須驗證來源與主目標。
+                return CardSelectionQuery.QueryNext(gameplayWatcher, draft) is CardSelectionQueryResult.Completed
+                    ? new SelectSubTargetsResult(draft.SelectedGroups, session).Some()
+                    : Reject();
+
+                Option<SelectSubTargetsResult> Reject()
+                {
+                    session.Dispose();
+                    return Option.None<SelectSubTargetsResult>();
+                }
+
+                static Option<ISubSelectionAction> SelectSubTarget(
+                    SubSelectionStepInfo info, IGameRandom gameRandom)
+                    => info switch
+                    {
+                        ExistCardSelectionInfo cards
+                            => Option.Some<ISubSelectionAction>(RandomSelectExistCardSubSelection(cards, gameRandom)),
+                        CardTemplateSelectionInfo templates => Option.Some<ISubSelectionAction>(
+                            new CardTemplateSubSelectionAction(templates.TemplateCardDataIds.Shuffle(gameRandom).First(), templates.OfferIdentity)),
+                        CardEffectSelectionInfo effects => Option.Some<ISubSelectionAction>(
+                            new CardEffectSubSelectionAction(effects.Options.Shuffle(gameRandom).First().Id, effects.OfferIdentity)),
+                        _ => Option.None<ISubSelectionAction>()
+                    };
+
+                static ExistCardSubSelectionAction RandomSelectExistCardSubSelection(
+                    ExistCardSelectionInfo existCardGroup,
+                    IGameRandom gameRandom)
+                {
+                    if (existCardGroup.MaxCount == 0)
+                        return new ExistCardSubSelectionAction(Array.Empty<Guid>());
+
+                    var selectedCards = existCardGroup.CardInfos
+                        .Select(cardInfo => cardInfo.Identity)
+                        .Shuffle(gameRandom)
+                        .Take(existCardGroup.MaxCount)
+                        .ToList();
+
+                    return new ExistCardSubSelectionAction(selectedCards);
+                }
+            }
+            catch
             {
-                if (existCardGroup.MaxCount == 0)
-                    return new ExistCardSubSelectionAction(Array.Empty<Guid>());
-
-                var selectedCards = existCardGroup.CardInfos
-                    .Select(cardInfo => cardInfo.Identity)
-                    .Shuffle(gameRandom)
-                    .Take(existCardGroup.MaxCount)
-                    .ToList();
-
-                return new ExistCardSubSelectionAction(selectedCards);
+                session.Dispose();
+                throw;
             }
         }
 
@@ -151,7 +178,8 @@ namespace MortalGame.GameModel
             return subTargetsOption.Map(subTargets =>
                 new SelectCardTargetsResult(
                     mainSelectionAction,
-                    subTargets.SubSelectionActions));
+                    subTargets.SubSelectionActions,
+                    subTargets.Session));
         }
 
         private static SelectMainTargetResult SelectCharacterWithLogic(

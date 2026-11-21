@@ -26,6 +26,7 @@ namespace MortalGame.GameModel
         IEnumerable<ISubSelectionGroup> SubSelects { get; }
 
         IEnumerable<ICardEffect> Effects { get; }
+        IEnumerable<CardEffectOption> DescriptionOptions { get; }
         IReadOnlyDictionary<CardTriggeredTiming, IEnumerable<ConditionalCardEffect>> TriggeredEffects { get; }
         IEnumerable<ICardPropertyEntity> Properties { get; }
         ICardBuffManager BuffManager { get; }
@@ -54,7 +55,7 @@ namespace MortalGame.GameModel
         // Card static data
         private readonly Guid _indentity;
         private readonly Option<Guid> _originCardInstanceGuid;
-        private readonly string _baseCardDataId;
+        private readonly ICardDefinition _baseDefinition;
 
         // Card runtime data
         private Option<CardFormState> _selfFormState;
@@ -67,13 +68,14 @@ namespace MortalGame.GameModel
         private readonly CardLibrary _cardLibrary;
         private readonly ICardPropertyEntityFactory _cardPropertyEntityFactory;
 
-        private string _effectiveCardDataId => _overrideFormState
-            .Map(state => state.CardDataId)
-            .Else(_selfFormState.Map(state => state.CardDataId))
-            .ValueOr(_baseCardDataId);
-        private CardData _effectiveCardData => _cardLibrary.GetCardData(_effectiveCardDataId);
-        public string BaseCardDataId => _baseCardDataId;
-        public string CardDataId => _effectiveCardDataId;
+        private ICardDefinition _effectiveDefinition;
+        private ICardDefinition _ResolveDefinition() => _overrideFormState
+            .Map(state => (ICardDefinition)new CatalogCardDefinition(_cardLibrary.GetCardData(state.CardDataId)))
+            .Else(_selfFormState.Map(state => (ICardDefinition)new CatalogCardDefinition(_cardLibrary.GetCardData(state.CardDataId))))
+            .ValueOr(_baseDefinition);
+        private CardData _effectiveCardData => _effectiveDefinition.Data;
+        public string BaseCardDataId => _baseDefinition.Data.ID;
+        public string CardDataId => _effectiveDefinition.Data.ID;
         public Option<CardFormState> SelfFormState => _selfFormState;
         public Option<CardFormOverrideState> OverrideFormState => _overrideFormState;
         public CardType Type => _effectiveCardData.Type;
@@ -84,6 +86,7 @@ namespace MortalGame.GameModel
         public MainTargetSelectLogic MainSelect => _effectiveCardData.MainSelect;
         public IEnumerable<ISubSelectionGroup> SubSelects => _effectiveCardData.SubSelects;
         public IEnumerable<ICardEffect> Effects => _effectiveCardData.Effects;
+        public IEnumerable<CardEffectOption> DescriptionOptions => _effectiveDefinition.DescriptionOptions;
         public IReadOnlyDictionary<CardTriggeredTiming, IEnumerable<ConditionalCardEffect>> TriggeredEffects
             => (_effectiveCardData.TriggeredEffects ??
                 new Dictionary<CardTriggeredTiming, ConditionalCardEffect[]>())
@@ -103,7 +106,7 @@ namespace MortalGame.GameModel
         public static ICardEntity DummyCard = new CardEntity(
             indentity: Guid.Empty,
             originCardInstanceGuid: Option.None<Guid>(),
-            baseCardDataId: string.Empty,
+            baseDefinition: new CatalogCardDefinition(new StandardCardData { ID = string.Empty }),
             selfFormState: Option.None<CardFormState>(),
             cardDataProperties: new List<ICardPropertyEntity>(),
             instanceProperties: new List<ICardPropertyEntity>(),
@@ -115,7 +118,7 @@ namespace MortalGame.GameModel
         private CardEntity(
             Guid indentity,
             Option<Guid> originCardInstanceGuid,
-            string baseCardDataId,
+            ICardDefinition baseDefinition,
             Option<CardFormState> selfFormState,
             IEnumerable<ICardPropertyEntity> cardDataProperties,
             IEnumerable<ICardPropertyEntity> instanceProperties,
@@ -126,7 +129,7 @@ namespace MortalGame.GameModel
         {
             _indentity = indentity;
             _originCardInstanceGuid = originCardInstanceGuid;
-            _baseCardDataId = baseCardDataId;
+            _baseDefinition = baseDefinition;
             _selfFormState = selfFormState;
             _overrideFormState = Option.None<CardFormOverrideState>();
             _cardDataProperties = cardDataProperties.ToList();
@@ -134,6 +137,7 @@ namespace MortalGame.GameModel
             _buffManager = new CardBuffLayerManager(buffs);
             _cardLibrary = cardLibrary;
             _cardPropertyEntityFactory = cardPropertyEntityFactory;
+            _effectiveDefinition = _ResolveDefinition();
         }
 
         public static ICardEntity CreateFromInstance(
@@ -153,7 +157,7 @@ namespace MortalGame.GameModel
             return new CardEntity(
                 indentity: Guid.NewGuid(),
                 originCardInstanceGuid: cardInstance.InstanceGuid.Some(),
-                baseCardDataId: cardInstance.CardDataId,
+                baseDefinition: new CatalogCardDefinition(cardLibrary.GetCardData(cardInstance.CardDataId)),
                 selfFormState: selfFormState,
                 cardDataProperties: cardLibrary.GetCardData(effectiveCardDataId).PropertyDatas
                     .Select(cardPropertyEntityFactory.Create),
@@ -169,17 +173,17 @@ namespace MortalGame.GameModel
             CardLibrary cardLibrary,
             ICardPropertyEntityFactory cardPropertyEntityFactory)
         {
-            return new CardEntity(
-                indentity: Guid.NewGuid(),
-                originCardInstanceGuid: Option.None<Guid>(),
-                baseCardDataId: cardDataId,
-                selfFormState: Option.None<CardFormState>(),
-                cardDataProperties: cardLibrary.GetCardData(cardDataId).PropertyDatas.Select(cardPropertyEntityFactory.Create),
-                instanceProperties: Array.Empty<ICardPropertyEntity>(),
-                buffs: Array.Empty<ICardBuffEntity>(),
-                cardLibrary: cardLibrary,
-                cardPropertyEntityFactory: cardPropertyEntityFactory
-            );
+            return RuntimeCreateFromDefinition(new CatalogCardDefinition(cardLibrary.GetCardData(cardDataId)),
+                cardLibrary, cardPropertyEntityFactory);
+        }
+
+        public static ICardEntity RuntimeCreateFromDefinition(
+            ICardDefinition definition, CardLibrary library, ICardPropertyEntityFactory propertyFactory)
+        {
+            var ownedDefinition = definition.CopyForNewCard();
+            return new CardEntity(Guid.NewGuid(), Option.None<Guid>(), ownedDefinition,
+                Option.None<CardFormState>(), ownedDefinition.Data.PropertyDatas.Select(propertyFactory.Create),
+                Array.Empty<ICardPropertyEntity>(), Array.Empty<ICardBuffEntity>(), library, propertyFactory);
         }
 
         public CardFormOperationResult TryApplySelfForm(
@@ -219,7 +223,7 @@ namespace MortalGame.GameModel
             }
 
             _selfFormState = new CardFormState(transformKey, targetCardDataId, persistence).Some();
-            _RebuildCardDataProperties(targetCardData);
+            _RebuildCardDataProperties();
 
             return new CardFormOperationResult(
                 CardFormOperationStatus.Applied,
@@ -241,7 +245,7 @@ namespace MortalGame.GameModel
             }
 
             _selfFormState = Option.None<CardFormState>();
-            _RebuildCardDataProperties(_cardLibrary.GetCardData(_baseCardDataId));
+            _RebuildCardDataProperties();
 
             return new CardFormOperationResult(
                 CardFormOperationStatus.Reverted,
@@ -306,7 +310,7 @@ namespace MortalGame.GameModel
                 releaseRuleList,
                 reactionSessionMap,
                 buffLayerHandle).Some();
-            _RebuildCardDataProperties(targetCardData);
+            _RebuildCardDataProperties();
 
             return new CardFormOperationResult(
                 CardFormOperationStatus.Applied,
@@ -339,7 +343,7 @@ namespace MortalGame.GameModel
             }
 
             _overrideFormState = Option.None<CardFormOverrideState>();
-            _RebuildCardDataProperties(_effectiveCardData);
+            _RebuildCardDataProperties();
 
             return new CardFormOperationResult(
                 CardFormOperationStatus.Reverted,
@@ -366,21 +370,13 @@ namespace MortalGame.GameModel
 
         public ICardEntity Clone()
         {
-            return new CardEntity(
-                indentity: Guid.NewGuid(),
-                originCardInstanceGuid: Option.None<Guid>(),
-                baseCardDataId: CardDataId,
-                selfFormState: Option.None<CardFormState>(),
-                cardDataProperties: _effectiveCardData.PropertyDatas.Select(_cardPropertyEntityFactory.Create),
-                instanceProperties: Array.Empty<ICardPropertyEntity>(),
-                buffs: Array.Empty<ICardBuffEntity>(),
-                cardLibrary: _cardLibrary,
-                cardPropertyEntityFactory: _cardPropertyEntityFactory);
+            return RuntimeCreateFromDefinition(_effectiveDefinition, _cardLibrary, _cardPropertyEntityFactory);
         }
 
-        private void _RebuildCardDataProperties(CardData cardData)
+        private void _RebuildCardDataProperties()
         {
-            _cardDataProperties = cardData.PropertyDatas
+            _effectiveDefinition = _ResolveDefinition();
+            _cardDataProperties = _effectiveDefinition.Data.PropertyDatas
                 .Select(_cardPropertyEntityFactory.Create)
                 .ToList();
         }

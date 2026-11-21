@@ -15,6 +15,7 @@ namespace MortalGame.Presenter
 
     public interface ICardSelectionFlow
     {
+        // 呼叫端持有 Session，涵蓋面板選取與後續 Action 提交；本流程只負責呈現及收集選擇。
         UniTask<CardSelectionPresentationResult> RunSubSelection(
             IGameplayModel model, CardSelectionDraft draft, CancellationToken cancellationToken);
     }
@@ -32,7 +33,7 @@ namespace MortalGame.Presenter
             IGameplayModel model, CardSelectionDraft draft, CancellationToken cancellationToken)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            var query = CardSelectionQuery.QueryNext(model, draft);
+            var query = CardSelectionQuery.PrepareNext(model, draft);
             if (query is CardSelectionQueryResult.NextStep first)
             {
                 var stepCount = first.Info.StepCount;
@@ -40,11 +41,11 @@ namespace MortalGame.Presenter
                 {
                     cancellationToken.ThrowIfCancellationRequested();
                     if (query is not CardSelectionQueryResult.NextStep next) break;
-                    var selected = await _RunStep(next.Info, cancellationToken);
+                    var selected = await _RunStep(model, next.Info, cancellationToken);
                     if (!selected.TryGetValue(out var selection))
                         return new CardSelectionPresentationResult.Cancelled();
                     draft = draft.WithSelection(next.Info.Id, selection);
-                    query = CardSelectionQuery.QueryNext(model, draft);
+                    query = CardSelectionQuery.PrepareNext(model, draft);
                 }
             }
 
@@ -59,7 +60,7 @@ namespace MortalGame.Presenter
         }
 
         private async UniTask<Option<ISubSelectionAction>> _RunStep(
-            SubSelectionStepInfo info, CancellationToken cancellationToken)
+            IGameplayModel model, SubSelectionStepInfo info, CancellationToken cancellationToken)
         {
             switch (info)
             {
@@ -68,6 +69,8 @@ namespace MortalGame.Presenter
                         return Option.Some<ISubSelectionAction>(new ExistCardSubSelectionAction(Array.Empty<Guid>()));
                     var selected = await _subSelectionPresenter.Run(cards, cancellationToken);
                     return selected.Map<ISubSelectionAction>(identities => new ExistCardSubSelectionAction(identities));
+                case CardTemplateSelectionInfo or CardEffectSelectionInfo:
+                    return await _subSelectionPresenter.RunComposition(model, info, cancellationToken);
                 default:
                     throw new NotSupportedException($"尚未實作子選取步驟：{info.GetType().Name}");
             }

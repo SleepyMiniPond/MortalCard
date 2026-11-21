@@ -64,6 +64,7 @@ namespace MortalGame.GameModel
             [typeof(ConsumeCardEffect)] = _consumeCardResolver,
             [typeof(DisposeCardEffect)] = _disposeCardResolver,
             [typeof(CreateCardEffect)] = _createCardResolver,
+            [typeof(CreateComposedCardEffect)] = new CreateComposedCardEffectResolver(),
             [typeof(CloneCardEffect)] = _cloneCardResolver,
             [typeof(AddCardBuffEffect)] = _addCardBuffResolver,
             [typeof(RemoveCardBuffEffect)] = _removeCardBuffResolver,

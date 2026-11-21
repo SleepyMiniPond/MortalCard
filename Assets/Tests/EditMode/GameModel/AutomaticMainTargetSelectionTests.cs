@@ -82,7 +82,8 @@ namespace MortalGame.Tests
             var success = built.Enemy.TryGetNextUseCardAction(
                 built.Manager,
                 System.Array.Empty<System.Guid>(),
-                out var action);
+                out var action, out var session);
+            using var selectionSession = session;
 
             Assert.That(success, Is.True);
             Assert.That(action.CardIndentity, Is.EqualTo(card.Identity));

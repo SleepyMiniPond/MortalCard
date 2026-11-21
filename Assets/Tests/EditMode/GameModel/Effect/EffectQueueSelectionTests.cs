@@ -169,7 +169,8 @@ namespace MortalGame.Tests
                 ImmutableDictionary<string, ImmutableArray<Guid>>.Empty
                     .Add("selected", ImmutableArray.Create(Guid.NewGuid())),
                 ImmutableDictionary<string, string>.Empty,
-                ImmutableDictionary<string, SelectedCardEffect>.Empty);
+                ImmutableDictionary<string, SelectedCardEffect>.Empty,
+                ImmutableDictionary<string, SelectedCardComposition>.Empty);
         }
 
         private sealed record CallbackItem(Action<IEffectQueueContext> Callback) : EffectQueueItem((TriggerContext)null)

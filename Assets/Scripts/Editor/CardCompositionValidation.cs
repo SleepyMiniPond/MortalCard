@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 
@@ -61,6 +62,19 @@ namespace MortalGame.Editor
                         if (string.IsNullOrWhiteSpace(option.Id)) errors.Add($"{effectContext} 的選項 Id 為空");
                         else if (!ids.Add(option.Id)) errors.Add($"{effectContext} 的選項 Id 重複：{option.Id}");
                         if (string.IsNullOrWhiteSpace(option.DescriptionKey)) errors.Add($"{effectContext} 的 DescriptionKey 為空");
+                        var effectValues = SerializedDataGraphUtility.Find<IIntegerValue>(option.Effects)
+                            .Concat(SerializedDataGraphUtility.Find<IIntegerValue>(option.TriggeredEffects)).ToArray();
+                        foreach (var parameter in option.DescriptionParameters ?? new())
+                        {
+                            if (!Regex.IsMatch(parameter.Key, @"^[a-zA-Z][a-zA-Z0-9_]*$") ||
+                                parameter.Key is "cost" or "power")
+                                errors.Add($"{effectContext}[{option.Id}] 的描述參數名稱無效或保留：{parameter.Key}");
+                            if (parameter.Value == null || !effectValues.Any(value => ReferenceEquals(value, parameter.Value.Value)))
+                                errors.Add($"{effectContext}[{option.Id}].DescriptionParameters[{parameter.Key}] 必須直接引用本選項效果的 Value");
+                            else if (!ValueConditionValidator.TryEvaluateStaticInteger(parameter.Value.Value, out _) &&
+                                     string.IsNullOrWhiteSpace(parameter.Value.RuleKey))
+                                errors.Add($"{effectContext}[{option.Id}].DescriptionParameters[{parameter.Key}].RuleKey 不可為空");
+                        }
                         if ((option.Effects?.Count ?? 0) == 0 &&
                             !(option.TriggeredEffects?.Any(entry => (entry.Value?.Length ?? 0) > 0) ?? false))
                             errors.Add($"{effectContext}[{option.Id}] 至少需要一個普通或觸發效果");
@@ -75,6 +89,23 @@ namespace MortalGame.Editor
                         }, $"{effectContext}[{pair.Key}/{option.Id}]", errors);
                     }
                 }
+            }
+        }
+
+        private static void _ValidateCompositionDescriptions(CardData card, ExcelDatas localization, ICollection<string> errors)
+        {
+            var texts = (localization.LocalizeUI ?? new()).Where(row => row != null && !string.IsNullOrWhiteSpace(row.Id))
+                .GroupBy(row => row.Id).ToDictionary(group => group.Key, group => group.First().Info);
+            foreach (var option in SerializedDataGraphUtility.Find<CardEffectOption>(card))
+            {
+                if (option.DescriptionKey == null || !texts.TryGetValue(option.DescriptionKey, out var text)) continue;
+                var parameters = option.DescriptionParameters ?? new();
+                foreach (Match match in Regex.Matches(text ?? string.Empty, @"\{:([a-zA-Z][a-zA-Z0-9_]*)\}"))
+                    if (match.Groups[1].Value is not ("cost" or "power") && !parameters.ContainsKey(match.Groups[1].Value))
+                        errors.Add($"CardData[{card.ID}] 的描述 {option.DescriptionKey} 缺少參數：{match.Groups[1].Value}");
+                foreach (var parameter in parameters.Values.Where(parameter => parameter != null && !string.IsNullOrEmpty(parameter.RuleKey)))
+                    if (!texts.ContainsKey(parameter.RuleKey))
+                        errors.Add($"CardData[{card.ID}] 的描述規則鍵不存在：{parameter.RuleKey}");
             }
         }
     }

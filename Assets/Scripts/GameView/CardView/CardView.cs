@@ -211,8 +211,8 @@ namespace MortalGame.GameView
                     originPowerString)
                 .ValueOr(string.Empty);
 
-            _title.text = cardLocalizeData.Title;
-            _info.text = cardLocalizeData.Info.ReplaceTemplateKeys(templateValue);
+            _title.text = cardInfo.DescriptionFragmentsOnly ? string.Empty : cardLocalizeData.Title;
+            _info.text = CardDescriptionText.Format(cardInfo, _localizeLibrary, templateValue);
             _type.text = _localizeLibrary.Get(LocalizeTitleInfoType.KeyWord, cardInfo.Type.ToString()).Title;
 
             _sealedEffectObj.SetActive(cardInfo.Properties.Contains(CardProperty.Sealed));

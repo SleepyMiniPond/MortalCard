@@ -7,8 +7,8 @@ using Sirenix.Serialization;
 
 namespace MortalGame.GameModel
 {
-    /// <summary>本場動態卡片的獨立定義；對外只提供可獨立修改的深複本。</summary>
-    public sealed class ComposedCardDefinition
+    /// <summary>本場動態卡片定義；Entity 建立時取得獨立副本，描述來源與效果維持關聯。</summary>
+    public sealed class ComposedCardDefinition : ICardDefinition
     {
         [Serializable]
         private sealed class Content
@@ -19,6 +19,10 @@ namespace MortalGame.GameModel
 
         private readonly Content _content;
         public string TemplateCardDataId => _content.Data.ID;
+        CardData ICardDefinition.Data => _content.Data;
+        IReadOnlyList<CardEffectOption> ICardDefinition.DescriptionOptions => _content.Options;
+        public ICardDefinition CopyForNewCard()
+            => new ComposedCardDefinition((Content)SerializationUtility.CreateCopy(_content));
 
         private ComposedCardDefinition(Content content)
         {
@@ -52,6 +56,7 @@ namespace MortalGame.GameModel
             var copy = (Content)SerializationUtility.CreateCopy(_content);
             return new ComposedCardSnapshot(copy.Data, copy.Options.ToImmutableArray());
         }
+
     }
 
     public sealed record ComposedCardSnapshot(

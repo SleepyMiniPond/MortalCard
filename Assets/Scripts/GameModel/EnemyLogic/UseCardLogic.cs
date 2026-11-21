@@ -57,18 +57,13 @@ namespace MortalGame.GameModel
             IGameplayModel model,
             EnemyEntity enemy,
             IReadOnlyCollection<Guid> attemptedCardIdentities,
-            out UseCardAction useCardAction)
+            out UseCardAction useCardAction,
+            out CardSelectionSession selectionSession)
         {
             foreach (var selectedCard in enemy.SelectedCards.Cards)
             {
                 if (attemptedCardIdentities.Contains(selectedCard.Identity))
                     continue;
-
-                if (!SelectTargetLogic.SelectTargets(model, selectedCard, enemy)
-                        .TryGetValue(out var selectResult))
-                {
-                    continue;
-                }
 
                 if (GameFormula.CardCost(
                             new TriggerContext(
@@ -79,17 +74,20 @@ namespace MortalGame.GameModel
                                     ((IPlayerEntity)enemy).Some())),
                             selectedCard)
                         .TryGetValue(out var cardRuntimeCost) &&
-                    cardRuntimeCost <= enemy.CurrentEnergy)
+                    cardRuntimeCost <= enemy.CurrentEnergy &&
+                    SelectTargetLogic.SelectTargets(model, selectedCard, enemy).TryGetValue(out var selectResult))
                 {
                     useCardAction = new UseCardAction(
                         selectedCard.Identity,
                         selectResult.MainSelectionAction,
                         selectResult.SubSelectionActions);
+                    selectionSession = selectResult.Session;
                     return true;
                 }
             }
 
             useCardAction = null;
+            selectionSession = null;
             return false;
         }
     }

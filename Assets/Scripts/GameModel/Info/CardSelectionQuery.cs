@@ -13,6 +13,7 @@ namespace MortalGame.GameModel
         MainSelectionAction MainSelectionAction,
         IImmutableDictionary<string, ISubSelectionAction> SelectedGroups)
     {
+        public Guid SessionIdentity { get; init; } = Guid.NewGuid();
         public static CardSelectionDraft Create(
             ICardEntity card, IPlayerEntity caster, MainSelectionAction mainSelection)
             => new(card.Identity, caster.Identity, mainSelection,
@@ -61,6 +62,16 @@ namespace MortalGame.GameModel
     {
         public static CardSelectionQueryResult QueryNext(IGameplayModel model, CardSelectionDraft draft)
             => _Evaluate(model, draft, false);
+
+        // 明確的準備操作才抽樣；純 Query 與提交重驗皆不消耗亂數。
+        public static CardSelectionQueryResult PrepareNext(IGameplayModel model, CardSelectionDraft draft)
+        {
+            var query = QueryNext(model, draft);
+            return query is CardSelectionQueryResult.NextStep next
+                ? new CardSelectionQueryResult.NextStep(model.ContextManager.SelectionSessionRegistry.Prepare(
+                    draft, next.Info, model.ContextManager.GameRandom))
+                : query;
+        }
 
         public static CardSelectionQueryResult ValidateComplete(
             IGameplayModel model,
@@ -114,11 +125,39 @@ namespace MortalGame.GameModel
                 if (!hasResult)
                     return requireComplete ? _Reject(CardSelectionFailureReason.MissingGroup, group.Id) : step;
 
+                if (nextStep.Info is CardTemplateSelectionInfo or CardEffectSelectionInfo)
+                {
+                    var offerId = selected switch
+                    {
+                        CardTemplateSubSelectionAction template => template.OfferIdentity,
+                        CardEffectSubSelectionAction effect => effect.OfferIdentity,
+                        _ => Guid.Empty
+                    };
+                    if ((requireComplete || offerId != Guid.Empty) &&
+                        !model.ContextManager.SelectionSessionRegistry.Accepts(draft, nextStep.Info, selected, offerId))
+                        return _Reject(CardSelectionFailureReason.InvalidSelection, group.Id);
+                }
+
                 if (!_ApplySelection(nextStep.Info, selected, context).TryGetValue(out var nextContext))
                     return _Reject(CardSelectionFailureReason.InvalidSelection, group.Id);
                 context = nextContext;
             }
 
+            if (requireComplete)
+            {
+                // 驗證完成後固定組成，排隊前來源卡變身也不會遺失或改用另一組選項。
+                var definitions = ImmutableDictionary.CreateBuilder<string, SelectedCardComposition>();
+                foreach (var template in context.SelectedTemplateGroups)
+                {
+                    var options = groups.OfType<CardEffectSelectionGroup>()
+                        .Where(group => group.TemplateSelectionId == template.Key)
+                        .Select(group => group.PoolsByTemplateId[template.Value].Single(option =>
+                            option.Id == context.SelectedEffectGroups[group.Id].OptionId));
+                    definitions.Add(template.Key, new SelectedCardComposition(card.Identity, ComposedCardDefinition.Create(
+                        model.ContextManager.CardLibrary.GetStandardCardData(template.Value), options)));
+                }
+                context = context with { ComposedCardDefinitions = definitions.ToImmutable() };
+            }
             return new CardSelectionQueryResult.Completed(context);
         }
 
@@ -184,11 +223,14 @@ namespace MortalGame.GameModel
                     .Select(selected => selected.OptionId).ToHashSet();
                 var optionCandidates = effects.PoolsByTemplateId[templateId]
                     .Where(option => !effects.ExcludePreviouslySelected || !selectedIds.Contains(option.Id))
-                    .Select(option => new CardEffectOptionInfo(option.Id, option.DescriptionKey)).ToImmutableArray();
+                    .Select(option => new CardEffectOptionInfo(option.Id, option.DescriptionKey)
+                    {
+                        Description = CardDescriptionFragment.Create(option)
+                    }).ToImmutableArray();
                 if (optionCandidates.Length == 0)
                     return _Reject(CardSelectionFailureReason.InsufficientCandidates, group.Id);
                 return new CardSelectionQueryResult.NextStep(new CardEffectSelectionInfo(
-                    optionCandidates, effects.TemplateSelectionId, effects.OfferCount,
+                    optionCandidates, effects.TemplateSelectionId, templateId, effects.OfferCount,
                     group.Id, index, total, card.CardDataId));
             }
             if (group is not ExistCardSelectionGroup selection)

@@ -154,6 +154,13 @@ namespace MortalGame.GameData
         public CardCollectionType CreateDestination;
     }
     [Serializable]
+    public class CreateComposedCardEffect : ICardEffect
+    {
+        public ITargetPlayerValue Target;
+        public string TemplateSelectionId;
+        public CardCollectionType CreateDestination;
+    }
+    [Serializable]
     public class CloneCardEffect :
         ICardEffect, IPlayerBuffEffect, ICharacterBuffEffect, ICardBuffEffect
     {

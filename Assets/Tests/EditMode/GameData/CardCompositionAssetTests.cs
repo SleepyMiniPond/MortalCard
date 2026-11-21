@@ -22,6 +22,11 @@ namespace MortalGame.Tests
             {
                 card.Data.ID = "composition-round-trip";
                 _Configure(card.Data);
+                var savedOption = ((CardEffectSelectionGroup)card.Data.SubSelects[1]).PoolsByTemplateId["template"][0];
+                savedOption.DescriptionParameters["count"] = new CardDescriptionParameter
+                {
+                    Value = ((DrawCardEffect)savedOption.Effects[0]).Value
+                };
                 AssetDatabase.CreateAsset(card, path);
                 AssetDatabase.SaveAssetIfDirty(card);
                 Resources.UnloadAsset(card);
@@ -37,6 +42,8 @@ namespace MortalGame.Tests
                 var option = effects.PoolsByTemplateId["template"][0];
                 Assert.That(option.DescriptionKey, Is.EqualTo("Composition.Draw"));
                 Assert.That(option.Effects[0], Is.TypeOf<DrawCardEffect>());
+                Assert.That(option.DescriptionParameters["count"].Value,
+                    Is.SameAs(((DrawCardEffect)option.Effects[0]).Value));
                 Assert.That(option.TriggeredEffects[CardTriggeredTiming.Played][0].Conditions[0],
                     Is.TypeOf<ConstCondition>());
             }
@@ -169,6 +176,40 @@ namespace MortalGame.Tests
                     Assert.That(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>()), Is.Empty);
                 }
                 finally { UnityEngine.Object.DestroyImmediate(localization); }
+            });
+        }
+
+        [TestCase("separate-value", "必須直接引用")]
+        [TestCase("dynamic-without-rule", "RuleKey")]
+        [TestCase("reserved-name", "參數名稱")]
+        public void Validator_RejectsInvalidDescriptionBindings(string change, string expected)
+        {
+            _WithCatalog((card, template, catalog) =>
+            {
+                var option = ((CardEffectSelectionGroup)card.Data.SubSelects[1]).PoolsByTemplateId["template"][0];
+                var value = ((DrawCardEffect)option.Effects[0]).Value;
+                var key = change == "reserved-name" ? "power" : "count";
+                if (change == "separate-value") value = new ConstInteger { Value = 1 };
+                if (change == "dynamic-without-rule")
+                {
+                    value = new TurnCountInteger();
+                    ((DrawCardEffect)option.Effects[0]).Value = value;
+                }
+                option.DescriptionParameters[key] = new CardDescriptionParameter { Value = value };
+                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Has.Some.Contains(expected));
+            });
+        }
+
+        [Test]
+        public void Validator_RejectsUnknownCompositionGroup()
+        {
+            _WithCatalog((card, template, catalog) =>
+            {
+                card.Data.Effects.Add(new CreateComposedCardEffect
+                {
+                    Target = new CurrentPlayer(), TemplateSelectionId = "missing", CreateDestination = CardCollectionType.HandCard
+                });
+                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Has.Some.Contains("TemplateSelectionId"));
             });
         }
 

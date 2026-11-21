@@ -15,6 +15,7 @@ namespace MortalGame.GameModel
         DispositionLibrary DispositionLibrary { get; }
         LocalizeLibrary LocalizeLibrary { get; }
         IGameRandom GameRandom { get; }
+        CardSelectionSessionRegistry SelectionSessionRegistry { get; }
         ICardPropertyEntityFactory CardPropertyEntityFactory { get; }
         ICardBuffPropertyEntityFactory CardBuffPropertyEntityFactory { get; }
         ICardBuffLifeTimeEntityFactory CardBuffLifeTimeEntityFactory { get; }
@@ -58,6 +59,7 @@ namespace MortalGame.GameModel
         public DispositionLibrary DispositionLibrary => _dispositionLibrary;
         public LocalizeLibrary LocalizeLibrary => _localizeLibrary;
         public IGameRandom GameRandom => _gameRandom;
+        public CardSelectionSessionRegistry SelectionSessionRegistry { get; } = new();
         public ICardPropertyEntityFactory CardPropertyEntityFactory => _cardPropertyEntityFactory;
         public ICardBuffPropertyEntityFactory CardBuffPropertyEntityFactory => _cardBuffPropertyEntityFactory;
         public ICardBuffLifeTimeEntityFactory CardBuffLifeTimeEntityFactory => _cardBuffLifeTimeEntityFactory;
@@ -166,7 +168,8 @@ namespace MortalGame.GameModel
         Guid SelectedCard,
         IImmutableDictionary<string, ImmutableArray<Guid>> SelectedCardGroups,
         IImmutableDictionary<string, string> SelectedTemplateGroups,
-        IImmutableDictionary<string, SelectedCardEffect> SelectedEffectGroups)
+        IImmutableDictionary<string, SelectedCardEffect> SelectedEffectGroups,
+        IImmutableDictionary<string, SelectedCardComposition> ComposedCardDefinitions)
     {
         public static GameContext EMPTY { get; } = new(
             Guid.Empty,
@@ -174,7 +177,8 @@ namespace MortalGame.GameModel
             Guid.Empty,
             ImmutableDictionary<string, ImmutableArray<Guid>>.Empty,
             ImmutableDictionary<string, string>.Empty,
-            ImmutableDictionary<string, SelectedCardEffect>.Empty);
+            ImmutableDictionary<string, SelectedCardEffect>.Empty,
+            ImmutableDictionary<string, SelectedCardComposition>.Empty);
     }
 
 }

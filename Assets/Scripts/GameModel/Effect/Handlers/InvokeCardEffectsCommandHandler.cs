@@ -20,8 +20,10 @@ namespace MortalGame.GameModel
             // 呼叫各自選取，不讓外層選取殘留到沒有主目標的卡片。
             using (model.ContextManager.SetContext(GameContext.EMPTY))
             {
-                if (!SelectTargetLogic.SelectTargets(model, card, caster).TryGetValue(out var selection) ||
-                    !SelectionInfoUtility.TryCreateCardEffectContext(
+                if (!SelectTargetLogic.SelectTargets(model, card, caster).TryGetValue(out var selection))
+                    return CommandApplyResult.Empty;
+                using var selectionSession = selection;
+                if (!SelectionInfoUtility.TryCreateCardEffectContext(
                             model, 
                             card, 
                             selection.MainSelectionAction,

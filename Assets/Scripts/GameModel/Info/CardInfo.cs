@@ -24,6 +24,9 @@ namespace MortalGame.GameModel
         IReadOnlyList<CardProperty> Properties,
         IReadOnlyList<string> Keywords)
     {
+        public IReadOnlyList<CardDescriptionFragment> DescriptionFragments { get; init; } = Array.Empty<CardDescriptionFragment>();
+        public bool DescriptionFragmentsOnly { get; init; }
+
         public static CardInfo Create(ICardEntity card, TriggerContext triggerContext)
         {
             return new CardInfo(
@@ -47,7 +50,10 @@ namespace MortalGame.GameModel
                     .Concat(card.BuffManager.Buffs.SelectMany(b => b.Keywords))
                     .Distinct()
                     .ToList()
-            );
+            )
+            {
+                DescriptionFragments = card.DescriptionOptions.Select(CardDescriptionFragment.Create).ToArray()
+            };
         }
 
         public static CardInfo CreatePreview(ICardEntity card, TriggerContext triggerContext)

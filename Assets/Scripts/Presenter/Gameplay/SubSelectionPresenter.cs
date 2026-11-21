@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
+using MortalGame.GameData;
 using MortalGame.GameView;
 using Optional;
 using UniRx;
@@ -21,6 +22,8 @@ namespace MortalGame.Presenter
 
         UniTask<Option<IReadOnlyList<Guid>>> Run(
             ExistCardSelectionInfo info, CancellationToken cancellationToken);
+        UniTask<Option<ISubSelectionAction>> RunComposition(
+            IGameplayModel model, SubSelectionStepInfo info, CancellationToken cancellationToken);
     }
 
     public class SubSelectionPresenter : ISubSelectionPresenter
@@ -112,6 +115,38 @@ namespace MortalGame.Presenter
                     info.IsValidCount(selected.Count),
                     info.CardInfos.Where(card => selected.Contains(card.Identity)), 
                     Description()));
+        }
+
+        public async UniTask<Option<ISubSelectionAction>> RunComposition(
+            IGameplayModel model, SubSelectionStepInfo info, CancellationToken cancellationToken)
+        {
+            // 使用獨立預覽 Identity，避免選項卡片訂閱到戰鬥中其他卡片。
+            var manager = model.ContextManager;
+            var actions = new Dictionary<Guid, ISubSelectionAction>();
+            var previews = new List<CardInfo>();
+            if (info is CardTemplateSelectionInfo templates)
+                foreach (var id in templates.TemplateCardDataIds)
+                {
+                    var card = CardEntity.RuntimeCreateFromId(id, manager.CardLibrary, manager.CardPropertyEntityFactory);
+                    previews.Add(card.ToInfo(model));
+                    actions.Add(card.Identity, new CardTemplateSubSelectionAction(id, info.OfferIdentity));
+                }
+            else if (info is CardEffectSelectionInfo effects)
+                foreach (var option in effects.Options)
+                {
+                    var card = CardEntity.RuntimeCreateFromId(effects.TemplateCardDataId,
+                        manager.CardLibrary, manager.CardPropertyEntityFactory);
+                    var preview = card.ToInfo(model) with
+                    {
+                        DescriptionFragmentsOnly = true,
+                        DescriptionFragments = new[] { option.Description }
+                    };
+                    previews.Add(preview);
+                    actions.Add(preview.Identity, new CardEffectSubSelectionAction(option.Id, info.OfferIdentity));
+                }
+            var selected = await Run(new ExistCardSelectionInfo(previews, 1, CardSelectionCountRule.RequiredExact,
+                info.Id, info.StepIndex, info.StepCount, info.CardDataId), cancellationToken);
+            return selected.Map(identities => actions[identities.Single()]);
         }
 
         private IDisposable _SetupSubscriptions(IUniTaskPresenter presenter)

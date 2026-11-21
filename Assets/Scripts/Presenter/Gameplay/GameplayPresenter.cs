@@ -153,11 +153,21 @@ namespace MortalGame.Presenter
                     continue;
                 }
                 var pending = _pendingGameCommands.Peek();
-                await _ProcessGameAction(pending.Command, token);
-                // 正式提交後由對應的 GameEvent 移除；每次排入均有獨立項目，避免重用指令時誤等下一次操作。
-                await UniTask.WaitUntil(() => _pendingGameCommands.Count == 0 ||
-                    !ReferenceEquals(_pendingGameCommands.Peek(), pending), cancellationToken: token);
+                if (pending.Command is UseCardCommand card)
+                {
+                    using var session = CardSelectionSession.Begin(_gameplayManager, card.CardIndentity, token);
+                    await _ProcessPendingCommand(pending, token);
+                }
+                else await _ProcessPendingCommand(pending, token);
             }
+        }
+
+        private async UniTask _ProcessPendingCommand(PendingGameCommand pending, CancellationToken token)
+        {
+            await _ProcessGameAction(pending.Command, token);
+            // Session 涵蓋選取及等待 Model 接收，取消與例外也會離開外層作用域。
+            await UniTask.WaitUntil(() => _pendingGameCommands.Count == 0 ||
+                !ReferenceEquals(_pendingGameCommands.Peek(), pending), cancellationToken: token);
         }
 
         private async UniTask _RenderEvents(CancellationToken token)

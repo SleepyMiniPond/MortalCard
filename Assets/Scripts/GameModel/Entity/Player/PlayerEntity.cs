@@ -170,8 +170,9 @@ namespace MortalGame.GameModel
         }
 
         public bool TryGetNextUseCardAction(IGameplayModel gameplayWatcher,
-            IReadOnlyCollection<Guid> attemptedCardIdentities, out UseCardAction useCardAction)
-            => UseCardLogic.TryGetNextUseCardAction(gameplayWatcher, this, attemptedCardIdentities, out useCardAction);
+            IReadOnlyCollection<Guid> attemptedCardIdentities, out UseCardAction useCardAction,
+            out CardSelectionSession selectionSession)
+            => UseCardLogic.TryGetNextUseCardAction(gameplayWatcher, this, attemptedCardIdentities, out useCardAction, out selectionSession);
     }
 
     public class DummyPlayer : PlayerEntity

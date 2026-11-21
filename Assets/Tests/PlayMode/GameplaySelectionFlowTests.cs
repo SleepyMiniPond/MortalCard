@@ -14,6 +14,7 @@ using MortalGame.Presenter;
 using NUnit.Framework;
 using Optional;
 using UnityEngine.TestTools;
+using UnityEngine.UI;
 
 namespace MortalGame.Tests
 {
@@ -454,6 +455,103 @@ namespace MortalGame.Tests
             }
             finally { cts.Cancel(); await _Cancel(secondPhase); await _Cancel(presenterTask); }
         });
+
+        [UnityTest]
+        public IEnumerator CompositionFlow_UsesRealPresenterForBothRounds() => _RunComposition(false);
+
+        [UnityTest]
+        public IEnumerator CompositionFlow_CancellationClosesPanelAndExpiresOffers() => _RunComposition(true);
+
+        private static IEnumerator _RunComposition(bool cancel) => UniTask.ToCoroutine(async () =>
+        {
+            var setup = _Create();
+            IGameplayModel model = setup.Model;
+            var data = model.ContextManager.CardLibrary.GetStandardCardData(setup.Card.CardDataId);
+            data.SubSelects.Add(new CardTemplateSelectionGroup
+            {
+                Id = "template", OfferCount = 3, TemplateCardDataIds = new() { data.ID }
+            });
+            data.SubSelects.Add(new CardEffectSelectionGroup
+            {
+                Id = "effect", TemplateSelectionId = "template", OfferCount = 3,
+                PoolsByTemplateId = new() { [data.ID] = new() { new CardEffectOption { Id = "effect", DescriptionKey = "option" } } }
+            });
+            var panel = new CompositionPanel();
+            using var cancellation = new CancellationTokenSource();
+            using var session = CardSelectionSession.Begin(model, setup.Card.Identity, cancellation.Token);
+            var flow = new CardSelectionFlow(new SubSelectionPresenter(new GameViewModel(),
+                model.ContextManager.LocalizeLibrary, new CompositionDetail(), panel));
+            var run = flow.RunSubSelection(model, setup.Draft, cancellation.Token);
+            try
+            {
+                await _Wait(() => panel.OpenCount == 1);
+                var offer = ((CardSelectionQueryResult.NextStep)CardSelectionQuery.PrepareNext(model, setup.Draft)).Info;
+                if (cancel)
+                {
+                    cancellation.Cancel();
+                    try { await run; Assert.Fail("預期取消"); }
+                    catch (OperationCanceledException) { }
+                    Assert.That(panel.CloseCount, Is.EqualTo(1));
+                    var expired = setup.Draft.WithSelection("template", new CardTemplateSubSelectionAction(data.ID, offer.OfferIdentity));
+                    Assert.That(CardSelectionQuery.QueryNext(model, expired), Is.TypeOf<CardSelectionQueryResult.Rejected>());
+                    return;
+                }
+                var template = panel.Property.Selections.Single();
+                template.OnClick(template.CardInfo.Identity, null);
+                await UniTask.NextFrame();
+                panel.ConfirmButton.onClick.Invoke();
+                await _Wait(() => panel.OpenCount == 2);
+                var effect = panel.Property.Selections.Single();
+                Assert.That(effect.CardInfo.DescriptionFragmentsOnly, Is.True);
+                Assert.That(effect.CardInfo.DescriptionFragments.Single().Key, Is.EqualTo("option"));
+                effect.OnClick(effect.CardInfo.Identity, null);
+                await UniTask.NextFrame();
+                panel.ConfirmButton.onClick.Invoke();
+                var completed = (CardSelectionPresentationResult.Completed)await run;
+                Assert.That(CardSelectionQuery.ValidateComplete(model, setup.Card,
+                    model.GameStatus.Ally, completed.Draft.MainSelectionAction, completed.Draft.SelectedGroups),
+                    Is.TypeOf<CardSelectionQueryResult.Completed>());
+                Assert.That(panel.CloseCount, Is.EqualTo(2));
+                Assert.That(model.ContextManager.Context, Is.SameAs(GameContext.EMPTY));
+            }
+            finally
+            {
+                cancellation.Cancel();
+                panel.Dispose();
+            }
+        });
+
+        private sealed class CompositionPanel : ICardSelectionPanel, IDisposable
+        {
+            private readonly UnityEngine.GameObject _root = new("合成選取測試");
+            public Button[] CloseButtons { get; }
+            public Button ConfirmButton { get; }
+            public Button VisibleToggleButton { get; }
+            public int OpenCount;
+            public int CloseCount;
+            public ICardSelectionPanel.Property Property;
+            public CompositionPanel()
+            {
+                Button Create()
+                {
+                    var button = new UnityEngine.GameObject("按鈕", typeof(UnityEngine.RectTransform), typeof(Button));
+                    button.transform.SetParent(_root.transform);
+                    return button.GetComponent<Button>();
+                }
+                CloseButtons = new[] { Create() }; ConfirmButton = Create(); VisibleToggleButton = Create();
+            }
+            public void Init(IGameViewModel model, LocalizeLibrary localization) { }
+            public void Open(ICardSelectionPanel.Property property) { OpenCount++; Property = property; }
+            public void RenderUpdate(ICardSelectionPanel.UpdateProperty property) { }
+            public void Close() => CloseCount++;
+            public void Dispose() => UnityEngine.Object.DestroyImmediate(_root);
+        }
+
+        private sealed class CompositionDetail : ISingleCardDetailPopupPanel
+        {
+            public void Init(IGameViewModel model, LocalizeLibrary localization) { }
+            public UniTask Run(CardDetailProperty property, CancellationToken cancellationToken) => UniTask.CompletedTask;
+        }
 
         private static Setup _Create()
         {

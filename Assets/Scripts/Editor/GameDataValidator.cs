@@ -146,6 +146,8 @@ namespace MortalGame.Editor
             var uiKeys = (localizationData.LocalizeUI ?? new List<LocalizeExcelData>())
                 .Where(row => row != null).Select(row => row.Id).ToHashSet();
             foreach (var asset in catalog.CardAssets.Where(asset => asset != null))
+                _ValidateCompositionDescriptions(asset.CardData, localizationData, errors);
+            foreach (var asset in catalog.CardAssets.Where(asset => asset != null))
                 _ValidateLocalizationKeys(
                     SerializedDataGraphUtility.Find<CardEffectOption>(asset.CardData)
                         .Select(option => (option.DescriptionKey, $"CardData[{asset.CardData?.ID}] 的 CardEffectOption.DescriptionKey")),
@@ -1277,6 +1279,13 @@ namespace MortalGame.Editor
                 return;
 
             var subSelections = cardData.SubSelects ?? new List<ISubSelectionGroup>();
+            foreach (var create in SerializedDataGraphUtility.Find<CreateComposedCardEffect>(
+                cardData, value => value is not CardEffectOption))
+            {
+                if (string.IsNullOrWhiteSpace(create.TemplateSelectionId) ||
+                    !subSelections.OfType<CardTemplateSelectionGroup>().Any(group => group.Id == create.TemplateSelectionId))
+                    errors.Add($"{context} 的 CreateComposedCardEffect.TemplateSelectionId 找不到模板群組");
+            }
             foreach (var pair in subSelections
                 .Select((selection, index) => (Selection: selection, Index: index))
                 .Where(pair => pair.Selection != null))
@@ -1442,6 +1451,12 @@ namespace MortalGame.Editor
             string context,
             ICollection<string> errors)
         {
+            foreach (var effect in SerializedDataGraphUtility.Find<CreateComposedCardEffect>(data))
+            {
+                if (effect.Target == null) errors.Add($"{context} 的 CreateComposedCardEffect.Target 為空");
+                if (!effect.CreateDestination.IsNormalCardZone())
+                    errors.Add($"{context} 的 CreateComposedCardEffect.CreateDestination 必須是有效的一般卡片區域");
+            }
             foreach (var effect in SerializedDataGraphUtility.Find<CreateCardEffect>(data))
             {
                 if (effect.Target == null)
