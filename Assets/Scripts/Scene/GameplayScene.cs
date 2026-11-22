@@ -8,7 +8,7 @@ using MortalGame.GameView;
 namespace MortalGame.Scene
 {
 
-    public class GameplayScene : MonoBehaviour
+    public class GameplayScene : MonoBehaviour, IGameplayScene
     {
         [SerializeField]
         private GameplayView _gameplayView;
@@ -19,6 +19,7 @@ namespace MortalGame.Scene
 
         public async UniTask<GameplayResultCommand> Run(
             Context context,
+            GameStageSetting gameStageSetting,
             CancellationToken cancellationToken)
         {
             using var sceneCancellation = CancellationTokenSource.CreateLinkedTokenSource(
@@ -26,7 +27,6 @@ namespace MortalGame.Scene
                 this.GetCancellationTokenOnDestroy());
             var battleBuilder = new BattleBuidler(context);
 
-            var gameStageSetting = battleBuilder.ConstructBattle();
             var gameContextManager = battleBuilder.ConstructGameContextManager(gameStageSetting.RandomSeed);
             var gameplayPresenter = new GameplayPresenter(
                 _gameplayView,

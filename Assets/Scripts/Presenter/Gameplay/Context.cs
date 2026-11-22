@@ -11,6 +11,7 @@ namespace MortalGame.Presenter
 
     public class Context
     {
+        private readonly AllyData _initialAllyData;
         public Dictionary<string, CardData> CardTable { get; private set; }
         public Dictionary<string, CardBuffData> CardBuffTable { get; private set; }
         public Dictionary<string, PlayerBuffData> PlayerBuffTable { get; private set; }
@@ -30,20 +31,25 @@ namespace MortalGame.Presenter
             DispositionSettings = scriptableDataLoader.DispositionSettings();
             AllEnemies = scriptableDataLoader.AllEnemies;
 
-            // Create player instance
-            Ally = new AllyInstance(
-                Identity: Guid.NewGuid(),
-                NameKey: scriptableDataLoader.Ally.PlayerData.NameKey,
-                CurrentDisposition: scriptableDataLoader.Ally.InitialDisposition,
-                CurrentHealth: scriptableDataLoader.Ally.PlayerData.InitialHealth,
-                MaxHealth: scriptableDataLoader.Ally.PlayerData.MaxHealth,
-                CurrentEnergy: scriptableDataLoader.Ally.PlayerData.MaxEnergy,
-                MaxEnergy: scriptableDataLoader.Ally.PlayerData.MaxEnergy,
-                Deck: scriptableDataLoader.Ally.PlayerData.Deck.Cards.Select(card => CardInstance.Create(card.Data)).ToList(),
-                HandCardMaxCount: scriptableDataLoader.Ally.PlayerData.HandCardMaxCount);
+            _initialAllyData = scriptableDataLoader.Ally;
+            ResetRun();
 
             LocalizeTitleInfoSetting = scriptableDataLoader.LocalizeTitleInfoSetting();
             LocalizeInfoSetting = scriptableDataLoader.LocalizeInfoSetting();
+        }
+
+        public void ResetRun()
+        {
+            Ally = new AllyInstance(
+                Identity: Guid.NewGuid(),
+                NameKey: _initialAllyData.PlayerData.NameKey,
+                CurrentDisposition: _initialAllyData.InitialDisposition,
+                CurrentHealth: _initialAllyData.PlayerData.InitialHealth,
+                MaxHealth: _initialAllyData.PlayerData.MaxHealth,
+                CurrentEnergy: _initialAllyData.PlayerData.MaxEnergy,
+                MaxEnergy: _initialAllyData.PlayerData.MaxEnergy,
+                Deck: _initialAllyData.PlayerData.Deck.Cards.Select(card => CardInstance.Create(card.Data)).ToList(),
+                HandCardMaxCount: _initialAllyData.PlayerData.HandCardMaxCount);
         }
     }
 

@@ -1,12 +1,13 @@
 using System.Threading;
 using Cysharp.Threading.Tasks;
+using MortalGame.Presenter;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace MortalGame.Scene
 {
 
-    public class MenuScene : MonoBehaviour
+    public class MenuScene : MonoBehaviour, IMenuScene
     {
         // Get the reference to the CanvasScaler component attached to the Canvas
         [SerializeField] private CanvasScaler _canvasScaler;

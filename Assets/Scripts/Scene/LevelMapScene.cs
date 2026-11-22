@@ -8,7 +8,7 @@ using UnityEngine.UI;
 namespace MortalGame.Scene
 {
 
-    public class LevelMapScene : MonoBehaviour
+    public class LevelMapScene : MonoBehaviour, ILevelMapScene
     {
         [SerializeField] private CanvasScaler _canvasScaler;
 

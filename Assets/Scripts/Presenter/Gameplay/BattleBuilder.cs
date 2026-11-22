@@ -45,14 +45,6 @@ namespace MortalGame.Presenter
                 CharacterBuffLifeTimeEntityFactory.CreateDefault());
         }
 
-        public GameStageSetting ConstructBattle()
-        {
-            return new GameStageSetting(
-                StageID: "StageTest",
-                RandomSeed: Environment.TickCount,
-                Ally: _context.Ally,
-                Enemy: _context.AllEnemies[0]);
-        }
     }
 
 

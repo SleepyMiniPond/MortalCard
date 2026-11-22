@@ -1,18 +1,17 @@
 # 專案待辦事項
 
-> 最後更新：2026-11-22
+> 最後更新：2026-11-23
 > 狀態標記：⬜ 待開始／待排期 | 🟡 已有部分基礎，尚未完成 | 🔄 進行中 | ✅ 已完成
-> T-012 已於 2026-11-22 完成人工驗收、臨時資產清理與最終回歸，五項工作全部結案。
+> T-021 已於 2026-11-22 完成四項工作，經使用者最終確認後結案。
 > 已完成任務與階段歷史見 [TODO_Archive](TODO_Archive.md)。
 
 ## 工作優先順序
 
 ```text
-目前進行中：T-021 初始抽牌優先，第 2 個工作已確認；第 3 個工作完成 Inspector 篩選試用版，待使用者操作確認。
+目前進行中：T-024 場景結果、重試與戰後資料銜接；第 2 個工作流程已經使用者確認。下一步為第 3 個工作 UI Presenter 審視與重構，待開始。
 
 獨立排期
-├─ T-021 初始抽牌優先（Inspector 篩選試用版待確認）
-├─ T-024 場景結果、重試與戰後資料銜接
+├─ T-024 場景結果、重試與戰後資料銜接（進行中）
 ├─ T-025 FormChanged 生命週期一致化
 ├─ T-026 Buff 資源上限接線
 ├─ T-027 減少好感度事件呈現
@@ -22,28 +21,17 @@
 └─ T-014 Preview / Simulation
 ```
 
-T-010～T-012、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的卡片生命週期觸發已完成（FormChanged 專用路徑差異另列 T-025）。T-021 已啟動，其餘獨立項目待排期。
+T-010～T-012 與 T-017～T-023 已完成並封存。T-017 範圍內的卡片生命週期觸發已完成（FormChanged 專用路徑差異另列 T-025）。T-024 已啟動，其餘獨立項目待排期。
 
 ---
 
 ## 最近完成
 
-T-012 卡片合成的五項工作已完成，包含動態定義、多輪選取、四入口整合、動態敘述、人工驗收及臨時資產清理。範圍、驗證與限制見 [T-012 封存紀錄](TODO_Archive.md#t-012卡片合成系統已完成)。
+T-021 初始抽牌優先的四項工作已完成，包含雙方單次穩定排序、View 同步、可配置的 Inspector 效果選單限制，以及臨時資料清理。範圍與最終驗證見 [T-021 封存紀錄](TODO_Archive.md#t-021初始抽牌優先與效果選單設定已完成)。
 
 ---
 
 ## 長期／獨立排期
-
-### T-021：完成 `CardProperty.InitialPriority` 初始抽牌優先
-
-- **排期**：T-017 已完成，本項獨立排期，不插入 T-022 → T-023 主線。
-- **目標**：讓 `InitialPriorityPropertyData` 對應的 `CardProperty.InitialPriority` 真正影響戰鬥初始抽牌順序。
-- **現況**：已接上雙方初始牌堆的穩定排序及 View 同步；新增定向 19／19、完整 EditMode 931／931、PlayMode 45／45 通過，Unity 編譯及 GameDataValidator 0 error，尚未人工驗收與結案。
-- **已確認規則**：BeforeGameStart／初始 Initialize 完成後、AfterGameStart 前排序一次；納入當下仍在 Deck 的新增或變形卡片，同組保留洗牌順序，不額外耗用亂數或增加抽牌數。後續新增與墓地洗牌不再套用優先。
-- **Inspector 試用版**：以單一正式 Editor 設定資產管理 GameTiming／CardTriggeredTiming 的效果停用清單，預設停用 BeforeGameStart／Initialize 的 DrawCardEffect；選單變灰置底，無 toggle／hint，保留既有配置。設定持久化與選單定向 19／19、完整 EditMode 950／950 通過，編譯與正式資料驗證 0 error，待使用者試用。設定入口見 [GameData 資產指南](GameData_Asset_Guidelines.md#開場時機與效果選單)。
-- **剩餘工作**：使用者確認 Inspector 體驗、完成人工驗收與臨時資產清理。Initialize 避免抽牌是製卡規範，Runtime 不硬性禁止；規則見 [Card](Card.md)。
-- **依據**：[CardPropertyEntityFactory](../Assets/Scripts/GameModel/Factory/CardPropertyEntityFactory.cs)、[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[DeckEntity](../Assets/Scripts/GameModel/Entity/Card/DeckEntity.cs)。
-- **狀態**：🔄 第 3 個工作待使用者試用確認。進度以目前工作索引指向的原工作計畫為準。
 
 ### T-013：戰鬥中敵人動態增減
 
@@ -70,11 +58,12 @@ T-012 卡片合成的五項工作已完成，包含動態定義、多輪選取�
 ### T-024：場景結果、重試與戰後資料銜接
 
 - **範圍**：Scene／Presenter／戰鬥外狀態；獨立排期，先完成結果流程，再接續戰後資料套用。
-- **現況**：Win Presenter 無正常完成入口；Main 的 retry 未逐次重設、結果分支與回地圖語意未完整，Retry 也會重建種子與戰鬥設定。Main 尚未消費勝利 CardInstanceChangeSet。
+- **現況**：GameFlow 已接入結果轉移、新一輪重設與同關原種子／配置保存；SceneLoadManager 只載入，GameFlow 呼叫 Scene.Run。臨時兩關集中於 TemporaryBattleRoute，兩關可用同敵人、第一勝回地圖、第二勝回選單；本輪定向流程測試 15／15 通過，前次完整 EditMode 962／962。Win Presenter 正常完成入口、關卡畫面標示及實際 UI 接線尚未補上；勝利 CardInstanceChangeSet 與戰後資源尚未寫回。
 - **工作**：定義 Win／Retry／Restart／Quit 的狀態轉移、保存同關重試設定、提供勝利完成操作，再定義並套用戰後 Domain 狀態。磁碟存檔另行規劃。
 - **完成條件**：各結果能離開目前流程；Retry 後再 Quit 不再重試；同關設定可重現；只有應提交的結果寫回，失敗／取消不提交。
 - **依據**：[Main](../Assets/Scripts/Scene/Main.cs)、[GameResultWinPresenter](../Assets/Scripts/Presenter/Gameplay/GameResultWinPresenter.cs)、[BattleBuilder](../Assets/Scripts/Presenter/Gameplay/BattleBuilder.cs)、[Instance](Instance.md)。
-- **狀態**：⬜ 待排期。
+- **已確認規則**：勝利回地圖、Retry 保留原局、Restart 新一輪回地圖、Quit 回選單。勝利延續卡片持久形態、血量與好感度，下一戰能量回滿；失敗／取消不提交。
+- **狀態**：🔄 第 2 個工作已經使用者確認；第 3 個工作待開始，先審視現有 UI Presenter 並討論重構範圍，再完成 UI，之後接戰後資料。進度以目前工作索引指向的原工作計畫為準。
 
 ### T-025：FormChanged 生命週期一致化
 
