@@ -13,6 +13,7 @@ namespace MortalGame.GameModel
     {
         Option<ICardEntity> PopCardOrNone();
         void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards);
+        void ApplyInitialPriority();
     }
     public class DeckEntity : CardColletionZone, IDeckEntity
     {
@@ -28,6 +29,11 @@ namespace MortalGame.GameModel
             var popCard = OptionCollectionExtensions.ElementAtOrNone(Cards, 0);
             _cards = Cards.Skip(1).ToList();
             return popCard;
+        }
+
+        public void ApplyInitialPriority()
+        {
+            _cards = _cards.OrderByDescending(card => card.HasProperty(CardProperty.InitialPriority)).ToList();
         }
 
         public void EnqueueCardsThenShuffle(IEnumerable<ICardEntity> cards)

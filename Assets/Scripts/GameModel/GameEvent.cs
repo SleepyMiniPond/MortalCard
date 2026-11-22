@@ -27,6 +27,10 @@ namespace MortalGame.GameModel
     public record EnemySummonEvent(EnemyEntity Enemy) : IGameEvent;
     public record RoundStartEvent(int Round, AllyEntity Player, EnemyEntity Enemy) : IGameEvent;
 
+    public record InitialDeckOrderedEvent(
+        Faction Faction,
+        CardManagerInfo CardManagerInfo) : IGameEvent;
+
     public record RecycleGraveyardToDeckEvent(
         Faction Faction,
         CardManagerInfo CardManagerInfo) : IGameEvent;

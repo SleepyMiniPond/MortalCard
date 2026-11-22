@@ -8,7 +8,7 @@ GameModel 管理戰鬥規則與可變實體，不依賴 View。Model 聚合事�
 
 [GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs) 的主要順序：
 
-1. 建立角色與牌堆，固定初始卡片名單；執行 BeforeGameStart、初始卡片 Initialize、AfterGameStart。
+1. 建立角色與牌堆，固定初始卡片名單；執行 BeforeGameStart、初始卡片 Initialize，再對雙方牌堆套用一次 InitialPriority 並交付排序快照，最後執行 AfterGameStart。優先規則見 [Card](Card.md)。
 2. 建立新回合編號，執行 BeforeTurnStart、回合事件、雙方能量恢復、AfterTurnStart。
 3. 在抽牌前後時機之間處理雙方抽牌；每張卡完成移動與生命週期效果後才處理下一張。
 4. 敵人準備選牌，接著等待玩家行動，再執行敵人已選卡牌。

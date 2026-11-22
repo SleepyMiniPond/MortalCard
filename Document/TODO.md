@@ -8,10 +8,10 @@
 ## 工作優先順序
 
 ```text
-目前無進行中的主線；下一項待使用者安排。
+目前進行中：T-021 初始抽牌優先，第 2 個工作已實作並通過回歸，待使用者確認；Inspector 篩選留待後續處理。
 
 獨立排期
-├─ T-021 初始抽牌優先（已更名，排序未接線）
+├─ T-021 初始抽牌優先（排序與回歸完成，待確認）
 ├─ T-024 場景結果、重試與戰後資料銜接
 ├─ T-025 FormChanged 生命週期一致化
 ├─ T-026 Buff 資源上限接線
@@ -22,7 +22,7 @@
 └─ T-014 Preview / Simulation
 ```
 
-T-010～T-012、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的卡片生命週期觸發已完成（FormChanged 專用路徑差異另列 T-025）。下列獨立項目尚未自動啟動。
+T-010～T-012、T-017～T-020 與 T-022～T-023 已完成並封存。T-017 範圍內的卡片生命週期觸發已完成（FormChanged 專用路徑差異另列 T-025）。T-021 已啟動，其餘獨立項目待排期。
 
 ---
 
@@ -38,11 +38,11 @@ T-012 卡片合成的五項工作已完成，包含動態定義、多輪選取�
 
 - **排期**：T-017 已完成，本項獨立排期，不插入 T-022 → T-023 主線。
 - **目標**：讓 `InitialPriorityPropertyData` 對應的 `CardProperty.InitialPriority` 真正影響戰鬥初始抽牌順序。
-- **現況**：目前只有 `InitialPriorityPropertyData`、`InitialPriorityPropertyEntity` 與查詢／轉換測試；正式牌堆建立與抽牌流程尚未讀取此屬性來排序。
-- **開始前需決定**：優先卡影響第一手或整個牌堆、同優先級的排序規則、洗牌與可重現亂數的互動，以及 `BeforeGameStart`／`CardTriggeredTiming.Initialize` 新增或修改優先卡時是否影響本場戰鬥。
-- **已完成範圍**：舊名稱已改為 CardProperty.InitialPriority，保留序列化數值；剩餘工作是排序、抽牌行為及驗證。
+- **現況**：已接上雙方初始牌堆的穩定排序及 View 同步；新增定向 19／19、完整 EditMode 931／931、PlayMode 45／45 通過，Unity 編譯及 GameDataValidator 0 error，尚未人工驗收與結案。
+- **已確認規則**：BeforeGameStart／初始 Initialize 完成後、AfterGameStart 前排序一次；納入當下仍在 Deck 的新增或變形卡片，同組保留洗牌順序，不額外耗用亂數或增加抽牌數。後續新增與墓地洗牌不再套用優先。
+- **剩餘工作**：使用者確認本步、討論依時機篩選 Inspector 效果選單，並進行人工驗收及清理。Initialize 避免抽牌是製卡規範，Runtime 不硬性禁止；規則見 [Card](Card.md)。
 - **依據**：[CardPropertyEntityFactory](../Assets/Scripts/GameModel/Factory/CardPropertyEntityFactory.cs)、[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[DeckEntity](../Assets/Scripts/GameModel/Entity/Card/DeckEntity.cs)。
-- **狀態**：🟡 更名及查詢已完成；排序功能待規劃。
+- **狀態**：🔄 第 2 個工作待使用者確認；Inspector 留後續處理。進度以目前工作索引指向的原工作計畫為準。
 
 ### T-013：戰鬥中敵人動態增減
 

@@ -29,7 +29,11 @@ CardEntity 一律持有 [ICardDefinition](../Assets/Scripts/GameModel/Entity/Car
 | DiscardCardEffect | Dispose → DisposeZone；否則 Consumable → ExclusionZone；其他 → Graveyard |
 | Recycle | 出牌離場後，將剛打出且仍在墓地的該卡移回手牌 |
 
-Consumable 不等於可重複打出。Sealed 可來自卡片屬性或 CardBuff。InitialPriority 已有資料、Entity 與查詢，但尚未影響初始抽牌排序（T-021）。
+Consumable 不等於可重複打出。Sealed 可來自卡片屬性或 CardBuff。
+
+InitialPriority 在雙方初始 Initialize 全部完成後、AfterGameStart 前，將當下仍在 Deck 的優先牌穩定移到前方一次。同組保留既有洗牌順序，不額外消耗亂數；讀取排序當下的有效屬性，包含初始化新增或變形的卡片。排序不增加抽牌數、不把已移出的牌拉回，也不改初始 Initialize 名單與順序。優先牌超過第一批抽牌數時，剩餘牌仍留在前方；之後新增牌或墓地回洗不重新套用優先。
+
+排序後的開場抽牌可沿用 Buff 的 AfterGameStart 反應；CardTriggeredTiming 沒有獨立的 AfterGameStart 入口。Initialize 以準備牌堆為設計用途，建議避免配置需要享有初始優先的抽牌；若仍配置，Runtime 照常在排序前抽牌，不拒絕、不延後，也不保證優先。
 
 規則來源：[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[PlayerCardManager](../Assets/Scripts/GameModel/Entity/Player/PlayerCardManager.cs)、[DiscardCardEffectResolver](../Assets/Scripts/GameModel/Effect/Resolvers/DiscardCardEffectResolver.cs)。
 

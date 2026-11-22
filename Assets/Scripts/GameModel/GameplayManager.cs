@@ -186,6 +186,11 @@ namespace MortalGame.GameModel
 
             _gameEvents.AddRange(_RunTiming(GameTiming.BeforeGameStart, SystemSource.Instance));
             _gameEvents.AddRange(RunInitialCardInitialize(initialDeckCards));
+            foreach (var player in new IPlayerEntity[] { _gameStatus.Ally, _gameStatus.Enemy })
+            {
+                player.CardManager.Deck.ApplyInitialPriority();
+                _gameEvents.Add(new InitialDeckOrderedEvent(player.Faction, player.CardManager.ToInfo()));
+            }
             _gameEvents.AddRange(_RunTiming(GameTiming.AfterGameStart, SystemSource.Instance));
 
             IReadOnlyList<InitialDeckCardCandidate> CreateInitialDeckCardSnapshot()

@@ -177,6 +177,9 @@ namespace MortalGame.GameView
                     case GeneralUpdateEvent updateEvent:
                         _UpdateGeneralInfo(updateEvent);
                         break;
+                    case InitialDeckOrderedEvent initialDeckOrderedEvent:
+                        _gameViewModel.UpdateCardManagerInfo(initialDeckOrderedEvent.Faction, initialDeckOrderedEvent.CardManagerInfo);
+                        break;
                     case CardFormChangedEvent formChangedEvent:
                         _gameViewModel.UpdateCardInfo(formChangedEvent.CardInfo);
                         break;
