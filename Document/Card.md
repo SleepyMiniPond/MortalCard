@@ -1,8 +1,20 @@
 # Card 卡牌系統
 
-> 核對日期：2026-10-15
+> 核對日期：2026-11-22
 
 卡牌分為設計配置 CardData、跨戰鬥 CardInstance、本場戰鬥 CardEntity。移牌與變形保留 Entity Identity；Runtime 建立及 Clone 的卡片沒有來源 Instance。形態規則見 [CardTransformation](CardTransformation.md)，資料轉換見 [CardEntity](../Assets/Scripts/GameModel/Entity/Card/CardEntity.cs)。
+
+## 卡片定義與動態合成
+
+CardEntity 一律持有 [ICardDefinition](../Assets/Scripts/GameModel/Entity/Card/ICardDefinition.cs)。CatalogCardDefinition 引用內容資產；[ComposedCardDefinition](../Assets/Scripts/GameModel/Entity/Card/ComposedCardDefinition.cs) 保存模板與所選選項組合的獨立內容。建立新卡及 Clone 共用 RuntimeCreateFromDefinition，透過 CopyForNewCard 保護合成卡的巢狀可變資料；不同成品不共用可變效果。
+
+合成第一輪選 StandardCardData 模板，決定費用、類型、目標、原有效果及其他基本配置；後續選項只追加 Effects 與 TriggeredEffects。普通效果依選取輪次追加，同時機觸發清單保留原項目、條件與順序，不覆蓋模板效果。
+
+完整選取通過驗證時，先固定本次 ComposedCardDefinition；CreateComposedCardEffect 執行時才建立 Entity，沿既有 CreateCardEffectCommand 與 AddCardEvent 加入指定牌區。選片段不執行成品效果、不消耗材料牌；取消或零候選拒絕整次操作，不支付出牌費用。成品使用時重新依模板選目標，不保存合成當時的 Selected Context。
+
+成品目前只保存在本場戰鬥，沒有來源 Instance，也不登錄為新的 Catalog 資產或寫回跨戰鬥牌組。Self／Override 期間使用有效形態的 Definition，還原後恢復原組成。
+
+動態敘述保留模板文字，依選取輪次追加選項本地化片段；CardInfo 保存數值／規則參數，CardView 與 AiCardView 於渲染時取得文字。常數運算讀取實際效果 Value；依未來目標或狀態變動的值顯示配置的規則文字，不藉由執行效果計算敘述。時機及條件由片段作者寫明。配置與驗證見 [GameData](GameData.md#子選取配置)。
 
 ## 出牌與移牌
 
@@ -43,8 +55,8 @@ Consumable 不等於可重複打出。Sealed 可來自卡片屬性或 CardBuff�
 
 InvokeCardEffects 可借用指定卡片的一次普通 Effects，但不代表出牌，也不派送出牌生命週期。牌區、施放者、選取與巢狀執行規則集中於 [原地卡效](Effect.md#原地卡效-invokecardeffects)。
 
-主目標宣告可互動對象；ExistCard 已接入玩家 UI、敵方、PlayCardEffect 與 InvokeCardEffects 的多步驟選取，共用順序、數量與完整結果驗證。玩家關閉任一步取消整次出牌；自動入口選取不成立時略過該次操作。規則見 [Target](Target.md#選取與查詢分離)，草稿與消費見 [Action](Action.md#選取草稿與提交)，UI 分工見 [Presenter](Presenter.md#輸入與選取)。
+主目標宣告可互動對象；ExistCard、模板與效果選項均已接入玩家 UI、敵方、PlayCardEffect 與 InvokeCardEffects 的多步驟選取，共用順序與完整結果驗證。玩家關閉任一步取消整次出牌；自動入口選取不成立時略過該次操作。規則見 [Target](Target.md#選取與查詢分離)，草稿與消費見 [Action](Action.md#選取草稿與提交)，UI 分工見 [Presenter](Presenter.md#輸入與選取)。
 
-NewCard／NewPartialCard／NewEffect 仍為預留結構，未提供可執行選取；PartialCard、效果片段及卡片合成依 [TODO](TODO.md) 後續安排。本次選取契約也不代表傷害預覽已完成。
+NewCard／NewPartialCard／NewEffect 仍為預留結構；動態合成使用獨立的模板／效果選取型別，沒有接入這些舊佔位型別。選取與動態敘述不代表完整傷害預覽已完成。
 
 屬性 Entity 由 [CardPropertyEntityFactory](../Assets/Scripts/GameModel/Factory/CardPropertyEntityFactory.cs) 建立；卡牌修正器見 [CardBuff](CardBuff.md)。

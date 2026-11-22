@@ -1,6 +1,6 @@
 # GameData 資料定義層
 
-> 核對日期：2026-10-15
+> 核對日期：2026-11-22
 
 GameData 定義卡牌、Buff、玩家與反應規則的配置。ScriptableObject 是 Unity 資產容器，內部 Data 並非全都是 ScriptableObject，也不是由型別強制保證的不可變資料。
 
@@ -33,6 +33,19 @@ CardData.SubSelects 依清單順序宣告步驟。目前使用 ExistCardSelectio
 群組 ID 在同張卡內必須非空且唯一。候選或數量若引用 SubSelectedCardCollection，只能使用前面已宣告的 ExistCard 群組；效果中的引用也須對應本張卡的群組。Validator 檢查 ID、相依順序、CountRule、必要巢狀資料及可靜態求得的負數；動態求值與玩家結果合法性由 Runtime 查詢／提交驗證處理。
 
 選取提示從 UI 本地化表使用 `CardSelection.{CardDataId}.{SubSelectionId}` 查詢，缺少專屬文字時使用 `CardSelection_Default`。資產不另存 PromptKey；新增專屬提示時，依這兩個 ID 加入文字表。具體製作與檢查見 [資產製作規範](GameData_Asset_Guidelines.md)。NewCard／NewPartialCard／NewEffect 的 Runtime 選取仍未接線。
+
+動態合成使用 [CardCompositionData](../Assets/Scripts/GameData/Card/CardCompositionData.cs)：
+
+| 配置 | 責任 |
+|---|---|
+| CardTemplateSelectionGroup | TemplateCardDataIds 提供 Catalog 中的 Standard 模板 |
+| CardEffectSelectionGroup | TemplateSelectionId 引用前面的模板群組；PoolsByTemplateId 對應各模板的選項池 |
+| CardEffectOption | 穩定 Id、DescriptionKey、Effects、TriggeredEffects 及 DescriptionParameters |
+| CreateComposedCardEffect | 引用 TemplateSelectionId，指定接收玩家及一般牌區目的地 |
+
+輪數由 SubSelects 清單決定，每輪選一項；模板／效果群組的 OfferCount 必須明確設定正數，不預填數量。模板池必須完整，選項依 Id 排除此前選擇，不比較效果內容去重。候選不足及抽樣規則見 [Target](Target.md#逐步查詢與完整驗證)。選項內的子選取引用以成品模板為作用域，不以合成來源卡的群組替代。
+
+DescriptionKey 與規則參數 RuleKey 使用 UI 本地化表。片段佔位沿用 `{:damage}` 格式；DescriptionParameters 的 Value 必須直接引用本選項普通或觸發效果中的 IIntegerValue，不另外配置數值副本。非純常數參數須提供 RuleKey。Validator 檢查描述鍵、佔位參數、保留名稱 cost／power 及來源綁定；文字是否完整表達時機、條件與效果仍需審閱。
 
 ## 效果與時機邊界
 

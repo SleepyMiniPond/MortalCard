@@ -389,14 +389,6 @@ namespace MortalGame.GameView
                             break;
                     }
                     break;
-                case Faction.Enemy:
-                    switch (addCardEvent.Destination)
-                    {
-                        case CardCollectionType.HandCard:
-                            _enemySelectedCardView.CreateCardView(addCardEvent);
-                            break;
-                    }
-                    break;
             }
         }
 

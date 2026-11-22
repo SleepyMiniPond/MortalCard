@@ -1,6 +1,6 @@
 # GameData 資料資產製作規範
 
-> 最後更新：2026-11-14 | v1.4
+> 最後更新：2026-11-22 | v1.5
 
 ## 文件目的
 
@@ -20,12 +20,16 @@
 
 ## 多步驟選取製作
 
-- 目前只配置 ExistCard 群組，依 SubSelects 清單順序排列；ID 在同張卡內保持非空且唯一，修改 ID 時同步調整相依集合、效果與專屬提示文字。
+- ExistCard、模板與效果群組依 SubSelects 清單順序排列；ID 在同張卡內保持非空且唯一，修改 ID 時同步調整相依集合、效果與專屬提示文字。
 - 每步先決定候選與 SelectCount，再依 [數量規則](Target.md#數量與候選不足) 選擇 CountRule。必選不代表不能取消 UI；關閉任一步會取消整次出牌。
 - 後一步可用 SubSelectedCardCollection 讀取前面群組；需要排除已選卡片時，使用 CombinedCardCollection 的 Difference 或明確條件。不要引用自身或後面的群組。
 - UI 專屬提示使用 CardData ID 與群組 ID 組成文字 key，規則見 [GameData](GameData.md#子選取配置)。本地化表有通用驗證，不依賴資產上的 PromptKey。
 
 例如第一步 `pick` 從卡片擁有者的手牌選一張，第二步 `confirm` 的候選用 SubSelectedCardCollection 引用 `pick`，需求設為 1、CountRule 設為 RequiredExact。效果再引用 `confirm`，即可確認兩步結果的傳遞；只確認第一步不應提前移牌或執行效果。
+
+合成配置先加入模板群組，再加入引用該模板群組的效果輪次；逐一明填 OfferCount，為所有模板提供完整候選池，再用 CreateComposedCardEffect 建立結果。描述參數直接綁定所追加效果的 Value；片段內的子選取引用須存在於成品模板。詳細欄位與 Validator 規則見 [GameData](GameData.md#子選取配置)。
+
+效果選項在 Inspector 先列出 Effects／TriggeredEffects，再列出 DescriptionParameters；描述參數的 Value 直接展開共用物件，避免 Odin 以參考路徑顯示時找不到欄位。修改共用 Value 內的數值會同步影響效果與描述；替換 Value 物件或型別時，仍須同步調整描述參數的參考。
 
 ## 臨時功能驗收資產
 

@@ -1,6 +1,6 @@
 # Target 目標與選取
 
-> 核對日期：2026-10-15
+> 核對日期：2026-11-22
 
 Target 以可序列化資料描述在 TriggerContext 中要讀取的實體或集合。單一查詢回傳 Option，找不到為 None；集合查詢回傳空集合，不以 Dummy 或 null 代替。
 
@@ -44,7 +44,11 @@ CardData.SubSelects 的清單順序就是選取順序。每步用主目標與前
 
 全部步驟確認後，Model 以 ValidateComplete 重新驗證主目標、群組、結果型別、候選及數量。非法、重複、缺漏或過期結果會拒絕整次操作，不自動修剪。未選群組與已確認的空群組有不同語意，草稿及提交契約見 [Action](Action.md#選取草稿與提交)。這些純查詢可供未來預覽使用；完整傷害預覽仍歸 T-014。
 
-目前只支援 ExistCard。NewCard／NewPartialCard／NewEffect 是預留結構，尚不建立可執行選取結果；後續功能範圍見 [TODO](TODO.md)。
+模板與效果群組也使用相同前綴重驗流程。QueryNext 回傳完整合法池，不抽樣；PrepareNext 明確委派 CardSelectionSession，依 OfferCount 抽出不重複候選並保存，重查同一輪不重抽。正式提交必須攜帶有效 OfferIdentity，驗證來源、施放者、主目標、前綴及當時實際提供的項目，不能只選完整池中未提供的選項。
+
+每輪模板／效果選取固定選一項；提供數量為 OfferCount 與剩餘候選數的較小值，不能放回已排除選項補滿。效果池依已選模板切換，ExcludePreviouslySelected 依先前所有效果選項 ID 排除；排除後零候選拒絕整次操作。這套提供規則與 ExistCard 的 CountRule 分開，配置見 [GameData](GameData.md#子選取配置)。
+
+NewCard／NewPartialCard／NewEffect 仍是未接線的預留結構，與已支援的模板／效果群組不同。
 
 AI 自動選取不是純 Target 查詢；主目標以顯式玩家決定相對敵我視角，候選範圍與 First／Random 挑選策略分開配置，見 [GameModel](GameModel.md)。
 

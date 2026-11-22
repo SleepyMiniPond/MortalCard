@@ -1,6 +1,6 @@
 # Popup 彈窗互動
 
-> 核對日期：2026-11-12
+> 核對日期：2026-11-22
 
 Popup 顯示臨時互動內容；Presenter 非同步等待操作，完成或取消時清理面板及訂閱。
 
@@ -13,6 +13,8 @@ Popup 顯示臨時互動內容；Presenter 非同步等待操作，完成或取�
 ## 子選取
 
 [CardSelectionFlow](../Assets/Scripts/Presenter/Gameplay/CardSelectionFlow.cs) 管理多步驟草稿及逐步查詢；[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 只處理單一步驟。[CardSelectionPanel](../Assets/Scripts/GameView/Panel/Popup/CardSelectionPanel.cs) 呈現候選、選中標記、提示與確認狀態。
+
+ExistCard、模板及效果選項沿用同一面板。模板顯示基本卡片資料，效果選項顯示對應模板基本值與單一描述片段；每輪固定選一個模板或效果。候選提供及 Session 所有權見 [Presenter](Presenter.md#輸入與選取)。
 
 關閉任一步都會取消整次出牌，必選也能取消；確認按鈕只有在數量合法時可用。Optional 可確認零張，與取消不同。前一步只保存結果，全部完成並通過 Model 重驗後才正式出牌。數量與候選不足的完整規則集中於 [Target](Target.md#數量與候選不足)。
 

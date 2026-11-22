@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using MortalGame.GameModel;
+using Sirenix.OdinInspector;
 
 namespace MortalGame.GameData
 {
@@ -10,15 +11,16 @@ namespace MortalGame.GameData
     {
         public string Id;
         public string DescriptionKey;
-        public Dictionary<string, CardDescriptionParameter> DescriptionParameters = new();
         public List<ICardEffect> Effects = new();
         public Dictionary<CardTriggeredTiming, ConditionalCardEffect[]> TriggeredEffects = new();
+        public Dictionary<string, CardDescriptionParameter> DescriptionParameters = new();
     }
 
     [Serializable]
     public sealed class CardDescriptionParameter
     {
         // 直接參考本選項 Effect 的 Value，避免重複配置數字。
+        [DoNotDrawAsReference]
         public IIntegerValue Value;
         public string RuleKey = string.Empty;
     }

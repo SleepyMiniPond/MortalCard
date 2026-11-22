@@ -34,11 +34,9 @@ namespace MortalGame.GameView
 
         public void ShowHint(ViewData viewData, RectTransform referenceRect)
         {
+            HideHint();
             if (viewData.InfoDatas.Count == 0)
-            {
-                HideHint();
                 return;
-            }
 
             _content.gameObject.SetActive(true);
             foreach (var infoData in viewData.InfoDatas)

@@ -1,8 +1,10 @@
 # CardView 卡牌視圖
 
-> 核對日期：2026-10-03
+> 核對日期：2026-11-22
 
 卡牌視圖負責手牌排列、拖曳、聚焦及詳情展示。顯示資料以 [CardInfo](../Assets/Scripts/GameModel/Info/CardInfo.cs) 為準，其中 Cost／Power 可缺值；CreatePreview 更新同一 Power 欄位，沒有獨立 PreviewPower 欄位，也不是完整模擬能力。
+
+動態合成的 DescriptionFragments 保留數值／規則參數；[CardDescriptionText](../Assets/Scripts/GameView/CardView/CardDescriptionText.cs) 在渲染時取得模板與片段文字。模板選取預覽尚無擁有者，明確使用 OriginCost／OriginPower 顯示基本資料；正式戰鬥卡仍使用原有公式。
 
 ## 互動規則
 
@@ -12,11 +14,13 @@
 
 拖曳提示與放開出牌共用目標判斷，依當前目標型別及滑鼠位置選取第一個合法目標；無目標卡仍需放在基本出牌區。出牌、移牌及批次棄牌共用單張回收流程，負責移除索引、回收 View 與清除其他卡片的焦點位移；批次棄牌結束後才重新排列。
 
-[AiCardView](../Assets/Scripts/GameView/CardView/AiCardView.cs) 與 [EnemySelectedCardView](../Assets/Scripts/GameView/CardView/EnemySelectedCardView.cs) 顯示敵人已選卡片，沒有友軍手牌的拖曳流程。
+[AiCardView](../Assets/Scripts/GameView/CardView/AiCardView.cs) 與 [EnemySelectedCardView](../Assets/Scripts/GameView/CardView/EnemySelectedCardView.cs) 顯示敵人已選卡片，沒有友軍手牌的拖曳流程。敵方新增手牌的 AddCardEvent 僅更新資料；收到 EnemySelectCardEvent 才建立預選 View，避免合成卡入手後於下一回合重複建立。
 
 ## 詳情
 
 [FocusCardDetailView](../Assets/Scripts/GameView/CardView/FocusCardDetailView.cs) 與 [SingleCardDetailPopupPanel](../Assets/Scripts/GameView/Panel/Popup/SingleCardDetailPopupPanel.cs) 顯示最新卡片、Buff 與關鍵字。提示內容由 [CardPropertyHint](../Assets/Scripts/GameView/CardView/CardPropertyHint.cs) 組合。
+
+提示刷新前先回收舊列，再建立目前內容；同一卡片多次狀態更新不應累積重複說明。關閉詳情會回收所有提示列。
 
 CardDetailInfoView 仍是空元件；CardStatusInfoView.cs 實際定義 CardBuffInfoView，負責提示文字，不能依檔名推論成另一套卡片狀態快照。
 

@@ -73,21 +73,6 @@ namespace MortalGame.GameView
                 _RearrangeCardViews();
             }
         }
-        public void CreateCardView(AddCardEvent addCardEvent)
-        {
-            var cardView = _cardViewFactory.CreatePrefab();
-            cardView.transform.SetParent(_cardViewParent, false);
-            cardView.Initialize(_gameViewModel, _localizeLibrary);
-            cardView.SetCardInfo(addCardEvent.CardInfo);
-
-            _cardViews.Add(cardView);
-            _cardViewDict.Add(addCardEvent.CardInfo.Identity, cardView);
-            if (_cardViews.Count > 0)
-            {
-                _RearrangeCardViews();
-            }
-        }
-
         public void RemoveCardView(UsedCardEvent usedCardEvent)
         {
             if (_cardViewDict.TryGetValue(usedCardEvent.UsedCardIdentity, out var cardView))

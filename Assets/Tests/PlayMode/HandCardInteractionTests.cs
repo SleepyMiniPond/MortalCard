@@ -39,6 +39,88 @@ namespace MortalGame.Tests
         [TearDown]
         public void TearDown() => UnityEngine.Object.DestroyImmediate(_root);
 
+        [TestCase(false)]
+        [TestCase(true)]
+        public void EnemyCreatedHandCard_IsDisplayedOnlyAfterSelectionAndCanBeSelectedAgain(bool used)
+        {
+            var view = _root.AddComponent<GameplayView>();
+            var enemy = _root.AddComponent<EnemySelectedCardView>();
+            var factory = _root.AddComponent<AiCardViewFactory>();
+            var templateRect = _CreateRect();
+            var template = templateRect.gameObject.AddComponent<AiCardView>();
+            _Set(template, "_rectTransform", templateRect);
+            var textType = Type.GetType("TMPro.TextMeshProUGUI, Unity.TextMeshPro", true);
+            foreach (var field in new[] { "_title", "_info", "_cost", "_power" })
+            {
+                var rect = _CreateRect(); rect.SetParent(templateRect, false);
+                _Set(template, field, rect.gameObject.AddComponent(textType));
+            }
+            var factoryType = typeof(PrefabFactory<AiCardView>);
+            factoryType.GetField("_prefab", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(factory, template);
+            factoryType.GetField("_recycleRoot", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(factory, _CreateRect());
+            var model = new GameViewModel();
+            _Set(enemy, "_cardViewFactory", factory);
+            _Set(enemy, "_cardViewParent", _CreateRect());
+            _Set(enemy, "_handCardArea", _CreateRect());
+            _Set(enemy, "_gameViewModel", model);
+            _Set(enemy, "_localizeLibrary", new LocalizeLibrary(
+                new Dictionary<LocalizeTitleInfoType, IReadOnlyDictionary<string, LocalizeTitleInfoData>>(),
+                new Dictionary<LocalizeInfoType, IReadOnlyDictionary<string, LocalizeInfoData>>()));
+            _Set(view, "_gameViewModel", model);
+            _Set(view, "_enemySelectedCardView", enemy);
+            var info = _Info(SelectType.None);
+            var manager = new CardManagerInfo(new Dictionary<CardCollectionType, ImmutableArray<Guid>>
+            { [CardCollectionType.HandCard] = ImmutableArray.Create(info.Identity) });
+
+            view.Render(new[] { new AddCardEvent(Faction.Enemy, info, CardCollectionType.HandCard, manager) }, _receiver);
+            Assert.That(enemy.SelectableViews, Is.Empty, "敵方新手牌尚未預選，不應建立預選畫面。");
+            var selected = new EnemySelectCardEvent(info, ImmutableArray.Create(info.Identity));
+            view.Render(new[] { selected }, _receiver);
+            Assert.That(enemy.SelectableViews.Count(), Is.EqualTo(1));
+
+            if (used) view.Render(new[] { new UsedCardEvent(Faction.Enemy, info.Identity, manager, CardPlayReason.Active) }, _receiver);
+            else view.Render(new[] { new EnemyUnselectedCardEvent(ImmutableArray.Create(info.Identity)) }, _receiver);
+            Assert.That(enemy.SelectableViews, Is.Empty);
+            Assert.DoesNotThrow(() => view.Render(new[] { selected }, _receiver));
+            Assert.That(enemy.SelectableViews.Count(), Is.EqualTo(1));
+        }
+
+        [Test]
+        public void RepeatedHintRefresh_ReplacesPreviousRowsAndHideRecyclesThem()
+        {
+            var hint = _root.AddComponent<CardPropertyHint>();
+            var factory = _root.AddComponent<CardBuffInfoViewFactory>();
+            var template = _CreateRect().gameObject.AddComponent<CardBuffInfoView>();
+            var textType = Type.GetType("TMPro.TextMeshProUGUI, Unity.TextMeshPro", true);
+            var title = _CreateRect(); title.SetParent(template.transform, false);
+            var body = _CreateRect(); body.SetParent(template.transform, false);
+            _Set(template, "_cardBuffTitleText", title.gameObject.AddComponent(textType));
+            _Set(template, "_cardBuffInfoText", body.gameObject.AddComponent(textType));
+            var factoryType = typeof(PrefabFactory<CardBuffInfoView>);
+            factoryType.GetField("_prefab", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(factory, template);
+            factoryType.GetField("_recycleRoot", BindingFlags.Instance | BindingFlags.NonPublic).SetValue(factory, _CreateRect());
+            var content = _CreateRect();
+            var rows = _CreateRect(); rows.SetParent(content, false);
+            _Set(hint, "_cardBuffInfoViewFactory", factory);
+            _Set(hint, "_content", content);
+            _Set(hint, "_layoutParent", rows);
+            hint.Init(new LocalizeLibrary(
+                new Dictionary<LocalizeTitleInfoType, IReadOnlyDictionary<string, LocalizeTitleInfoData>>
+                { [LocalizeTitleInfoType.KeyWord] = new Dictionary<string, LocalizeTitleInfoData> { ["Preserved"] = new("保留", "回合結束保留") } },
+                new Dictionary<LocalizeInfoType, IReadOnlyDictionary<string, LocalizeInfoData>>()));
+            var data = new CardPropertyHint.ViewData(new[] { new CardPropertyHint.InfoCellViewData(
+                LocalizeTitleInfoType.KeyWord, "Preserved", new Dictionary<string, string>()) });
+
+            hint.ShowHint(data, _dragCard.RectTransform);
+            hint.ShowHint(data, _dragCard.RectTransform);
+            hint.ShowHint(data, _dragCard.RectTransform);
+
+            Assert.That(rows.childCount, Is.EqualTo(1));
+            hint.HideHint();
+            Assert.That(rows.childCount, Is.Zero);
+            Assert.That(content.gameObject.activeSelf, Is.False);
+        }
+
         [Test]
         public void ExecuteEnd_DisablesSubmitAndDisposesHandSubscriptions()
         {

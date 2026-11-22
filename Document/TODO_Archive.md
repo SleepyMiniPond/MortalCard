@@ -1,6 +1,6 @@
 # 任務與階段歷史
 
-> 整理日期：2026-11-14
+> 整理日期：2026-11-22
 > 各項完成日期與驗證數字為當時紀錄；T-023 的驗證於 2026-09-28 執行，2026-09-29 確認封存。現在行為以系統文件及程式為準，待辦見 [TODO](TODO.md)。
 > 完成狀態限於各任務範圍，不代表所有預留列舉、流程入口或後續整合都已完成。
 
@@ -249,3 +249,15 @@ PlayerBuff、CharacterBuff、CardBuff 的一般反應時機已接入效果流程
 - **第 3 步固定按鈕接線補正（2026-10-15）**：選卡面板提供 CloseButtons／ConfirmButton／VisibleToggleButton，由 SubSelectionPresenter._SetupSubscriptions 建立及管理點擊訂閱。移除 Property 固定按鈕 callback 與 Panel.Init 轉接訂閱，動態卡片點擊／長按仍由 SelectionProperty 配置。測試改用實際 Button，新增重開與關閉後的收合行為驗證；Inspector 序列化欄位不變，未修改 Prefab／Scene。
 - **第 3 步共用步驟契約補正（2026-10-10）**：NextStep 改使用 SubSelectionStepInfo，ExistCardSelectionInfo 繼承共用步驟資訊。Draft 保存 ISubSelectionAction，ExistCard 結果保留不可變快照；玩家與自動選取透過型別分派，共用迴圈不直接建立 ExistCard 結果。提交驗證依 Info／Action 型別分派；其他選取類型仍未實作。
 - **第 3 步重新檢查與優化（2026-10-09）**：自動選取只維護 Draft，全部完成後才轉為 Actions；本步取消以 Option 區分空選取；移除 Panel 不使用的 CountRule／MaxSelectCount 及正式 Presenter 的測試專用建構子。擴大詳情面板 finally 清理範圍。新增測試找出並修正回合開始事件延後顯示時提早解除操作鎖的問題；補提示 fallback、後續步取消重試、詳情期間阻擋回呼及面板開啟失敗清理測試。
+
+## T-012：卡片合成系統（已完成）
+
+- **狀態**：✅ 2026-11-22 使用者確認本輪測試成功並授權清理及暫存正式內容，五項工作全部結案。
+- **完成範圍**：第一輪選完整模板，後續輪次追加 Effects／TriggeredEffects；依模板切池、資產明填 OfferCount、排除已選選項、候選不足提供剩餘項目、零候選拒絕整次選取。採動態定義，不使用固定配方表或預建成品資產。
+- **執行整合**：ICardDefinition 區分 Catalog 與動態內容，CardSelectionSession 管理候選生命週期；玩家 UI、敵方、PlayCardEffect 與 InvokeCardEffects 共用選取規則，建立成品、Clone 與形態還原保留獨立組成。描述片段直接參考效果數值。
+- **驗收修正**：修正無擁有者模板預覽缺少費用／威力、提示列刷新累積、敵方新增手牌提前建立預選 View 造成下一回合重複 Identity，以及 Odin 共用數值的 Inspector 參考路徑警告；保留對應正式修正與回歸測試。
+- **人工與 Play 驗收**：使用者確認本輪成功。隔離資產涵蓋三輪合成、零候選、Clone、Invoke、間接出牌、暫時形態及雙卡合成；AI 另驗證連續三次結束回合、雙卡流程中途取消不扣費／不產卡、兩張成品獨立建立及出牌效果。
+- **清理與最終驗證（2026-11-22）**：確認外部資產無驗收引用後，透過 Unity AssetDatabase 刪除 Assets/Acceptance 及全部 .meta，切回正式 Gameplay 場景。清理後 Unity 編譯與正式 GameDataValidator 0 error，完整 EditMode 912／912、PlayMode 45／45，皆 0 fail／skip；正式 Catalog、牌組、場景與 Build Settings 無需回填測試引用。
+- **既有警告**：GameplayManager 兩個未使用事件 CS0067、Render Graph 相容模式，以及 NoOpCardBuffEffect 測試空效果警告仍保留。
+- **邊界**：組成保存限本場戰鬥，不含跨戰鬥持久化或完整預演。Play／Invoke 的合成子選取目前採自動選擇；排除已選選項以整次選取的 Option Id 為範圍，多組模板可使用不同選項 Id 區隔。
+- **規則來源**：[Card](Card.md)、[GameData](GameData.md)、[Target](Target.md)、[Effect](Effect.md)、[資產製作規範](GameData_Asset_Guidelines.md)。下一項工作由使用者另行安排。

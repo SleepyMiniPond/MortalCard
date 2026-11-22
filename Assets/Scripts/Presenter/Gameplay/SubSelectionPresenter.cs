@@ -128,7 +128,7 @@ namespace MortalGame.Presenter
                 foreach (var id in templates.TemplateCardDataIds)
                 {
                     var card = CardEntity.RuntimeCreateFromId(id, manager.CardLibrary, manager.CardPropertyEntityFactory);
-                    previews.Add(card.ToInfo(model));
+                    previews.Add(_CompositionPreview(card, model));
                     actions.Add(card.Identity, new CardTemplateSubSelectionAction(id, info.OfferIdentity));
                 }
             else if (info is CardEffectSelectionInfo effects)
@@ -136,7 +136,7 @@ namespace MortalGame.Presenter
                 {
                     var card = CardEntity.RuntimeCreateFromId(effects.TemplateCardDataId,
                         manager.CardLibrary, manager.CardPropertyEntityFactory);
-                    var preview = card.ToInfo(model) with
+                    var preview = _CompositionPreview(card, model) with
                     {
                         DescriptionFragmentsOnly = true,
                         DescriptionFragments = new[] { option.Description }
@@ -148,6 +148,10 @@ namespace MortalGame.Presenter
                 info.Id, info.StepIndex, info.StepCount, info.CardDataId), cancellationToken);
             return selected.Map(identities => actions[identities.Single()]);
         }
+
+        private static CardInfo _CompositionPreview(ICardEntity card, IGameplayModel model)
+            // 預覽卡尚無擁有者，直接呈現模板基本值，不套用戰鬥持有者的公式。
+            => card.ToInfo(model) with { Cost = card.OriginCost.Some(), Power = card.OriginPower.Some() };
 
         private IDisposable _SetupSubscriptions(IUniTaskPresenter presenter)
         {

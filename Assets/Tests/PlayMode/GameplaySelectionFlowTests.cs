@@ -467,6 +467,8 @@ namespace MortalGame.Tests
             var setup = _Create();
             IGameplayModel model = setup.Model;
             var data = model.ContextManager.CardLibrary.GetStandardCardData(setup.Card.CardDataId);
+            data.Cost = 2;
+            data.Power = 6;
             data.SubSelects.Add(new CardTemplateSelectionGroup
             {
                 Id = "template", OfferCount = 3, TemplateCardDataIds = new() { data.ID }
@@ -497,11 +499,15 @@ namespace MortalGame.Tests
                     return;
                 }
                 var template = panel.Property.Selections.Single();
+                Assert.That(template.CardInfo.Cost.ValueOr(-1), Is.EqualTo(2));
+                Assert.That(template.CardInfo.Power.ValueOr(-1), Is.EqualTo(6));
                 template.OnClick(template.CardInfo.Identity, null);
                 await UniTask.NextFrame();
                 panel.ConfirmButton.onClick.Invoke();
                 await _Wait(() => panel.OpenCount == 2);
                 var effect = panel.Property.Selections.Single();
+                Assert.That(effect.CardInfo.Cost.ValueOr(-1), Is.EqualTo(2));
+                Assert.That(effect.CardInfo.Power.ValueOr(-1), Is.EqualTo(6));
                 Assert.That(effect.CardInfo.DescriptionFragmentsOnly, Is.True);
                 Assert.That(effect.CardInfo.DescriptionFragments.Single().Key, Is.EqualTo("option"));
                 effect.OnClick(effect.CardInfo.Identity, null);

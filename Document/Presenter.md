@@ -1,6 +1,6 @@
 # Presenter 協調層
 
-> 核對日期：2026-10-15（本次更新選取與警告面板職責）
+> 核對日期：2026-11-22
 
 Presenter 將 UI 命令轉成 Model 動作，並將 Model 事件交給 View 呈現。View／Presenter 的共享契約位於 [Presentation Abstractions](../Assets/Scripts/Presentation/Abstractions/)，協調實作位於 [Presenter](../Assets/Scripts/Presenter/)，不混放在 Panel。
 
@@ -16,7 +16,9 @@ Presenter 將 UI 命令轉成 Model 動作，並將 Model 事件交給 View 呈�
 
 指令在選取與正式提交後持續留在待完成佇列，阻擋重複輸入。提交前取消或拒絕由 Presenter 移除指令並恢復最新畫面；正式提交後，由對應卡片的 PlayerExecuteStartEvent.CompletedCardIdentity 移除指令並恢復互動。正式拒絕依序呈現 CardPlayRejectedEvent、等待警告關閉，再處理恢復事件；結束回合由 PlayerExecuteEndEvent 完成指令。場景取消或戰鬥結束不恢復操作。
 
-[CardSelectionFlow](../Assets/Scripts/Presenter/Gameplay/CardSelectionFlow.cs) 依序查詢選取步驟、累積 Draft，並在每步確認後重新驗證結果。[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 只控制單一步驟的選卡面板，透過 IUniTaskPresenter 的按鈕事件處理選取、確認、取消、收合及卡片詳情；不持有 Model 或管理多步驟草稿。目前支援 ExistCard，其他類型見 T-011 後續範圍。
+[CardSelectionFlow](../Assets/Scripts/Presenter/Gameplay/CardSelectionFlow.cs) 依序準備選取步驟、累積 Draft，並在每步確認後重新驗證結果。[SubSelectionPresenter](../Assets/Scripts/Presenter/Gameplay/SubSelectionPresenter.cs) 控制單一步驟的選卡面板，透過 IUniTaskPresenter 處理選取、確認、取消、收合及卡片詳情；不保存多步驟草稿。支援 ExistCard、模板與效果選項，合成選項使用獨立預覽 Identity，模板基本費用／威力直接由配置呈現，避免尚無擁有者的預覽公式回傳缺值。
+
+玩家指令作用域持有 CardSelectionSession，涵蓋面板選取及 Action 等待 Model 接收；完整提交會由共用 Context 建立入口結束 Session，取消或例外也會釋放。自動選取結果包含可釋放的 Session，由敵人、間接出牌或 Invoke 消費端持有；Queue 使用驗證完成的獨立 Context，不持有已結束的候選暫存。
 
 GameplayPresenter 將失敗原因轉成已本地化的文字，交由 [WarningPopupPresenter](../Assets/Scripts/Presenter/Gameplay/WarningPopupPresenter.cs) 顯示。該 Presenter 搭配獨立 [WarningPopupPanel](../Assets/Scripts/GameView/Panel/Popup/WarningPopupPanel.cs)，只接收文字並等待 CloseEvent，不依賴選取規則，也不使用選卡面板顯示警告。Panel 提供關閉按鈕與顯示方法；Presenter.Run 訂閱按鈕，透過 IUniTaskPresenter 管理事件及訂閱清理，Panel 不在 Awake 綁定 callback。
 

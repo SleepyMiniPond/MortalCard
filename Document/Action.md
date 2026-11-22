@@ -1,6 +1,6 @@
 # Action 與反應上下文
 
-> 核對日期：2026-10-15
+> 核對日期：2026-11-22
 
 Action 描述意圖、目標或已發生的結果，Effect Command 才是狀態變更指令。Action 多以 Record 表達，但其中可參考可變 Entity／屬性容器，不代表整張物件圖不可變。
 
@@ -20,13 +20,17 @@ ObserveRootAction／ObserveDerivedAction 更新實體、壽命與 Session；可�
 
 [TriggerContext](../Assets/Scripts/GameModel/Action/TriggerSource.cs) 沿衍生反應保留最初 ReactionOriginAction／Timing，避免後續效果失去根源。Buff Trigger 保存宿主，不能以 CurrentPlayer 或覆寫 Selected 目標代替。
 
-每次出牌或 Invoke 會建立完整且獨立的選取作用域；主目標與 ExistCard 群組結果在結算結束後一併還原，不沿用上一張牌的 Selected 欄位。群組結果以不可變卡片 Identity 集合保存，Effect 於執行時再解析仍存在的卡片。
+每次出牌或 Invoke 會建立完整且獨立的選取作用域；主目標、既有卡片、模板與效果群組結果在結算結束後一併還原，不沿用上一張牌的 Selected 欄位。既有卡片結果以不可變 Identity 集合保存，Effect 於執行時再解析仍存在的卡片。
 
 ## 選取草稿與提交
 
 玩家選取期間由 CardSelectionDraft 保存卡片、施放者、主目標及已確認群組。確認一步只保存結果快照，不扣費、搬牌或執行效果；尚未確認的群組不寫入字典，已確認零張則保留空結果。
 
-完整結果透過 UseCardAction.SubSelectionActions 交給 Model；目前 ExistCardSubSelectionAction 保存既有卡片 Identity，群組依字串 ID 識別。Model 重驗當下卡牌配置、候選及數量後，才建立 SelectedCardGroups 作用域並進入出牌核心；沒有另外比對選取開始時的 CardData ID。取消任一步放棄整份草稿，結果失效時拒絕整次操作，詳見 [Target](Target.md#逐步查詢與完整驗證)。
+完整結果透過 UseCardAction.SubSelectionActions 交給 Model；ExistCardSubSelectionAction 保存既有卡片 Identity，CardTemplateSubSelectionAction／CardEffectSubSelectionAction 保存模板／選項 ID 與 OfferIdentity。群組依字串 ID 識別。Model 重驗當下配置、候選、數量及提供紀錄後，才建立 Context 並進入出牌核心。取消任一步放棄整份草稿，結果失效時拒絕整次操作，詳見 [Target](Target.md#逐步查詢與完整驗證)。
+
+SelectedTemplateGroups／SelectedEffectGroups 分開保存型別化結果；完整提交驗證後另建立 ComposedCardDefinitions，包含來源 Identity 與獨立組成，避免來源形態在排隊期間改變後遺失內容，也避免其他卡片誤用同名群組。它只固定資料，不執行成品效果。
+
+CardSelectionSession 保存一次選取的提供紀錄，CardSelectionSessionRegistry 依來源卡登錄／查找。純 ValidateComplete 不消耗紀錄；建立可執行 Context 的共用 Complete 入口在驗證後結束 Session。取消、例外與作用域結束也會清理，已完成 Context 不依賴 Session 存活。玩家與自動入口的所有權見 [Presenter](Presenter.md#輸入與選取)。
 
 玩家透過 UI 建立草稿；敵方、PlayCardEffect 與 InvokeCardEffects 透過相同步驟自動建立結果。Invoke 也建立自己的選取作用域，但沒有正式出牌 Action 的支付及離場語意。
 
@@ -42,7 +46,7 @@ CardLookIntentAction 明確接收施放者 Option，沒有預設值。選取流�
 
 `UsedCardEvent` 帶出牌當下的牌區快照；View 依陣營移除手牌或敵方預選顯示。間接打出未顯示的敵牌時，畫面上沒有對應卡片是正常情況；異常中止則以真實最終牌區事件同步，不偽造成功出牌事件。
 
-`GameplayManager._UseCard` 建立主動出牌根批次，`_ExecuteSelectedCard` 建立並還原完整 Selected Context，再交給 `_ExecuteCardPlay` 結算單張卡片。PlayCardEffect 的 Handler 只提交請求，經 FIFO 協調器重新建立選取後共用單張核心。CardPlaySource 的公式加成由卡片擁有者取得，不依賴或修改 CurrentPlayer。
+`GameplayManager._UseCard` 建立主動出牌根批次，`_ExecuteSelectedCard` 建立並還原完整 Selected Context，再交給 CardPlayExecutor.Execute 結算單張卡片。PlayCardEffect 的 Handler 只提交請求，經 FIFO 協調器重新建立選取後共用單張核心。CardPlaySource 的公式加成由卡片擁有者取得，不依賴或修改 CurrentPlayer。
 
 主動與間接出牌通過合法性檢查後，統一呼叫 `IPlayerEntity.TryBeginCardPlay`。底層 `IPlayerCardManager.TryPlayCard` 成功回傳含原手牌位置、張數及離場作用域的 `CardPlayScope`，失敗回傳 None；PlayerEntity 直接轉交此結果，EnemyEntity 在成功後同步移除預選，不依出牌原因分支。敵方 `TryGetNextUseCardAction` 只查詢下一個指令，執行階段另以已嘗試 Identity 集合避免失敗牌被重複嘗試；失敗預選留到階段結束時統一取消。
 
