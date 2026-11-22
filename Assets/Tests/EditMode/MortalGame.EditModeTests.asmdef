@@ -21,6 +21,8 @@
     "Optional.dll",
     "Optional.Collections.dll",
     "Sirenix.Serialization.dll",
+    "Sirenix.OdinInspector.Editor.dll",
+    "Sirenix.OdinInspector.Attributes.dll",
     "System.Collections.Immutable.dll"
   ],
   "autoReferenced": false,

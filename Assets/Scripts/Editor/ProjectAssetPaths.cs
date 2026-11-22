@@ -11,6 +11,11 @@ namespace MortalGame.Editor
     {
         public const string ScriptableObjectsRoot = "Assets/ScriptableObjects";
 
+        public static class EditorSettings
+        {
+            public const string EffectMenu = "Assets/Editor/Settings/EffectMenuSettings.asset";
+        }
+
         public static class GameContent
         {
             public const string Catalog =

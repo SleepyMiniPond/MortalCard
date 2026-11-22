@@ -8,10 +8,10 @@
 ## 工作優先順序
 
 ```text
-目前進行中：T-021 初始抽牌優先，第 2 個工作已實作並通過回歸，待使用者確認；Inspector 篩選留待後續處理。
+目前進行中：T-021 初始抽牌優先，第 2 個工作已確認；第 3 個工作完成 Inspector 篩選試用版，待使用者操作確認。
 
 獨立排期
-├─ T-021 初始抽牌優先（排序與回歸完成，待確認）
+├─ T-021 初始抽牌優先（Inspector 篩選試用版待確認）
 ├─ T-024 場景結果、重試與戰後資料銜接
 ├─ T-025 FormChanged 生命週期一致化
 ├─ T-026 Buff 資源上限接線
@@ -40,9 +40,10 @@ T-012 卡片合成的五項工作已完成，包含動態定義、多輪選取�
 - **目標**：讓 `InitialPriorityPropertyData` 對應的 `CardProperty.InitialPriority` 真正影響戰鬥初始抽牌順序。
 - **現況**：已接上雙方初始牌堆的穩定排序及 View 同步；新增定向 19／19、完整 EditMode 931／931、PlayMode 45／45 通過，Unity 編譯及 GameDataValidator 0 error，尚未人工驗收與結案。
 - **已確認規則**：BeforeGameStart／初始 Initialize 完成後、AfterGameStart 前排序一次；納入當下仍在 Deck 的新增或變形卡片，同組保留洗牌順序，不額外耗用亂數或增加抽牌數。後續新增與墓地洗牌不再套用優先。
-- **剩餘工作**：使用者確認本步、討論依時機篩選 Inspector 效果選單，並進行人工驗收及清理。Initialize 避免抽牌是製卡規範，Runtime 不硬性禁止；規則見 [Card](Card.md)。
+- **Inspector 試用版**：以單一正式 Editor 設定資產管理 GameTiming／CardTriggeredTiming 的效果停用清單，預設停用 BeforeGameStart／Initialize 的 DrawCardEffect；選單變灰置底，無 toggle／hint，保留既有配置。設定持久化與選單定向 19／19、完整 EditMode 950／950 通過，編譯與正式資料驗證 0 error，待使用者試用。設定入口見 [GameData 資產指南](GameData_Asset_Guidelines.md#開場時機與效果選單)。
+- **剩餘工作**：使用者確認 Inspector 體驗、完成人工驗收與臨時資產清理。Initialize 避免抽牌是製卡規範，Runtime 不硬性禁止；規則見 [Card](Card.md)。
 - **依據**：[CardPropertyEntityFactory](../Assets/Scripts/GameModel/Factory/CardPropertyEntityFactory.cs)、[GameplayManager](../Assets/Scripts/GameModel/GameplayManager.cs)、[DeckEntity](../Assets/Scripts/GameModel/Entity/Card/DeckEntity.cs)。
-- **狀態**：🔄 第 2 個工作待使用者確認；Inspector 留後續處理。進度以目前工作索引指向的原工作計畫為準。
+- **狀態**：🔄 第 3 個工作待使用者試用確認。進度以目前工作索引指向的原工作計畫為準。
 
 ### T-013：戰鬥中敵人動態增減
 

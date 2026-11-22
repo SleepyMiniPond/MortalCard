@@ -31,6 +31,16 @@
 
 效果選項在 Inspector 先列出 Effects／TriggeredEffects，再列出 DescriptionParameters；描述參數的 Value 直接展開共用物件，避免 Odin 以參考路徑顯示時找不到欄位。修改共用 Value 內的數值會同步影響效果與描述；替換 Value 物件或型別時，仍須同步調整描述參數的參考。
 
+## 開場時機與效果選單
+
+BeforeGameStart 與卡片 Initialize 用於牌堆準備；初始優先排序完成後，需要享有優先牌序的開場抽牌可使用 Buff 的 AfterGameStart 反應。Initialize 仍能執行抽牌，但發生於排序前，不保障優先牌，詳見 [Card](Card.md)。
+
+Inspector 條件效果選單的停用規則集中於正式 Editor 設定資產 [EffectMenuSettings](../Assets/Editor/Settings/EffectMenuSettings.asset)，可由 `MortalGame → 編輯器設定 → 效果選單規則` 開啟。分別在「全局時機規則」與「卡片時機規則」選擇時機，再從型別下拉選單加入停用效果；未列入者正常可選，同時機多條規則取停用聯集。修改後重新開啟效果選單即生效，不需要修改程式或重啟 Unity。
+
+預設兩條規則分別在 GameTiming.BeforeGameStart 與 CardTriggeredTiming.Initialize 停用 DrawCardEffect，適用於相應卡片及三種 Buff 的條件效果。停用項目置底變灰且不可選，欄位旁不增加開關或提示框。此設定由 Editor 載入，不接入正式內容 Catalog 或 Runtime；請保留此正式設定資產，勿與臨時驗收資產一起清除。
+
+已配置的抽牌效果不會因篩選或切換時機而被刪除，仍可展開編輯。此為製卡選單引導，不禁止既有資料儲存或執行，不遞迴限制其他效果間接造成的抽牌。
+
 ## 臨時功能驗收資產
 
 任務進入最後驗收時，依功能評估是否適合用單一功能卡片或最小資產直接驗證。適合時由 AI 批次製作、接好可進入 Play 的配置，減少使用者手動製卡的時間；純內部邏輯或無法透過卡片觀察的功能，沿用合適的自動化或其他驗證方式。
