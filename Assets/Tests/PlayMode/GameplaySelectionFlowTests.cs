@@ -15,11 +15,60 @@ using NUnit.Framework;
 using Optional;
 using UnityEngine.TestTools;
 using UnityEngine.UI;
+using UniRx;
 
 namespace MortalGame.Tests
 {
     public sealed class GameplaySelectionFlowTests
     {
+#if UNITY_EDITOR
+        [UnityTest]
+        public IEnumerator CardSelectionPanel_EmitsIdentityForClickAndLongPress()
+        {
+            var setup = _Create();
+            var prefab = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.GameObject>(
+                "Assets/Prefab/UI/OverlayCanvas/CardSelectionPanel.prefab");
+            var instance = UnityEngine.Object.Instantiate(prefab);
+            try
+            {
+                var panel = instance.GetComponent<CardSelectionPanel>();
+                panel.Init(new GameViewModel(), ((IGameplayModel)setup.Model).ContextManager.LocalizeLibrary);
+                var card = setup.Card.ToInfo(setup.Model);
+                using var state = new ReactiveProperty<CardSelectionDisplayState>(new(
+                    Array.AsReadOnly(new[] { card }), true, false, Array.Empty<Guid>(),
+                    new CardSelectionPromptInfo(card.CardDataID, "first", 0, 1, 0, 1,
+                        CardSelectionCountRule.RequiredExact)));
+                var clicks = new List<Guid>();
+                var longPresses = new List<Guid>();
+                using var clickSubscription = panel.CardClicked.Subscribe(clicks.Add);
+                using var longPressSubscription = panel.CardLongPressed.Subscribe(longPresses.Add);
+                panel.Open(state);
+                var view = instance.GetComponentInChildren<CardView>();
+                var button = (Button)new UnityEditor.SerializedObject(view).FindProperty("_button").objectReferenceValue;
+                var pointer = new UnityEngine.EventSystems.PointerEventData(null);
+
+                UnityEngine.EventSystems.ExecuteEvents.Execute(button.gameObject, pointer,
+                    UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+                UnityEngine.EventSystems.ExecuteEvents.Execute(button.gameObject, pointer,
+                    UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+                Assert.That(clicks, Is.EqualTo(new[] { card.Identity }));
+
+                UnityEngine.EventSystems.ExecuteEvents.Execute(button.gameObject, pointer,
+                    UnityEngine.EventSystems.ExecuteEvents.pointerDownHandler);
+                yield return new UnityEngine.WaitForSeconds(1.1f);
+                UnityEngine.EventSystems.ExecuteEvents.Execute(button.gameObject, pointer,
+                    UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
+                Assert.That(longPresses, Is.EqualTo(new[] { card.Identity }));
+                Assert.That(clicks.Count, Is.EqualTo(1), "長按結束不得再發出點擊");
+                panel.Close();
+            }
+            finally
+            {
+                UnityEngine.Object.Destroy(instance);
+            }
+        }
+#endif
+
         [UnityTest]
         public IEnumerator SelectionShortage_ShowsWarningAndRestoresWithoutSubmitting() => UniTask.ToCoroutine(async () =>
         {
@@ -498,19 +547,19 @@ namespace MortalGame.Tests
                     Assert.That(CardSelectionQuery.QueryNext(model, expired), Is.TypeOf<CardSelectionQueryResult.Rejected>());
                     return;
                 }
-                var template = panel.Property.Selections.Single();
-                Assert.That(template.CardInfo.Cost.ValueOr(-1), Is.EqualTo(2));
-                Assert.That(template.CardInfo.Power.ValueOr(-1), Is.EqualTo(6));
-                template.OnClick(template.CardInfo.Identity, null);
+                var template = panel.State.Value.Candidates.Single();
+                Assert.That(template.Cost.ValueOr(-1), Is.EqualTo(2));
+                Assert.That(template.Power.ValueOr(-1), Is.EqualTo(6));
+                panel.Click(template.Identity);
                 await UniTask.NextFrame();
                 panel.ConfirmButton.onClick.Invoke();
                 await _Wait(() => panel.OpenCount == 2);
-                var effect = panel.Property.Selections.Single();
-                Assert.That(effect.CardInfo.Cost.ValueOr(-1), Is.EqualTo(2));
-                Assert.That(effect.CardInfo.Power.ValueOr(-1), Is.EqualTo(6));
-                Assert.That(effect.CardInfo.DescriptionFragmentsOnly, Is.True);
-                Assert.That(effect.CardInfo.DescriptionFragments.Single().Key, Is.EqualTo("option"));
-                effect.OnClick(effect.CardInfo.Identity, null);
+                var effect = panel.State.Value.Candidates.Single();
+                Assert.That(effect.Cost.ValueOr(-1), Is.EqualTo(2));
+                Assert.That(effect.Power.ValueOr(-1), Is.EqualTo(6));
+                Assert.That(effect.DescriptionFragmentsOnly, Is.True);
+                Assert.That(effect.DescriptionFragments.Single().Key, Is.EqualTo("option"));
+                panel.Click(effect.Identity);
                 await UniTask.NextFrame();
                 panel.ConfirmButton.onClick.Invoke();
                 var completed = (CardSelectionPresentationResult.Completed)await run;
@@ -535,7 +584,12 @@ namespace MortalGame.Tests
             public Button VisibleToggleButton { get; }
             public int OpenCount;
             public int CloseCount;
-            public ICardSelectionPanel.Property Property;
+            public IReadOnlyReactiveProperty<CardSelectionDisplayState> State;
+            private readonly Subject<Guid> _cardClicked = new();
+            private readonly Subject<Guid> _cardLongPressed = new();
+            public IObservable<Guid> CardClicked => _cardClicked;
+            public IObservable<Guid> CardLongPressed => _cardLongPressed;
+            public void Click(Guid identity) => _cardClicked.OnNext(identity);
             public CompositionPanel()
             {
                 Button Create()
@@ -547,10 +601,14 @@ namespace MortalGame.Tests
                 CloseButtons = new[] { Create() }; ConfirmButton = Create(); VisibleToggleButton = Create();
             }
             public void Init(IGameViewModel model, LocalizeLibrary localization) { }
-            public void Open(ICardSelectionPanel.Property property) { OpenCount++; Property = property; }
-            public void RenderUpdate(ICardSelectionPanel.UpdateProperty property) { }
+            public void Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state) { OpenCount++; State = state; }
             public void Close() => CloseCount++;
-            public void Dispose() => UnityEngine.Object.DestroyImmediate(_root);
+            public void Dispose()
+            {
+                _cardClicked.Dispose();
+                _cardLongPressed.Dispose();
+                UnityEngine.Object.DestroyImmediate(_root);
+            }
         }
 
         private sealed class CompositionDetail : ISingleCardDetailPopupPanel

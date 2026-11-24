@@ -1587,6 +1587,12 @@ MonoBehaviour:
   _selectionDescriptionText: {fileID: 3501441517062059606}
   _visibleButtonLocalizeKey: Visible
   _confirmButtonLocalizeKey: Confirm
+  _textSettings:
+    PromptKeyFormat: CardSelection.{0}.{1}
+    DefaultPromptKey: CardSelection_Default
+    StepFormatKey: CardSelection_Step
+    OptionalCountFormatKey: CardSelection_Optional
+    RequiredCountFormatKey: CardSelection_Required
 --- !u!1 &8499311787100510646
 GameObject:
   m_ObjectHideFlags: 0

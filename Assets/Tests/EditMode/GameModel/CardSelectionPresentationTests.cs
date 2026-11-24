@@ -15,6 +15,8 @@ using UnityEditor;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.TestTools;
+using TMPro;
+using UniRx;
 
 namespace MortalGame.Tests
 {
@@ -68,8 +70,9 @@ namespace MortalGame.Tests
             var draft = s.Draft.WithSelection("first", new ExistCardSubSelectionAction(new[] { s.Card.Identity }));
             s.Panel.OnReady = p =>
             {
-                Assert.That(p.Description, Does.Contain($"步驟 {s.Panel.OpenCount + 1}/3"));
-                p.Selections.Single().OnClick(s.Card.Identity, null);
+                Assert.That(p.Value.Prompt.StepIndex, Is.EqualTo(s.Panel.OpenCount));
+                Assert.That(p.Value.Prompt.StepCount, Is.EqualTo(3));
+                s.Panel.Click(s.Card.Identity);
                 s.Panel.ConfirmButton.onClick.Invoke();
             };
             var result = (CardSelectionPresentationResult.Completed)await _RunSelection(s, draft, CancellationToken.None);
@@ -77,26 +80,149 @@ namespace MortalGame.Tests
             Assert.That(s.Panel.OpenCount, Is.EqualTo(2));
         });
 
-        [UnityTest]
-        public IEnumerator Prompt_UsesBothIdsAndFallsBackForOtherGroups() => UniTask.ToCoroutine(async () =>
+        [TestCase(CardSelectionCountRule.Optional)]
+        [TestCase(CardSelectionCountRule.RequiredExact)]
+        public void PanelPrompt_UsesConfiguredKeysAndBothIdsThenUpdatesCount(CardSelectionCountRule rule)
         {
-            var s = _Create(CardSelectionCountRule.Optional);
-            s.Texts[$"CardSelection.{s.Data.ID}.first"] = new("選擇要保留的卡片");
-            s.Texts["CardSelection.other-card.second"] = new("其他卡片的提示");
-            s.Data.SubSelects.Add(new ExistCardSelectionGroup
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefab/UI/OverlayCanvas/CardSelectionPanel.prefab");
+            var instance = UnityEngine.Object.Instantiate(prefab);
+            _objects.Add(instance);
+            var panel = instance.GetComponent<CardSelectionPanel>();
+            var serializedPanel = new SerializedObject(panel);
+            var settings = serializedPanel.FindProperty("_textSettings");
+            foreach (var pair in new Dictionary<string, string>
             {
-                Id = "second", CardCandidates = new FixedCards(s.Card),
-                SelectCount = new ConstInteger { Value = 1 }, CountRule = CardSelectionCountRule.Optional
-            });
+                ["PromptKeyFormat"] = "SelectionPrompt.{0}.{1}",
+                ["DefaultPromptKey"] = "SelectionDefault",
+                ["StepFormatKey"] = "SelectionStep",
+                ["OptionalCountFormatKey"] = "SelectionOptional",
+                ["RequiredCountFormatKey"] = "SelectionRequired"
+            }) settings.FindPropertyRelative(pair.Key).stringValue = pair.Value;
+            serializedPanel.ApplyModifiedPropertiesWithoutUndo();
+            var description = (TextMeshProUGUI)serializedPanel
+                .FindProperty("_selectionDescriptionText").objectReferenceValue;
+            var texts = new Dictionary<string, LocalizeInfoData>
+            {
+                ["Visible"] = new("收合"),
+                ["Confirm"] = new("確認"),
+                ["SelectionPrompt.card.first"] = new("選擇要保留的卡片"),
+                ["SelectionPrompt.other-card.second"] = new("其他卡片的提示"),
+                ["SelectionDefault"] = new("預設選卡提示"),
+                ["SelectionStep"] = new("第 {0} 步，共 {1} 步"),
+                ["SelectionOptional"] = new("目前 {0} 張，上限 {1} 張"),
+                ["SelectionRequired"] = new("目前 {0} 張，必選 {1} 張")
+            };
+            var library = new LocalizeLibrary(
+                new Dictionary<LocalizeTitleInfoType, IReadOnlyDictionary<string, LocalizeTitleInfoData>>(),
+                new Dictionary<LocalizeInfoType, IReadOnlyDictionary<string, LocalizeInfoData>>
+                { [LocalizeInfoType.UI] = texts });
+            panel.Init(new GameViewModel(), library);
+            var prompt = new CardSelectionPromptInfo("card", "first", 0, 2, 0, 1, rule);
+            var setup = _Create(rule);
+            var cardInfo = setup.Card.ToInfo(setup.Model);
+            using var state = new ReactiveProperty<CardSelectionDisplayState>(new(
+                Array.AsReadOnly(new[] { cardInfo }), true, false, Array.Empty<Guid>(), prompt));
+            panel.Open(state);
+            var cardView = instance.GetComponentInChildren<CardView>(true);
+            var contentRoot = cardView.transform.parent;
+            var selectedEffect = (GameObject)new SerializedObject(cardView)
+                .FindProperty("_selectedEffectObj").objectReferenceValue;
+            var countText = rule == CardSelectionCountRule.Optional ? "上限" : "必選";
+            Assert.That(description.text, Is.EqualTo(
+                $"選擇要保留的卡片\n第 1 步，共 2 步\n目前 0 張，{countText} 1 張"));
+            Assert.That(panel.ConfirmButton.interactable, Is.False);
+            Assert.That(selectedEffect.activeSelf, Is.False);
+            state.Value = state.Value with
+            {
+                IsConfirmable = true,
+                SelectedCardIdentities = Array.AsReadOnly(new[] { cardInfo.Identity }),
+                Prompt = prompt with { SelectionId = "second", StepIndex = 1, SelectedCount = 1 }
+            };
+            Assert.That(description.text, Is.EqualTo(
+                $"預設選卡提示\n第 2 步，共 2 步\n目前 1 張，{countText} 1 張"));
+            Assert.That(panel.ConfirmButton.interactable, Is.True);
+            Assert.That(selectedEffect.activeSelf, Is.True);
+            Assert.That(instance.GetComponentInChildren<CardView>(true), Is.SameAs(cardView));
+
+            var secondCard = cardInfo with { Identity = Guid.NewGuid() };
+            state.Value = state.Value with { Candidates = Array.AsReadOnly(new[] { cardInfo, secondCard }) };
+            var secondView = contentRoot.GetComponentsInChildren<CardView>(true)
+                .Single(view => view.TargetIdentity == secondCard.Identity);
+            state.Value = state.Value with { Candidates = Array.AsReadOnly(new[] { secondCard, cardInfo }) };
+            Assert.That(secondView.transform.GetSiblingIndex(), Is.Zero);
+            Assert.That(cardView.transform.GetSiblingIndex(), Is.EqualTo(1));
+            Assert.That(contentRoot.GetComponentsInChildren<CardView>(true).Length, Is.EqualTo(2));
+
+            state.Value = state.Value with
+            {
+                Candidates = Array.AsReadOnly(new[] { cardInfo with { Cost = Optional.Option.Some(9) } })
+            };
+            Assert.That(contentRoot.GetComponentsInChildren<CardView>(true), Is.EqualTo(new[] { cardView }));
+            Assert.That(secondView.transform.parent, Is.Not.SameAs(contentRoot), "移除的候選卡片應回到回收區");
+            var cost = (TextMeshProUGUI)new SerializedObject(cardView).FindProperty("_cost").objectReferenceValue;
+            Assert.That(cost.text, Is.EqualTo("9"));
+            panel.Close();
+        }
+
+        [Test]
+        public void PanelBinding_ReopenAndCloseReleaseSubscriptions()
+        {
+            var prefab = AssetDatabase.LoadAssetAtPath<GameObject>(
+                "Assets/Prefab/UI/OverlayCanvas/CardSelectionPanel.prefab");
+            var instance = UnityEngine.Object.Instantiate(prefab);
+            _objects.Add(instance);
+            var panel = instance.GetComponent<CardSelectionPanel>();
+            panel.Init(new GameViewModel(), new LocalizeLibrary(
+                new Dictionary<LocalizeTitleInfoType, IReadOnlyDictionary<string, LocalizeTitleInfoData>>(),
+                new Dictionary<LocalizeInfoType, IReadOnlyDictionary<string, LocalizeInfoData>>()));
+            var initial = new CardSelectionDisplayState(Array.Empty<CardInfo>(), true, false, Array.Empty<Guid>(),
+                new CardSelectionPromptInfo("card", "first", 0, 1, 0, 1, CardSelectionCountRule.Optional));
+            using var first = new TrackedState(initial);
+            using var second = new TrackedState(initial with { IsConfirmable = true });
+            panel.Open(first);
+            Assert.That(first.SubscriptionCount, Is.EqualTo(1));
+            Assert.That(panel.ConfirmButton.interactable, Is.False);
+            panel.Open(second);
+            Assert.That(first.SubscriptionCount, Is.Zero);
+            Assert.That(second.SubscriptionCount, Is.EqualTo(1));
+            Assert.That(panel.ConfirmButton.interactable, Is.True);
+            first.Value = initial with { IsVisible = false };
+            Assert.That(panel.ConfirmButton.interactable, Is.True, "舊來源不得覆寫新綁定");
+
+            panel.Close();
+            Assert.That(second.SubscriptionCount, Is.Zero);
+            second.Value = initial;
+            Assert.That(panel.ConfirmButton.interactable, Is.True, "關窗後不得繼續更新元件");
+            panel.Open(second);
+            Assert.That(second.SubscriptionCount, Is.EqualTo(1));
+            Assert.That(panel.ConfirmButton.interactable, Is.False, "重開立即套用來源目前值");
+            panel.Close();
+            Assert.That(second.SubscriptionCount, Is.Zero);
+        }
+
+        [UnityTest]
+        public IEnumerator PromptInfo_PreservesSelectionContextAndUpdatesCount() => UniTask.ToCoroutine(async () =>
+        {
+            var s = _Create(CardSelectionCountRule.RequiredExact);
             s.Panel.OnReady = p =>
             {
-                Assert.That(p.Description.Split('\n')[0], Is.EqualTo(
-                    s.Panel.OpenCount == 1 ? "選擇要保留的卡片" : "選擇卡片"));
+                var initialState = p.Value;
+                Assert.That(initialState.Prompt, Is.EqualTo(new CardSelectionPromptInfo(
+                    s.Data.ID, "first", 0, 1, 0, 1, CardSelectionCountRule.RequiredExact)));
+                Assert.That(initialState.Candidates.Single().Identity, Is.EqualTo(s.Card.Identity));
+                s.Panel.Click(Guid.NewGuid());
+                Assert.That(s.Panel.Update, Is.Null, "非候選身份不得加入選取");
+                s.Panel.Click(s.Card.Identity);
+                Assert.That(s.Panel.Update.Prompt, Is.EqualTo(initialState.Prompt with { SelectedCount = 1 }));
+                Assert.That(s.Panel.Update.IsConfirmable, Is.True);
+                Assert.That(s.Panel.Update.SelectedCardIdentities, Is.EqualTo(new[] { s.Card.Identity }));
+                Assert.That(initialState.SelectedCardIdentities, Is.Empty, "舊快照不得隨後續選取改變");
+                Assert.That(initialState.IsConfirmable, Is.False);
                 s.Panel.ConfirmButton.onClick.Invoke();
             };
             Assert.That(await _RunSelection(s, s.Draft, CancellationToken.None),
                 Is.TypeOf<CardSelectionPresentationResult.Completed>());
-            Assert.That(s.Panel.OpenCount, Is.EqualTo(2));
         });
 
         [UnityTest]
@@ -112,7 +238,7 @@ namespace MortalGame.Tests
             {
                 if (s.Panel.OpenCount == 1)
                 {
-                    p.Selections.Single().OnClick(s.Card.Identity, null);
+                    s.Panel.Click(s.Card.Identity);
                     s.Panel.ConfirmButton.onClick.Invoke();
                     s.Panel.CloseButtons[0].onClick.Invoke();
                 }
@@ -121,7 +247,12 @@ namespace MortalGame.Tests
             Assert.That(await _RunSelection(s, s.Draft, CancellationToken.None),
                 Is.TypeOf<CardSelectionPresentationResult.Cancelled>());
             Assert.That(s.Draft.SelectedGroups, Is.Empty);
-            s.Panel.OnReady = p => { Assert.That(p.Description, Does.Contain("步驟 1/2")); s.Panel.CloseButtons[0].onClick.Invoke(); };
+            s.Panel.OnReady = p =>
+            {
+                Assert.That(p.Value.Prompt.StepIndex, Is.Zero);
+                Assert.That(p.Value.Prompt.StepCount, Is.EqualTo(2));
+                s.Panel.CloseButtons[0].onClick.Invoke();
+            };
             Assert.That(await _RunSelection(s, s.Draft, CancellationToken.None),
                 Is.TypeOf<CardSelectionPresentationResult.Cancelled>());
             Assert.That(s.Model.PopAllEvents(), Is.Empty);
@@ -137,7 +268,7 @@ namespace MortalGame.Tests
             catch (InvalidOperationException) { failed = true; }
             Assert.That(failed, Is.True);
             Assert.That(s.Panel.CloseCount, Is.EqualTo(1));
-            s.Panel.Property.Selections.Single().OnClick(s.Card.Identity, null);
+            s.Panel.Click(s.Card.Identity);
             Assert.That(s.Panel.Update, Is.Null);
         });
 
@@ -166,10 +297,11 @@ namespace MortalGame.Tests
             s.Panel.OnReady = p =>
             {
                 Assert.That(((IGameplayModel)s.Model).ContextManager.Context, Is.EqualTo(GameContext.EMPTY));
-                Assert.That(p.Description, Does.Contain($"步驟 {s.Panel.OpenCount}/2"));
-                Assert.That(p.IsConfirmable, Is.False);
+                Assert.That(p.Value.Prompt.StepIndex, Is.EqualTo(s.Panel.OpenCount - 1));
+                Assert.That(p.Value.Prompt.StepCount, Is.EqualTo(2));
+                Assert.That(p.Value.IsConfirmable, Is.False);
                 s.Panel.ConfirmButton.onClick.Invoke();
-                p.Selections.Single().OnClick(s.Card.Identity, null);
+                s.Panel.Click(s.Card.Identity);
                 Assert.That(s.Panel.Update.IsConfirmable, Is.True);
                 s.Panel.ConfirmButton.onClick.Invoke();
             };
@@ -185,7 +317,7 @@ namespace MortalGame.Tests
         public IEnumerator OptionalZeroConfirm_IsCompletedRatherThanCancelled() => UniTask.ToCoroutine(async () =>
         {
             var s = _Create(CardSelectionCountRule.Optional);
-            s.Panel.OnReady = p => { Assert.That(p.IsConfirmable, Is.True); s.Panel.ConfirmButton.onClick.Invoke(); };
+            s.Panel.OnReady = p => { Assert.That(p.Value.IsConfirmable, Is.True); s.Panel.ConfirmButton.onClick.Invoke(); };
             var result = (CardSelectionPresentationResult.Completed)await _RunSelection(s, s.Draft, CancellationToken.None);
             Assert.That(result.Draft.SelectedGroups.ContainsKey("first"), Is.True);
             Assert.That(((ExistCardSubSelectionAction)result.Draft.SelectedGroups["first"]).CardIdentity, Is.Empty);
@@ -223,13 +355,12 @@ namespace MortalGame.Tests
             var s = _Create(CardSelectionCountRule.RequiredExact);
             using var cts = new CancellationTokenSource();
             var task = s.Flow.RunSubSelection(s.Model, s.Draft, cts.Token);
-            var previous = s.Panel.Property;
             cts.Cancel();
             var cancelled = false;
             try { await task; } catch (OperationCanceledException) { cancelled = true; }
             Assert.That(cancelled, Is.True);
             Assert.That(s.Panel.CloseCount, Is.EqualTo(1));
-            previous.Selections.Single().OnClick(s.Card.Identity, null);
+            s.Panel.Click(s.Card.Identity);
             s.Panel.ConfirmButton.onClick.Invoke();
             s.Panel.VisibleToggleButton.onClick.Invoke();
             Assert.That(s.Panel.Update, Is.Null);
@@ -240,10 +371,10 @@ namespace MortalGame.Tests
         {
             var s = _Create(CardSelectionCountRule.RequiredExact);
             using var cts = new CancellationTokenSource();
-            s.Panel.OnReady = p => p.Selections.Single().OnLongPress(s.Card.Identity, null);
+            s.Panel.OnReady = _ => s.Panel.LongPress(s.Card.Identity);
             s.Detail.OnRun = () =>
             {
-                s.Panel.Property.Selections.Single().OnClick(s.Card.Identity, null);
+                s.Panel.Click(s.Card.Identity);
                 s.Panel.ConfirmButton.onClick.Invoke();
                 s.Panel.CloseButtons[0].onClick.Invoke();
                 s.Panel.VisibleToggleButton.onClick.Invoke();
@@ -399,16 +530,41 @@ namespace MortalGame.Tests
             public FixedCards(ICardEntity card) => _card = card;
             public IReadOnlyCollection<ICardEntity> Eval(TriggerContext context) => new[] { _card };
         }
+        private sealed class TrackedState : IReadOnlyReactiveProperty<CardSelectionDisplayState>, IDisposable
+        {
+            private readonly ReactiveProperty<CardSelectionDisplayState> _source;
+            public int SubscriptionCount { get; private set; }
+            public bool HasValue => _source.HasValue;
+            public CardSelectionDisplayState Value { get => _source.Value; set => _source.Value = value; }
+            public TrackedState(CardSelectionDisplayState value) => _source = new(value);
+            public IDisposable Subscribe(IObserver<CardSelectionDisplayState> observer)
+            {
+                var subscription = _source.Subscribe(observer);
+                SubscriptionCount++;
+                return Disposable.Create(() =>
+                {
+                    subscription.Dispose();
+                    SubscriptionCount--;
+                });
+            }
+            public void Dispose() => _source.Dispose();
+        }
         private sealed class Panel : ICardSelectionPanel
         {
             public Button[] CloseButtons { get; }
             public Button ConfirmButton { get; }
             public Button VisibleToggleButton { get; }
-            public Action<ICardSelectionPanel.Property> OnOpen;
-            public Action<ICardSelectionPanel.Property> OnReady;
-            private ICardSelectionPanel.Property _pendingResponse;
-            public ICardSelectionPanel.Property Property;
-            public ICardSelectionPanel.UpdateProperty Update;
+            public Action<IReadOnlyReactiveProperty<CardSelectionDisplayState>> OnOpen;
+            public Action<IReadOnlyReactiveProperty<CardSelectionDisplayState>> OnReady;
+            private IReadOnlyReactiveProperty<CardSelectionDisplayState> _pendingResponse;
+            private readonly Subject<Guid> _cardClicked = new();
+            private readonly Subject<Guid> _cardLongPressed = new();
+            public IObservable<Guid> CardClicked => _cardClicked;
+            public IObservable<Guid> CardLongPressed => _cardLongPressed;
+            public void Click(Guid identity) => _cardClicked.OnNext(identity);
+            public void LongPress(Guid identity) => _cardLongPressed.OnNext(identity);
+            public CardSelectionDisplayState Update;
+            private IDisposable _stateSubscription;
             public int OpenCount, CloseCount, UpdateCount;
             public Panel(Button[] closeButtons, Button confirmButton, Button visibleToggleButton)
             {
@@ -417,12 +573,17 @@ namespace MortalGame.Tests
                 VisibleToggleButton = visibleToggleButton;
             }
             public void Init(IGameViewModel model, LocalizeLibrary library) { }
-            public void Open(ICardSelectionPanel.Property property)
+            public void Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state)
             {
-                Property = property with { Selections = property.Selections.ToArray() };
-                _pendingResponse = Property;
+                _stateSubscription?.Dispose();
+                _stateSubscription = state.Skip(1).Subscribe(value =>
+                {
+                    Update = value;
+                    UpdateCount++;
+                });
+                _pendingResponse = state;
                 OpenCount++;
-                OnOpen?.Invoke(Property);
+                OnOpen?.Invoke(state);
             }
             public void Respond()
             {
@@ -431,12 +592,12 @@ namespace MortalGame.Tests
                 _pendingResponse = null;
                 OnReady?.Invoke(property);
             }
-            public void RenderUpdate(ICardSelectionPanel.UpdateProperty property)
+            public void Close()
             {
-                Update = property;
-                UpdateCount++;
+                _stateSubscription?.Dispose();
+                _stateSubscription = null;
+                CloseCount++;
             }
-            public void Close() => CloseCount++;
         }
         private sealed class Detail : ISingleCardDetailPopupPanel
         {

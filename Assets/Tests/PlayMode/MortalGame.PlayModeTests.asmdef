@@ -7,7 +7,8 @@
     "MortalGame.Presenter",
     "MortalGame.Presentation.Abstractions",
     "Unity.ugui",
-    "UniTask"
+    "UniTask",
+    "UniRx"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

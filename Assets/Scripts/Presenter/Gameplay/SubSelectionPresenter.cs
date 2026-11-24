@@ -17,8 +17,8 @@ namespace MortalGame.Presenter
         public record CloseEvent : IUniTaskPresenter.Event;
         public record ConfirmEvent : IUniTaskPresenter.Event;
         public record VisibleToggleEvent : IUniTaskPresenter.Event;
-        public record SelectCardEvent(CardInfo CardInfo, ICardView CardView) : IUniTaskPresenter.Event;
-        public record LongTouchCardEvent(CardInfo CardInfo, ICardView CardView) : IUniTaskPresenter.Event;
+        public record SelectCardEvent(Guid Identity) : IUniTaskPresenter.Event;
+        public record LongTouchCardEvent(Guid Identity) : IUniTaskPresenter.Event;
 
         UniTask<Option<IReadOnlyList<Guid>>> Run(
             ExistCardSelectionInfo info, CancellationToken cancellationToken);
@@ -30,12 +30,10 @@ namespace MortalGame.Presenter
     {
         private readonly ICardSelectionPanel _cardSelectionPanel;
         private readonly ISingleCardDetailPopupPanel _singleCardDetailPopupPanel;
-        private readonly LocalizeLibrary _localizeLibrary;
 
         public SubSelectionPresenter(IGameViewModel gameViewModel, LocalizeLibrary localizeLibrary,
             ISingleCardDetailPopupPanel singleCardDetailPopupPanel, ICardSelectionPanel cardSelectionPanel)
         {
-            _localizeLibrary = localizeLibrary;
             _singleCardDetailPopupPanel = singleCardDetailPopupPanel;
             _singleCardDetailPopupPanel.Init(gameViewModel, localizeLibrary);
             _cardSelectionPanel = cardSelectionPanel;
@@ -45,23 +43,17 @@ namespace MortalGame.Presenter
         public async UniTask<Option<IReadOnlyList<Guid>>> Run(
             ExistCardSelectionInfo info, CancellationToken cancellationToken)
         {
-            var selected = new List<Guid>();
             var result = Option.None<IReadOnlyList<Guid>>();
-            var visible = true;
+            using var state = new ReactiveProperty<CardSelectionDisplayState>(new(
+                Array.AsReadOnly(info.CardInfos.ToArray()),
+                true, info.IsValidCount(0), Array.Empty<Guid>(),
+                new CardSelectionPromptInfo(info.CardDataId, info.Id, info.StepIndex, info.StepCount,
+                    0, info.MaxCount, info.CountRule)));
             IUniTaskPresenter presenter = new UniTaskPresenter();
-            var promptKey = $"CardSelection.{info.CardDataId}.{info.Id}";
-            var prompt = _localizeLibrary.TryGet(LocalizeInfoType.UI, promptKey, out var localized)
-                ? localized.Info : _Text("CardSelection_Default");
             try
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                _cardSelectionPanel.Open(new ICardSelectionPanel.Property(
-                    info.IsValidCount(0),
-                    info.CardInfos.Select(card => new ICardSelectionPanel.SelectionProperty(
-                        card.Identity.ToString(), card,
-                        (_, view) => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.SelectCardEvent(card, view)),
-                        (_, view) => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.LongTouchCardEvent(card, view)))),
-                    Description()));
+                _cardSelectionPanel.Open(state);
                 await presenter.Run(
                     _SetupSubscriptions(presenter), 
                     () => true, 
@@ -81,40 +73,37 @@ namespace MortalGame.Presenter
                     case ISubSelectionPresenter.CloseEvent:
                         return new IUniTaskPresenter.Halt();
                     case ISubSelectionPresenter.ConfirmEvent:
-                        if (info.IsValidCount(selected.Count))
+                        if (info.IsValidCount(state.Value.SelectedCardIdentities.Count))
                         {
-                            result = Option.Some<IReadOnlyList<Guid>>(selected.ToArray());
+                            result = Option.Some<IReadOnlyList<Guid>>(state.Value.SelectedCardIdentities.ToArray());
                             return new IUniTaskPresenter.Halt();
                         }
                         break;
                     case ISubSelectionPresenter.SelectCardEvent select:
-                        if (!selected.Remove(select.CardInfo.Identity) && selected.Count < info.MaxCount)
-                            selected.Add(select.CardInfo.Identity);
-                        Update();
+                        if (!state.Value.Candidates.Any(card => card.Identity == select.Identity)) break;
+                        var selected = state.Value.SelectedCardIdentities.ToList();
+                        if (!selected.Remove(select.Identity) && selected.Count < info.MaxCount)
+                            selected.Add(select.Identity);
+                        // 不修改已發布的集合；一次發布選取、合法性與提示數量的新快照。
+                        state.Value = state.Value with
+                        {
+                            SelectedCardIdentities = Array.AsReadOnly(selected.ToArray()),
+                            IsConfirmable = info.IsValidCount(selected.Count),
+                            Prompt = state.Value.Prompt with { SelectedCount = selected.Count }
+                        };
                         break;
                     case ISubSelectionPresenter.VisibleToggleEvent:
-                        visible = !visible;
-                        Update();
+                        state.Value = state.Value with { IsVisible = !state.Value.IsVisible };
                         break;
                     case ISubSelectionPresenter.LongTouchCardEvent detail:
-                        await _singleCardDetailPopupPanel.Run(CardDetailProperty.Create(detail.CardInfo), cancellationToken);
+                        var cardInfo = state.Value.Candidates.FirstOrDefault(card => card.Identity == detail.Identity);
+                        if (cardInfo != null)
+                            await _singleCardDetailPopupPanel.Run(CardDetailProperty.Create(cardInfo), cancellationToken);
                         break;
                 }
                 return new IUniTaskPresenter.None();
             }
 
-            string Description() => string.Join("\n",
-                prompt,
-                string.Format(_Text("CardSelection_Step"), info.StepIndex + 1, info.StepCount),
-                string.Format(_Text(info.CountRule == CardSelectionCountRule.Optional
-                    ? "CardSelection_Optional" : "CardSelection_Required"), selected.Count, info.MaxCount));
-
-            void Update() => _cardSelectionPanel.RenderUpdate(
-                new ICardSelectionPanel.UpdateProperty(
-                    visible, 
-                    info.IsValidCount(selected.Count),
-                    info.CardInfos.Where(card => selected.Contains(card.Identity)), 
-                    Description()));
         }
 
         public async UniTask<Option<ISubSelectionAction>> RunComposition(
@@ -156,6 +145,12 @@ namespace MortalGame.Presenter
         private IDisposable _SetupSubscriptions(IUniTaskPresenter presenter)
         {
             var disposables = new CompositeDisposable();
+            _cardSelectionPanel.CardClicked
+                .Subscribe(identity => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.SelectCardEvent(identity)))
+                .AddTo(disposables);
+            _cardSelectionPanel.CardLongPressed
+                .Subscribe(identity => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.LongTouchCardEvent(identity)))
+                .AddTo(disposables);
             _cardSelectionPanel.CloseButtons
                 .Select(button => button.OnClickAsObservable())
                 .Merge()
@@ -170,6 +165,5 @@ namespace MortalGame.Presenter
             return disposables;
         }
 
-        private string _Text(string key) => _localizeLibrary.Get(LocalizeInfoType.UI, key).Info;
     }
 }

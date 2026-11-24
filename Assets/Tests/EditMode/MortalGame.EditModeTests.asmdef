@@ -9,7 +9,8 @@
     "MortalGame.Editor",
     "UniRx",
     "UniTask",
-    "Unity.ugui"
+    "Unity.ugui",
+    "Unity.TextMeshPro"
   ],
   "includePlatforms": [
     "Editor"

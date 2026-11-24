@@ -4,6 +4,17 @@
 > 各項完成日期與驗證數字為當時紀錄；T-023 的驗證於 2026-09-28 執行，2026-09-29 確認封存。現在行為以系統文件及程式為準，待辦見 [TODO](TODO.md)。
 > 完成狀態限於各任務範圍，不代表所有預留列舉、流程入口或後續整合都已完成。
 
+## T-021：初始抽牌優先與效果選單設定（已完成）
+
+- **狀態**：✅ 2026-11-22 使用者最終確認第 4 個工作，四項工作全部結案。
+- **初始牌序**：雙方在 BeforeGameStart／初始 Initialize 完成後、AfterGameStart 前，依當下有效 InitialPriority 穩定分組一次；同組保留洗牌順序，不額外消耗亂數、不增加抽牌數、不召回已移出的牌。初始化新增或變形的牌仍在 Deck 即參與；後續新增與墓地回洗不重新優先。
+- **呈現與開場效果**：InitialDeckOrderedEvent 同步 View 牌序；沿用 Buff 的 AfterGameStart 反應，不新增 CardTriggeredTiming。Initialize 避免抽牌屬製卡規範，Runtime 不拒絕或延後抽牌。
+- **Editor 設定**：正式 EffectMenuSettings.asset 分別管理 GameTiming／CardTriggeredTiming 的效果停用清單，支援型別選單、相同時機聯集、規則修改後重新開啟選單生效。停用項目灰色置底、不可選，無 toggle／hint；既有配置保留並可編輯，Runtime 不讀此設定。
+- **使用者確認與清理**：使用者確認 Inspector 及設定資產體驗後授權清理；確認無外部依賴，透過 Unity AssetDatabase 移除 Assets/Acceptance 的試用 CardBuff、空資料夾與全部 meta。正式設定、程式及回歸測試保留。
+- **最終驗證（2026-11-22）**：清理後 Unity 刷新／重新編譯及 GameDataValidator 0 error，完整 EditMode 950／950、PlayMode 45／45，0 failed／skipped。本輪最終確認只更新文件，不重跑已通過的測試。
+- **驗證界線與警告**：初始抽牌由 19 項行為測試覆蓋，未宣稱另做人工 Play 玩法驗收；Inspector 與設定由 AI 實際操作及使用者確認。既有 RenderGraph 相容模式、NoOpCardBuffEffect 測試空效果警告保留。
+- **規則來源**：[Card](Card.md)、[GameModel](GameModel.md)、[資產製作規範](GameData_Asset_Guidelines.md#開場時機與效果選單)。下一項 T-024 由新對話接手。
+
 ### T-001：消除 Switch Expression 雙重派發
 
 採用型別 Registry 分離 Resolver 與 Handler，移除大型雙重派發。新增型別仍須登錄對應 Registry，不能說完全不改動註冊本體。現況見 [Effect](Effect.md)。
