@@ -1,6 +1,9 @@
 using System;
 using MortalGame.Presentation.Abstractions;
 using System.Collections.Generic;
+using System.Linq;
+using MortalGame.GameData;
+using MortalGame.GameModel;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
@@ -9,18 +12,8 @@ namespace MortalGame.GameView
 
     public interface IAllCardDetailPanel
     {
-        public record Property(
-            IEnumerable<ICardView.CardClickableProperty> Items);
-
         void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary);
-        void Open();
-        void Render(Property property);
-        void Close();
-
-        Button DeckButton { get; }
-        Button HandCardButton { get; }
-        Button GraveyardButton { get; }
-        Button[] CloseButtons { get; }
+        IAllCardDetailSession Open(IReadOnlyReactiveProperty<AllCardDetailDisplayState> state);
     }
 
     public class AllCardDetailPanel : MonoBehaviour, IAllCardDetailPanel
@@ -40,14 +33,9 @@ namespace MortalGame.GameView
         [SerializeField]
         private CardViewFactory _cardViewFactory;
 
-        public Button DeckButton => _deckButton;
-        public Button HandCardButton => _handCardButton;
-        public Button GraveyardButton => _graveyardButton;
-        public Button[] CloseButtons => _closeButtons;
-
         private IGameViewModel _gameViewModel;
         private LocalizeLibrary _localizeLibrary;
-        private List<CardView> _cardViews = new();
+        private Session _activeSession;
 
         public void Init(
             IGameViewModel gameInfoModel,
@@ -57,37 +45,123 @@ namespace MortalGame.GameView
             _localizeLibrary = localizeLibrary;
         }
 
-        public void Render(IAllCardDetailPanel.Property property)
+        public IAllCardDetailSession Open(IReadOnlyReactiveProperty<AllCardDetailDisplayState> state)
         {
-            _Clear();
-
-            foreach (var cardItemProperty in property.Items)
+            if (_activeSession != null)
+                throw new InvalidOperationException("卡片詳情面板尚未釋放，不能重複開啟。");
+            var session = new Session(this);
+            _activeSession = session;
+            try
             {
-                var cardView = _cardViewFactory.CreatePrefab();
-                cardView.transform.SetParent(_cardViewParent, false);
-                cardView.Initialize(_gameViewModel, _localizeLibrary);
-                cardView.Render(cardItemProperty);
-                _cardViews.Add(cardView);
+                _panel.SetActive(true);
+                session.Bind(state);
+                return session;
+            }
+            catch
+            {
+                session.Dispose();
+                throw;
             }
         }
 
-        public void Open()
+        private void _RenderState(Session session, AllCardDetailDisplayState state)
         {
-            _panel.SetActive(true);
-        }
-        public void Close()
-        {
-            _Clear();
-            _panel.SetActive(false);
+            var identities = state.Cards.Select(card => card.Identity).ToHashSet();
+            foreach (var identity in session.Cards.Keys.Where(id => !identities.Contains(id)).ToArray())
+            {
+                _cardViewFactory.RecyclePrefab(session.Cards[identity].View);
+                session.Cards.Remove(identity);
+            }
+
+            for (var index = 0; index < state.Cards.Count; index++)
+            {
+                var card = state.Cards[index];
+                var needsRender = !session.Cards.TryGetValue(card.Identity, out var entry);
+                if (needsRender)
+                {
+                    var view = _cardViewFactory.CreatePrefab();
+                    entry = (card, view);
+                    session.Cards.Add(card.Identity, entry);
+                    view.transform.SetParent(_cardViewParent, false);
+                    view.Initialize(_gameViewModel, _localizeLibrary);
+                }
+                if (needsRender || !Equals(entry.Info, card))
+                {
+                    entry.View.Render(new ICardView.CardClickableProperty(card, true,
+                        (identity, _) => session.Click(identity)));
+                    session.Cards[card.Identity] = (card, entry.View);
+                }
+                entry.View.transform.SetSiblingIndex(index);
+            }
         }
 
-        private void _Clear()
+        private void _Close(Session session)
         {
-            foreach (var cardView in _cardViews)
+            try
             {
-                _cardViewFactory.RecyclePrefab(cardView);
+                foreach (var entry in session.Cards.Values)
+                    _cardViewFactory.RecyclePrefab(entry.View);
             }
-            _cardViews.Clear();
+            finally
+            {
+                session.Cards.Clear();
+                if (ReferenceEquals(_activeSession, session))
+                {
+                    _activeSession = null;
+                    if (_panel != null) _panel.SetActive(false);
+                }
+            }
+        }
+
+        private void OnDestroy() => _activeSession?.Dispose();
+
+        private sealed class Session : IAllCardDetailSession
+        {
+            public readonly Dictionary<Guid, (CardInfo Info, CardView View)> Cards = new();
+            private readonly AllCardDetailPanel _owner;
+            private readonly CompositeDisposable _resources = new();
+            private readonly Subject<Unit> _ended = new();
+            private readonly Subject<Guid> _cardClicked = new();
+            private bool _isDisposed;
+
+            public IObservable<CardCollectionType> CollectionRequested { get; }
+            public IObservable<Guid> CardClicked { get; }
+            public IObservable<Unit> CloseRequested { get; }
+
+            public Session(AllCardDetailPanel owner)
+            {
+                _owner = owner;
+                _ended.AddTo(_resources);
+                _cardClicked.AddTo(_resources);
+                CollectionRequested = Observable.Merge(
+                    owner._deckButton.OnClickAsObservable().Select(_ => CardCollectionType.Deck),
+                    owner._handCardButton.OnClickAsObservable().Select(_ => CardCollectionType.HandCard),
+                    owner._graveyardButton.OnClickAsObservable().Select(_ => CardCollectionType.Graveyard))
+                    .TakeUntil(_ended);
+                CardClicked = _cardClicked.TakeUntil(_ended);
+                CloseRequested = owner._closeButtons.Select(button => button.OnClickAsObservable())
+                    .Merge().TakeUntil(_ended);
+            }
+
+            public void Bind(IReadOnlyReactiveProperty<AllCardDetailDisplayState> state)
+                => state.Subscribe(value => _owner._RenderState(this, value)).AddTo(_resources);
+
+            public void Click(Guid identity)
+            {
+                if (!_isDisposed) _cardClicked.OnNext(identity);
+            }
+
+            public void Dispose()
+            {
+                if (_isDisposed) return;
+                _isDisposed = true;
+                try { _ended.OnNext(Unit.Default); }
+                finally
+                {
+                    try { _resources.Dispose(); }
+                    finally { _owner._Close(this); }
+                }
+            }
         }
     }
 }

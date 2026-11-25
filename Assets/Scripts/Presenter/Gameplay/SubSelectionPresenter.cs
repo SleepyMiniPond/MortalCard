@@ -50,20 +50,13 @@ namespace MortalGame.Presenter
                 new CardSelectionPromptInfo(info.CardDataId, info.Id, info.StepIndex, info.StepCount,
                     0, info.MaxCount, info.CountRule)));
             IUniTaskPresenter presenter = new UniTaskPresenter();
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                _cardSelectionPanel.Open(state);
-                await presenter.Run(
-                    _SetupSubscriptions(presenter), 
-                    () => true, 
-                    cancellationToken, 
-                    EventHandler);
-            }
-            finally
-            {
-                _cardSelectionPanel.Close();
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            using var session = _cardSelectionPanel.Open(state);
+            await presenter.Run(
+                _SetupSubscriptions(session, presenter),
+                () => true,
+                cancellationToken,
+                EventHandler);
             return result;
 
             async UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)
@@ -142,24 +135,22 @@ namespace MortalGame.Presenter
             // 預覽卡尚無擁有者，直接呈現模板基本值，不套用戰鬥持有者的公式。
             => card.ToInfo(model) with { Cost = card.OriginCost.Some(), Power = card.OriginPower.Some() };
 
-        private IDisposable _SetupSubscriptions(IUniTaskPresenter presenter)
+        private IDisposable _SetupSubscriptions(ICardSelectionSession session, IUniTaskPresenter presenter)
         {
             var disposables = new CompositeDisposable();
-            _cardSelectionPanel.CardClicked
+            session.CardClicked
                 .Subscribe(identity => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.SelectCardEvent(identity)))
                 .AddTo(disposables);
-            _cardSelectionPanel.CardLongPressed
+            session.CardLongPressed
                 .Subscribe(identity => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.LongTouchCardEvent(identity)))
                 .AddTo(disposables);
-            _cardSelectionPanel.CloseButtons
-                .Select(button => button.OnClickAsObservable())
-                .Merge()
+            session.CloseRequested
                 .Subscribe(_ => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.CloseEvent()))
                 .AddTo(disposables);
-            _cardSelectionPanel.ConfirmButton.OnClickAsObservable()
+            session.ConfirmRequested
                 .Subscribe(_ => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.ConfirmEvent()))
                 .AddTo(disposables);
-            _cardSelectionPanel.VisibleToggleButton.OnClickAsObservable()
+            session.VisibilityToggleRequested
                 .Subscribe(_ => presenter.TryEnqueueNextEvent(new ISubSelectionPresenter.VisibleToggleEvent()))
                 .AddTo(disposables);
             return disposables;

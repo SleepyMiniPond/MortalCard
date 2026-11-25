@@ -26,15 +26,8 @@ namespace MortalGame.GameView
 
     public interface ICardSelectionPanel
     {
-        Button[] CloseButtons { get; }
-        Button ConfirmButton { get; }
-        Button VisibleToggleButton { get; }
-        IObservable<Guid> CardClicked { get; }
-        IObservable<Guid> CardLongPressed { get; }
-
         void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary);
-        void Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state);
-        void Close();
+        ICardSelectionSession Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state);
     }
 
     public class CardSelectionPanel : MonoBehaviour, ICardSelectionPanel
@@ -77,18 +70,9 @@ namespace MortalGame.GameView
         [SerializeField]
         private CardSelectionTextSettings _textSettings;
 
-        public Button[] CloseButtons => _closeButtons;
-        public Button ConfirmButton => _confirmButton;
-        public Button VisibleToggleButton => _visibleToggleButton;
-        public IObservable<Guid> CardClicked => _cardClicked;
-        public IObservable<Guid> CardLongPressed => _cardLongPressed;
-
         private IGameViewModel _gameViewModel;
         private LocalizeLibrary _localizeLibrary;
-        private readonly Dictionary<Guid, (CardInfo Info, CardView View)> _cardViewMap = new();
-        private readonly SerialDisposable _stateSubscription = new();
-        private readonly Subject<Guid> _cardClicked = new();
-        private readonly Subject<Guid> _cardLongPressed = new();
+        private Session _activeSession;
 
         public void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary)
         {
@@ -99,19 +83,29 @@ namespace MortalGame.GameView
             _confirmButtonText.text = _localizeLibrary.Get(LocalizeInfoType.UI, _confirmButtonLocalizeKey).Info;
         }
 
-        public void Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state)
+        public ICardSelectionSession Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state)
         {
-            _Clear();
-
-            _panel.SetActive(true);
-            _closeObject.SetActive(true);
-            _visibleToggleButton.interactable = true;
-
-            _stateSubscription.Disposable = state.Subscribe(_RenderState);
+            if (_activeSession != null)
+                throw new InvalidOperationException("選卡面板尚未釋放，不能重複開啟。");
+            var session = new Session(this);
+            _activeSession = session;
+            try
+            {
+                _panel.SetActive(true);
+                _closeObject.SetActive(true);
+                _visibleToggleButton.interactable = true;
+                session.Bind(state);
+                return session;
+            }
+            catch
+            {
+                session.Dispose();
+                throw;
+            }
         }
-        private void _RenderState(CardSelectionDisplayState state)
+        private void _RenderState(Session session, CardSelectionDisplayState state)
         {
-            _SyncCandidates(state.Candidates);
+            _SyncCandidates(session, state.Candidates);
             foreach (var obj in _visibleToggleObjects)
             {
                 obj.SetActive(state.IsVisible);
@@ -122,7 +116,7 @@ namespace MortalGame.GameView
             _selectionDescriptionText.text = _FormatDescription(state.Prompt);
 
             var selectedCardIdentities = state.SelectedCardIdentities.ToHashSet();
-            foreach (var kvp in _cardViewMap)
+            foreach (var kvp in session.Cards)
             {
                 if (selectedCardIdentities.Contains(kvp.Key))
                 {
@@ -135,33 +129,33 @@ namespace MortalGame.GameView
             }
         }
 
-        private void _SyncCandidates(IReadOnlyList<CardInfo> candidates)
+        private void _SyncCandidates(Session session, IReadOnlyList<CardInfo> candidates)
         {
             var identities = candidates.Select(card => card.Identity).ToHashSet();
-            foreach (var identity in _cardViewMap.Keys.Where(id => !identities.Contains(id)).ToArray())
+            foreach (var identity in session.Cards.Keys.Where(id => !identities.Contains(id)).ToArray())
             {
-                _cardViewFactory.RecyclePrefab(_cardViewMap[identity].View);
-                _cardViewMap.Remove(identity);
+                _cardViewFactory.RecyclePrefab(session.Cards[identity].View);
+                session.Cards.Remove(identity);
             }
 
             for (var index = 0; index < candidates.Count; index++)
             {
                 var card = candidates[index];
-                var needsRender = !_cardViewMap.TryGetValue(card.Identity, out var entry);
+                var needsRender = !session.Cards.TryGetValue(card.Identity, out var entry);
                 if (needsRender)
                 {
                     var view = _cardViewFactory.CreatePrefab();
                     entry = (card, view);
-                    _cardViewMap.Add(card.Identity, entry);
+                    session.Cards.Add(card.Identity, entry);
                     view.transform.SetParent(_cardViewParent, false);
                     view.Initialize(_gameViewModel, _localizeLibrary);
                 }
                 if (needsRender || !Equals(entry.Info, card))
                 {
                     entry.View.Render(new ICardView.CardClickableProperty(card, true,
-                        (identity, _) => _cardClicked.OnNext(identity),
-                        (identity, _) => _cardLongPressed.OnNext(identity)));
-                    _cardViewMap[card.Identity] = (card, entry.View);
+                        (identity, _) => session.Click(identity),
+                        (identity, _) => session.LongPress(identity)));
+                    session.Cards[card.Identity] = (card, entry.View);
                 }
                 // 身份不變就沿用卡片，只依狀態中的順序排列。
                 entry.View.transform.SetSiblingIndex(index);
@@ -183,29 +177,85 @@ namespace MortalGame.GameView
 
         private string _Text(string key) => _localizeLibrary.Get(LocalizeInfoType.UI, key).Info;
 
-        public void Close()
+        private void _Close(Session session)
         {
-            _Clear();
-            _panel.SetActive(false);
+            try
+            {
+                foreach (var entry in session.Cards.Values)
+                    _cardViewFactory.RecyclePrefab(entry.View);
+            }
+            finally
+            {
+                session.Cards.Clear();
+                if (ReferenceEquals(_activeSession, session))
+                {
+                    _activeSession = null;
+                    // 場景銷毀時，面板物件可能已先被 Unity 移除。
+                    if (_panel != null) _panel.SetActive(false);
+                }
+            }
         }
 
-        private void _Clear()
+        private void OnDestroy() => _activeSession?.Dispose();
+
+        private sealed class Session : ICardSelectionSession
         {
-            // 關閉或重新開窗時先解除舊綁定，避免繼續更新已回收的卡片。
-            _stateSubscription.Disposable = null;
-            foreach (var entry in _cardViewMap.Values)
+            public readonly Dictionary<Guid, (CardInfo Info, CardView View)> Cards = new();
+            private readonly CardSelectionPanel _owner;
+            private readonly CompositeDisposable _resources = new();
+            private readonly Subject<Unit> _ended = new();
+            private readonly Subject<Guid> _cardClicked = new();
+            private readonly Subject<Guid> _cardLongPressed = new();
+            private bool _isDisposed;
+
+            public IObservable<Unit> CloseRequested { get; }
+            public IObservable<Unit> ConfirmRequested { get; }
+            public IObservable<Unit> VisibilityToggleRequested { get; }
+            public IObservable<Guid> CardClicked { get; }
+            public IObservable<Guid> CardLongPressed { get; }
+
+            public Session(CardSelectionPanel owner)
             {
-                _cardViewFactory.RecyclePrefab(entry.View);
+                _owner = owner;
+                _ended.AddTo(_resources);
+                _cardClicked.AddTo(_resources);
+                _cardLongPressed.AddTo(_resources);
+                CloseRequested = owner._closeButtons.Select(button => button.OnClickAsObservable())
+                    .Merge().TakeUntil(_ended);
+                ConfirmRequested = owner._confirmButton.OnClickAsObservable().TakeUntil(_ended);
+                VisibilityToggleRequested = owner._visibleToggleButton.OnClickAsObservable().TakeUntil(_ended);
+                CardClicked = _cardClicked.TakeUntil(_ended);
+                CardLongPressed = _cardLongPressed.TakeUntil(_ended);
             }
 
-            _cardViewMap.Clear();
-        }
+            public void Bind(IReadOnlyReactiveProperty<CardSelectionDisplayState> state)
+                => state.Subscribe(value => _owner._RenderState(this, value)).AddTo(_resources);
 
-        private void OnDestroy()
-        {
-            _stateSubscription.Dispose();
-            _cardClicked.Dispose();
-            _cardLongPressed.Dispose();
+            public void Click(Guid identity)
+            {
+                if (!_isDisposed) _cardClicked.OnNext(identity);
+            }
+
+            public void LongPress(Guid identity)
+            {
+                if (!_isDisposed) _cardLongPressed.OnNext(identity);
+            }
+
+            public void Dispose()
+            {
+                if (_isDisposed) return;
+                _isDisposed = true;
+                try
+                {
+                    // 先結束操作事件，讓舊 Session 的訂閱無法收到下次開窗的按鈕輸入。
+                    _ended.OnNext(Unit.Default);
+                }
+                finally
+                {
+                    try { _resources.Dispose(); }
+                    finally { _owner._Close(this); }
+                }
+            }
         }
     }
 }

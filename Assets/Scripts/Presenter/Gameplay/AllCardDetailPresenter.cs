@@ -16,10 +16,8 @@ namespace MortalGame.Presenter
     public interface IAllCardDetailPresenter
     {
         public record CloseEvent() : IUniTaskPresenter.Event;
-        public record DeckEvent(CardCollectionInfo DeckInfo) : IUniTaskPresenter.Event;
-        public record HandCardEvent(CardCollectionInfo HandCardInfo) : IUniTaskPresenter.Event;
-        public record GraveyardEvent(CardCollectionInfo GraveyardInfo) : IUniTaskPresenter.Event;
-        public record CardDetailEvent(CardInfo CardInfo, ICardView CardView) : IUniTaskPresenter.Event;
+        public record CollectionEvent(CardCollectionType Type) : IUniTaskPresenter.Event;
+        public record CardDetailEvent(Guid Identity) : IUniTaskPresenter.Event;
 
         UniTask Run(
             Faction faction,
@@ -33,10 +31,6 @@ namespace MortalGame.Presenter
         private readonly SingleCardDetailPopupPanel _singlePopupPanel;
         private readonly IGameViewModel _gameViewModel;
 
-        private CardInfo _selectedCardInfo;
-        private IUniTaskPresenter _uniTaskPresenter;
-        private bool _isClose;
-
         public AllCardDetailPresenter(
             IAllCardDetailPanelView panelView,
             IGameViewModel gameViewModel,
@@ -47,7 +41,6 @@ namespace MortalGame.Presenter
             _gameViewModel = gameViewModel;
 
             _detailPanel.Init(_gameViewModel, localizeLibrary);
-            _uniTaskPresenter = new UniTaskPresenter();
         }
 
         public async UniTask Run(
@@ -55,99 +48,55 @@ namespace MortalGame.Presenter
             CardCollectionType type,
             CancellationToken cancellationToken)
         {
-            _isClose = false;
-            _detailPanel.Open();
-
-            var cardCollectionInfo = _gameViewModel.ObservableCardCollectionInfo(faction, type);
-            _ShowCardCollectionInfos(cardCollectionInfo.Value);
-
-            try
-            {
-                await _uniTaskPresenter.Run(
-                    _SetupSubscriptions(faction),
-                    () => !_isClose,
-                    cancellationToken,
-                    EventHandler);
-            }
-            finally
-            {
-                _detailPanel.Close();
-            }
+            cancellationToken.ThrowIfCancellationRequested();
+            using var collectionType = new ReactiveProperty<CardCollectionType>(type);
+            // 切換頁籤時替換卡區訂閱；資料通知不經過玩家操作的忙碌事件槽。
+            using var state = collectionType
+                .Select(currentType => _gameViewModel.ObservableCardCollectionInfo(faction, currentType)
+                    .Select(collection => new AllCardDetailDisplayState(currentType,
+                        Array.AsReadOnly(collection.CardInfos.Keys.ToArray()))))
+                .Switch()
+                .ToReadOnlyReactiveProperty();
+            IUniTaskPresenter presenter = new UniTaskPresenter();
+            using var session = _detailPanel.Open(state);
+            await presenter.Run(
+                _SetupSubscriptions(session, presenter), () => true, cancellationToken, EventHandler);
 
             async UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)
             {
                 switch (evt)
                 {
                     case IAllCardDetailPresenter.CloseEvent:
-                        _isClose = true;
                         return new IUniTaskPresenter.Halt();
-                    case IAllCardDetailPresenter.DeckEvent deckEvent:
-                        _ShowCardCollectionInfos(deckEvent.DeckInfo);
+                    case IAllCardDetailPresenter.CollectionEvent collection:
+                        collectionType.Value = collection.Type;
                         break;
-
-                    case IAllCardDetailPresenter.GraveyardEvent graveyardEvent:
-                        _ShowCardCollectionInfos(graveyardEvent.GraveyardInfo);
-                        break;
-
-                    case IAllCardDetailPresenter.HandCardEvent handCardEvent:
-                        _ShowCardCollectionInfos(handCardEvent.HandCardInfo);
-                        break;
-
-                case IAllCardDetailPresenter.CardDetailEvent cardDetailEvent:
-                    await _singlePopupPanel.Run(
-                        CardDetailProperty.Create(cardDetailEvent.CardInfo),
-                        cancellationToken);
+                    case IAllCardDetailPresenter.CardDetailEvent detail:
+                        if (state.Value.Cards.Any(card => card.Identity == detail.Identity)
+                            && _gameViewModel.GetCardInfoOrNone(detail.Identity).TryGetValue(out var latest))
+                            await _singlePopupPanel.Run(CardDetailProperty.Create(latest), cancellationToken);
                         break;
                 }
                 return new IUniTaskPresenter.None();
             }
         }
 
-        private IDisposable _SetupSubscriptions(Faction faction)
+        private IDisposable _SetupSubscriptions(IAllCardDetailSession session, IUniTaskPresenter presenter)
         {
             var disposables = new CompositeDisposable();
 
-            _detailPanel.DeckButton.OnClickAsObservable()
-                .WithLatestFrom(
-                    _gameViewModel.ObservableCardCollectionInfo(faction, CardCollectionType.Deck),
-                    (_, deckInfo) => deckInfo)
-                .Subscribe(deckInfo => _uniTaskPresenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.DeckEvent(deckInfo)))
+            session.CollectionRequested
+                .Subscribe(type => presenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.CollectionEvent(type)))
                 .AddTo(disposables);
-            _detailPanel.HandCardButton.OnClickAsObservable()
-                .WithLatestFrom(
-                    _gameViewModel.ObservableCardCollectionInfo(faction, CardCollectionType.HandCard),
-                    (_, handCardsInfo) => handCardsInfo)
-                .Subscribe(handCardsInfo => _uniTaskPresenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.HandCardEvent(handCardsInfo)))
+            session.CardClicked
+                .Subscribe(identity => presenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.CardDetailEvent(identity)))
                 .AddTo(disposables);
-            _detailPanel.GraveyardButton.OnClickAsObservable()
-                .WithLatestFrom(
-                    _gameViewModel.ObservableCardCollectionInfo(faction, CardCollectionType.Graveyard),
-                    (_, graveyardInfo) => graveyardInfo)
-                .Subscribe(graveyardInfo => _uniTaskPresenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.GraveyardEvent(graveyardInfo)))
-                .AddTo(disposables);
-            _detailPanel.CloseButtons
-                .Select(button => button.OnClickAsObservable())
-                .Merge()
-                .Subscribe(_ => _uniTaskPresenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.CloseEvent()))
+            session.CloseRequested
+                .Subscribe(_ => presenter.TryEnqueueNextEvent(new IAllCardDetailPresenter.CloseEvent()))
                 .AddTo(disposables);
 
             return disposables;
         }
 
-        private void _ShowCardCollectionInfos(CardCollectionInfo cardCollectionInfo)
-        {
-            var property = new IAllCardDetailPanel.Property(
-                cardCollectionInfo.CardInfos.Keys.Select(cardInfo =>
-                    new ICardView.CardClickableProperty(
-                        CardInfo: cardInfo,
-                        IsClickable: true,
-                        OnClickCard: (identity, cardView) =>
-                            _gameViewModel.GetCardInfoOrNone(identity)
-                                .MatchSome(info =>
-                                    _uniTaskPresenter.TryEnqueueNextEvent(
-                                        new IAllCardDetailPresenter.CardDetailEvent(info, cardView)))))
-                );
-            _detailPanel.Render(property);
-        }
     }
 }

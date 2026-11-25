@@ -31,13 +31,14 @@ namespace MortalGame.Tests
                 var state = new SubscriptionProbe(new CardSelectionDisplayState(
                     Array.Empty<CardInfo>(), true, false, Array.Empty<Guid>(),
                     new CardSelectionPromptInfo("card", "first", 0, 1, 0, 1, CardSelectionCountRule.Optional)));
-                panel.Open(state);
+                using var session = panel.Open(state);
                 Assert.That(state.IsSubscribed, Is.True);
 
                 UnityEngine.Object.Destroy(instance);
                 yield return null;
 
                 Assert.That(state.IsSubscribed, Is.False);
+                Assert.DoesNotThrow(session.Dispose, "View 銷毀後，Presenter 仍可安全釋放 Session");
             }
             finally
             {

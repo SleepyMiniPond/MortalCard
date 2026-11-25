@@ -40,9 +40,9 @@ namespace MortalGame.Tests
                         CardSelectionCountRule.RequiredExact)));
                 var clicks = new List<Guid>();
                 var longPresses = new List<Guid>();
-                using var clickSubscription = panel.CardClicked.Subscribe(clicks.Add);
-                using var longPressSubscription = panel.CardLongPressed.Subscribe(longPresses.Add);
-                panel.Open(state);
+                using var session = panel.Open(state);
+                using var clickSubscription = session.CardClicked.Subscribe(clicks.Add);
+                using var longPressSubscription = session.CardLongPressed.Subscribe(longPresses.Add);
                 var view = instance.GetComponentInChildren<CardView>();
                 var button = (Button)new UnityEditor.SerializedObject(view).FindProperty("_button").objectReferenceValue;
                 var pointer = new UnityEngine.EventSystems.PointerEventData(null);
@@ -60,7 +60,7 @@ namespace MortalGame.Tests
                     UnityEngine.EventSystems.ExecuteEvents.pointerUpHandler);
                 Assert.That(longPresses, Is.EqualTo(new[] { card.Identity }));
                 Assert.That(clicks.Count, Is.EqualTo(1), "長按結束不得再發出點擊");
-                panel.Close();
+                session.Dispose();
             }
             finally
             {
@@ -601,13 +601,35 @@ namespace MortalGame.Tests
                 CloseButtons = new[] { Create() }; ConfirmButton = Create(); VisibleToggleButton = Create();
             }
             public void Init(IGameViewModel model, LocalizeLibrary localization) { }
-            public void Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state) { OpenCount++; State = state; }
+            public ICardSelectionSession Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state)
+            {
+                OpenCount++;
+                State = state;
+                return new TestSession(this);
+            }
             public void Close() => CloseCount++;
             public void Dispose()
             {
                 _cardClicked.Dispose();
                 _cardLongPressed.Dispose();
                 UnityEngine.Object.DestroyImmediate(_root);
+            }
+            private sealed class TestSession : ICardSelectionSession
+            {
+                private readonly CompositionPanel _owner;
+                private bool _isDisposed;
+                public TestSession(CompositionPanel owner) => _owner = owner;
+                public IObservable<Unit> CloseRequested => _owner.CloseButtons.Select(b => b.OnClickAsObservable()).Merge();
+                public IObservable<Unit> ConfirmRequested => _owner.ConfirmButton.OnClickAsObservable();
+                public IObservable<Unit> VisibilityToggleRequested => _owner.VisibleToggleButton.OnClickAsObservable();
+                public IObservable<Guid> CardClicked => _owner.CardClicked;
+                public IObservable<Guid> CardLongPressed => _owner.CardLongPressed;
+                public void Dispose()
+                {
+                    if (_isDisposed) return;
+                    _isDisposed = true;
+                    _owner.Close();
+                }
             }
         }
 
