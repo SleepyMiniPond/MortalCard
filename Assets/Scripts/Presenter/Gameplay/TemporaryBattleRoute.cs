@@ -10,7 +10,7 @@ namespace MortalGame.Presenter
     /// </summary>
     public sealed class TemporaryBattleRoute
     {
-        private const int StageCount = 2;
+        public const int StageCount = 2;
         private int _stageNumber = 1;
 
         public bool IsFinished => _stageNumber > StageCount;
@@ -19,11 +19,21 @@ namespace MortalGame.Presenter
 
         public void CompleteStage() => _stageNumber++;
 
+        // 僅供臨時流程標示使用；其他關卡識別回傳 0，讓畫面隱藏標示。
+        public static int GetStageNumber(string stageId)
+        {
+            for (var number = 1; number <= StageCount; number++)
+                if (stageId == _StageId(number)) return number;
+            return 0;
+        }
+
+        private static string _StageId(int number) => $"TemporaryStage{number}";
+
         public GameStageSetting CreateBattle(Context context)
         {
             Debug.Log($"[臨時兩關流程] 第 {_stageNumber}／{StageCount} 關");
             return new GameStageSetting(
-                StageID: $"TemporaryStage{_stageNumber}",
+                StageID: _StageId(_stageNumber),
                 RandomSeed: Environment.TickCount,
                 Ally: context.Ally with { Deck = context.Ally.Deck.ToList() },
                 Enemy: context.AllEnemies[0]);

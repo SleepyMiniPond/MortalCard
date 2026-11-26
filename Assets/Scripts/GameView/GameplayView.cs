@@ -9,6 +9,7 @@ using UnityEngine;
 using MortalGame.GameData;
 using MortalGame.GameModel;
 using Optional;
+using TMPro;
 
 namespace MortalGame.GameView
 {
@@ -48,6 +49,10 @@ namespace MortalGame.GameView
 
     public class GameplayView : MonoBehaviour, IGameplayView
     {
+        [Header("臨時兩關標示（正式地圖導入後移除）")]
+        [SerializeField] private TextMeshProUGUI _temporaryStageLabel;
+        [SerializeField] private string _temporaryStageLabelFormat;
+
         [BoxGroup("Canvas")]
         [SerializeField]
         private Canvas _handCardCanvas;
@@ -140,6 +145,13 @@ namespace MortalGame.GameView
             }
         }
         public ISelectableView BasicSelectableView => _playGround;
+
+        public void ShowTemporaryStageLabel(int stageNumber, int stageCount)
+        {
+            _temporaryStageLabel.gameObject.SetActive(stageNumber > 0);
+            if (stageNumber > 0)
+                _temporaryStageLabel.text = string.Format(_temporaryStageLabelFormat, stageNumber, stageCount);
+        }
 
         public void Init(
             IGameViewModel gameInfoModel,

@@ -572,7 +572,7 @@ namespace MortalGame.Tests
                     [LocalizeInfoType.UI] = texts
                 });
             return new Setup(built.Manager, data, card, CardSelectionDraft.Create(card, built.Ally, MainSelectionAction.Empty),
-                new CardSelectionFlow(new SubSelectionPresenter(null, library, detail, panel)), panel, detail, texts);
+                new CardSelectionFlow(new SubSelectionPresenter(new GameViewModel(), library, detail, panel)), panel, detail, texts);
         }
 
         private record Setup(GameplayManager Model, StandardCardData Data, ICardEntity Card,
@@ -680,10 +680,17 @@ namespace MortalGame.Tests
             public Action OnRun;
             public bool Closed;
             public void Init(IGameViewModel model, LocalizeLibrary library) { }
-            public async UniTask Run(CardDetailProperty property, CancellationToken token)
+            public ISingleCardDetailSession Open(IReadOnlyReactiveProperty<SingleCardDetailDisplayState> state)
             {
-                try { OnRun?.Invoke(); await UniTask.NextFrame(token); }
-                finally { Closed = true; }
+                OnRun?.Invoke();
+                return new TestSession(this);
+            }
+            private sealed class TestSession : ISingleCardDetailSession
+            {
+                private readonly Detail _owner;
+                public TestSession(Detail owner) => _owner = owner;
+                public IObservable<Unit> CloseRequested => Observable.Never<Unit>();
+                public void Dispose() => _owner.Closed = true;
             }
         }
     }

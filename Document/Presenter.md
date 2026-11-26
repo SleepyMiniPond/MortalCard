@@ -1,6 +1,6 @@
 # Presenter 協調層
 
-> 核對日期：2026-11-22
+> 核對日期：2026-11-27
 
 Presenter 將 UI 命令轉成 Model 動作，並將 Model 事件交給 View 呈現。View／Presenter 的共享契約位於 [Presentation Abstractions](../Assets/Scripts/Presentation/Abstractions/)，協調實作位於 [Presenter](../Assets/Scripts/Presenter/)，不混放在 Panel。
 
@@ -20,11 +20,41 @@ Presenter 將 UI 命令轉成 Model 動作，並將 Model 事件交給 View 呈�
 
 玩家指令作用域持有 CardSelectionSession，涵蓋面板選取及 Action 等待 Model 接收；完整提交會由共用 Context 建立入口結束 Session，取消或例外也會釋放。自動選取結果包含可釋放的 Session，由敵人、間接出牌或 Invoke 消費端持有；Queue 使用驗證完成的獨立 Context，不持有已結束的候選暫存。
 
-GameplayPresenter 將失敗原因轉成已本地化的文字，交由 [WarningPopupPresenter](../Assets/Scripts/Presenter/Gameplay/WarningPopupPresenter.cs) 顯示。該 Presenter 搭配獨立 [WarningPopupPanel](../Assets/Scripts/GameView/Panel/Popup/WarningPopupPanel.cs)，只接收文字並等待 CloseEvent，不依賴選取規則，也不使用選卡面板顯示警告。Panel 提供關閉按鈕與顯示方法；Presenter.Run 訂閱按鈕，透過 IUniTaskPresenter 管理事件及訂閱清理，Panel 不在 Awake 綁定 callback。
+GameplayPresenter 將失敗原因轉成已本地化的文字，交由 [WarningPopupPresenter](../Assets/Scripts/Presenter/Gameplay/WarningPopupPresenter.cs) 顯示。該 Presenter 搭配獨立 [WarningPopupPanel](../Assets/Scripts/GameView/Panel/Popup/WarningPopupPanel.cs)，不依賴選取規則，也不使用選卡面板顯示警告。Presenter 建立含訊息的唯讀顯示狀態，Open 回傳提供 CloseRequested 的 Session；各關閉按鈕在 View 合併為同一操作，Presenter 透過 IUniTaskPresenter 等待結束，再由 Session.Dispose 關窗、清空文字及解除綁定。
 
-面板 Presenter 自己執行 Open → await IUniTaskPresenter.Run → finally Close。共用執行器處理事件與工作清理，不提供開啟面板的 onStarted callback。
+## Panel 的 State 與 Session 慣例
 
-固定面板按鈕由 View 提供 Button 參考，Presenter._SetupSubscriptions 訂閱點擊並送出對應 Event，訂閱隨 Run 結束釋放。選卡面板的關閉、確認與收合均沿用此方式；動態卡片的點擊／長按則由 SelectionProperty 隨渲染配置 callback，與卡片詳情面板的做法一致。
+State＋Session 是專案大部分 Panel 的預設架構。新增 Panel 或調整既有 Panel 邊界時採用此模式；既有面板依功能需要逐步遷移，不要求一次重寫。以 [CardSelectionPanel](../Assets/Scripts/GameView/Panel/Popup/CardSelectionPanel.cs) 與 [AllCardDetailPanel](../Assets/Scripts/GameView/Panel/Popup/AllCardDetailPanel.cs) 為參考。
+
+```csharp
+IPanelSession Open(IReadOnlyReactiveProperty<PanelDisplayState> state);
+
+public interface IPanelSession : IDisposable
+{
+    IObservable<Unit> CloseRequested { get; }
+    IObservable<Guid> ItemClicked { get; }
+}
+```
+
+此處名稱僅示意契約形狀，各面板定義自己的 State 與 Session，不要求建立共用泛型基底。
+
+- **Presenter 擁有狀態與規則**：建立 ReactiveProperty 或從 Model／ViewModel 衍生唯讀狀態，向 View 傳入 IReadOnlyReactiveProperty。選取合法性、操作結果與子流程協調留在 Presenter／Model；View 不回寫狀態。能由既有來源推導的值優先衍生，避免多份可寫狀態手動同步。
+- **State 描述完整顯示資訊**：包含候選項目、選取身份、可見性、可操作性及結構化提示等面板所需資料，不攜帶 Button、Transform 或操作 callback。發布後不修改其中集合；文字樣式、固定文案或本地化 key 由 prefab／場景序列化配置，View 負責格式化與呈現。
+- **View 綁定並更新畫面**：每次 Open 訂閱 State，依狀態更新元件；列表依身份保留、更新與回收項目，避免每次通知重建整份列表。View 不負責決定下一個流程或提交 Domain。
+- **Session 封裝單次開窗操作**：Open 回傳面板專屬的 IDisposable 介面，提供 Presenter 所需的 IObservable 操作事件。按鈕以 CloseRequested／ConfirmRequested 等語意表達；同類按鈕可合併為帶列舉參數的事件，動態項目傳遞身份。Presenter 不取得 Unity Button，也不逐項注入 callback。
+- **Presenter 持有 Session**：以 using 持有 Open 的回傳值，訂閱事件後交給既有 IUniTaskPresenter 協調操作、等待子面板與防重入；輸入訂閱隨 Run 結束釋放。結束時先釋放 Session，再釋放 Presenter 建立的狀態來源。資料同步隨開窗生命週期持續運作，不放進玩家操作的忙碌事件槽。
+- **Session 集中 View 清理**：Dispose 結束本次事件、解除狀態綁定與內部訂閱、回收動態項目並關窗，且可重複呼叫。OnDestroy 轉交同一清理入口，Open 部分失敗先清理再拋出；同一 View 尚有未釋放 Session 時拒絕重複 Open，舊 Session 不影響新視窗。釋放不偽造 CloseRequested 或其他玩家操作，也不釋放外部傳入的 State。
+- **取消沿非同步流程傳遞**：同步 Dispose 負責 View 資源，不取代 CancellationToken、例外傳遞或等待子流程清理。取消與例外不得被轉為預設玩家結果。共用執行器不提供開啟面板的 onStarted callback。
+
+固定內容且沒有動態顯示資料的面板可使用 Open() 回傳 Session，不為套用慣例建立空 State；[勝利面板](../Assets/Scripts/GameView/Panel/Popup/GameResultWinPanel.cs) 與 [失敗面板](../Assets/Scripts/GameView/Panel/Popup/GameResultLosePanel.cs) 採此方式。已有其他生命週期需求的 View 應依責任判斷是否適用，不能只為統一形式引入多餘抽象。
+
+### 單卡詳情
+
+[SingleCardDetailPresenter](../Assets/Scripts/Presenter/Gameplay/SingleCardDetailPresenter.cs) 負責單卡詳情的資料來源與關閉流程。戰鬥卡以 Identity 取得目前可觀察資訊並衍生 SingleCardDetailDisplayState；沒有來源的獨立預覽卡使用傳入快照。State 只攜帶 CardInfo，不包含 View 元件或提示配置。
+
+[SingleCardDetailPopupPanel](../Assets/Scripts/GameView/Panel/Popup/SingleCardDetailPopupPanel.cs) 訂閱 State，同時更新卡面、Buff 與關鍵字提示，將多個關閉按鈕合併為 Session.CloseRequested。詳情卡面使用 CardView.RenderSnapshot，避免在 State 之外再訂閱卡片資訊；其他 CardView 既有的自動訂閱方式不變。Session.Dispose 解除綁定、重設卡片並回收提示，取消與例外由 Presenter 傳遞。
+
+SubSelectionPresenter 與 AllCardDetailPresenter 等待單卡 Presenter，保留子面板開啟期間的父操作防重入；資料更新與玩家操作等待分開管理。
 
 ## 建構與顯示狀態
 
@@ -36,4 +66,4 @@ GameplayPresenter 將失敗原因轉成已本地化的文字，交由 [WarningPo
 
 ## 結果與地圖限制
 
-Lose 面板提供 Retry／Restart／Quit。Win 面板目前只有顯示與隱藏，Win Presenter 沒有正常完成事件，會持續等待至取消。地圖目前只有點擊開戰入口；完整場景結果處理見 [Scene](Scene.md)，缺口列於 [TODO](TODO.md)。
+Lose 面板透過 Session 提供 Retry／Restart／Quit 操作；Win 面板透過 Session 的 ContinueRequested 正常完成。Presenter 只有正常操作完成後才回傳結果，取消／例外清理面板並向上傳遞。結果去向由 GameFlow 決定，戰後 Domain 套用尚未接入。地圖目前只有點擊開戰入口；完整場景結果處理見 [Scene](Scene.md)，缺口列於 [TODO](TODO.md)。

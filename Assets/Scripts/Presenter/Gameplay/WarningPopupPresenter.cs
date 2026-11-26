@@ -1,8 +1,8 @@
 using System;
-using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameView;
+using MortalGame.Presentation.Abstractions;
 using UniRx;
 
 namespace MortalGame.Presenter
@@ -25,36 +25,23 @@ namespace MortalGame.Presenter
 
         public async UniTask Run(string message, CancellationToken cancellationToken)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+            using var state = new ReactiveProperty<WarningPopupDisplayState>(new(message));
             IUniTaskPresenter presenter = new UniTaskPresenter();
-            try
-            {
-                cancellationToken.ThrowIfCancellationRequested();
-                _panel.Open(message);
-                await presenter.Run(
-                    _SetupSubscriptions(presenter),
-                    () => true,
-                    cancellationToken,
-                    EventHandler);
-            }
-            finally
-            {
-                _panel.Close();
-            }
+            using var session = _panel.Open(state);
+            await presenter.Run(
+                _SetupSubscriptions(session, presenter),
+                () => true,
+                cancellationToken,
+                EventHandler);
 
             UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)
                 => UniTask.FromResult<IUniTaskPresenter.Event>(evt is IWarningPopupPresenter.CloseEvent
                     ? new IUniTaskPresenter.Halt() : new IUniTaskPresenter.None());
         }
 
-        private IDisposable _SetupSubscriptions(IUniTaskPresenter presenter)
-        {
-            var disposables = new CompositeDisposable();
-            _panel.CloseButtons
-                .Select(button => button.OnClickAsObservable())
-                .Merge()
-                .Subscribe(_ => presenter.TryEnqueueNextEvent(new IWarningPopupPresenter.CloseEvent()))
-                .AddTo(disposables);
-            return disposables;
-        }
+        private IDisposable _SetupSubscriptions(IWarningPopupSession session, IUniTaskPresenter presenter)
+            => session.CloseRequested.Subscribe(_ =>
+                presenter.TryEnqueueNextEvent(new IWarningPopupPresenter.CloseEvent()));
     }
 }

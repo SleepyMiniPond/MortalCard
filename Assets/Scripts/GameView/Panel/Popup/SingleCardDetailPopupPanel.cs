@@ -1,90 +1,101 @@
-using System.Threading;
-using Cysharp.Threading.Tasks;
+using System;
+using System.Linq;
 using MortalGame.Presentation.Abstractions;
-using MortalGame.GameData;
 using UniRx;
 using UnityEngine;
 using UnityEngine.UI;
 
 namespace MortalGame.GameView
 {
-
     public interface ISingleCardDetailPopupPanel
     {
         void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary);
-        UniTask Run(CardDetailProperty property, CancellationToken cancellationToken);
+        ISingleCardDetailSession Open(IReadOnlyReactiveProperty<SingleCardDetailDisplayState> state);
     }
 
     public class SingleCardDetailPopupPanel : MonoBehaviour, ISingleCardDetailPopupPanel
     {
-        [SerializeField]
-        private Button[] _closeButtons;
-        [SerializeField]
-        private GameObject _panel;
-        [SerializeField]
-        private CardView _cardView;
-        [SerializeField]
-        private CardPropertyHint _cardBuffHint;
-        [SerializeField]
-        private CardPropertyHint _cardKeywordHint;
-
-        private IGameViewModel _gameViewModel;
-        private LocalizeLibrary _localizeLibrary;
+        [SerializeField] private Button[] _closeButtons;
+        [SerializeField] private GameObject _panel;
+        [SerializeField] private CardView _cardView;
+        [SerializeField] private CardPropertyHint _cardBuffHint;
+        [SerializeField] private CardPropertyHint _cardKeywordHint;
+        private Session _activeSession;
 
         public void Init(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary)
         {
-            _gameViewModel = gameInfoModel;
-            _localizeLibrary = localizeLibrary;
-            _cardBuffHint.Init(_localizeLibrary);
-            _cardKeywordHint.Init(_localizeLibrary);
-            _cardView.Initialize(_gameViewModel, _localizeLibrary);
+            _cardBuffHint.Init(localizeLibrary);
+            _cardKeywordHint.Init(localizeLibrary);
+            _cardView.Initialize(gameInfoModel, localizeLibrary);
         }
 
-        public async UniTask Run(
-            CardDetailProperty property,
-            CancellationToken cancellationToken)
+        public ISingleCardDetailSession Open(IReadOnlyReactiveProperty<SingleCardDetailDisplayState> state)
         {
-            _cardView.Render(property.CardProperty);
-
-            var disposables = new CompositeDisposable();
-            var isClose = false;
-            foreach (var button in _closeButtons)
+            if (_activeSession != null)
+                throw new InvalidOperationException("單卡詳情面板尚未釋放，不能重複開啟。");
+            var session = new Session(this);
+            _activeSession = session;
+            try
             {
-                button.OnClickAsObservable()
-                    .Subscribe(_ => isClose = true)
-                    .AddTo(disposables);
+                _panel.SetActive(true);
+                session.Bind(state);
+                return session;
             }
-            _gameViewModel.ObservableCardInfo(property.CardProperty.CardInfo.Identity)
-                .MatchSome(infoProperty =>
-                    infoProperty
-                        .Skip(1)
-                        .Subscribe(cardInfo =>
-                        {
-                            var latestProperty = CardDetailProperty.Create(cardInfo);
-                            _cardBuffHint.ShowHint(latestProperty.CardBuffHint, _cardView.RectTransform);
-                            _cardKeywordHint.ShowHint(latestProperty.CardKeywordHint, _cardView.RectTransform);
-                        })
-                        .AddTo(disposables));
-
-            using (disposables)
+            catch
             {
-                try
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    _panel.SetActive(true);
-                    _cardBuffHint.ShowHint(property.CardBuffHint, _cardView.RectTransform);
-                    _cardKeywordHint.ShowHint(property.CardKeywordHint, _cardView.RectTransform);
+                session.Dispose();
+                throw;
+            }
+        }
 
-                    while (!isClose)
-                    {
-                        await UniTask.NextFrame(cancellationToken);
-                    }
-                }
+        private void _RenderState(SingleCardDetailDisplayState state)
+        {
+            var property = CardDetailProperty.Create(state.Card);
+            _cardView.RenderSnapshot(state.Card);
+            _cardBuffHint.ShowHint(property.CardBuffHint, _cardView.RectTransform);
+            _cardKeywordHint.ShowHint(property.CardKeywordHint, _cardView.RectTransform);
+        }
+
+        private void _Close(Session session)
+        {
+            if (!ReferenceEquals(_activeSession, session)) return;
+            _activeSession = null;
+            if (_cardView != null) _cardView.Reset();
+            if (_cardBuffHint != null) _cardBuffHint.HideHint();
+            if (_cardKeywordHint != null) _cardKeywordHint.HideHint();
+            if (_panel != null) _panel.SetActive(false);
+        }
+
+        private void OnDestroy() => _activeSession?.Dispose();
+
+        private sealed class Session : ISingleCardDetailSession
+        {
+            private readonly SingleCardDetailPopupPanel _owner;
+            private readonly CompositeDisposable _resources = new();
+            private readonly Subject<Unit> _ended = new();
+            private bool _isDisposed;
+            public IObservable<Unit> CloseRequested { get; }
+
+            public Session(SingleCardDetailPopupPanel owner)
+            {
+                _owner = owner;
+                _ended.AddTo(_resources);
+                CloseRequested = owner._closeButtons.Select(button => button.OnClickAsObservable())
+                    .Merge().TakeUntil(_ended);
+            }
+
+            public void Bind(IReadOnlyReactiveProperty<SingleCardDetailDisplayState> state)
+                => state.Subscribe(_owner._RenderState).AddTo(_resources);
+
+            public void Dispose()
+            {
+                if (_isDisposed) return;
+                _isDisposed = true;
+                try { _ended.OnNext(Unit.Default); }
                 finally
                 {
-                    _panel.SetActive(false);
-                    _cardBuffHint.HideHint();
-                    _cardKeywordHint.HideHint();
+                    try { _resources.Dispose(); }
+                    finally { _owner._Close(this); }
                 }
             }
         }

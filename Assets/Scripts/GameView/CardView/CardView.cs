@@ -173,6 +173,14 @@ namespace MortalGame.GameView
             _ObserveCardInfo(property.CardInfo);
         }
 
+        // 完整顯示狀態已由外層訂閱時，只呈現快照，避免建立第二個卡片資料來源。
+        public void RenderSnapshot(CardInfo cardInfo)
+        {
+            _interactionSubscription.Disposable = null;
+            _cardInfoSubscription.Disposable = null;
+            _Render(cardInfo);
+        }
+
         private void _ObserveCardInfo(CardInfo cardInfo)
         {
             _cardInfoSubscription.Disposable = null;

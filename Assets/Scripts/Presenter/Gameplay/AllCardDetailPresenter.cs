@@ -28,7 +28,7 @@ namespace MortalGame.Presenter
     public class AllCardDetailPresenter : IAllCardDetailPresenter
     {
         private readonly IAllCardDetailPanel _detailPanel;
-        private readonly SingleCardDetailPopupPanel _singlePopupPanel;
+        private readonly ISingleCardDetailPresenter _singleCardDetailPresenter;
         private readonly IGameViewModel _gameViewModel;
 
         public AllCardDetailPresenter(
@@ -37,7 +37,7 @@ namespace MortalGame.Presenter
             LocalizeLibrary localizeLibrary)
         {
             _detailPanel = panelView.DetailPanel;
-            _singlePopupPanel = panelView.SinglePopupPanel;
+            _singleCardDetailPresenter = new SingleCardDetailPresenter(panelView.SinglePopupPanel, gameViewModel, localizeLibrary);
             _gameViewModel = gameViewModel;
 
             _detailPanel.Init(_gameViewModel, localizeLibrary);
@@ -74,7 +74,7 @@ namespace MortalGame.Presenter
                     case IAllCardDetailPresenter.CardDetailEvent detail:
                         if (state.Value.Cards.Any(card => card.Identity == detail.Identity)
                             && _gameViewModel.GetCardInfoOrNone(detail.Identity).TryGetValue(out var latest))
-                            await _singlePopupPanel.Run(CardDetailProperty.Create(latest), cancellationToken);
+                            await _singleCardDetailPresenter.Run(latest, cancellationToken);
                         break;
                 }
                 return new IUniTaskPresenter.None();

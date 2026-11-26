@@ -25,6 +25,8 @@ namespace MortalGame.Scene
             using var sceneCancellation = CancellationTokenSource.CreateLinkedTokenSource(
                 cancellationToken,
                 this.GetCancellationTokenOnDestroy());
+            // 臨時兩關標示的唯一入口，正式地圖導入後與 TemporaryBattleRoute 一起移除。
+            _gameplayView.ShowTemporaryStageLabel(TemporaryBattleRoute.GetStageNumber(gameStageSetting.StageID), TemporaryBattleRoute.StageCount);
             var battleBuilder = new BattleBuidler(context);
 
             var gameContextManager = battleBuilder.ConstructGameContextManager(gameStageSetting.RandomSeed);

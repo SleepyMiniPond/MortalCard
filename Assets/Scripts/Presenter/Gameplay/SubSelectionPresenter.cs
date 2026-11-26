@@ -29,13 +29,12 @@ namespace MortalGame.Presenter
     public class SubSelectionPresenter : ISubSelectionPresenter
     {
         private readonly ICardSelectionPanel _cardSelectionPanel;
-        private readonly ISingleCardDetailPopupPanel _singleCardDetailPopupPanel;
+        private readonly ISingleCardDetailPresenter _singleCardDetailPresenter;
 
         public SubSelectionPresenter(IGameViewModel gameViewModel, LocalizeLibrary localizeLibrary,
             ISingleCardDetailPopupPanel singleCardDetailPopupPanel, ICardSelectionPanel cardSelectionPanel)
         {
-            _singleCardDetailPopupPanel = singleCardDetailPopupPanel;
-            _singleCardDetailPopupPanel.Init(gameViewModel, localizeLibrary);
+            _singleCardDetailPresenter = new SingleCardDetailPresenter(singleCardDetailPopupPanel, gameViewModel, localizeLibrary);
             _cardSelectionPanel = cardSelectionPanel;
             _cardSelectionPanel.Init(gameViewModel, localizeLibrary);
         }
@@ -91,7 +90,7 @@ namespace MortalGame.Presenter
                     case ISubSelectionPresenter.LongTouchCardEvent detail:
                         var cardInfo = state.Value.Candidates.FirstOrDefault(card => card.Identity == detail.Identity);
                         if (cardInfo != null)
-                            await _singleCardDetailPopupPanel.Run(CardDetailProperty.Create(cardInfo), cancellationToken);
+                            await _singleCardDetailPresenter.Run(cardInfo, cancellationToken);
                         break;
                 }
                 return new IUniTaskPresenter.None();

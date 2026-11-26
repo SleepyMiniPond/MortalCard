@@ -636,7 +636,12 @@ namespace MortalGame.Tests
         private sealed class CompositionDetail : ISingleCardDetailPopupPanel
         {
             public void Init(IGameViewModel model, LocalizeLibrary localization) { }
-            public UniTask Run(CardDetailProperty property, CancellationToken cancellationToken) => UniTask.CompletedTask;
+            public ISingleCardDetailSession Open(IReadOnlyReactiveProperty<SingleCardDetailDisplayState> state) => new TestSession();
+            private sealed class TestSession : ISingleCardDetailSession
+            {
+                public IObservable<Unit> CloseRequested => Observable.Return(Unit.Default);
+                public void Dispose() { }
+            }
         }
 
         private static Setup _Create()

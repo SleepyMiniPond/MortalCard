@@ -18,6 +18,8 @@
 
 Model 管理規則，View 負責呈現與互動，Presenter 協調；共享契約放在 Presentation Abstractions。Data 保存配置，Property／LifeTime／Session 實體由 GameModel Factory 建立。
 
+UI Panel 預設採用 State＋Session：Open 接收 IReadOnlyReactiveProperty 的顯示狀態，回傳包含操作 Observable 的 IDisposable Session，由 Presenter 持有並釋放。完整責任、清理規則、固定內容例外與既有面板遷移原則見 [Panel 慣例](Presenter.md#panel-的-state-與-session-慣例)。UI 開窗 Session 由 View 建立，與 GameModel Factory 的領域 Session 不同。
+
 GameData 與 GameModel 目前仍同屬 Runtime，可執行的資料查詢仍有 Runtime 依賴，見 [架構總覽](SystemArchitecture.md)。資產製作遵循 [GameData 規範](GameData_Asset_Guidelines.md)。
 
 ## 數值責任
