@@ -56,6 +56,30 @@ public interface IPanelSession : IDisposable
 
 SubSelectionPresenter 與 AllCardDetailPresenter 等待單卡 Presenter，保留子面板開啟期間的父操作防重入；資料更新與玩家操作等待分開管理。
 
+### 手牌懸停詳情
+
+[FocusCardDetailView](../Assets/Scripts/GameView/CardView/FocusCardDetailView.cs) 採用相同的唯讀 State 與單次顯示 Session，但沒有玩家按鈕，Open 直接回傳 IDisposable，不建立空的操作介面或等待型 Presenter。定位參考 RectTransform 作為 View 方法參數，留在視覺層，不放入純顯示 State。
+
+[AllyHandCardView](../Assets/Scripts/GameView/CardView/AllyHandCardView.cs) 協調懸停開始與結束，持有單次 [HandCardFocusSession](../Assets/Scripts/GameView/CardView/HandCardFocusSession.cs)。Session 記住原卡片與位移識別，從卡片來源衍生 FocusCardDetailDisplayState，持有詳情 View Session 與衍生狀態。切換卡片、離開、開始拖曳、停用手牌操作及回收焦點卡時，外層只需釋放懸停 Session，由它依序解除詳情綁定、解除來源訂閱、還原原卡片與鄰卡位移；擁有者銷毀時也走相同清理。初始化部分失敗會釋放已建立的資源，再傳遞例外。
+
+Focus 只依 State 同步繪製卡面與提示，卡面使用 RenderSnapshot，不另外查詢或訂閱卡片資料。Session.Dispose 重設卡片、回收提示並隱藏視窗，OnDestroy 轉交同一入口。固定詳情卡清理時保留原本的本地位置與旋轉，避免物件池 Reset 的位置歸零破壞 prefab 排版，造成再次顯示下移。此模式由既有懸停互動協調端持有，維持 View 內的視覺互動責任。
+
+### 手牌拖曳
+
+[HandCardDragSession](../Assets/Scripts/GameView/CardView/HandCardDragSession.cs) 管理一次拖曳的起始位置、指標偏移、目前位置、卡片來源訂閱、候選目標高亮、箭頭及卡片還原。AllyHandCardView 持有 Session，轉交移動與放開事件；拖曳進度直接以 Session 的存在與方法呼叫表達，不透過 ReactiveProperty／Scan 比較前後值。
+
+Update 更新指標位置，卡片來源通知則以目前位置刷新視覺提示。Release 使用該次放開事件的座標與最新卡片資訊，重新判斷命中並回傳可選的既有 UseCardCommand，隨後清理；外層才將命令交給既有 GameplayPresenter。命中與型別篩選只是視覺候選判斷，不取代 Model 的出牌合法性。
+
+Dispose 只解除訂閱、高亮與箭頭並還原卡片，不產生命令。停用操作、重新綁定操作、回收拖曳卡及擁有者銷毀均釋放 Session；已結束操作範圍的 callback 不接收遲到的放開事件，避免取消後出牌。
+
+### 手牌輸入
+
+CardView.OpenHandInput 回傳 [IHandCardInputSession](../Assets/Scripts/Presentation/Abstractions/IHandCardInputSession.cs)，以 PointerEntered／PointerExited 回報卡片身份，以 DragStarted／Dragged／DragEnded 回報身份與指標座標。卡面資料更新與輸入綁定各有入口，啟用手牌操作不再透過帶 callback 的 Render 重新繪製卡片。
+
+AllyHandCardView 持有各張卡的輸入 Session 與操作訂閱，將事件交給既有懸停／拖曳協調；PointerExited 只結束同身份焦點，避免舊卡的離開事件關閉新焦點。事件身份固定於本次綁定，CardView.Reset、切換顯示模式或銷毀均結束舊 Session，物件池重用後舊事件不能變成新卡操作。Dispose 完成事件與解除綁定，不偽造 Exit 或 EndDrag。
+
+OpenHandInput 只管理子 View 的輸入生命週期，因此不另外建立顯示 State；卡面仍沿用既有資訊觀察。卡片列表內部的點擊／長按模式仍使用 CardClickableProperty，尚未一併遷移。
+
 ## 建構與顯示狀態
 
 - [ScriptableDataLoader](../Assets/Scripts/Presenter/Gameplay/ScriptableDataLoader.cs) 從 Catalog、玩家配置與 Excel 表讀取內容。

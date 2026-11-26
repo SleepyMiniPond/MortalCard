@@ -7,8 +7,6 @@ using Optional;
 using Sirenix.OdinInspector;
 using UnityEngine;
 using UniRx;
-using Sirenix.Utilities;
-using Optional.Collections;
 using MortalGame.UI;
 using MortalGame.GameModel;
 
@@ -58,19 +56,14 @@ namespace MortalGame.GameView
 
         // Focusing
         private FocusCardDetailView _focusCardDetailView;
-        // Dragging
-        private Vector2 _beginDragPosition;
-        private Vector2 _beginDragWorldPosition;
-        private Vector2 _dragOffset;
-        private ISelectableView _currentSelectedView;
-
         public IEnumerable<ISelectableView> SelectableViews => _cardViews;
 
         private readonly SerialDisposable _handleSubscription = new();
         private readonly SerialDisposable _dragSubscription = new();
+        private readonly SerialDisposable _focusSubscription = new();
         private readonly ReactiveProperty<Option<Guid>> _currentFocusIdentity = new(Option.None<Guid>());
-        private readonly ReactiveProperty<Option<(Guid, Vector2)>> _currentDragInfo = new(Option.None<(Guid, Vector2)>());
-        private bool IsDragging => _currentDragInfo.Value.HasValue;
+        private HandCardDragSession CurrentDrag => _dragSubscription.Disposable as HandCardDragSession;
+        private bool IsDragging => CurrentDrag != null;
 
         public void Init(
             IGameplayModel statusWatcher,
@@ -123,6 +116,14 @@ namespace MortalGame.GameView
             if (!_cardViewDict.TryGetValue(identity, out var cardView))
                 return false;
 
+            if (_currentFocusIdentity.Value.Map(current => current == identity).ValueOr(false))
+            {
+                _StopFocus();
+                _currentFocusIdentity.Value = Option.None<Guid>();
+            }
+
+            if (CurrentDrag?.Identity == identity) _StopDrag();
+
             _cardViews.Remove(cardView);
             _cardViewDict.Remove(identity);
             _cardViewFactory.RecyclePrefab(cardView as CardView);
@@ -134,22 +135,6 @@ namespace MortalGame.GameView
 
         public void EnableHandCardsUseCardAction(CardCollectionInfo handCardInfo)
         {
-            void OnPointerEnter(Guid identity)
-            {
-                if (IsDragging) return;
-                _currentFocusIdentity.Value = identity.Some();
-            }
-            void OnDragging(Guid identity, Vector2 position)
-            {
-                if (_currentDragInfo.Value.Map(d => d.Item1 == identity).ValueOr(false))
-                    _currentDragInfo.Value = (identity, position).Some();
-            }
-            void OnEndDrag(Guid identity, Vector2 position)
-            {
-                if (_currentDragInfo.Value.Map(d => d.Item1 == identity).ValueOr(false))
-                    _currentDragInfo.Value = Option.None<(Guid, Vector2)>();
-            }
-
             var handleSubscriptions = new CompositeDisposable();
             _handleSubscription.Disposable = handleSubscriptions;
 
@@ -161,177 +146,79 @@ namespace MortalGame.GameView
             {
                 if (_cardViewDict.TryGetValue(cardInfo.Identity, out var cardView))
                 {
-                    cardView.Render(
-                        new ICardView.RuntimeHandCardProperty(
-                            CardInfo: cardInfo,
-                            OnPointerEnter: OnPointerEnter,
-                            OnPointerExit: () => _currentFocusIdentity.Value = Option.None<Guid>(),
-                            OnBeginDrag: (identity, position) => _currentDragInfo.Value = (identity, position).Some(),
-                            OnDrag: OnDragging,
-                            OnEndDrag: OnEndDrag));
-
+                    var input = cardView.OpenHandInput().AddTo(handleSubscriptions);
+                    input.PointerEntered.Subscribe(OnPointerEnter).AddTo(handleSubscriptions);
+                    input.PointerExited.Subscribe(identity =>
+                    {
+                        if (IsActive() && _currentFocusIdentity.Value.Map(current => current == identity).ValueOr(false))
+                            _currentFocusIdentity.Value = Option.None<Guid>();
+                    }).AddTo(handleSubscriptions);
+                    input.DragStarted.Subscribe(pointer =>
+                    {
+                        if (IsActive()) _BeginDrag(pointer.Identity, pointer.Position, handCardInfoIndexes);
+                    }).AddTo(handleSubscriptions);
+                    input.Dragged.Subscribe(pointer => OnDragging(pointer.Identity, pointer.Position)).AddTo(handleSubscriptions);
+                    input.DragEnded.Subscribe(pointer => OnEndDrag(pointer.Identity, pointer.Position)).AddTo(handleSubscriptions);
                 }
             }
 
             _currentFocusIdentity
-                .Scan(
-                    seed: (Previous: Option.None<Guid>(), Current: Option.None<Guid>()),
-                    accumulator: (acc, current) => (Previous: acc.Current, Current: current)
-                )
-                .DistinctUntilChanged()
-                .Subscribe(pair => _HandleFocusIdentityChange(pair.Previous, pair.Current, handCardInfoIndexes))
+                .Subscribe(identity => _HandleFocusIdentityChange(identity, handCardInfoIndexes))
                 .AddTo(handleSubscriptions);
 
-            _currentDragInfo
-                .Scan(
-                    seed: (Previous: Option.None<(Guid, Vector2)>(), Current: Option.None<(Guid, Vector2)>()),
-                    accumulator: (acc, current) => (Previous: acc.Current, Current: current)
-                )
-                .Subscribe(pair => _HandleDragInfoChange(pair.Previous, pair.Current, handCardInfoIndexes))
-                .AddTo(handleSubscriptions);
+            handleSubscriptions.Add(Disposable.Create(_StopDrag));
+            bool IsActive() => ReferenceEquals(_handleSubscription.Disposable, handleSubscriptions);
+            void OnPointerEnter(Guid identity)
+            {
+                if (!IsActive() || IsDragging) return;
+                _currentFocusIdentity.Value = identity.Some();
+            }
+            void OnDragging(Guid identity, Vector2 position)
+            {
+                if (IsActive() && CurrentDrag?.Identity == identity) CurrentDrag.Update(position);
+            }
+            void OnEndDrag(Guid identity, Vector2 position)
+            {
+                if (!IsActive() || CurrentDrag?.Identity != identity) return;
+                Option<UseCardCommand> command;
+                try { command = CurrentDrag.Release(position); }
+                finally { _StopDrag(); }
+                command.MatchSome(value => _reciever.RecieveEvent(value));
+            }
         }
         private void _HandleFocusIdentityChange(
-            Option<Guid> previousFocusIdentityOpt,
             Option<Guid> currentFocusIdentityOpt,
             IReadOnlyDictionary<Guid, int> handCardInfoIndexes)
         {
-            void ApplyLocationOffset(
-                Guid focusIdentity,
-                Func<int, bool> condition,
-                Vector3 offset)
-                => handCardInfoIndexes
-                    .Where(kvp => condition(kvp.Value))
-                    .SelectValue(kvp => _cardViewDict.TryGetValue(kvp.Key, out var cardView) ? cardView : null)
-                    .ForEach(cardView => cardView.AddLocationOffset(focusIdentity, offset, _focusDuration));
-
+            _StopFocus();
             if (currentFocusIdentityOpt.TryGetValue(out var focusIdentity) &&
-                _gameViewModel.GetCardInfoOrNone(focusIdentity).TryGetValue(out var focusCardInfo) &&
+                _gameViewModel.ObservableCardInfo(focusIdentity).TryGetValue(out var focusCardSource) &&
                 _cardViewDict.TryGetValue(focusIdentity, out var focusCardView) &&
-                handCardInfoIndexes.TryGetValue(focusIdentity, out var focusCardIndex))
+                handCardInfoIndexes.ContainsKey(focusIdentity))
             {
-                ApplyLocationOffset(
-                    focusIdentity: focusIdentity,
-                    condition: index => index < focusCardIndex,
-                    offset: new Vector3(-_focusOtherOffsetX, 0, 0));
-                ApplyLocationOffset(
-                    focusIdentity: focusIdentity,
-                    condition: index => index > focusCardIndex,
-                    offset: new Vector3(_focusOtherOffsetX, 0, 0));
-
-                focusCardView.ShowHandCardFocusContent();
-                _focusCardDetailView.ShowFocus(CardDetailProperty.Create(focusCardInfo), focusCardView.RectTransform);
-            }
-            else
-            {
-                _TryStopFocus(previousFocusIdentityOpt);
+                _focusSubscription.Disposable = new HandCardFocusSession(
+                    focusIdentity, focusCardView, focusCardSource, _focusCardDetailView,
+                    _cardViews, handCardInfoIndexes, _focusOtherOffsetX, _focusDuration);
             }
         }
-        private void _HandleDragInfoChange(
-            Option<(Guid Identity, Vector2 Position)> previousDragInfoOpt,
-            Option<(Guid Identity, Vector2 Position)> currentDragInfoOpt,
-            IReadOnlyDictionary<Guid, int> handCardInfoIndexes)
+        private void _BeginDrag(Guid identity, Vector2 position, IReadOnlyDictionary<Guid, int> indexes)
         {
-            if (!previousDragInfoOpt.HasValue &&
-                currentDragInfoOpt.TryGetValue(out var newDragInfo) &&
-                _cardViewDict.TryGetValue(newDragInfo.Identity, out var beginDradView) &&
-                handCardInfoIndexes.TryGetValue(newDragInfo.Identity, out var sibilingIndex))
-            {
-                _TryStopFocus(_currentFocusIdentity.Value);
-
-                RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                    beginDradView.ParentRectTransform, newDragInfo.Position, beginDradView.Canvas.worldCamera, out Vector2 localPoint);
-                _beginDragPosition = beginDradView.RectTransform.anchoredPosition;
-                _beginDragWorldPosition = beginDradView.RectTransform.position;
-                _dragOffset = _beginDragPosition - localPoint;
-
-                var dragSubscriptions = new CompositeDisposable
-                {
-                    beginDradView.BeginDrag(sibilingIndex),
-                    Disposable.Create(() =>
-                    {
-                        _beginDragPosition = Vector2.zero;
-                        _beginDragWorldPosition = Vector3.zero;
-                        _dragOffset = Vector2.zero;
-                        _ClearSelectedTarget();
-                    })
-                };
-                _gameViewModel.ObservableCardInfo(newDragInfo.Identity)
-                    .MatchSome(infoProperty =>
-                        dragSubscriptions.Add(
-                            infoProperty.Subscribe(_HandleActiveCardInfoUpdated)));
-                _dragSubscription.Disposable = dragSubscriptions;
-            }
-            else if (previousDragInfoOpt.TryGetValue(out var latestDragInfo) &&
-                    !currentDragInfoOpt.HasValue &&
-                    _cardViewDict.TryGetValue(latestDragInfo.Identity, out var endDragView))
-            {
-                _dragSubscription.Disposable = null;
-
-                _gameViewModel.GetCardInfoOrNone(latestDragInfo.Identity)
-                    .MatchSome(cardInfo =>
-                        _TryUseCardOnEndDrag(cardInfo, latestDragInfo.Position, endDragView));
-            }
-            else if (currentDragInfoOpt.TryGetValue(out var currentDragInfo) &&
-                    previousDragInfoOpt.HasValue &&
-                    _cardViewDict.TryGetValue(currentDragInfo.Identity, out var dragView) &&
-                    _gameViewModel.GetCardInfoOrNone(currentDragInfo.Identity).TryGetValue(out var dragCardInfo))
-            {
-                _UpdateDraggingCard(dragCardInfo, currentDragInfo.Position, dragView);
-            }
+            if (IsDragging || !_cardViewDict.TryGetValue(identity, out var card)
+                || !indexes.TryGetValue(identity, out var index)
+                || !_gameViewModel.ObservableCardInfo(identity).TryGetValue(out var source)) return;
+            _StopFocus();
+            _dragSubscription.Disposable = new HandCardDragSession(
+                identity, card, index, position, source, _reciever, _customLineRenderer);
         }
 
-        private void _HandleActiveCardInfoUpdated(CardInfo cardInfo)
-        {
-            if (_currentDragInfo.Value.TryGetValue(out var dragInfo) &&
-                dragInfo.Item1 == cardInfo.Identity &&
-                _cardViewDict.TryGetValue(cardInfo.Identity, out var dragView))
-            {
-                _UpdateDraggingCard(cardInfo, dragInfo.Item2, dragView);
-            }
-        }
-
-        private void _UpdateDraggingCard(
-            CardInfo dragCardInfo,
-            Vector2 dragPosition,
-            ICardView dragView)
-        {
-            RectTransformUtility.ScreenPointToLocalPointInRectangle(
-                dragView.ParentRectTransform,
-                dragPosition,
-                dragView.Canvas.worldCamera,
-                out var localPoint);
-            var localDragPoint = localPoint + _dragOffset;
-
-            var (dragTargetStatus, selectViewOpt) = _GetDragCardStatusAndTargetView(
-                dragCardInfo,
-                dragPosition,
-                dragView);
-            dragView.Drag(localDragPoint, dragTargetStatus);
-            _UpdateSelectedViewAndLine(dragCardInfo, dragView, selectViewOpt);
-        }
-        private void _TryStopFocus(Option<Guid> focusIdentityOpt)
-        {
-            if (focusIdentityOpt.TryGetValue(out var focusIdentity) &&
-                _cardViewDict.TryGetValue(focusIdentity, out var focusView))
-            {
-                focusView.HideHandCardFocusContent();
-                _focusCardDetailView.HideFocus();
-
-                foreach (var cardView in _cardViews)
-                {
-                    cardView.RemoveLocationOffset(
-                        focusIdentity,
-                        // focusing view dont need to play animation of return location
-                        cardView == focusView ? 0f : _focusDuration);
-                }
-            }
-        }
+        private void _StopDrag() => _dragSubscription.Disposable = null;
+        private void _StopFocus() => _focusSubscription.Disposable = null;
 
         public void DisableAllHandCardsAction()
         {
             _dragSubscription.Disposable = null;
             _handleSubscription.Disposable = null;
-            _currentDragInfo.Value = Option.None<(Guid, Vector2)>();
+            _StopFocus();
             _currentFocusIdentity.Value = Option.None<Guid>();
         }
 
@@ -339,6 +226,7 @@ namespace MortalGame.GameView
         {
             _dragSubscription.Dispose();
             _handleSubscription.Dispose();
+            _focusSubscription.Dispose();
         }
 
         private void _RearrangeCardViews()
@@ -363,96 +251,5 @@ namespace MortalGame.GameView
             }
         }
 
-        #region TargetEventLogic
-        private bool _TryUseCardOnEndDrag(CardInfo dragCardInfo, Vector2 dragCardPosition, ICardView dragCardView)
-        {
-            var (status, target) = _GetDragCardStatusAndTargetView(
-                dragCardInfo, dragCardPosition, dragCardView);
-            switch (status)
-            {
-                case IDragableCardView.DradTargetStatus.ValidTarget:
-                    return target.Match(
-                        selectView =>
-                        {
-                            _reciever.RecieveEvent(new UseCardCommand(dragCardInfo.Identity, (selectView as ISelectionTarget).Some()));
-                            return true;
-                        },
-                        () => false);
-                case IDragableCardView.DradTargetStatus.WithoutTarget:
-                    _reciever.RecieveEvent(new UseCardCommand(dragCardInfo.Identity));
-                    return true;
-                default:
-                    return false;
-            }
-        }
-
-        private (IDragableCardView.DradTargetStatus Status, Option<ISelectableView> SelectView) _GetDragCardStatusAndTargetView(
-            CardInfo dragCardInfo,
-            Vector2 dragCardPosition,
-            ICardView dragCardView)
-        {
-            if (dragCardInfo.MainSelectable.SelectType != SelectType.None)
-            {
-                var selectView = OptionCollectionExtensions
-                    .FirstOrNone(_reciever.SelectableViews
-                        .Where(view => view != dragCardView &&
-                            dragCardInfo.MainSelectable.SelectType.IsSelectable(view.TargetType) &&
-                            RectTransformUtility.RectangleContainsScreenPoint(
-                                view.RectTransform, dragCardPosition, dragCardView.Canvas.worldCamera)));
-                if (selectView.HasValue)
-                {
-                    return (IDragableCardView.DradTargetStatus.ValidTarget, selectView);
-                }
-                else
-                {
-                    return (IDragableCardView.DradTargetStatus.None, Option.None<ISelectableView>());
-                }
-            }
-            else if (RectTransformUtility.RectangleContainsScreenPoint(
-                    _reciever.BasicSelectableView.RectTransform, dragCardPosition, dragCardView.Canvas.worldCamera))
-            {
-                return (IDragableCardView.DradTargetStatus.WithoutTarget, _reciever.BasicSelectableView.Some());
-            }
-            else
-            {
-                return (IDragableCardView.DradTargetStatus.None, Option.None<ISelectableView>());
-            }
-        }
-
-        private void _UpdateSelectedViewAndLine(
-            CardInfo dragCardInfo,
-            ICardView dragCardView,
-            Option<ISelectableView> selectViewOpt)
-        {
-            if (dragCardInfo.MainSelectable.SelectType == SelectType.None)
-            {
-                _ClearSelectedTarget();
-                return;
-            }
-
-            selectViewOpt.Match(
-                selectView =>
-                {
-                    if (_currentSelectedView != selectView)
-                    {
-                        selectView?.OnSelect();
-                        _currentSelectedView?.OnDeselect();
-                        _currentSelectedView = selectView;
-                    }
-
-                    _customLineRenderer.gameObject.SetActive(true);
-                    _customLineRenderer.SetLineProperty(_beginDragWorldPosition, selectView.RectTransform);
-                },
-                _ClearSelectedTarget
-            );
-        }
-
-        private void _ClearSelectedTarget()
-        {
-            _currentSelectedView?.OnDeselect();
-            _currentSelectedView = null;
-            _customLineRenderer.gameObject.SetActive(false);
-        }
-        #endregion
     }
 }

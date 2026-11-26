@@ -32,13 +32,6 @@ namespace MortalGame.GameView
 
     public interface ICardView : IRecyclable, ISelectableView, IDragableCardView
     {
-        public record RuntimeHandCardProperty(
-            CardInfo CardInfo,
-            Action<Guid> OnPointerEnter = null,
-            Action OnPointerExit = null,
-            Action<Guid, Vector2> OnBeginDrag = null,
-            Action<Guid, Vector2> OnDrag = null,
-            Action<Guid, Vector2> OnEndDrag = null);
         public record CardClickableProperty(
             CardInfo CardInfo,
             bool IsClickable,
@@ -51,7 +44,7 @@ namespace MortalGame.GameView
         RectTransform ParentRectTransform { get; }
 
         void Initialize(IGameViewModel gameInfoModel, LocalizeLibrary localizeLibrary);
-        void Render(RuntimeHandCardProperty property);
+        IHandCardInputSession OpenHandInput();
         void Render(CardClickableProperty property);
         void Render(CardSimpleProperty property);
 
@@ -103,6 +96,7 @@ namespace MortalGame.GameView
         public Canvas Canvas => transform.GetComponentInParent<Canvas>();
 
         private readonly SerialDisposable _interactionSubscription = new();
+        private HandInputSession _activeHandInput;
         private readonly SerialDisposable _cardInfoSubscription = new();
         private Vector3 _localPosition;
         private Quaternion _localRotation;
@@ -121,27 +115,53 @@ namespace MortalGame.GameView
             _localizeLibrary = localizeLibrary;
         }
 
-        public void Render(ICardView.RuntimeHandCardProperty property)
+        public IHandCardInputSession OpenHandInput()
         {
-            var interactionSubscriptions = new CompositeDisposable();
-            _interactionSubscription.Disposable = interactionSubscriptions;
-            _ObserveCardInfo(property.CardInfo);
+            if (_activeHandInput != null)
+                throw new InvalidOperationException("手牌輸入尚未釋放，不能重複綁定。");
+            var session = new HandInputSession(this, _cardIdentity);
+            _activeHandInput = session;
+            try
+            {
+                _interactionSubscription.Disposable = session;
+                return session;
+            }
+            catch { session.Dispose(); throw; }
+        }
 
-            _button.OnPointerEnterAsObservable()
-                .Subscribe(_ => property.OnPointerEnter?.Invoke(_cardIdentity))
-                .AddTo(interactionSubscriptions);
-            _button.OnPointerExitAsObservable()
-                .Subscribe(_ => property.OnPointerExit?.Invoke())
-                .AddTo(interactionSubscriptions);
-            _button.OnBeginDragAsObservable()
-                .Subscribe(eventData => property.OnBeginDrag?.Invoke(_cardIdentity, eventData.position))
-                .AddTo(interactionSubscriptions);
-            _button.OnDragAsObservable()
-                .Subscribe(eventData => property.OnDrag?.Invoke(_cardIdentity, eventData.position))
-                .AddTo(interactionSubscriptions);
-            _button.OnEndDragAsObservable()
-                .Subscribe(eventData => property.OnEndDrag?.Invoke(_cardIdentity, eventData.position))
-                .AddTo(interactionSubscriptions);
+        private sealed class HandInputSession : IHandCardInputSession
+        {
+            private readonly CardView _owner;
+            private readonly Subject<Unit> _ended = new();
+            private bool _isDisposed;
+            public IObservable<Guid> PointerEntered { get; }
+            public IObservable<Guid> PointerExited { get; }
+            public IObservable<(Guid Identity, Vector2 Position)> DragStarted { get; }
+            public IObservable<(Guid Identity, Vector2 Position)> Dragged { get; }
+            public IObservable<(Guid Identity, Vector2 Position)> DragEnded { get; }
+
+            public HandInputSession(CardView owner, Guid identity)
+            {
+                _owner = owner;
+                // 捕捉這次綁定的身份，避免物件池重用後舊事件轉成新卡片操作。
+                PointerEntered = owner._button.OnPointerEnterAsObservable().Select(_ => identity).TakeUntil(_ended);
+                PointerExited = owner._button.OnPointerExitAsObservable().Select(_ => identity).TakeUntil(_ended);
+                DragStarted = owner._button.OnBeginDragAsObservable().Select(data => (identity, data.position)).TakeUntil(_ended);
+                Dragged = owner._button.OnDragAsObservable().Select(data => (identity, data.position)).TakeUntil(_ended);
+                DragEnded = owner._button.OnEndDragAsObservable().Select(data => (identity, data.position)).TakeUntil(_ended);
+            }
+
+            public void Dispose()
+            {
+                if (_isDisposed) return;
+                _isDisposed = true;
+                try { _ended.OnNext(Unit.Default); }
+                finally
+                {
+                    _ended.Dispose();
+                    if (ReferenceEquals(_owner._activeHandInput, this)) _owner._activeHandInput = null;
+                }
+            }
         }
         public void Render(ICardView.CardClickableProperty property)
         {

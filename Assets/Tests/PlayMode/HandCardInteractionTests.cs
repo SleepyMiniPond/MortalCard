@@ -222,7 +222,7 @@ namespace MortalGame.Tests
             _receiver.Targets.Add(new Target(_CreateRect(), TargetType.EnemyCharacter));
             var info = _Info(SelectType.EnemyCharacter);
             var preview = ((IDragableCardView.DradTargetStatus, Option<ISelectableView>))
-                _Call("_GetDragCardStatusAndTargetView", info, _center, _dragCard);
+                _Call("ResolveTarget", info, _center, _dragCard);
             Assert.That(preview.Item1, Is.EqualTo(IDragableCardView.DradTargetStatus.ValidTarget));
 
             _receiver.Targets.Clear();
@@ -236,7 +236,7 @@ namespace MortalGame.Tests
         {
             _receiver.Targets.Add(new Target(_CreateRect(), TargetType.EnemyCharacter));
             var info = _Info(SelectType.EnemyCharacter);
-            _Call("_GetDragCardStatusAndTargetView", info, _center, _dragCard);
+            _Call("ResolveTarget", info, _center, _dragCard);
             var changed = info with { MainSelectable = _Info(SelectType.AllyCharacter).MainSelectable };
 
             Assert.That(_Release(changed, _center), Is.False);
@@ -314,11 +314,17 @@ namespace MortalGame.Tests
             new MainSelectionInfo(type, default, default), Array.Empty<CardBuffInfo>(),
             Array.Empty<CardProperty>(), Array.Empty<string>());
 
-        private bool _Release(CardInfo info, Vector2 position) =>
-            (bool)_Call("_TryUseCardOnEndDrag", info, position, _dragCard);
+        private bool _Release(CardInfo info, Vector2 position)
+        {
+            var command = (Option<UseCardCommand>)_Call("CreateDropCommand", info, position, _dragCard);
+            command.MatchSome(value => _receiver.RecieveEvent(value));
+            return command.HasValue;
+        }
 
-        private object _Call(string method, params object[] args) => typeof(AllyHandCardView)
-            .GetMethod(method, BindingFlags.Instance | BindingFlags.NonPublic).Invoke(_hand, args);
+        private object _Call(string method, params object[] args) => typeof(AllyHandCardView).Assembly
+            .GetType("MortalGame.GameView.HandCardDragSession")
+            .GetMethod(method, BindingFlags.Static | BindingFlags.NonPublic)
+            .Invoke(null, args.Concat(new object[] { _receiver }).ToArray());
 
         private static object _Get(object owner, string field) => owner.GetType()
             .GetField(field, BindingFlags.Instance | BindingFlags.NonPublic).GetValue(owner);
