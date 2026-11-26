@@ -1,16 +1,18 @@
+using System;
 using System.Threading;
 using MortalGame.Presentation.Abstractions;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
 using MortalGame.GameView;
 using UniRx;
-using UnityEngine;
+using Optional;
 
 namespace MortalGame.Presenter
 {
 
     public interface IGameResultLosePresenter
     {
+        public record ReactionEvent(LoseReactionType Reaction) : IUniTaskPresenter.Event;
         UniTask<GameplayLoseResult> Run(CancellationToken cancellationToken);
     }
 
@@ -25,47 +27,28 @@ namespace MortalGame.Presenter
 
         public async UniTask<GameplayLoseResult> Run(CancellationToken cancellationToken)
         {
-            var reactionType = LoseReactionType.Quit;
-            var isClose = false;
-            var disposables = new CompositeDisposable();
+            cancellationToken.ThrowIfCancellationRequested();
+            var result = Option.None<GameplayLoseResult>();
+            IUniTaskPresenter presenter = new UniTaskPresenter();
+            using var session = _losePanel.Open();
+            await presenter.Run(_SetupSubscriptions(session, presenter), () => true, cancellationToken, EventHandler);
+            if (!result.TryGetValue(out var completed))
+                throw new InvalidOperationException("失敗面板結束時缺少玩家操作結果。");
+            return completed;
 
-            _losePanel.RetryButton.OnClickAsObservable()
-                .Subscribe(_ =>
-                {
-                    reactionType = LoseReactionType.Retry;
-                    isClose = true;
-                })
-                .AddTo(disposables);
-            _losePanel.RestartButton.OnClickAsObservable()
-                .Subscribe(_ =>
-                {
-                    reactionType = LoseReactionType.Restart;
-                    isClose = true;
-                })
-                .AddTo(disposables);
-            _losePanel.QuitButton.OnClickAsObservable()
-                .Subscribe(_ =>
-                {
-                    reactionType = LoseReactionType.Quit;
-                    isClose = true;
-                })
-                .AddTo(disposables);
-
-            _losePanel.Open();
-            try
+            UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)
             {
-                while (!isClose)
+                if (evt is IGameResultLosePresenter.ReactionEvent reaction)
                 {
-                    await UniTask.NextFrame(cancellationToken);
+                    result = Option.Some(new GameplayLoseResult(reaction.Reaction));
+                    return UniTask.FromResult<IUniTaskPresenter.Event>(new IUniTaskPresenter.Halt());
                 }
+                return UniTask.FromResult<IUniTaskPresenter.Event>(new IUniTaskPresenter.None());
             }
-            finally
-            {
-                _losePanel.Close();
-                disposables.Dispose();
-            }
-
-            return new GameplayLoseResult(reactionType);
         }
+
+        private IDisposable _SetupSubscriptions(IGameResultLoseSession session, IUniTaskPresenter presenter)
+            => session.ReactionRequested.Subscribe(reaction =>
+                presenter.TryEnqueueNextEvent(new IGameResultLosePresenter.ReactionEvent(reaction)));
     }
 }

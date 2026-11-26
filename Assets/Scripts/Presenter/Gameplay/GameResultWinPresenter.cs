@@ -1,15 +1,17 @@
+using System;
 using System.Threading;
 using MortalGame.Presentation.Abstractions;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
 using MortalGame.GameView;
-using UnityEngine;
+using UniRx;
 
 namespace MortalGame.Presenter
 {
 
     public interface IGameResultWinPresenter
     {
+        public record ContinueEvent : IUniTaskPresenter.Event;
         UniTask<GameplayWinResult> Run(CancellationToken cancellationToken);
     }
 
@@ -24,21 +26,17 @@ namespace MortalGame.Presenter
 
         public async UniTask<GameplayWinResult> Run(CancellationToken cancellationToken)
         {
-            var isClose = false;
-            _winPanel.Open();
-            try
-            {
-                while (!isClose)
-                {
-                    await UniTask.NextFrame(cancellationToken);
-                }
-            }
-            finally
-            {
-                _winPanel.Close();
-            }
-
+            cancellationToken.ThrowIfCancellationRequested();
+            IUniTaskPresenter presenter = new UniTaskPresenter();
+            using var session = _winPanel.Open();
+            await presenter.Run(_SetupSubscriptions(session, presenter), () => true, cancellationToken,
+                evt => UniTask.FromResult<IUniTaskPresenter.Event>(evt is IGameResultWinPresenter.ContinueEvent
+                    ? new IUniTaskPresenter.Halt() : new IUniTaskPresenter.None()));
             return new GameplayWinResult();
         }
+
+        private IDisposable _SetupSubscriptions(IGameResultWinSession session, IUniTaskPresenter presenter)
+            => session.ContinueRequested.Subscribe(_ =>
+                presenter.TryEnqueueNextEvent(new IGameResultWinPresenter.ContinueEvent()));
     }
 }
