@@ -78,6 +78,8 @@ CardView.OpenHandInput 回傳 [IHandCardInputSession](../Assets/Scripts/Presenta
 
 AllyHandCardView 持有各張卡的輸入 Session 與操作訂閱，將事件交給既有懸停／拖曳協調；PointerExited 只結束同身份焦點，避免舊卡的離開事件關閉新焦點。事件身份固定於本次綁定，CardView.Reset、切換顯示模式或銷毀均結束舊 Session，物件池重用後舊事件不能變成新卡操作。Dispose 完成事件與解除綁定，不偽造 Exit 或 EndDrag。
 
+CardView 擁有自己的位移 Tween；銷毀元件或 GameObject 時同步終止 Tween，避免目標 RectTransform 銷毀後仍被動畫更新。Reset 與位置更新沿用既有的位移替換與還原規則。
+
 OpenHandInput 只管理子 View 的輸入生命週期，因此不另外建立顯示 State；卡面仍沿用既有資訊觀察。卡片列表內部的點擊／長按模式仍使用 CardClickableProperty，尚未一併遷移。
 
 ## 建構與顯示狀態

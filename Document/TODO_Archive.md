@@ -1,8 +1,36 @@
 # 任務與階段歷史
 
-> 整理日期：2026-11-22
+> 整理日期：2026-11-29
 > 各項完成日期與驗證數字為當時紀錄；T-023 的驗證於 2026-09-28 執行，2026-09-29 確認封存。現在行為以系統文件及程式為準，待辦見 [TODO](TODO.md)。
 > 完成狀態限於各任務範圍，不代表所有預留列舉、流程入口或後續整合都已完成。
+
+## T-024：場景結果、重試與戰後資料銜接（已完成）
+
+- **狀態**：✅ 2026-11-29 使用者回覆「驗收OK」，五項工作全部確認，臨時資產清理後結案。
+- **流程**：Main 啟動 GameFlow；SceneLoadManager 僅載入場景並回傳入口，GameFlow 自行 await Run 與決定去向。Retry 保留同關開戰前配置與原種子；Restart／選單重新開始重建初始玩家及卡片身份。臨時兩關由 TemporaryBattleRoute 集中管理，第一勝回地圖、第二勝回選單，尚非正式地圖系統。
+- **呈現**：互動面板採唯讀 State／單次 IDisposable 操作 Session，勝敗操作與手牌懸停、拖曳、輸入生命週期已接線。固定詳情卡反覆開關保持原排版；CardView 銷毀時終止自有位移 Tween，避免存取已銷毀的 RectTransform。
+- **戰後狀態**：Model 輸出 AllyBattleCompletion；只有勝利按繼續、場景／角色清理正常完成並通過取消檢查後，才由 GameFlow 呼叫 Context 提交。依原身份與順序延續持久形態、剩餘 HP、好感度，能量回滿。失敗／取消／提交前例外不提交，快照不符時保留原狀態；提交後的下一場景載入失敗不回滾既有勝利。
+- **整合驗證**：驗收準備輪完整 EditMode 1061／1061、PlayMode 74／74；新增兩項位移 Tween 生命週期回歸，正式與獨立驗收資料驗證 0 問題。AI 基本 Play 已確認兩關、勝利操作前不提交、第二關持久／暫態形態、原種子 Retry 與第二勝回選單；完整操作清單經使用者驗收確認。
+- **清理**：確認外部資產及 Build Settings 引用皆 0 後，透過 Unity AssetDatabase 移除本輪驗收目錄內 14 個資產、meta 及空父目錄；正式修正、回歸測試保留。清理後回 Main，場景未修改、重新編譯 0 error、正式資料驗證 0 問題，臨時 ID／路徑無殘留；本輪未重跑前述完整測試。
+- **界線與日誌**：EditMode 保留既有未知測試效果／診斷測試的預期日誌；最終 PlayMode 與基本 Play 的新增記錄未再見該 DOTween 銷毀警告。磁碟存檔、獎勵、牌組增刪、Buff 持久化及正式地圖未納入；T-025～T-029 仍獨立排期。
+- **責任文件**：[Scene](Scene.md)、[Presenter](Presenter.md)、[Instance](Instance.md)、[CardTransformation](CardTransformation.md)。
+
+## T-030：例外型別與訊息集中整理（已完成）
+
+- **狀態**：✅ 2026-11-29 使用者確認小步 6 與整體成果，六個小步全部結案。
+- **成果**：UI Session、Domain／流程、Factory／Resolver、其他 Runtime 與 Editor 的自訂例外訊息集中於專門型別，保存必要結構化屬性；短型別依領域合併收納。使用端只傳必要資料，規範已記錄於 [Coding_Standards](Coding_Standards.md#例外與診斷)。
+- **界線**：保留標準參數、取消及控制型例外，維持原 throw／return 與錯誤傳遞；未引入全域 ExceptionManager。非例外診斷另由 T-031 完成。
+- **歷史驗證**：小步 6 Unity 強制編譯 0 error、完整 EditMode 1042／1042、PlayMode 72／72、資料驗證 0 錯誤；後續 T-031 完整回歸見下節。確認輪僅更新文件，未重跑測試。
+- **後續**：T-024 第 5 個工作由使用者回原對話續接，包含整合回歸、兩關驗收與既有 DOTween 離場清理回查。
+
+## T-031：非例外診斷字串整理（已完成）
+
+- **狀態**：✅ 2026-11-29 使用者確認第 3 個工作與整體成果，三項工作全部結案。
+- **成果**：CardFormOperationResult 保存具名拒絕原因；Runtime Log 與出牌追蹤按領域集中；Validator 回傳具型別 ValidationIssue，由領域定義組裝訊息，Menu／Play Mode 統一呈現，Build 例外保存問題清單副本。
+- **相容性**：保留 Rejected／NoOp、Log 等級與 fallback、驗證批次收集、順序、訊息去重與 Gate 阻擋行為；按領域合併檔案，不建立全域字串表或萬用參數字典。
+- **最終驗證**：Unity 強制編譯 0 error、完整 EditMode 1061／1061、PlayMode 72／72、資料驗證 0 問題。確認輪僅更新文件，未重跑已通過的測試。
+- **保留事項**：既有 CS0067、Render Graph 相容模式及 DOTween 警告仍保留；DOTween 離場清理依 T-024 第 5 個工作追蹤。T-030 整體確認與 T-024 驗收維持各自計畫。
+- **規範**：[Coding_Standards](Coding_Standards.md#例外與診斷)、[資產製作規範](GameData_Asset_Guidelines.md#修改後檢查)。
 
 ## T-021：初始抽牌優先與效果選單設定（已完成）
 

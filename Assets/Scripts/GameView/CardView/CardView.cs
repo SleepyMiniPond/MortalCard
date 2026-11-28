@@ -312,6 +312,8 @@ namespace MortalGame.GameView
         {
             _cardInfoSubscription.Dispose();
             _interactionSubscription.Dispose();
+            _currentMoveTween?.Kill();
+            _currentMoveTween = null;
         }
 
         public void SetPositionAndRotation(Vector3 position, Quaternion rotation)

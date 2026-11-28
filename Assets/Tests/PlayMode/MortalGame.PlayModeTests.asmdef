@@ -15,6 +15,7 @@
   "allowUnsafeCode": false,
   "overrideReferences": true,
   "precompiledReferences": [
+    "DOTween.dll",
     "Optional.dll",
     "Sirenix.Serialization.dll",
     "System.Collections.Immutable.dll"
