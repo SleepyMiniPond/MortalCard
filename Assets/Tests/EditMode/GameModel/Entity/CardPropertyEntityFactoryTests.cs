@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using NUnit.Framework;
 using MortalGame.GameModel;
@@ -36,7 +37,17 @@ namespace MortalGame.Tests
         [Test]
         public void Create_UnknownDataType_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _factory.Create(new UnknownCardPropertyData()));
+            var error = Assert.Throws<UnregisteredDataTypeException>(() => _factory.Create(new UnknownCardPropertyData()));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CardPropertyEntityFactory)));
+            Assert.That(error.ActualType, Is.EqualTo(typeof(UnknownCardPropertyData)));
+            Assert.That(error.ParamName, Is.EqualTo("data"));
+        }
+
+        [Test]
+        public void Create_NullData_PreservesStandardParameterException()
+        {
+            var error = Assert.Throws<ArgumentNullException>(() => _factory.Create(null));
+            Assert.That(error.ParamName, Is.EqualTo("data"));
         }
 
         private sealed class UnknownCardPropertyData : ICardPropertyData

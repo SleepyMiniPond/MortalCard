@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Threading;
 using MortalGame.Presentation.Abstractions;
 using Cysharp.Threading.Tasks;
@@ -33,7 +34,7 @@ namespace MortalGame.Presenter
             using var session = _losePanel.Open();
             await presenter.Run(_SetupSubscriptions(session, presenter), () => true, cancellationToken, EventHandler);
             if (!result.TryGetValue(out var completed))
-                throw new InvalidOperationException("失敗面板結束時缺少玩家操作結果。");
+                throw new MissingLoseReactionException();
             return completed;
 
             UniTask<IUniTaskPresenter.Event> EventHandler(IUniTaskPresenter.Event evt)

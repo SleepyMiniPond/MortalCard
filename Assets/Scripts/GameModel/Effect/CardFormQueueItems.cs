@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -38,8 +39,7 @@ namespace MortalGame.GameModel
                     apply.Persistence),
                 RevertCardFormOperation revert => Card.TryRevertSelfForm(
                     revert.TransformKey),
-                _ => throw new InvalidOperationException(
-                    $"不支援的卡片形態操作：{formOperation.GetType().Name}")
+                _ => throw new UnsupportedInputTypeException(typeof(SelfTransformQueueItem), formOperation.GetType())
             };
 
             if (!operationResult.IsSuccess)
@@ -51,8 +51,7 @@ namespace MortalGame.GameModel
             {
                 CardFormOperationStatus.Applied => CardFormChangeCause.SelfTransformApplied,
                 CardFormOperationStatus.Reverted => CardFormChangeCause.SelfTransformReverted,
-                _ => throw new InvalidOperationException(
-                    $"成功的形態操作具有無效狀態：{operationResult.Status}")
+                _ => throw new InvalidSuccessfulCardFormStatusException(operationResult.Status)
             };
             var source = new CardFormChangedSource(
                 Card,

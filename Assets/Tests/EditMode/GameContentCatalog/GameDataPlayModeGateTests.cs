@@ -10,7 +10,7 @@ namespace MortalGame.Tests
         public void CanEnterPlayMode_WhenContentIsValid_ReturnsTrue()
         {
             Assert.That(
-                GameDataPlayModeGate.CanEnterPlayMode(Array.Empty<string>()),
+                GameDataPlayModeGate.CanEnterPlayMode(Array.Empty<ValidationIssue>()),
                 Is.True);
         }
 
@@ -19,7 +19,7 @@ namespace MortalGame.Tests
         {
             Assert.That(
                 GameDataPlayModeGate.CanEnterPlayMode(
-                    new[] { "Localization 缺少 Card ID：Attack" }),
+                    new ValidationIssue[] { new ValidationIssue.UnknownReferenceId("Localization", "Attack") }),
                 Is.False);
         }
 

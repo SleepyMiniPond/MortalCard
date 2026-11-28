@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -264,7 +265,10 @@ namespace MortalGame.Tests
                 SecondCollection = new FixedCards(Array.Empty<ICardEntity>()),
                 Operation = (SetOperationType)999
             };
-            Assert.Throws<ArgumentOutOfRangeException>(() => collection.Eval(null));
+            var error = Assert.Throws<UnsupportedCardSetOperationException>(() => collection.Eval(null));
+            Assert.That(error.Operation, Is.EqualTo(collection.Operation));
+            Assert.That(error.ActualValue, Is.EqualTo(collection.Operation));
+            Assert.That(error.ParamName, Is.EqualTo(nameof(CombinedCardCollection.Operation)));
         }
 
         [Test]

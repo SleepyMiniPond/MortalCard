@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -130,7 +131,8 @@ namespace MortalGame.Tests
             foreach (var reaction in new[] { LoseReactionType.Retry, LoseReactionType.Restart, LoseReactionType.Quit })
                 s.Buttons[reaction].onClick.Invoke();
             Assert.That(received, Is.EqualTo(new[] { LoseReactionType.Retry, LoseReactionType.Restart, LoseReactionType.Quit }));
-            Assert.Throws<InvalidOperationException>(() => s.Panel.Open());
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => s.Panel.Open());
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(GameResultLosePanel)));
             first.Dispose();
             Assert.That(completed, Is.True);
             Assert.That(received.Count, Is.EqualTo(3), "Dispose 不應產生額外操作");

@@ -107,7 +107,7 @@ namespace MortalGame.Tests
                     case "invalid-timing": option.TriggeredEffects[(CardTriggeredTiming)999] = Array.Empty<ConditionalCardEffect>(); break;
                     case "missing-nested-value": ((DrawCardEffect)option.Effects[0]).Value = null; break;
                 }
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
                 if (expected == null) Assert.That(errors, Is.Empty);
                 else Assert.That(errors, Has.Some.Contains(expected));
             });
@@ -129,9 +129,9 @@ namespace MortalGame.Tests
                 {
                     TargetCards = new SubSelectedCardCollection { SelectionId = "target" }
                 });
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
                 ((SubSelectedCardCollection)((DiscardCardEffect)option.Effects.Last()).TargetCards).SelectionId = "missing";
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Has.Some.Contains("找不到 ExistCard 群組"));
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Has.Some.Contains("找不到 ExistCard 群組"));
             });
         }
 
@@ -142,13 +142,13 @@ namespace MortalGame.Tests
             {
                 var option = ((CardEffectSelectionGroup)card.Data.SubSelects[1]).PoolsByTemplateId["template"][0];
                 option.Effects.Add(new UnknownEffect());
-                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Has.Some.Contains("UnknownEffect"));
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers(catalog)), Has.Some.Contains("UnknownEffect"));
                 option.Effects.Add(new CreateCardEffect
                 {
                     Target = new CardOwner { Card = new TriggeredCard() }, CardDataIds = new() { "unknown" },
                     CreateDestination = CardCollectionType.HandCard
                 });
-                Assert.That(GameDataValidator.ValidateReferenceIds(catalog), Has.Some.Contains("不存在的 ID"));
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateReferenceIds(catalog)), Has.Some.Contains("不存在的 ID"));
             });
         }
 
@@ -170,10 +170,10 @@ namespace MortalGame.Tests
                     localization.LocalizePlayerBuff = new();
                     localization.LocalizePlayer = new();
                     localization.LocalizeKeyWord = new();
-                    Assert.That(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>()),
+                    Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>())),
                         Has.Some.Contains("CardEffectOption.DescriptionKey"));
                     localization.LocalizeUI.Add(new LocalizeExcelData { Id = "Composition.Draw", Info = "抽牌" });
-                    Assert.That(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>()), Is.Empty);
+                    Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>())), Is.Empty);
                 }
                 finally { UnityEngine.Object.DestroyImmediate(localization); }
             });
@@ -196,7 +196,7 @@ namespace MortalGame.Tests
                     ((DrawCardEffect)option.Effects[0]).Value = value;
                 }
                 option.DescriptionParameters[key] = new CardDescriptionParameter { Value = value };
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Has.Some.Contains(expected));
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Has.Some.Contains(expected));
             });
         }
 
@@ -209,7 +209,7 @@ namespace MortalGame.Tests
                 {
                     Target = new CurrentPlayer(), TemplateSelectionId = "missing", CreateDestination = CardCollectionType.HandCard
                 });
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Has.Some.Contains("TemplateSelectionId"));
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Has.Some.Contains("TemplateSelectionId"));
             });
         }
 

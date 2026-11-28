@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Linq;
 using MortalGame.Presentation.Abstractions;
 using UniRx;
@@ -32,7 +33,7 @@ namespace MortalGame.GameView
         public ISingleCardDetailSession Open(IReadOnlyReactiveProperty<SingleCardDetailDisplayState> state)
         {
             if (_activeSession != null)
-                throw new InvalidOperationException("單卡詳情面板尚未釋放，不能重複開啟。");
+                throw new SessionAlreadyOpenException(typeof(SingleCardDetailPopupPanel));
             var session = new Session(this);
             _activeSession = session;
             try

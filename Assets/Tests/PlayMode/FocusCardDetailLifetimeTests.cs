@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -107,7 +108,8 @@ namespace MortalGame.Tests
             var card = _Card(_first.Identity);
             _hand.DisableAllHandCardsAction();
             using var input = card.OpenHandInput();
-            Assert.Throws<InvalidOperationException>(() => card.OpenHandInput());
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => card.OpenHandInput());
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CardView)));
             var entered = new List<Guid>();
             var exited = new List<Guid>();
             var started = new List<(Guid Identity, Vector2 Position)>();

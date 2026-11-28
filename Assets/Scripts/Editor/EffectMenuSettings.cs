@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Editor.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -30,7 +31,7 @@ namespace MortalGame.Editor
 
         public static EffectMenuSettings Load() =>
             AssetDatabase.LoadAssetAtPath<EffectMenuSettings>(ProjectAssetPaths.EditorSettings.EffectMenu)
-            ?? throw new InvalidOperationException("找不到效果選單設定：" + ProjectAssetPaths.EditorSettings.EffectMenu);
+            ?? throw new MissingEffectMenuSettingsException(ProjectAssetPaths.EditorSettings.EffectMenu);
 
         [MenuItem("MortalGame/編輯器設定/效果選單規則")]
         public static void SelectSettings()

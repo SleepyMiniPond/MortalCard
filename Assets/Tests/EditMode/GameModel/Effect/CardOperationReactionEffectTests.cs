@@ -531,8 +531,8 @@ namespace MortalGame.Tests
                 };
                 _SetCatalogArray(catalog, "_cardBuffAssets", asset);
 
-                var nestedErrors = GameDataValidator.ValidateNestedContent(catalog);
-                var referenceErrors = GameDataValidator.ValidateReferenceIds(catalog);
+                var nestedErrors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
+                var referenceErrors = ValidationTestMessages.Of(GameDataValidator.ValidateReferenceIds(catalog));
 
                 Assert.That(
                     nestedErrors,

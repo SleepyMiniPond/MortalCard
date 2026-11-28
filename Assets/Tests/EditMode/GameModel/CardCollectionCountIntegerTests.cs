@@ -117,7 +117,7 @@ namespace MortalGame.Tests
                 Assert.That(loadedCondition?.Conditions[0], Is.TypeOf<IntegerCompare>());
 
                 _SetCatalogCards(catalog, loaded);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
             }
             finally
             {
@@ -159,7 +159,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogCards(catalog, asset);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(
                     errors,

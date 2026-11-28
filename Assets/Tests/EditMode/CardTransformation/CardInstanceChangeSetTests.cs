@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using MortalGame.GameData;
 using MortalGame.GameModel;
@@ -105,6 +106,46 @@ namespace MortalGame.Tests.CardTransformation
             Assert.That(changes.Count, Is.EqualTo(0));
             Assert.That(card.OverrideFormState.HasValue, Is.True);
             Assert.That(card.CardDataId, Is.EqualTo(OverrideCardId));
+        }
+
+        [Test]
+        public void Collect_MissingOriginalCardReportsIdentityWithoutChangingOtherCards()
+        {
+            var built = _Build();
+            var (instance, card) = _CreateCardFromInstance(built);
+            built.Gameplay.Ally.CardManager.HandCard.AddCard(card);
+            var missing = instance with { InstanceGuid = Guid.NewGuid() };
+
+            var error = Assert.Throws<MissingBattleCardEntityException>(() =>
+                CardInstanceChangeSetCollector.Collect(new[] { missing }, built.Gameplay.Ally.CardManager));
+
+            Assert.That(error.InstanceGuid, Is.EqualTo(missing.InstanceGuid));
+            Assert.That(card.OriginCardInstanceGuid.ValueOr(Guid.Empty), Is.EqualTo(instance.InstanceGuid));
+            Assert.That(card.CardDataId, Is.EqualTo(CardTransformationTestBuilder.BaseCardId));
+        }
+
+        [Test]
+        public void Collect_InconsistentOverrideLayerPreservesStructuredRejectionAndStopsOutput()
+        {
+            var built = _Build();
+            var (instance, card) = _CreateCardFromInstance(built);
+            built.Gameplay.Ally.CardManager.HandCard.AddCard(card);
+            card.TryApplyOverrideForm("override", OverrideCardId, SystemSource.Instance,
+                Array.Empty<CardFormOverrideReleaseRule>(), new Dictionary<string, IReactionSessionEntity>());
+            Assert.That(card.OverrideFormState.TryGetValue(out var state), Is.True);
+            Assert.That(card.BuffManager.TryRemoveOverrideLayer(state.BuffLayerHandle), Is.True);
+
+            var error = Assert.Throws<CardOverrideRemovalFailedException>(() =>
+                CardInstanceChangeSetCollector.Collect(new[] { instance }, built.Gameplay.Ally.CardManager));
+
+            Assert.That(error.CardIdentity, Is.EqualTo(card.Identity));
+            Assert.That(error.Rejection, Is.TypeOf<CardFormRejection.OverrideLayerMismatch>());
+            Assert.That(((CardFormRejection.OverrideLayerMismatch)error.Rejection).StateIdentity, Is.EqualTo(state.Identity));
+            Assert.That(error.Message, Does.Contain(state.Identity.ToString()));
+            Assert.That(card.OverrideFormState.TryGetValue(out var unchanged), Is.True);
+            Assert.That(unchanged, Is.SameAs(state));
+            Assert.That(card.CardDataId, Is.EqualTo(OverrideCardId));
+            Assert.That(instance.PersistentFormState.HasValue, Is.False);
         }
 
         private static BuiltCardTransformationTest _Build()

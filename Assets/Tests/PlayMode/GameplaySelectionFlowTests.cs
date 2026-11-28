@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -189,10 +190,10 @@ namespace MortalGame.Tests
             var cleaned = 0;
             var tasks = new[]
             {
-                _Supervise(() => battle.Task, lifetime, "戰鬥", true),
-                _Supervise(WaitAndClean, lifetime, "玩家操作"),
-                _Supervise(WaitAndClean, lifetime, "事件呈現"),
-                _Supervise(WaitAndClean, lifetime, "UI")
+                _Supervise(() => battle.Task, lifetime, BattleFlowKind.Battle, true),
+                _Supervise(WaitAndClean, lifetime, BattleFlowKind.PlayerCommands),
+                _Supervise(WaitAndClean, lifetime, BattleFlowKind.EventRendering),
+                _Supervise(WaitAndClean, lifetime, BattleFlowKind.UI)
             };
             battle.TrySetResult();
             var errors = await UniTask.WhenAll(tasks);
@@ -214,10 +215,10 @@ namespace MortalGame.Tests
             var cleaned = 0;
             var errors = await UniTask.WhenAll(new[]
             {
-                _Supervise(WaitAndClean, lifetime, "戰鬥", true),
-                _Supervise(WaitAndClean, lifetime, "玩家操作"),
-                _Supervise(WaitAndClean, lifetime, "事件呈現"),
-                _Supervise(() => throw failure, lifetime, "UI")
+                _Supervise(WaitAndClean, lifetime, BattleFlowKind.Battle, true),
+                _Supervise(WaitAndClean, lifetime, BattleFlowKind.PlayerCommands),
+                _Supervise(WaitAndClean, lifetime, BattleFlowKind.EventRendering),
+                _Supervise(() => throw failure, lifetime, BattleFlowKind.UI)
             });
             Assert.That(errors.Single(error => error != null), Is.SameAs(failure));
             Assert.That(cleaned, Is.EqualTo(3));
@@ -233,8 +234,9 @@ namespace MortalGame.Tests
         public IEnumerator UiCompletionBeforeBattle_IsReportedAsUnexpectedEnd() => UniTask.ToCoroutine(async () =>
         {
             using var lifetime = new CancellationTokenSource();
-            var error = await _Supervise(() => UniTask.CompletedTask, lifetime, "UI");
-            Assert.That(error, Is.TypeOf<InvalidOperationException>());
+            var error = await _Supervise(() => UniTask.CompletedTask, lifetime, BattleFlowKind.UI);
+            Assert.That(error, Is.TypeOf<UnexpectedBattleFlowCompletionException>());
+            Assert.That(((UnexpectedBattleFlowCompletionException)error).FlowKind, Is.EqualTo(BattleFlowKind.UI));
             Assert.That(error.Message, Does.Contain("UI流程"));
             Assert.That(lifetime.IsCancellationRequested, Is.True);
         });
@@ -710,9 +712,9 @@ namespace MortalGame.Tests
                 var errors = await UniTask.WhenAll(new[]
                 {
                     _Supervise(() => Invoke("_ProcessCommands", lifetime.Token),
-                        lifetime, "玩家操作"),
+                        lifetime, BattleFlowKind.PlayerCommands),
                     _Supervise(() => Invoke("_RenderEvents", lifetime.Token),
-                        lifetime, "事件呈現")
+                        lifetime, BattleFlowKind.EventRendering)
                 });
                 var error = errors.FirstOrDefault(value => value != null);
                 if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
@@ -739,10 +741,10 @@ namespace MortalGame.Tests
                 BindingFlags.Instance | BindingFlags.NonPublic).GetValue(setup.Model)).Add(gameEvent);
 
         private static UniTask<Exception> _Supervise(Func<UniTask> run, CancellationTokenSource lifetime,
-            string name, bool completesBattle = false)
+            BattleFlowKind flowKind, bool completesBattle = false)
             => (UniTask<Exception>)typeof(GameplayPresenter)
                 .GetMethod("_RunBattleFlow", BindingFlags.NonPublic | BindingFlags.Static)
-                .Invoke(null, new object[] { run, lifetime, name, completesBattle });
+                .Invoke(null, new object[] { run, lifetime, flowKind, completesBattle });
         private static async UniTask _Wait(Func<bool> condition)
         {
             for (var i = 0; i < 100 && !condition(); i++) await UniTask.NextFrame();
@@ -830,7 +832,10 @@ namespace MortalGame.Tests
                 Exception failure = null;
                 try { await _PresentResult(setup.Presenter, battle, CancellationToken.None); }
                 catch (InvalidOperationException error) { failure = error; }
-                Assert.That(failure, Is.Not.Null);
+                Assert.That(failure, Is.TypeOf<BattleCompletionOutcomeMismatchException>());
+                var mismatch = (BattleCompletionOutcomeMismatchException)failure;
+                Assert.That(mismatch.IsAllyWin, Is.EqualTo(battle.IsAllyWin));
+                Assert.That(mismatch.HasCompletion, Is.EqualTo(battle.AllyCompletion.HasValue));
             }
             Assert.That(win.RunCount, Is.Zero);
         });

@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -43,7 +44,7 @@ namespace MortalGame.GameModel
         {
             if (effect is not ModifyPlayerBuffLevelEffect modifyLevelEffect)
             {
-                throw new InvalidOperationException($"ModifyPlayerBuffLevelEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(ModifyPlayerBuffLevelEffectResolver), effect.GetType());
             }
 
             var effectCommands = new List<IEffectCommand>();

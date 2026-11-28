@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Collections.Generic;
 
@@ -42,7 +43,7 @@ namespace MortalGame.GameModel
             object effect)
         {
             if (effect is not DrawCardEffect drawCardEffect)
-                throw new InvalidOperationException($"DrawCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(DrawCardEffectResolver), effect.GetType());
 
             var effectCommands = new List<IEffectCommand>();
             var isSystemInitiated = context.ReactionOriginAction is

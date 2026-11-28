@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using MortalGame.GameData;
 using MortalGame.GameModel;
@@ -78,7 +79,8 @@ namespace MortalGame.Tests
         {
             using var state = new ReactiveProperty<FocusCardDetailDisplayState>(new(_info with { Keywords = new[] { "focus-keyword" } }));
             using var first = _view.Open(state, _target);
-            Assert.Throws<InvalidOperationException>(() => _view.Open(state, _target));
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => _view.Open(state, _target));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(FocusCardDetailView)));
             first.Dispose();
             first.Dispose();
             Assert.That(_popup.activeSelf, Is.False);

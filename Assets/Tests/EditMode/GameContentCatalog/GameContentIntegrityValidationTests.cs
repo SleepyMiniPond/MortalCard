@@ -13,12 +13,57 @@ namespace MortalGame.Tests
     public class GameContentIntegrityValidationTests
     {
         [Test]
+        public void ValidateNestedContent_PreservesIssueTypeContextAndInvalidEnumValue()
+        {
+            var catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
+            var card = ScriptableObject.CreateInstance<StandardCardDataScriptable>();
+            try
+            {
+                card.Data.ID = "invalid-damage-diagnostic";
+                card.Data.Effects.Add(new DamageEffect
+                {
+                    Type = (DamageType)999,
+                    Targets = new SingleCharacterCollection(),
+                    Value = new ConstInteger { Value = 1 }
+                });
+                _SetCatalogArray(catalog, "_cardAssets", card);
+
+                var issues = GameDataValidator.ValidateNestedContent(catalog);
+                var damageIssue = issues.OfType<ValidationIssue.InvalidDamageType>().Single();
+
+                Assert.That(damageIssue.Type, Is.EqualTo((DamageType)999));
+                Assert.That(damageIssue.Context, Does.Contain("CardData"));
+                Assert.That(damageIssue.Code, Is.EqualTo(nameof(ValidationIssue.InvalidDamageType)));
+                Assert.That(damageIssue.Message, Does.Contain("999"));
+                Assert.That(issues.OfType<ValidationIssue.MissingRequiredValue>(), Is.Not.Empty);
+            }
+            finally
+            {
+                UnityEngine.Object.DestroyImmediate(catalog);
+                UnityEngine.Object.DestroyImmediate(card);
+            }
+        }
+
+        [Test]
+        public void IssueDeduplication_PreservesOriginalMessageSemanticsAndFirstIssueData()
+        {
+            var first = new ValidationIssue.MissingCardData("asset");
+            var sameMessage = new ValidationIssue.MissingRequiredValue("asset 的 CardData");
+            var issues = new ValidationIssue[] { first, sameMessage, new ValidationIssue.MissingCardData("other") }
+                .Distinct(ValidationIssueMessageComparer.Instance).ToArray();
+
+            Assert.That(issues.Length, Is.EqualTo(2));
+            Assert.That(issues[0], Is.SameAs(first));
+            Assert.That(((ValidationIssue.MissingCardData)issues[0]).Context, Is.EqualTo("asset"));
+        }
+
+        [Test]
         public void DefaultCatalog_HasValidNestedContent()
         {
             var catalog = AssetDatabase.LoadAssetAtPath<GameContentCatalog>(
                 ProjectAssetPaths.GameContent.Catalog);
 
-            Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+            Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
         }
 
         [Test]
@@ -38,7 +83,7 @@ namespace MortalGame.Tests
                 card.Data.TriggeredEffects[CardTriggeredTiming.Drawed] = new ConditionalCardEffect[] { null };
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains("Effects[0].Targets.Target 為空"));
                 Assert.That(errors, Has.Some.Contains("Effects[0].Value 為空"));
@@ -94,7 +139,7 @@ namespace MortalGame.Tests
                 };
                 _SetCatalogArray(catalog, "_playerBuffAssets", playerBuff);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains("LifeTimeData 為空"));
                 Assert.That(errors, Has.Some.Contains("MaxLevel 必須大於 0"));
@@ -131,7 +176,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains("AddCardBuffData.Level 不可為負數"));
             }
@@ -187,7 +232,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(
                     errors,
@@ -250,7 +295,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Is.Empty);
             }
@@ -352,7 +397,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(
                     errors,
@@ -413,7 +458,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Is.Empty);
             }
@@ -451,7 +496,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(
                     errors,
@@ -495,7 +540,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Is.Empty);
             }
@@ -557,7 +602,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(
                     errors,
@@ -602,7 +647,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Is.Empty);
             }
@@ -632,7 +677,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains("Effects[0].TargetCards.Player 為空"));
                 Assert.That(
@@ -688,7 +733,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Is.Empty);
             }
@@ -715,13 +760,13 @@ namespace MortalGame.Tests
                     power: 5);
                 _SetCatalogArray(catalog, "_cardAssets", sword);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog)
-                    .Concat(GameDataValidator.ValidateCardTransformRules(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog))
+                    .Concat(ValidationTestMessages.Of(GameDataValidator.ValidateCardTransformRules(
                         sword.Data,
-                        "T-019 刀與盾"))
-                    .Concat(GameDataValidator.ValidateCardScriptableTypes(
+                        "T-019 刀與盾")))
+                    .Concat(ValidationTestMessages.Of(GameDataValidator.ValidateCardScriptableTypes(
                         new CardDataScriptableBase[] { sword, shield },
-                        System.Array.Empty<DeckScriptable>()))
+                        System.Array.Empty<DeckScriptable>())))
                     .ToArray();
 
                 Assert.That(errors, Is.Empty);
@@ -753,7 +798,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(
                     errors,
@@ -797,7 +842,7 @@ namespace MortalGame.Tests
                 localizationData.LocalizeKeyWord = new List<LocalizeExcelTitleData>();
                 localizationData.LocalizeUI = new List<LocalizeExcelData>();
 
-                var errors = GameDataValidator.ValidateLocalization(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateLocalization(
                     catalog,
                     localizationData,
                     new[]
@@ -807,7 +852,7 @@ namespace MortalGame.Tests
                             ID = "player",
                             NameKey = "missing-player"
                         }
-                    });
+                    }));
 
                 Assert.That(errors, Has.Some.Contains("LocalizeCard 的 Id 重複：duplicate"));
                 Assert.That(errors, Has.Some.Contains("CardData[missing-card]"));
@@ -842,7 +887,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains("Effects[0].TargetCards 為空"));
                 Assert.That(errors, Has.Some.Contains("SubSelectedCardCollection.SelectionId 為空"));
@@ -876,8 +921,8 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogArray(catalog, "_cardAssets", card);
 
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
-                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers(catalog)), Is.Empty);
             }
             finally
             {
@@ -939,7 +984,7 @@ namespace MortalGame.Tests
                 _SetCatalogArray(catalog, "_playerBuffAssets", playerBuff);
                 _SetCatalogArray(catalog, "_characterBuffAssets", characterBuff);
 
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.EqualTo(new[]
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.EqualTo(new[]
                 {
                     " / CardData 的 AllCondition.Conditions 至少需要一項",
                     " / CardData 的 ArithmeticInteger.Divide 除數不可為 0",
@@ -954,7 +999,7 @@ namespace MortalGame.Tests
                 foreach (var condition in conditions.Cast<AllCondition>())
                     condition.Conditions.Add(new ConstCondition { Value = true });
                 divisor.Value = 1;
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
             }
             finally
             {

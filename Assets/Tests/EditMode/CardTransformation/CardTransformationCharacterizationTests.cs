@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -288,8 +289,10 @@ namespace MortalGame.Tests.CardTransformation
                 CardTransformationTestBuilder.CardBuffId);
             built.Card.BuffManager.AddBuff(firstBuff);
 
-            var exception = Assert.Throws<Exception>(() => built.Card.BuffManager.AddBuff(duplicateBuff));
+            var exception = Assert.Throws<BuffAlreadyExistsException>(() => built.Card.BuffManager.AddBuff(duplicateBuff));
 
+            Assert.That(exception.OwnerType, Is.EqualTo(typeof(CardBuffLayer)));
+            Assert.That(exception.BuffId, Is.EqualTo(CardTransformationTestBuilder.CardBuffId));
             Assert.That(exception.Message, Does.Contain(CardTransformationTestBuilder.CardBuffId));
             Assert.That(built.Card.BuffManager.Buffs, Has.Count.EqualTo(1));
             Assert.That(built.Card.BuffManager.Buffs.Single(), Is.SameAs(firstBuff));

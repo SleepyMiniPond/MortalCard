@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Linq;
 using System.Threading;
@@ -100,7 +101,9 @@ namespace MortalGame.Tests
             Assert.That(s.Text.text, Is.EqualTo("更新訊息"));
             foreach (var button in s.Buttons) button.onClick.Invoke();
             Assert.That(count, Is.EqualTo(s.Buttons.Length));
-            Assert.Throws<InvalidOperationException>(() => s.Panel.Open(state));
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => s.Panel.Open(state));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(WarningPopupPanel)));
+            Assert.That(error.Message, Does.Contain(typeof(WarningPopupPanel).FullName));
             first.Dispose();
             Assert.That(ended, Is.True);
             Assert.That(count, Is.EqualTo(s.Buttons.Length), "釋放不應偽造關閉操作");

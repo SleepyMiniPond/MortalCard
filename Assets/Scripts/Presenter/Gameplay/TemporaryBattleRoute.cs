@@ -31,7 +31,7 @@ namespace MortalGame.Presenter
 
         public GameStageSetting CreateBattle(Context context)
         {
-            Debug.Log($"[臨時兩關流程] 第 {_stageNumber}／{StageCount} 關");
+            GameplayDiagnosticLogger.LogTemporaryStage(_stageNumber, StageCount);
             return new GameStageSetting(
                 StageID: _StageId(_stageNumber),
                 RandomSeed: Environment.TickCount,

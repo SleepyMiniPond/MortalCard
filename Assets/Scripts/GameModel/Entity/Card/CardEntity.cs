@@ -199,7 +199,7 @@ namespace MortalGame.GameModel
                     beforeCardDataId,
                     beforeCardDataId,
                     transformKey,
-                    "TransformKey 與目標 CardDataId 不可為空白。");
+                    new CardFormRejection.InvalidSelfFormInput());
             }
 
             if (targetCardDataId == beforeCardDataId)
@@ -219,7 +219,7 @@ namespace MortalGame.GameModel
                     beforeCardDataId,
                     beforeCardDataId,
                     transformKey,
-                    $"找不到目標 CardData：{targetCardDataId}。");
+                    new CardFormRejection.MissingSelfFormCardData(targetCardDataId));
             }
 
             _selfFormState = new CardFormState(transformKey, targetCardDataId, persistence).Some();
@@ -273,7 +273,7 @@ namespace MortalGame.GameModel
                     beforeCardDataId,
                     beforeCardDataId,
                     overrideKey,
-                    "OverrideKey、目標 CardDataId、來源、解除規則與 ReactionSessions 不可為空。");
+                    new CardFormRejection.InvalidOverrideInput());
             }
 
             if (_overrideFormState.TryGetValue(out var currentState) &&
@@ -295,7 +295,7 @@ namespace MortalGame.GameModel
                     beforeCardDataId,
                     beforeCardDataId,
                     overrideKey,
-                    $"找不到目標 Override CardData：{targetCardDataId}。");
+                    new CardFormRejection.MissingOverrideCardData(targetCardDataId));
             }
 
             var releaseRuleList = releaseRules.ToList();
@@ -339,7 +339,7 @@ namespace MortalGame.GameModel
                     beforeCardDataId,
                     beforeCardDataId,
                     currentState.OverrideKey,
-                    "目前 Override State 與 Buff Layer 不一致。");
+                    new CardFormRejection.OverrideLayerMismatch(currentState.Identity));
             }
 
             _overrideFormState = Option.None<CardFormOverrideState>();

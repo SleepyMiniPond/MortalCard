@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 
 namespace MortalGame.GameModel
@@ -65,7 +66,7 @@ namespace MortalGame.GameModel
                 throw new ArgumentNullException(nameof(queue));
 
             if (!_handlerRegistry.TryGetValue(command.GetType(), out var handler))
-                throw new InvalidOperationException($"[EffectCommandExecutor] 未知的 IEffectCommand 類型：{command.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(EffectCommandExecutor), command.GetType());
 
             var commandApplyResult = handler.Handle(context, command, queue);
             return new EffectResult(

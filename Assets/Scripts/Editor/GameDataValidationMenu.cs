@@ -11,18 +11,11 @@ namespace MortalGame.Editor
             var errors = GameDataValidator.ValidateAll();
             if (errors.Count == 0)
             {
-                Debug.Log("遊戲資料驗證完成：未發現錯誤。");
-                EditorUtility.DisplayDialog("遊戲資料驗證", "未發現錯誤。", "確定");
+                ValidationDiagnosticReporter.ReportValid();
                 return;
             }
 
-            foreach (var error in errors)
-                Debug.LogError($"[遊戲資料驗證] {error}");
-
-            EditorUtility.DisplayDialog(
-                "遊戲資料驗證",
-                $"發現 {errors.Count} 個錯誤，請查看 Console。",
-                "確定");
+            ValidationDiagnosticReporter.ReportInvalidForMenu(errors);
         }
     }
 }

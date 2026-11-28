@@ -279,7 +279,7 @@ namespace MortalGame.Tests
                 cardAssets.GetArrayElementAtIndex(0).objectReferenceValue = card;
                 serializedCatalog.ApplyModifiedPropertiesWithoutUndo();
 
-                return GameDataValidator.ValidateNestedContent(catalog);
+                return ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
             }
             finally
             {

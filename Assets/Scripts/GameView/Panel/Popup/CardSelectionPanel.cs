@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.Presentation.Abstractions;
 using System.Collections.Generic;
 using System.Linq;
@@ -86,7 +87,7 @@ namespace MortalGame.GameView
         public ICardSelectionSession Open(IReadOnlyReactiveProperty<CardSelectionDisplayState> state)
         {
             if (_activeSession != null)
-                throw new InvalidOperationException("選卡面板尚未釋放，不能重複開啟。");
+                throw new SessionAlreadyOpenException(typeof(CardSelectionPanel));
             var session = new Session(this);
             _activeSession = session;
             try

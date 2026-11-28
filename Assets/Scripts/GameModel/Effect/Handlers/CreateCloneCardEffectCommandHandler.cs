@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Linq;
 namespace MortalGame.GameModel
@@ -12,7 +13,7 @@ namespace MortalGame.GameModel
             {
                 CreateCardEffectCommand c => _HandleCreate(context, c),
                 CloneCardEffectCommand c => _HandleClone(context, c),
-                _ => throw new InvalidOperationException($"CreateCloneCardEffectCommandHandler 不支援的命令類型：{command.GetType().Name}")
+                _ => throw new UnsupportedInputTypeException(typeof(CreateCloneCardEffectCommandHandler), command.GetType())
             };
         }
 

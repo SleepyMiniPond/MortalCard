@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Editor.Exceptions;
 using MortalGame.Editor;
 using MortalGame.GameData;
 using NUnit.Framework;
@@ -96,6 +97,46 @@ namespace MortalGame.Tests
             {
                 AssetDatabase.DeleteAsset(folderPath);
             }
+        }
+
+        [TestCase(null)]
+        [TestCase("")]
+        [TestCase(" ")]
+        public void Compile_EmptyCatalogPathReportsParameterBeforeScanning(string assetPath)
+        {
+            var error = Assert.Throws<EmptyCatalogAssetPathException>(() =>
+                GameContentCatalogCompiler.Compile(assetPath, new[] { "Assets" }));
+            Assert.That(error.ParamName, Is.EqualTo("catalogAssetPath"));
+        }
+
+        [Test]
+        public void Compile_EmptySearchFoldersDoesNotCreateCatalog()
+        {
+            var catalogPath = $"{ProjectAssetPaths.Tests.GameContentCatalogRoot}/Missing_{Guid.NewGuid():N}.asset";
+            foreach (var folders in new[] { null, Array.Empty<string>(), new[] { "", " " } })
+            {
+                var error = Assert.Throws<EmptyContentSearchFoldersException>(() =>
+                    GameContentCatalogCompiler.Compile(catalogPath, folders));
+                Assert.That(error.ParamName, Is.EqualTo("searchFolders"));
+                Assert.That(AssetDatabase.LoadMainAssetAtPath(catalogPath), Is.Null);
+            }
+        }
+
+        [Test]
+        public void Compile_ConflictingAssetReportsPathAndTypeWithoutReplacingAsset()
+        {
+            var folderPath = _CreateTemporaryFolder();
+            var catalogPath = $"{folderPath}/Existing.asset";
+            try
+            {
+                var existing = _CreateAsset<CardBuffScriptable>(catalogPath);
+                var error = Assert.Throws<CatalogAssetTypeConflictException>(() =>
+                    GameContentCatalogCompiler.Compile(catalogPath, new[] { folderPath }));
+                Assert.That(error.AssetPath, Is.EqualTo(catalogPath));
+                Assert.That(error.ActualType, Is.EqualTo(typeof(CardBuffScriptable)));
+                Assert.That(AssetDatabase.LoadMainAssetAtPath(catalogPath), Is.SameAs(existing));
+            }
+            finally { AssetDatabase.DeleteAsset(folderPath); }
         }
 
         private static string _CreateTemporaryFolder()

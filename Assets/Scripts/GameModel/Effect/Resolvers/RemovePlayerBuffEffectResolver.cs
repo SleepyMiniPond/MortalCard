@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional.Collections;
@@ -43,7 +44,7 @@ namespace MortalGame.GameModel
             object effect)
         {
             if (effect is not RemovePlayerBuffEffect removeBuffEffect)
-                throw new InvalidOperationException($"RemovePlayerBuffEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(RemovePlayerBuffEffectResolver), effect.GetType());
 
             var effectCommands = new List<IEffectCommand>();
             var intent = new RemovePlayerBuffIntentAction(context.Action.Source);

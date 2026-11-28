@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using MortalGame.GameModel;
 using MortalGame.GameData;
@@ -77,10 +78,10 @@ namespace MortalGame.Presenter
                 _gameplayView.DisableAllInteraction();
                 // 所有戰鬥工作共用同一個生命週期，取消後等待各自清理完成。
                 var (battleError, commandError, renderError, uiError) = await UniTask.WhenAll(
-                    _RunBattleFlow(RunBattle, battleCancellation, "戰鬥", completesBattle: true),
-                    _RunBattleFlow(() => _ProcessCommands(token), battleCancellation, "玩家操作"),
-                    _RunBattleFlow(() => _RenderEvents(token), battleCancellation, "事件呈現"),
-                    _RunBattleFlow(() => _uiPresenter.Run(token), battleCancellation, "UI"));
+                    _RunBattleFlow(RunBattle, battleCancellation, BattleFlowKind.Battle, completesBattle: true),
+                    _RunBattleFlow(() => _ProcessCommands(token), battleCancellation, BattleFlowKind.PlayerCommands),
+                    _RunBattleFlow(() => _RenderEvents(token), battleCancellation, BattleFlowKind.EventRendering),
+                    _RunBattleFlow(() => _uiPresenter.Run(token), battleCancellation, BattleFlowKind.UI));
 
                 var error = battleError ?? commandError ?? renderError ?? uiError;
                 if (error != null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(error).Throw();
@@ -93,7 +94,7 @@ namespace MortalGame.Presenter
             }
 
             if (!battleResult.TryGetValue(out var completedBattleResult))
-                throw new InvalidOperationException("戰鬥已結束，但 GameplayManager 未提供 BattleResult。");
+                throw new MissingBattleResultException();
 
             return await _PresentResult(completedBattleResult, cancellationToken);
 
@@ -108,7 +109,8 @@ namespace MortalGame.Presenter
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (completedBattleResult.IsAllyWin != completedBattleResult.AllyCompletion.HasValue)
-                throw new InvalidOperationException("戰鬥勝負與玩家完成快照不一致。");
+                throw new BattleCompletionOutcomeMismatchException(
+                    completedBattleResult.IsAllyWin, completedBattleResult.AllyCompletion.HasValue);
 
             if (completedBattleResult.IsAllyWin)
             {
@@ -130,14 +132,14 @@ namespace MortalGame.Presenter
         private static async UniTask<Exception> _RunBattleFlow(
             Func<UniTask> run,
             CancellationTokenSource lifetime,
-            string name,
+            BattleFlowKind flowKind,
             bool completesBattle = false)
         {
             try
             {
                 await run();
                 if (!completesBattle && !lifetime.IsCancellationRequested)
-                    return new InvalidOperationException($"{name}流程在戰鬥完成前提早結束。");
+                    return new UnexpectedBattleFlowCompletionException(flowKind);
                 return null;
             }
             catch (OperationCanceledException) when (lifetime.IsCancellationRequested) { return null; }
@@ -148,7 +150,7 @@ namespace MortalGame.Presenter
         public void RecieveEvent(IGameCommand gameCommand)
         {
             if (_pendingGameCommands.Count > 0 || _gameplayManager.BattleResult.HasValue) return;
-            Debug.Log($"-- GameplayPresenter.RecieveEvent:[{gameCommand}] --");
+            GameplayDiagnosticLogger.LogReceivedCommand(gameCommand);
             _pendingGameCommands.Enqueue(new PendingGameCommand(gameCommand));
         }
 
@@ -293,7 +295,7 @@ namespace MortalGame.Presenter
                     return Option.None<IGameAction>();
 
                 default:
-                    throw new NotImplementedException($"Unhandled game command type: {gameCommand.GetType()}");
+                    throw new UnhandledGameCommandException(gameCommand.GetType());
             }
         }
     }

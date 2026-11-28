@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Threading;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameModel;
@@ -55,7 +56,7 @@ namespace MortalGame.Presenter
                 CardSelectionQueryResult.Rejected rejected => new CardSelectionPresentationResult.Rejected(rejected.Failure),
                 CardSelectionQueryResult.NextStep remaining => new CardSelectionPresentationResult.Rejected(
                     new CardSelectionFailure(CardSelectionFailureReason.MissingGroup, remaining.Info.Id.Some())),
-                _ => throw new NotSupportedException($"尚未實作查詢結果：{query.GetType().Name}")
+                _ => throw new UnsupportedSelectionTypeException(query.GetType())
             };
         }
 
@@ -72,7 +73,7 @@ namespace MortalGame.Presenter
                 case CardTemplateSelectionInfo or CardEffectSelectionInfo:
                     return await _subSelectionPresenter.RunComposition(model, info, cancellationToken);
                 default:
-                    throw new NotSupportedException($"尚未實作子選取步驟：{info.GetType().Name}");
+                    throw new UnsupportedSelectionTypeException(info.GetType());
             }
         }
     }

@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -10,8 +11,7 @@ namespace MortalGame.GameModel
         {
             if (command is not ApplyCardFormOverrideEffectCommand applyCommand)
             {
-                throw new InvalidOperationException(
-                    $"ApplyCardFormOverrideEffectCommandHandler 不支援的命令類型：{command.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(ApplyCardFormOverrideEffectCommandHandler), command.GetType());
             }
 
             var reactionSessions = applyCommand.ReactionSessionDatas.ToDictionary(

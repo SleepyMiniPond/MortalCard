@@ -183,7 +183,7 @@ namespace MortalGame.GameView
         {
             foreach (var gameEvent in events)
             {
-                Debug.Log($"Render Event: {gameEvent.GetType().Name}");
+                ViewDiagnosticLogger.LogRenderEvent(gameEvent.GetType());
                 switch (gameEvent)
                 {
                     case GeneralUpdateEvent updateEvent:

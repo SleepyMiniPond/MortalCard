@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using MortalGame.GameData;
 
@@ -37,8 +38,7 @@ namespace MortalGame.GameModel
         {
             if (effect is not ModifyCardPlayAttributeEffect attributeEffect)
             {
-                throw new InvalidOperationException(
-                    $"ModifyCardPlayAttributeEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(ModifyCardPlayAttributeEffectResolver), effect.GetType());
             }
             var effectCommands = new List<IEffectCommand>();
             var intent = new CardPlayEffectAttributeIntentAction(context.Action.Source);

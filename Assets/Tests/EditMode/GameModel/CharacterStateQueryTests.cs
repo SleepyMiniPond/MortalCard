@@ -178,7 +178,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogCard(catalog, card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(
                     errors,
@@ -207,7 +207,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogCard(catalog, card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Is.Empty);
             }

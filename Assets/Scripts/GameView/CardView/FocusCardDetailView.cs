@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.Presentation.Abstractions;
 using UniRx;
 using UnityEngine;
@@ -26,7 +27,7 @@ namespace MortalGame.GameView
         public IDisposable Open(IReadOnlyReactiveProperty<FocusCardDetailDisplayState> state, RectTransform targetRect)
         {
             if (_activeSession != null)
-                throw new InvalidOperationException("懸停卡片詳情尚未釋放，不能重複開啟。");
+                throw new SessionAlreadyOpenException(typeof(FocusCardDetailView));
             var session = new Session(this);
             _activeSession = session;
             try

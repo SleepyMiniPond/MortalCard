@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -32,6 +33,16 @@ namespace MortalGame.Tests.CardTransformation
         }
 
         [Test]
+        public void SingleLayer_ModifyMissingBuff_ReportsIdAndKeepsLayerEmpty()
+        {
+            var layer = new CardBuffLayer(Array.Empty<ICardBuffEntity>());
+            var error = Assert.Throws<BuffNotFoundException>(() => layer.ModifyBuffLevel("missing-buff", 1));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CardBuffLayer)));
+            Assert.That(error.BuffId, Is.EqualTo("missing-buff"));
+            Assert.That(layer.Buffs, Is.Empty);
+        }
+
+        [Test]
         public void SingleLayer_AddDuplicateDataId_ThrowsAndKeepsOriginalBuff()
         {
             var built = new CardTransformationTestBuilder().Build();
@@ -39,9 +50,11 @@ namespace MortalGame.Tests.CardTransformation
             var duplicateBuff = _CreateBuff(built, CardTransformationTestBuilder.CardBuffId);
             built.Card.BuffManager.AddBuff(originalBuff);
 
-            var exception = Assert.Throws<Exception>(
+            var exception = Assert.Throws<BuffAlreadyExistsException>(
                 () => built.Card.BuffManager.AddBuff(duplicateBuff));
 
+            Assert.That(exception.OwnerType, Is.EqualTo(typeof(CardBuffLayer)));
+            Assert.That(exception.BuffId, Is.EqualTo(CardTransformationTestBuilder.CardBuffId));
             Assert.That(exception.Message, Does.Contain(CardTransformationTestBuilder.CardBuffId));
             Assert.That(built.Card.BuffManager.Buffs, Has.Count.EqualTo(1));
             Assert.That(built.Card.BuffManager.Buffs.Single(), Is.SameAs(originalBuff));
@@ -192,9 +205,11 @@ namespace MortalGame.Tests.CardTransformation
             var duplicateBuff = _CreateBuff(built, CardTransformationTestBuilder.CardBuffId);
             ICardBuffManager facade = new CardBuffLayerManager(new[] { originalBuff });
 
-            var exception = Assert.Throws<Exception>(
+            var exception = Assert.Throws<BuffAlreadyExistsException>(
                 () => facade.TryAddBuff(facade.ActiveLayerHandle, duplicateBuff));
 
+            Assert.That(exception.OwnerType, Is.EqualTo(typeof(CardBuffLayer)));
+            Assert.That(exception.BuffId, Is.EqualTo(CardTransformationTestBuilder.CardBuffId));
             Assert.That(exception.Message, Does.Contain(CardTransformationTestBuilder.CardBuffId));
             Assert.That(facade.Buffs.Single(), Is.SameAs(originalBuff));
         }

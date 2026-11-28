@@ -43,14 +43,14 @@ namespace MortalGame.GameModel
             var mainSelect = cardEntity.MainSelect;
             if (mainSelect == null)
             {
-                Debug.LogError($"MainSelect is null. cardId={cardEntity.CardDataId}");
+                ContentDiagnosticLogger.LogMissingMainSelect(cardEntity.CardDataId);
                 return new SelectMainTargetResult(false, TargetType.None, Guid.Empty);
             }
 
             var selectable = mainSelect.MainSelectable;
             if (selectable == null)
             {
-                Debug.LogError($"MainSelectable is null. cardId={cardEntity.CardDataId}");
+                ContentDiagnosticLogger.LogMissingMainSelectable(cardEntity.CardDataId);
                 return new SelectMainTargetResult(false, TargetType.None, Guid.Empty);
             }
 

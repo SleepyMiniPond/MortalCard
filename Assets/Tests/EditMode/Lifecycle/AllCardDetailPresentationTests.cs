@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -82,7 +83,8 @@ namespace MortalGame.Tests
             _Click(_Cards(s.Panel).Single());
             Assert.That(requested, Is.EqualTo(new[] { CardCollectionType.Deck, CardCollectionType.HandCard, CardCollectionType.Graveyard }));
             Assert.That(clicked, Is.EqualTo(new[] { s.First.Identity }));
-            Assert.Throws<InvalidOperationException>(() => s.Panel.Open(state));
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => s.Panel.Open(state));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(AllCardDetailPanel)));
 
             first.Dispose();
             Assert.That(completed, Is.True);

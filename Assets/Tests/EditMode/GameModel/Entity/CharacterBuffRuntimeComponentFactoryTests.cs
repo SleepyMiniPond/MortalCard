@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using NUnit.Framework;
 using MortalGame.GameData;
 using MortalGame.GameModel;
@@ -30,7 +31,10 @@ namespace MortalGame.Tests
         [Test]
         public void CreateProperty_UnknownDataType_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _propertyFactory.Create(new UnknownPropertyData()));
+            var error = Assert.Throws<UnregisteredDataTypeException>(() => _propertyFactory.Create(new UnknownPropertyData()));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CharacterBuffPropertyEntityFactory)));
+            Assert.That(error.ActualType, Is.EqualTo(typeof(UnknownPropertyData)));
+            Assert.That(error.ParamName, Is.EqualTo("data"));
         }
 
         [TestCase(typeof(AlwaysLifeTimeCharacterBuffData), typeof(AlwaysLifeTimeCharacterBuffEntity))]
@@ -45,7 +49,10 @@ namespace MortalGame.Tests
         [Test]
         public void CreateLifeTime_UnknownDataType_Throws()
         {
-            Assert.Throws<ArgumentException>(() => _lifeTimeFactory.Create(new UnknownLifeTimeData()));
+            var error = Assert.Throws<UnregisteredDataTypeException>(() => _lifeTimeFactory.Create(new UnknownLifeTimeData()));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CharacterBuffLifeTimeEntityFactory)));
+            Assert.That(error.ActualType, Is.EqualTo(typeof(UnknownLifeTimeData)));
+            Assert.That(error.ParamName, Is.EqualTo("data"));
         }
 
         private sealed class UnknownPropertyData : ICharacterBuffPropertyData { }

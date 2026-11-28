@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using MortalGame.GameData;
 
@@ -31,8 +32,7 @@ namespace MortalGame.GameModel
         private static EffectCommandSet _ResolveCore(TriggerContext context, object effect)
         {
             if (effect is not CreateCardEffect createCardEffect)
-                throw new InvalidOperationException(
-                    $"CreateCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(CreateCardEffectResolver), effect.GetType());
 
             if (createCardEffect.Target == null ||
                 !createCardEffect.CreateDestination.IsNormalCardZone())

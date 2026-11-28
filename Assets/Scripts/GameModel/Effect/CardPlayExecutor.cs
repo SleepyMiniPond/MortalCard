@@ -147,7 +147,7 @@ namespace MortalGame.GameModel
             var repeatTimes = Math.Max(1, effectRepeat);
             for (int i = 0; i < repeatTimes; i++)
             {
-                chain.BeginStep($"CardEffectRepeat:{card.Identity}:{i}");
+                chain.BeginStep(CardPlayTrace.RepeatedEffect(card.Identity, i));
                 // 每次重複都讀取當前效果，保留執行期間形態變更的行為。
                 var effectResult = context.Model.RunEffectBatch(
                     card.Effects.Select(effect => new CardEffectQueueItem(context, effect)));

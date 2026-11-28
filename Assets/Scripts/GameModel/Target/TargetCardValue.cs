@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
@@ -181,7 +182,7 @@ namespace MortalGame.GameModel
                 SetOperationType.Difference => first.Where(card => !secondIdentities.Contains(card.Identity)),
                 SetOperationType.Union => first.Concat(second),
                 SetOperationType.Intersection => first.Where(card => secondIdentities.Contains(card.Identity)),
-                _ => throw new ArgumentOutOfRangeException(nameof(Operation), Operation, "不支援的集合運算")
+                _ => throw new UnsupportedCardSetOperationException(Operation, nameof(Operation))
             };
 
             // 依 Identity 去重，保留每張卡第一次出現的順序。

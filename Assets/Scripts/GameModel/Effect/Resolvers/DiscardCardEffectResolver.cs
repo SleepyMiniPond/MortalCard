@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -32,8 +33,7 @@ namespace MortalGame.GameModel
         private static EffectCommandSet _ResolveCore(TriggerContext context, object effect)
         {
             if (effect is not DiscardCardEffect discardCardEffect)
-                throw new InvalidOperationException(
-                    $"DiscardCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(DiscardCardEffectResolver), effect.GetType());
 
             var effectCommands = new List<IEffectCommand>();
             var triggerContext = context with

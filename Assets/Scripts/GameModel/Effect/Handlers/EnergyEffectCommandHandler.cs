@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Linq;
 
@@ -13,7 +14,7 @@ namespace MortalGame.GameModel
             {
                 GainEnergyEffectCommand c => _HandleGain(context, c),
                 LoseEnergyEffectCommand c => _HandleLose(context, c),
-                _ => throw new InvalidOperationException($"EnergyEffectCommandHandler 不支援的命令類型：{command.GetType().Name}")
+                _ => throw new UnsupportedInputTypeException(typeof(EnergyEffectCommandHandler), command.GetType())
             };
         }
 

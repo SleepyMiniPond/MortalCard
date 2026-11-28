@@ -1,6 +1,6 @@
 # 編程規範
 
-> 更新日期：2026-09-19
+> 更新日期：2026-11-29
 > 本文件是開發準則；不代表既有程式已全面符合。現況以對應程式及系統文件為準。
 
 ## 技術與命名
@@ -38,6 +38,19 @@ Buff Level 不低於 0，存在 MaxLevel 時亦不超過上限；0 層 Buff 仍�
 | 兩份相同語意輸入需要反覆核對 | 優先消除重複資料來源 |
 
 驗證與 Runtime 不互相取代：前者排除製作錯誤，後者處理正常遊戲時序。
+
+## 例外與診斷
+
+- 新增或修改自訂錯誤時，必須先重用或定義語意明確的專門 Exception，再於使用端建立該型別。禁止在業務腳本直接使用 new Exception("訊息")、new InvalidOperationException("訊息") 或其他標準例外加上自訂字串／插值／串接文字。訊息由專門 Exception 組裝，使用端只傳必要的 Type、Guid、數值、路徑或驗證結果；一般標準參數、取消及釋放例外依下方規則保留。
+- 專門 Exception 保存必要的唯讀診斷屬性，不接收已組裝好的任意訊息，不建立全域 ExceptionManager 或萬用參數字典；同一語意先找既有型別，避免為不同使用端重複定義。
+- 相同錯誤語意共用型別，獨立的領域契約使用明確型別。按領域收納短例外，不要求一型別一檔案；Runtime 例外位於 Assets/Scripts/Exceptions、namespace MortalGame.Exceptions，Editor 專用例外位於 Assets/Scripts/Editor/Exceptions、namespace MortalGame.Editor.Exceptions，沿用各自既有 assembly。
+- 基底反映原有語意：狀態契約用 InvalidOperationException，非法參數保留 ArgumentException／ArgumentOutOfRangeException 與 ParamName／ActualValue，不支援、尚未實作及 Build 中止各保留相應分類。一般 null／disposed／無自訂敘述的參數例外直接使用標準型別。
+- GameEndException、CardPlayChainHaltedException 與取消有各自控制用途；整理訊息不得改變 throw／return、捕捉、取消或等待清理的順序。向上傳遞既有錯誤時保留原例外及 StackTrace，不重新包裝。
+- 需要診斷資料的正常操作拒絕，以所屬領域的具名原因資料表達，必要 ID 隨原因保存，文字由原因定義集中產生；使用端不傳任意原因字串，也不依文字判斷流程。保留 Rejected／NoOp，不因集中診斷而改為拋出例外。
+- Runtime Log 與手寫追蹤路徑由所屬領域的具名診斷方法集中組裝，呼叫端只傳必要資料；不使用全域字串表或任意訊息參數。搬移時保留 Log 等級、輸出次數與 fallback／執行順序，既有相容性訊息可維持原文字。
+- Validator 回傳具名的 ValidationIssue，保存必要的 Context、ID、索引、列舉或 Type；完整診斷由各領域問題定義的 Message 組裝，依領域合併收納檔案。驗證規則只建立問題資料，Menu／Play Mode 的呈現集中於 ValidationDiagnosticReporter，Build 例外保存問題清單副本。保留批次收集、順序、既有依訊息去重與 Gate 的阻擋規則，不以逐筆 throw 或任意字串取代問題資料。
+- Exception 訊息用於開發診斷；玩家提示與正常 No-op／Rejected 沿用所屬流程。驗證錯誤清單由例外保存副本，避免外部修改使診斷內容失去一致性。
+- NUnit 的 Assert.Throws<T>／Is.TypeOf<T> 會精確比較型別，遷移時同步檢查專門型別與必要屬性，少量確認訊息包含識別即可。新增測試替身須核對 Validator 的型別掃描範圍，避免未註冊的測試命令阻擋 Play Mode。
 
 ## 變更驗證
 

@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Editor.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -21,14 +22,14 @@ namespace MortalGame.Editor
             IReadOnlyList<string> searchFolders)
         {
             if (string.IsNullOrWhiteSpace(catalogAssetPath))
-                throw new ArgumentException("Catalog 資產路徑不可為空。", nameof(catalogAssetPath));
+                throw new EmptyCatalogAssetPathException(nameof(catalogAssetPath));
 
             var folders = (searchFolders ?? Array.Empty<string>())
                 .Where(folder => !string.IsNullOrWhiteSpace(folder))
                 .Distinct(StringComparer.Ordinal)
                 .ToArray();
             if (folders.Length == 0)
-                throw new ArgumentException("內容搜尋目錄不可為空。", nameof(searchFolders));
+                throw new EmptyContentSearchFoldersException(nameof(searchFolders));
 
             var catalog = _LoadOrCreateCatalog(catalogAssetPath);
             var serializedCatalog = new SerializedObject(catalog);
@@ -65,8 +66,7 @@ namespace MortalGame.Editor
             var existingAsset = AssetDatabase.LoadMainAssetAtPath(catalogAssetPath);
             if (existingAsset != null)
             {
-                throw new InvalidOperationException(
-                    $"Catalog 輸出路徑已存在其他類型資產：{catalogAssetPath}");
+                throw new CatalogAssetTypeConflictException(catalogAssetPath, existingAsset.GetType());
             }
 
             catalog = ScriptableObject.CreateInstance<GameContentCatalog>();
@@ -83,8 +83,7 @@ namespace MortalGame.Editor
             var property = serializedCatalog.FindProperty(propertyName);
             if (property == null)
             {
-                throw new InvalidOperationException(
-                    $"GameContentCatalog 缺少序列化欄位：{propertyName}");
+                throw new MissingCatalogSerializedFieldException(propertyName);
             }
 
             property.arraySize = assets.Count;

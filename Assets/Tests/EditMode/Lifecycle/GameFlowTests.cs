@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -109,7 +110,8 @@ namespace MortalGame.Tests
                 new CardInstanceChangeSet(Guid.NewGuid(), default)
             });
 
-            Assert.Throws<InvalidOperationException>(() => _context.CommitBattleCompletion(completion));
+            var error = Assert.Throws<MissingBattleCompletionCardException>(() => _context.CommitBattleCompletion(completion));
+            Assert.That(error.InstanceGuid, Is.EqualTo(source.Deck[1].InstanceGuid));
 
             Assert.That(_context.Ally, Is.SameAs(source));
             Assert.That(_context.Ally.Deck, Is.SameAs(originalDeck));
@@ -129,7 +131,9 @@ namespace MortalGame.Tests
             _context.ResetRun();
             var newAlly = _context.Ally;
 
-            Assert.Throws<InvalidOperationException>(() => _context.CommitBattleCompletion(completion));
+            var error = Assert.Throws<BattleCompletionSourceMismatchException>(() => _context.CommitBattleCompletion(completion));
+            Assert.That(error.ExpectedIdentity, Is.EqualTo(newAlly.Identity));
+            Assert.That(error.ActualIdentity, Is.EqualTo(oldAlly.Identity));
 
             Assert.That(_context.Ally, Is.SameAs(newAlly));
             Assert.That(newAlly.Identity, Is.Not.EqualTo(oldAlly.Identity));
@@ -546,7 +550,15 @@ namespace MortalGame.Tests
                 Exception failure = null;
                 try { await new GameFlow(_context, scenes).Run(stop.Token); }
                 catch (InvalidOperationException error) { failure = error; }
-                Assert.That(failure, Is.Not.Null);
+                if (missing)
+                    Assert.That(failure, Is.TypeOf<MissingBattleCompletionException>());
+                else
+                {
+                    Assert.That(failure, Is.TypeOf<BattleCompletionCardCountMismatchException>());
+                    var countError = (BattleCompletionCardCountMismatchException)failure;
+                    Assert.That(countError.ExpectedCount, Is.EqualTo(original.Deck.Count));
+                    Assert.That(countError.ActualCount, Is.Zero);
+                }
                 Assert.That(_context.Ally, Is.SameAs(original));
                 Assert.That(scenes.Trace.Last(), Is.EqualTo("battle"));
             }
@@ -666,6 +678,37 @@ namespace MortalGame.Tests
             }
             catch (OperationCanceledException) when (stop.IsCancellationRequested) { }
         }
+
+        [UnityTest]
+        public IEnumerator UnsupportedSceneOutput_DoesNotAdvance() => UniTask.ToCoroutine(async () =>
+        {
+            foreach (var invalidMap in new[] { true, false })
+            {
+                using var stop = new CancellationTokenSource();
+                var scenes = new FakeScenes(stop, _context);
+                if (invalidMap) scenes.MapResults.Enqueue((LevelMapReactionType)int.MaxValue);
+                else scenes.Results.Enqueue(new GameplayLoseResult((LoseReactionType)int.MaxValue));
+                Exception failure = null;
+                try { await new GameFlow(_context, scenes).Run(stop.Token); }
+                catch (InvalidOperationException error) { failure = error; }
+                if (invalidMap)
+                {
+                    Assert.That(failure, Is.TypeOf<UnsupportedLevelMapReactionException>());
+                    Assert.That(((UnsupportedLevelMapReactionException)failure).ReactionType,
+                        Is.EqualTo((LevelMapReactionType)int.MaxValue));
+                    Assert.That(scenes.Trace.Last(), Is.EqualTo("map"));
+                    Assert.That(scenes.Attempts, Is.Empty);
+                }
+                else
+                {
+                    Assert.That(failure, Is.TypeOf<UnsupportedGameplayResultException>());
+                    Assert.That(((UnsupportedGameplayResultException)failure).Result,
+                        Is.EqualTo(new GameplayLoseResult((LoseReactionType)int.MaxValue)));
+                    Assert.That(scenes.Trace.Last(), Is.EqualTo("battle"));
+                    Assert.That(scenes.Attempts.Count, Is.EqualTo(1));
+                }
+            }
+        });
 
         private T _Create<T>() where T : ScriptableObject
         {

@@ -13,7 +13,7 @@ namespace MortalGame.Tests
         [Test]
         public void DefaultCatalog_CoversAllScannedGameContent()
         {
-            Assert.That(GameDataValidator.ValidateCatalogCoverage(), Is.Empty);
+            Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateCatalogCoverage()), Is.Empty);
         }
 
         [Test]
@@ -33,9 +33,9 @@ namespace MortalGame.Tests
                 _CreateAsset<StandardCardDataScriptable>(secondCardPath);
                 AssetDatabase.SaveAssets();
 
-                var errors = GameDataValidator.ValidateCatalogCoverage(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCatalogCoverage(
                     catalog,
-                    new[] { folderPath });
+                    new[] { folderPath }));
 
                 Assert.That(errors, Has.Some.Contains("未收錄掃描到的資產"));
                 Assert.That(errors, Has.Some.Contains(secondCardPath));
@@ -64,9 +64,9 @@ namespace MortalGame.Tests
 
                 _SetCardAssets(catalog, firstCard, firstCard, null);
 
-                var errors = GameDataValidator.ValidateCatalogCoverage(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCatalogCoverage(
                     catalog,
-                    new[] { folderPath });
+                    new[] { folderPath }));
 
                 Assert.That(errors, Has.Some.Contains("重複收錄資產"));
                 Assert.That(errors, Has.Some.Contains("空資產引用"));
@@ -98,9 +98,9 @@ namespace MortalGame.Tests
 
                 _SetCardAssets(catalog, secondCard, firstCard);
 
-                var errors = GameDataValidator.ValidateCatalogCoverage(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCatalogCoverage(
                     catalog,
-                    new[] { folderPath });
+                    new[] { folderPath }));
 
                 Assert.That(errors.Single(), Does.Contain("順序與資產路徑排序不一致"));
             }

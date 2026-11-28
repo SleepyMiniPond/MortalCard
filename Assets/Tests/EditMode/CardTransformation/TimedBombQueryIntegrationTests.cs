@@ -121,9 +121,9 @@ namespace MortalGame.Tests.CardTransformation
                 Assert.That(loadedCards?.Zone, Is.EqualTo(CardCollectionType.HandCard));
 
                 _SetCatalogCards(catalog, loaded);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
                 Assert.That(
-                    GameDataValidator.ValidateCardTransformRules(loaded.Data, assetPath),
+                    ValidationTestMessages.Of(GameDataValidator.ValidateCardTransformRules(loaded.Data, assetPath)),
                     Is.Empty);
             }
             finally
@@ -171,7 +171,7 @@ namespace MortalGame.Tests.CardTransformation
                 });
                 _SetCatalogCards(catalog, asset);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains("AllCondition.Conditions 至少需要一項"));
                 Assert.That(errors, Has.Some.Contains("AnyCondition.Conditions 至少需要一項"));

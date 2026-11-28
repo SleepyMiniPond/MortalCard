@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using System.Linq;
@@ -47,9 +48,7 @@ namespace MortalGame.GameModel
                 return creator.Create(data);
             }
 
-            throw new ArgumentException(
-                $"未註冊的 Reaction Session Data 型別：{data.GetType().FullName}",
-                nameof(data));
+            throw new UnregisteredDataTypeException(typeof(ReactionSessionEntityFactory), data.GetType(), nameof(data));
         }
 
         private sealed class SessionBooleanEntityCreator : IReactionSessionEntityCreator

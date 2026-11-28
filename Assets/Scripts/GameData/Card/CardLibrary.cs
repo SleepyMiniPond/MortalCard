@@ -17,7 +17,7 @@ namespace MortalGame.GameData
         {
             if (!_cards.ContainsKey(cardId))
             {
-                Debug.LogError($"Card ID[{cardId}] not found in library.");
+                ContentDiagnosticLogger.LogMissingCard(cardId);
                 return null;
             }
 
@@ -30,7 +30,7 @@ namespace MortalGame.GameData
             if (cardData is StandardCardData standardCardData)
                 return standardCardData;
 
-            Debug.LogError($"Card ID[{cardId}] 不是 Standard CardData。");
+            ContentDiagnosticLogger.LogNotStandardCard(cardId);
             return null;
         }
 
@@ -40,7 +40,7 @@ namespace MortalGame.GameData
             if (cardData is OverrideCardData overrideCardData)
                 return overrideCardData;
 
-            Debug.LogError($"Card ID[{cardId}] 不是 Override CardData。");
+            ContentDiagnosticLogger.LogNotOverrideCard(cardId);
             return null;
         }
     }

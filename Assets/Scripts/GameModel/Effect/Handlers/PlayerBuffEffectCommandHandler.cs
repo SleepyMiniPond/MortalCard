@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Linq;
 
@@ -14,7 +15,7 @@ namespace MortalGame.GameModel
                 AddPlayerBuffEffectCommand c => _HandleAdd(context, c),
                 RemovePlayerBuffEffectCommand c => _HandleRemove(context, c),
                 ModifyPlayerBuffLevelEffectCommand c => _HandleModify(context, c),
-                _ => throw new InvalidOperationException($"PlayerBuffEffectCommandHandler 不支援的命令類型：{command.GetType().Name}")
+                _ => throw new UnsupportedInputTypeException(typeof(PlayerBuffEffectCommandHandler), command.GetType())
             };
         }
 

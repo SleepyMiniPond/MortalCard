@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Linq;
 using MortalGame.Presentation.Abstractions;
 using TMPro;
@@ -24,7 +25,7 @@ namespace MortalGame.GameView
         public IWarningPopupSession Open(IReadOnlyReactiveProperty<WarningPopupDisplayState> state)
         {
             if (_activeSession != null)
-                throw new InvalidOperationException("警告面板尚未釋放，不能重複開啟。");
+                throw new SessionAlreadyOpenException(typeof(WarningPopupPanel));
             var session = new Session(this);
             _activeSession = session;
             try

@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
@@ -50,14 +51,14 @@ namespace MortalGame.GameModel
                 }
             }
 
-            throw new Exception($"Player buff {buffId} not found to modify level.");
+            throw new BuffNotFoundException(typeof(CharacterBuffManager), buffId);
         }
 
         public AddCharacterBuffResult AddBuff(ICharacterBuffEntity newBuff)
         {
             if (_buffs.Any(buff => buff.CharacterBuffDataId == newBuff.CharacterBuffDataId))
             {
-                throw new Exception($"Player buff {newBuff.CharacterBuffDataId} already exists to add.");
+                throw new BuffAlreadyExistsException(typeof(CharacterBuffManager), newBuff.CharacterBuffDataId);
             }
 
             _buffs.Add(newBuff);

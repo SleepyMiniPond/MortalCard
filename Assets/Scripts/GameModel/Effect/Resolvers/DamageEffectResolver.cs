@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Collections.Generic;
 using Optional;
@@ -44,7 +45,7 @@ namespace MortalGame.GameModel
         {
             if (effect is not DamageEffect damageEffect)
             {
-                throw new InvalidOperationException($"DamageEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(DamageEffectResolver), effect.GetType());
             }
 
             if (damageEffect.Targets == null || damageEffect.Value == null)

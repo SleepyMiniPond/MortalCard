@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -140,7 +141,41 @@ namespace MortalGame.Tests.CardTransformation
             var originalDeck = source.Deck;
             var originalCards = source.Deck.ToArray();
 
-            Assert.Throws<InvalidOperationException>(() => source.ApplyBattleCompletion(completion));
+            switch (invalidCase)
+            {
+                case "player":
+                {
+                    var error = Assert.Throws<BattleCompletionSourceMismatchException>(() => source.ApplyBattleCompletion(completion));
+                    Assert.That(error.ExpectedIdentity, Is.EqualTo(source.Identity));
+                    Assert.That(error.ActualIdentity, Is.EqualTo(completion.OriginAllyInstanceGuid));
+                    Assert.That(error.Message, Does.Contain(source.Identity.ToString()));
+                    break;
+                }
+                case "missing":
+                case "extra":
+                {
+                    var error = Assert.Throws<BattleCompletionCardCountMismatchException>(() => source.ApplyBattleCompletion(completion));
+                    Assert.That(error.ExpectedCount, Is.EqualTo(source.Deck.Count));
+                    Assert.That(error.ActualCount, Is.EqualTo(changes.Count));
+                    break;
+                }
+                case "unknown":
+                {
+                    var error = Assert.Throws<MissingBattleCompletionCardException>(() => source.ApplyBattleCompletion(completion));
+                    Assert.That(error.InstanceGuid, Is.EqualTo(source.Deck[1].InstanceGuid));
+                    break;
+                }
+                case "duplicate":
+                case "source-duplicate":
+                {
+                    var error = Assert.Throws<DuplicateCardInstanceIdentityException>(() => source.ApplyBattleCompletion(completion));
+                    Assert.That(error.InstanceGuid, Is.EqualTo(source.Deck[0].InstanceGuid));
+                    Assert.That(error.OwnerType, Is.EqualTo(invalidCase == "duplicate"
+                        ? typeof(AllyBattleCompletion) : typeof(AllyInstance)));
+                    break;
+                }
+                default: Assert.Fail("未定義的錯誤案例。"); break;
+            }
 
             Assert.That(source.Deck, Is.SameAs(originalDeck));
             Assert.That(source.Deck, Is.EqualTo(originalCards));

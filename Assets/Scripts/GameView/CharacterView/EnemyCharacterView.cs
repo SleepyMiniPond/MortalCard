@@ -26,7 +26,7 @@ namespace MortalGame.GameView
 
         public ICharacterAnimationLifetime SummonEnemy(EnemySummonEvent enemySummonEvent)
         {
-            Debug.Log($"Summon Enemy: {enemySummonEvent.Enemy.MainCharacter.NameKey}");
+            ViewDiagnosticLogger.LogEnemySummon(enemySummonEvent.Enemy.MainCharacter.NameKey);
             _playerIdentity = enemySummonEvent.Enemy.MainCharacter.Identity;
 
             return _StartAnimationWorker();

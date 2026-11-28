@@ -80,7 +80,7 @@ namespace MortalGame.Tests
                 };
                 card.Data.SubSelects.Add(first);
                 card.Data.SubSelects.Add(second);
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
                 Assert.That(errors.Any(error => error.Contains("必須引用前面的")), Is.EqualTo(fromFirst));
                 if (!fromFirst) Assert.That(errors, Is.Empty);
             });
@@ -94,7 +94,7 @@ namespace MortalGame.Tests
                 var group = _Group("first");
                 group.CardCandidates = new CombinedCardCollection { Operation = (SetOperationType)999 };
                 card.Data.SubSelects.Add(group);
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
                 Assert.That(errors, Has.Some.Contains("CombinedCardCollection.Operation 無效"));
                 Assert.That(errors, Has.Some.Contains("FirstCollection 為空"));
                 Assert.That(errors, Has.Some.Contains("SecondCollection 為空"));
@@ -109,10 +109,10 @@ namespace MortalGame.Tests
                 var group = _Group("first");
                 group.SelectCount = new CardCollectionCountInteger { CardCollection = new SubSelectedCardCollection { SelectionId = "first" } };
                 card.Data.SubSelects.Add(group);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Has.Some.Contains("必須引用前面的"));
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Has.Some.Contains("必須引用前面的"));
                 group.SelectCount = new ConstInteger { Value = 1 };
                 card.Data.Effects.Add(new DiscardCardEffect { TargetCards = new SubSelectedCardCollection { SelectionId = "first" } });
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
             });
         }
 
@@ -130,7 +130,7 @@ namespace MortalGame.Tests
                 };
                 group.CardCandidates = null;
                 card.Data.SubSelects.Add(group);
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
                 Assert.That(errors, Has.Some.Contains("CountRule 無效"));
                 Assert.That(errors, Has.Some.Contains("SelectCount 不得為負數"));
                 Assert.That(errors, Has.Some.Contains("CardCandidates 為空"));
@@ -156,12 +156,12 @@ namespace MortalGame.Tests
                     };
                     var group = _Group("first");
                     card.Data.SubSelects.Add(group);
-                    Assert.That(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>()), Is.Empty);
+                    Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>())), Is.Empty);
                     localization.LocalizeUI.Add(new LocalizeExcelData
                     {
                         Id = $"CardSelection.{card.Data.ID}.{group.Id}", Info = "選擇第一張卡片"
                     });
-                    Assert.That(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>()), Is.Empty);
+                    Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateLocalization(catalog, localization, Array.Empty<PlayerData>())), Is.Empty);
                 }
                 finally { UnityEngine.Object.DestroyImmediate(localization); }
             });

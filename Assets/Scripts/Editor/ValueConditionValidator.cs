@@ -13,18 +13,18 @@ namespace MortalGame.Editor
         internal static void ValidateConditions(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var condition in SerializedDataGraphUtility.Find<AllCondition>(data))
             {
                 if (condition.Conditions == null || condition.Conditions.Count == 0)
-                    errors.Add($"{context} 的 AllCondition.Conditions 至少需要一項");
+                    errors.Add(new ValidationIssue.EmptyAllConditions(context));
             }
 
             foreach (var condition in SerializedDataGraphUtility.Find<AnyCondition>(data))
             {
                 if (condition.Conditions == null || condition.Conditions.Count == 0)
-                    errors.Add($"{context} 的 AnyCondition.Conditions 至少需要一項");
+                    errors.Add(new ValidationIssue.EmptyAnyConditions(context));
             }
 
             foreach (var condition in SerializedDataGraphUtility.Find<GameTimingCondition>(data))
@@ -33,7 +33,7 @@ namespace MortalGame.Editor
                     !Enum.IsDefined(typeof(GameTiming), condition.Timing))
                 {
                     errors.Add(
-                        $"{context} 的 GameTimingCondition.Timing 必須是有效 Timing：{condition.Timing}");
+                        new ValidationIssue.InvalidConditionTiming(context, condition.Timing));
                 }
             }
 
@@ -43,7 +43,7 @@ namespace MortalGame.Editor
                     !Enum.IsDefined(typeof(ArithmeticConditionType), condition.Arithmetic))
                 {
                     errors.Add(
-                        $"{context} 的 IntegerCompare.Arithmetic 必須是有效比較運算：{condition.Arithmetic}");
+                        new ValidationIssue.InvalidIntegerComparison(context, condition.Arithmetic));
                 }
             }
         }
@@ -51,44 +51,44 @@ namespace MortalGame.Editor
         internal static void ValidateIntegerValues(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var arithmetic in SerializedDataGraphUtility.Find<ArithmeticInteger>(data))
             {
                 if (arithmetic.Operation == ArithmeticType.None)
                 {
-                    errors.Add($"{context} 的 ArithmeticInteger.Operation 不可為 None");
+                    errors.Add(new ValidationIssue.MissingArithmeticOperation(context));
                 }
                 else if (arithmetic.Operation == ArithmeticType.Overwrite)
                 {
                     errors.Add(
-                        $"{context} 的 ArithmeticInteger.Operation 不支援 Overwrite");
+                        new ValidationIssue.UnsupportedArithmeticOverwrite(context));
                 }
 
                 if (arithmetic.Operation is ArithmeticType.Divide or ArithmeticType.Remainder &&
                     arithmetic.Right is ConstInteger { Value: 0 })
                 {
                     errors.Add(
-                        $"{context} 的 ArithmeticInteger.{arithmetic.Operation} 除數不可為 0");
+                        new ValidationIssue.ZeroArithmeticDivisor(context, arithmetic.Operation));
                 }
 
                 if (_HasStaticArithmeticOverflow(arithmetic))
                 {
                     errors.Add(
-                        $"{context} 的 ArithmeticInteger.{arithmetic.Operation} 常數運算結果超出 Int32 範圍");
+                        new ValidationIssue.StaticArithmeticOverflow(context, arithmetic.Operation));
                 }
             }
 
             foreach (var minimum in SerializedDataGraphUtility.Find<MinimumInteger>(data))
             {
                 if (minimum.Values == null || minimum.Values.Count == 0)
-                    errors.Add($"{context} 的 MinimumInteger.Values 至少需要一項");
+                    errors.Add(new ValidationIssue.EmptyMinimumValues(context));
             }
 
             foreach (var maximum in SerializedDataGraphUtility.Find<MaximumInteger>(data))
             {
                 if (maximum.Values == null || maximum.Values.Count == 0)
-                    errors.Add($"{context} 的 MaximumInteger.Values 至少需要一項");
+                    errors.Add(new ValidationIssue.EmptyMaximumValues(context));
             }
 
             foreach (var cardValue in SerializedDataGraphUtility.Find<CardIntegerProperty>(data))
@@ -98,7 +98,7 @@ namespace MortalGame.Editor
                     cardValue.Property))
                 {
                     errors.Add(
-                        $"{context} 的 CardIntegerProperty.Property 無效：{cardValue.Property}");
+                        new ValidationIssue.InvalidCardProperty(context, cardValue.Property));
                 }
             }
 
@@ -109,7 +109,7 @@ namespace MortalGame.Editor
                     characterValue.Property))
                 {
                     errors.Add(
-                        $"{context} 的 CharacterIntegerProperty.Property 無效：{characterValue.Property}");
+                        new ValidationIssue.InvalidCharacterProperty(context, characterValue.Property));
                 }
             }
 
@@ -120,14 +120,14 @@ namespace MortalGame.Editor
                     playerValue.Property))
                 {
                     errors.Add(
-                        $"{context} 的 PlayerIntegerProperty.Property 無效：{playerValue.Property}");
+                        new ValidationIssue.InvalidPlayerProperty(context, playerValue.Property));
                 }
                 else if (playerValue.Property ==
                          PlayerIntegerProperty.PlayerIntegerValueType.CurrentDisposition &&
                          playerValue.Player is PlayerByFaction { Faction: Faction.Enemy })
                 {
                     errors.Add(
-                        $"{context} 的 PlayerIntegerProperty.CurrentDisposition 不可指定 Enemy");
+                        new ValidationIssue.EnemyDispositionQuery(context));
                 }
             }
         }

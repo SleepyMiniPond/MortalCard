@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameModel;
 using System.Collections.Generic;
 using NUnit.Framework;
@@ -30,6 +31,20 @@ namespace MortalGame.Tests
             yield return new TestCaseData(typeof(ModifyCardBuffLevelEffectCommand));
             yield return new TestCaseData(typeof(ApplyCardFormOverrideEffectCommand));
             yield return new TestCaseData(typeof(ModifyCardAttributeEffectCommand));
+        }
+
+        [TestCase(typeof(ApplyCardFormOverrideEffectCommandHandler))]
+        [TestCase(typeof(EnergyEffectCommandHandler))]
+        [TestCase(typeof(CardBuffEffectCommandHandler))]
+        public void Handle_UnsupportedCommandReportsTypesBeforeAccessingContext(Type ownerType)
+        {
+            var handler = (IEffectCommandHandler)Activator.CreateInstance(ownerType);
+            var command = new DamageEffectCommand(null, 0, default);
+
+            var error = Assert.Throws<UnsupportedInputTypeException>(() => handler.Handle(null, command, null));
+
+            Assert.That(error.OwnerType, Is.EqualTo(ownerType));
+            Assert.That(error.ActualType, Is.EqualTo(command.GetType()));
         }
 
         [TestCaseSource(nameof(EffectCommandTypes))]

@@ -14,31 +14,31 @@ namespace MortalGame.Tests
         [Test]
         public void AllEffectCommandTypes_HaveHandler()
         {
-            AssertNoErrors(GameDataValidator.ValidateEffectCommandHandlers());
+            AssertNoErrors(ValidationTestMessages.Of(GameDataValidator.ValidateEffectCommandHandlers()));
         }
 
         [Test]
         public void ScriptableObjectEffects_HaveResolvers()
         {
-            AssertNoErrors(GameDataValidator.ValidateEffectResolvers());
+            AssertNoErrors(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers()));
         }
 
         [Test]
         public void ScriptableObjectReferenceIds_ExistInLibraries()
         {
-            AssertNoErrors(GameDataValidator.ValidateReferenceIds());
+            AssertNoErrors(ValidationTestMessages.Of(GameDataValidator.ValidateReferenceIds()));
         }
 
         [Test]
         public void ScriptableObjectReactionSessions_HaveUniqueTimingRules()
         {
-            AssertNoErrors(GameDataValidator.ValidateReactionSessionRules());
+            AssertNoErrors(ValidationTestMessages.Of(GameDataValidator.ValidateReactionSessionRules()));
         }
 
         [Test]
         public void CardScriptableTypes_AreValid()
         {
-            AssertNoErrors(GameDataValidator.ValidateCardScriptableTypes());
+            AssertNoErrors(ValidationTestMessages.Of(GameDataValidator.ValidateCardScriptableTypes()));
         }
 
         [Test]
@@ -75,9 +75,9 @@ namespace MortalGame.Tests
                 overrideCard.name = "Override Test";
                 overrideCard.Data.ID = "duplicate";
 
-                var errors = GameDataValidator.ValidateCardScriptableTypes(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCardScriptableTypes(
                     new CardDataScriptableBase[] { overrideCard, standard },
-                    Array.Empty<DeckScriptable>());
+                    Array.Empty<DeckScriptable>()));
 
                 Assert.That(errors, Has.Some.Contains("Standard／Override 資產間重複"));
                 Assert.That(errors, Has.Some.Contains("Self Transform Target 必須是 Standard CardData"));
@@ -117,9 +117,9 @@ namespace MortalGame.Tests
                 overrideCard.name = "Override Target";
                 overrideCard.Data.ID = "override-target";
 
-                var errors = GameDataValidator.ValidateCardScriptableTypes(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCardScriptableTypes(
                     new CardDataScriptableBase[] { standard, overrideCard },
-                    Array.Empty<DeckScriptable>());
+                    Array.Empty<DeckScriptable>()));
 
                 AssertNoErrors(errors);
             }
@@ -182,9 +182,9 @@ namespace MortalGame.Tests
                 standardTarget.name = "Standard Target";
                 standardTarget.Data.ID = "standard-target";
 
-                var errors = GameDataValidator.ValidateCardScriptableTypes(
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCardScriptableTypes(
                     new CardDataScriptableBase[] { source, standardTarget },
-                    Array.Empty<DeckScriptable>());
+                    Array.Empty<DeckScriptable>()));
 
                 Assert.That(errors, Has.Some.Contains("TargetCards 為空"));
                 Assert.That(errors, Has.Some.Contains("Target 必須是 Override CardData"));
@@ -755,9 +755,9 @@ namespace MortalGame.Tests
                 }
             };
 
-            var errors = GameDataValidator.ValidateReactionSessionRules(
+            var errors = ValidationTestMessages.Of(GameDataValidator.ValidateReactionSessionRules(
                 sessions,
-                "Validator Test");
+                "Validator Test"));
 
             Assert.That(errors.Count, Is.EqualTo(2));
             Assert.That(

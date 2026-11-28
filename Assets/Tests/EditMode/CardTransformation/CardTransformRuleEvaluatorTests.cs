@@ -138,7 +138,7 @@ namespace MortalGame.Tests.CardTransformation
             cardData.TransformRules.Add(CreateRule("first", priority: 0, transformKey: "first-key"));
             cardData.TransformRules.Add(CreateRule("second", priority: 0, transformKey: "second-key"));
 
-            var errors = GameDataValidator.ValidateCardTransformRules(cardData, "T-010 Test");
+            var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCardTransformRules(cardData, "T-010 Test"));
 
             Assert.That(errors, Has.Some.Contains("只能使用一個 TransformKey"));
         }
@@ -154,7 +154,7 @@ namespace MortalGame.Tests.CardTransformation
             rule.Timing = GameTiming.CardPlayResult;
             cardData.TransformRules.Add(rule);
 
-            var errors = GameDataValidator.ValidateCardTransformRules(cardData, "T-010 Test");
+            var errors = ValidationTestMessages.Of(GameDataValidator.ValidateCardTransformRules(cardData, "T-010 Test"));
 
             Assert.That(errors, Has.Some.Contains("不會進入 Timing Dispatch：CardPlayResult"));
         }

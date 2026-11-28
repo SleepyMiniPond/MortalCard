@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using Optional;
@@ -56,23 +57,20 @@ namespace MortalGame.GameModel
                     candidate.OriginCardInstanceGuid
                         .Map(identity => identity == instance.InstanceGuid)
                         .ValueOr(false))
-                .ValueOr(() => throw new InvalidOperationException(
-                    $"戰鬥結束時找不到 CardInstance [{instance.InstanceGuid}] 對應的卡片實體。"));
+                .ValueOr(() => throw new MissingBattleCardEntityException(instance.InstanceGuid));
 
             if (card.OverrideFormState.TryGetValue(out var overrideState))
             {
                 var removeResult = card.TryRemoveOverrideForm(overrideState.Identity);
                 if (!removeResult.IsSuccess)
                 {
-                    throw new InvalidOperationException(
-                        $"無法清除卡片 [{card.Identity}] 的 External Override：{removeResult.RejectedReason}");
+                    throw new CardOverrideRemovalFailedException(card.Identity, removeResult.Rejection);
                 }
             }
 
             var updatedInstance = CardInstancePersistenceMapper
                 .TryUpdate(card, instance)
-                .ValueOr(() => throw new InvalidOperationException(
-                    $"無法建立 CardInstance [{instance.InstanceGuid}] 的持久形態輸出。"));
+                .ValueOr(() => throw new CardInstancePersistenceExportFailedException(instance.InstanceGuid));
 
             return new CardInstanceChangeSet(
                 instance.InstanceGuid,

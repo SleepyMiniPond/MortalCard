@@ -25,7 +25,7 @@ namespace MortalGame.GameView
 
         public ICharacterAnimationLifetime SummonAlly(AllySummonEvent allySummonEvent)
         {
-            Debug.Log($"Summon Ally: {allySummonEvent.Player.MainCharacter.NameKey}");
+            ViewDiagnosticLogger.LogAllySummon(allySummonEvent.Player.MainCharacter.NameKey);
             _playerIdentity = allySummonEvent.Player.MainCharacter.Identity;
 
             return _StartAnimationWorker();

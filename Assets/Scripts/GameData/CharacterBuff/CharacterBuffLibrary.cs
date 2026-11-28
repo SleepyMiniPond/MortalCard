@@ -21,7 +21,7 @@ namespace MortalGame.GameData
         {
             if (!_buffs.ContainsKey(buffId))
             {
-                Debug.LogError($"CharacterBuff ID[{buffId}] not found in library.");
+                ContentDiagnosticLogger.LogMissingCharacterBuff(buffId);
                 return Option.None<ConditionalCharacterBuffEffect[]>();
             }
 
@@ -34,7 +34,7 @@ namespace MortalGame.GameData
         {
             if (!_buffs.ContainsKey(buffId))
             {
-                Debug.LogError($"CharacterBuff ID[{buffId}] not found in library.");
+                ContentDiagnosticLogger.LogMissingCharacterBuff(buffId);
                 return null;
             }
 
@@ -45,7 +45,7 @@ namespace MortalGame.GameData
         {
             if (!_buffs.ContainsKey(buffId))
             {
-                Debug.LogError($"CharacterBuff ID[{buffId}] not found in library.");
+                ContentDiagnosticLogger.LogMissingCharacterBuff(buffId);
                 return null;
             }
 
@@ -56,7 +56,7 @@ namespace MortalGame.GameData
         {
             if (!_buffs.ContainsKey(buffId))
             {
-                Debug.LogError($"CharacterBuff ID[{buffId}] not found in library.");
+                ContentDiagnosticLogger.LogMissingCharacterBuff(buffId);
                 return Array.Empty<ICharacterBuffPropertyData>();
             }
 

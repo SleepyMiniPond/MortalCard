@@ -121,7 +121,7 @@ namespace MortalGame.Tests
                 Assert.That(arithmetic?.Left, Is.TypeOf<CardCollectionCountInteger>());
 
                 _SetCatalogCards(catalog, loaded);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
             }
             finally
             {

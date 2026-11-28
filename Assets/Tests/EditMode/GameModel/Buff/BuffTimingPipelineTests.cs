@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameModel;
 using System.Linq;
 using NUnit.Framework;
@@ -10,6 +11,46 @@ namespace MortalGame.Tests
 
     public class BuffTimingPipelineTests
     {
+        [TestCase(true)]
+        [TestCase(false)]
+        public void BuffMutation_RejectsMissingOrDuplicateIdWithoutChangingCollection(bool playerBuff)
+        {
+            Type ownerType;
+            string buffId;
+            Action<string, int> modify;
+            Action addDuplicate;
+            Func<int> count;
+            if (playerBuff)
+            {
+                var manager = new PlayerBuffManager();
+                manager.AddBuff(BuffTestBuilder.CreatePlayerBuff());
+                ownerType = typeof(PlayerBuffManager);
+                buffId = BuffTestBuilder.PlayerBuffId;
+                modify = (id, level) => manager.ModifyBuffLevel(id, level);
+                addDuplicate = () => manager.AddBuff(BuffTestBuilder.CreatePlayerBuff());
+                count = () => manager.Buffs.Count;
+            }
+            else
+            {
+                var manager = new CharacterBuffManager();
+                manager.AddBuff(BuffTestBuilder.CreateCharacterBuff());
+                ownerType = typeof(CharacterBuffManager);
+                buffId = BuffTestBuilder.CharacterBuffId;
+                modify = (id, level) => manager.ModifyBuffLevel(id, level);
+                addDuplicate = () => manager.AddBuff(BuffTestBuilder.CreateCharacterBuff());
+                count = () => manager.Buffs.Count;
+            }
+
+            var missing = Assert.Throws<BuffNotFoundException>(() => modify("missing-buff", 1));
+            Assert.That(missing.OwnerType, Is.EqualTo(ownerType));
+            Assert.That(missing.BuffId, Is.EqualTo("missing-buff"));
+            Assert.That(count(), Is.EqualTo(1));
+            var duplicate = Assert.Throws<BuffAlreadyExistsException>(() => addDuplicate());
+            Assert.That(duplicate.OwnerType, Is.EqualTo(ownerType));
+            Assert.That(duplicate.BuffId, Is.EqualTo(buffId));
+            Assert.That(count(), Is.EqualTo(1));
+        }
+
         [Test]
         public void Constructor_WithInitialStatus_UsesControlledStatus()
         {

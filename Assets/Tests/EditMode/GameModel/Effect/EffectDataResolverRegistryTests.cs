@@ -1,8 +1,11 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameModel;
 using System.Collections.Generic;
 using NUnit.Framework;
 using MortalGame.GameData;
+using UnityEngine;
+using UnityEngine.TestTools;
 
 namespace MortalGame.Tests
 {
@@ -185,6 +188,36 @@ namespace MortalGame.Tests
             Assert.IsFalse(EffectDataResolver.HasPlayerBuffEffectResolver(typeof(UnregisteredMultiSourceEffect)));
             Assert.IsFalse(EffectDataResolver.HasCharacterBuffEffectResolver(typeof(UnregisteredMultiSourceEffect)));
             Assert.IsFalse(EffectDataResolver.HasCardBuffEffectResolver(typeof(UnregisteredMultiSourceEffect)));
+        }
+
+        [TestCase(typeof(DamageEffectResolver))]
+        [TestCase(typeof(ApplyCardFormOverrideEffectResolver))]
+        [TestCase(typeof(InvokeCardEffectsResolver))]
+        public void Resolve_UnsupportedEffectReportsTypesBeforeAccessingContext(Type ownerType)
+        {
+            var resolver = (ICardEffectResolver)Activator.CreateInstance(ownerType);
+            var effect = new UnregisteredMultiSourceEffect();
+
+            var error = Assert.Throws<UnsupportedInputTypeException>(() => resolver.Resolve(null, effect));
+
+            Assert.That(error.OwnerType, Is.EqualTo(ownerType));
+            Assert.That(error.ActualType, Is.EqualTo(effect.GetType()));
+            Assert.That(error.Message, Does.Contain(ownerType.FullName));
+            Assert.That(error.Message, Does.Contain(effect.GetType().FullName));
+        }
+
+        [Test]
+        public void Resolve_UnregisteredEffectWarnsAndReturnsEmptyForEverySource()
+        {
+            var effect = new UnregisteredMultiSourceEffect();
+            LogAssert.Expect(LogType.Warning, "[EffectDataResolver] 未知的 ICardEffect 類型：UnregisteredMultiSourceEffect，回傳空 CommandSet");
+            Assert.That(EffectDataResolver.ResolveCardEffect(null, effect), Is.SameAs(EffectCommandSet.Empty));
+            LogAssert.Expect(LogType.Warning, "[EffectDataResolver] 未知的 IPlayerBuffEffect 類型：UnregisteredMultiSourceEffect，回傳空 CommandSet");
+            Assert.That(EffectDataResolver.ResolvePlayerBuffEffect(null, effect), Is.SameAs(EffectCommandSet.Empty));
+            LogAssert.Expect(LogType.Warning, "[EffectDataResolver] 未知的 ICharacterBuffEffect 類型：UnregisteredMultiSourceEffect，回傳空 CommandSet");
+            Assert.That(EffectDataResolver.ResolveCharacterBuffEffect(null, effect), Is.SameAs(EffectCommandSet.Empty));
+            LogAssert.Expect(LogType.Warning, "[EffectDataResolver] 未知的 ICardBuffEffect 類型：UnregisteredMultiSourceEffect，回傳空 CommandSet");
+            Assert.That(EffectDataResolver.ResolveCardBuffEffect(null, effect), Is.SameAs(EffectCommandSet.Empty));
         }
 
         private sealed class UnregisteredMultiSourceEffect :

@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -194,7 +195,8 @@ namespace MortalGame.Tests
             Assert.That(oldConfirmCount, Is.EqualTo(1));
             Assert.That(first.SubscriptionCount, Is.EqualTo(1));
             Assert.That(confirmButton.interactable, Is.False);
-            Assert.Throws<InvalidOperationException>(() => panel.Open(second));
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => panel.Open(second));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CardSelectionPanel)));
             Assert.That(first.SubscriptionCount, Is.EqualTo(1), "拒絕重複開窗不得影響原 Session");
             firstSession.Dispose();
             Assert.That(oldEventsCompleted, Is.True, "釋放應結束本次操作事件");

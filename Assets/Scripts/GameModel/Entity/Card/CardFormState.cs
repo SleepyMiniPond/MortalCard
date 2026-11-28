@@ -36,7 +36,7 @@ namespace MortalGame.GameModel
         string BeforeCardDataId,
         string AfterCardDataId,
         string TransformKey,
-        string RejectedReason = null)
+        CardFormRejection Rejection = null)
     {
         public bool IsSuccess =>
             Status == CardFormOperationStatus.Applied ||

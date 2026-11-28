@@ -1,6 +1,6 @@
 # 卡片形態系統
 
-> 核對日期：2026-11-28
+> 核對日期：2026-11-29
 
 形態改變同一張卡的有效設計資料，不更換 Identity、區域或順序。有效形態優先順序固定為 External Override > Self Form > Base Form。
 
@@ -17,6 +17,12 @@ Apply 目標須為 Standard CardData，Revert 只解除符合 TransformKey 的 S
 Override 是單一可取代狀態，不是堆疊。不同的新 Override 取代舊狀態，解除後不恢復被取代的 Override；同 Key、同目標重複套用為 No-op。解除時核對狀態身份，舊排隊操作不會解除後來的新狀態。
 
 Override 有自己的 Session 與解除規則。觀察 Action 只更新 Session，明確 Timing 派送才判斷解除。來源：[CardFormOverrideState](../Assets/Scripts/GameModel/Entity/Card/CardFormOverrideState.cs)、[TimingDispatchPlanner](../Assets/Scripts/GameModel/Effect/TimingDispatchPlanner.cs)。
+
+## 操作結果與拒絕診斷
+
+形態操作以 CardFormOperationResult 區分 Applied、Reverted、NoOp 與 Rejected。拒絕時的 Rejection 保存具名 [CardFormRejection](../Assets/Scripts/GameModel/Entity/Card/CardFormRejection.cs) 資料；需要輸出診斷時才讀取其 Message，不以任意字串表達原因或依文字判斷規則。缺少目標資料保留請求的 CardDataId，Override Layer 不一致保留狀態身份；成功與正常 No-op 不帶拒絕原因。
+
+原因定義集中組裝繁體中文開發診斷，不代表玩家本地化文案。拒絕不因此改成例外，既有不修改狀態的行為保持不變；戰後持久化若無法解除 Override，專門例外直接保存同一種具型別原因。
 
 ## 屬性與 Buff
 

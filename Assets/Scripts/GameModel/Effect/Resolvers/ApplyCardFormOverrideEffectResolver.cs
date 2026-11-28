@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -11,8 +12,7 @@ namespace MortalGame.GameModel
         {
             if (effect is not ApplyCardFormOverrideEffect applyEffect)
             {
-                throw new InvalidOperationException(
-                    $"ApplyCardFormOverrideEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(ApplyCardFormOverrideEffectResolver), effect.GetType());
             }
 
             var intent = new ApplyCardFormOverrideIntentAction(context.Action.Source);

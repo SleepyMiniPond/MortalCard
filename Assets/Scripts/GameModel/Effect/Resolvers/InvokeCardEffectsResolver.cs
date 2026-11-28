@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -21,7 +22,7 @@ namespace MortalGame.GameModel
         private static EffectCommandSet _ResolveCore(TriggerContext context, object effect)
         {
             if (effect is not InvokeCardEffects invoke)
-                throw new InvalidOperationException($"InvokeCardEffectsResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(InvokeCardEffectsResolver), effect.GetType());
 
             if (!ReactionContextQuery.InvokeCaster(context).TryGetValue(out var caster))
                 return EffectCommandSet.Empty;

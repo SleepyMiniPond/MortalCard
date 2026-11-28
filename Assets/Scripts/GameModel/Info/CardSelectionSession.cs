@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -123,7 +124,7 @@ namespace MortalGame.GameModel
         {
             if (pool is not (CardTemplateSelectionInfo or CardEffectSelectionInfo)) return pool;
             if (!_sessions.TryGetValue(draft.CardIdentity, out var session))
-                throw new InvalidOperationException("準備合成候選前必須建立 CardSelectionSession。");
+                throw new MissingCardSelectionSessionException(draft.CardIdentity);
             return session.Prepare(draft, pool, random);
         }
 

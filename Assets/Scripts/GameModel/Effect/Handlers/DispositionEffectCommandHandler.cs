@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Linq;
 
 namespace MortalGame.GameModel
@@ -12,7 +13,7 @@ namespace MortalGame.GameModel
             {
                 IncreaseDispositionEffectCommand c => _HandleIncrease(context, c),
                 DecreaseDispositionEffectCommand c => _HandleDecrease(context, c),
-                _ => throw new InvalidOperationException($"DispositionEffectCommandHandler 不支援的命令類型：{command.GetType().Name}")
+                _ => throw new UnsupportedInputTypeException(typeof(DispositionEffectCommandHandler), command.GetType())
             };
         }
 

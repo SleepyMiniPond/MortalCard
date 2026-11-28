@@ -114,9 +114,9 @@ namespace MortalGame.Tests
                 _SetCatalogArray(catalog, "_playerBuffAssets", loadedPlayer);
                 _SetCatalogArray(catalog, "_characterBuffAssets", loadedCharacter);
                 _SetCatalogArray(catalog, "_cardBuffAssets", loadedCardBuff);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
-                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Is.Empty);
-                Assert.That(GameDataValidator.ValidateEffectCommandHandlers(), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers(catalog)), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectCommandHandlers()), Is.Empty);
             }
             finally
             {

@@ -20,7 +20,7 @@ namespace MortalGame.GameData
         {
             if (!_buffs.ContainsKey(buffId))
             {
-                Debug.LogError($"CardBuff ID[{buffId}] not found in library.");
+                ContentDiagnosticLogger.LogMissingCardBuff(buffId);
                 return null;
             }
 
@@ -31,7 +31,7 @@ namespace MortalGame.GameData
         {
             if (!_buffs.ContainsKey(buffId))
             {
-                Debug.LogError($"CardBuff ID[{buffId}] not found in library.");
+                ContentDiagnosticLogger.LogMissingCardBuff(buffId);
                 return Option.None<ConditionalCardBuffEffect[]>();
             }
 

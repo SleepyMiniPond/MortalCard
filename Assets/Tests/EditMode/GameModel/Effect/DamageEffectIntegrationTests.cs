@@ -313,11 +313,11 @@ namespace MortalGame.Tests
                 Assert.That(damageEffect.Type, Is.EqualTo(DamageType.Penetrate));
 
                 _SetCatalogCardBuffs(catalog, loaded);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
-                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers(catalog)), Is.Empty);
 
                 damageEffect.Type = (DamageType)999;
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
                 Assert.That(
                     errors,
                     Has.Some.Contains("DamageEffect.Type 無效：999"));

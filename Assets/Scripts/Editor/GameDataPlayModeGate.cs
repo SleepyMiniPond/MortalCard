@@ -13,7 +13,7 @@ namespace MortalGame.Editor
             EditorApplication.playModeStateChanged += _OnPlayModeStateChanged;
         }
 
-        internal static bool CanEnterPlayMode(IReadOnlyList<string> errors)
+        internal static bool CanEnterPlayMode(IReadOnlyList<ValidationIssue> errors)
         {
             return errors != null && errors.Count == 0;
         }
@@ -34,24 +34,14 @@ namespace MortalGame.Editor
             catch (Exception exception)
             {
                 EditorApplication.isPlaying = false;
-                Debug.LogException(exception);
-                EditorUtility.DisplayDialog(
-                    "遊戲資料驗證",
-                    "驗證遊戲資料時發生例外，已取消進入 Play Mode。請查看 Console。",
-                    "確定");
+                ValidationDiagnosticReporter.ReportUnexpectedFailure(exception);
             }
         }
 
-        private static void _BlockPlayMode(IReadOnlyList<string> errors)
+        private static void _BlockPlayMode(IReadOnlyList<ValidationIssue> errors)
         {
             EditorApplication.isPlaying = false;
-            foreach (var error in errors)
-                Debug.LogError($"[Play Mode Gate] {error}");
-
-            EditorUtility.DisplayDialog(
-                "遊戲資料驗證",
-                $"發現 {errors.Count} 個錯誤，已取消進入 Play Mode。請查看 Console。",
-                "確定");
+            ValidationDiagnosticReporter.ReportInvalidForPlayMode(errors);
         }
     }
 }

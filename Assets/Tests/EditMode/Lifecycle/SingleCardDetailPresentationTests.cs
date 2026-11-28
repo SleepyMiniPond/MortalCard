@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -88,7 +89,8 @@ namespace MortalGame.Tests
             var count = 0;
             var ended = false;
             using var subscription = first.CloseRequested.Subscribe(_ => count++, () => ended = true);
-            Assert.Throws<InvalidOperationException>(() => s.Panel.Open(state));
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => s.Panel.Open(state));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(SingleCardDetailPopupPanel)));
             first.Dispose();
             first.Dispose();
             Assert.That(ended, Is.True);

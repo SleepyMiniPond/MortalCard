@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using MortalGame.GameData;
@@ -16,7 +17,7 @@ namespace MortalGame.GameModel
         private static EffectCommandSet _ResolveCore(TriggerContext context, object effect)
         {
             if (effect is not PlayCardEffect playCardEffect)
-                throw new InvalidOperationException($"PlayCardEffectResolver 不支援的效果類型：{effect.GetType().Name}");
+                throw new UnsupportedInputTypeException(typeof(PlayCardEffectResolver), effect.GetType());
 
             var commands = new List<IEffectCommand>();
             foreach (var card in playCardEffect.TargetCards.Eval(context)

@@ -11,11 +11,11 @@ namespace MortalGame.Editor
     /// </summary>
     internal static class SerializedDataGraphUtility
     {
-        public static IReadOnlyList<string> ValidateRequiredReferences(
+        public static IReadOnlyList<ValidationIssue> ValidateRequiredReferences(
             object root,
             string context)
         {
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
             var visited = new HashSet<object>(ReferenceComparer.Instance);
             _Validate(root, context, visited, errors);
             return errors;
@@ -33,11 +33,11 @@ namespace MortalGame.Editor
             object value,
             string context,
             ISet<object> visited,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (value == null || value is UnityEngine.Object unityObject && unityObject == null)
             {
-                errors.Add($"{context} 為空");
+                errors.Add(new ValidationIssue.MissingRequiredValue(context));
                 return;
             }
 

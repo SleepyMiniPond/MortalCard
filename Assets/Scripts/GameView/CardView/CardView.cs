@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.Presentation.Abstractions;
 using MortalGame.GameData;
 using System.Collections.Generic;
@@ -118,7 +119,7 @@ namespace MortalGame.GameView
         public IHandCardInputSession OpenHandInput()
         {
             if (_activeHandInput != null)
-                throw new InvalidOperationException("手牌輸入尚未釋放，不能重複綁定。");
+                throw new SessionAlreadyOpenException(typeof(CardView));
             var session = new HandInputSession(this, _cardIdentity);
             _activeHandInput = session;
             try

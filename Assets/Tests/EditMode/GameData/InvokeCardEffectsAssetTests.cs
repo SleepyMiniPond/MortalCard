@@ -62,9 +62,9 @@ namespace MortalGame.Tests
                 }
 
                 _SetCatalogSource(catalog, source, asset);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
-                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Is.Empty);
-                Assert.That(GameDataValidator.ValidateEffectCommandHandlers(), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers(catalog)), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectCommandHandlers()), Is.Empty);
             }
             finally
             {
@@ -96,10 +96,10 @@ namespace MortalGame.Tests
             {
                 _SetCatalogSource(catalog, source, asset);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains(nested ? "TargetCards.Player 為空" : "TargetCards 為空"));
-                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers(catalog)), Is.Empty);
             }
             finally
             {
@@ -122,7 +122,7 @@ namespace MortalGame.Tests
             {
                 _SetCatalogSource(catalog, 0, card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains(string.IsNullOrWhiteSpace(selectionId)
                     ? "SubSelectedCardCollection.SelectionId 為空"

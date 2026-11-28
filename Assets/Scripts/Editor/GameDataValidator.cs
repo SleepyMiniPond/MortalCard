@@ -10,14 +10,14 @@ namespace MortalGame.Editor
 {
     public static partial class GameDataValidator
     {
-        public static IReadOnlyList<string> ValidateAll()
+        public static IReadOnlyList<ValidationIssue> ValidateAll()
         {
             var catalog = _LoadDefaultCatalog();
             if (catalog == null)
             {
                 return new[] { _GetMissingCatalogError() }
                     .Concat(ValidateEffectCommandHandlers())
-                    .Distinct()
+                    .Distinct(ValidationIssueMessageComparer.Instance)
                     .ToArray();
             }
 
@@ -33,11 +33,11 @@ namespace MortalGame.Editor
                 .Concat(_ValidateEffectResolvers(catalog))
                 .Concat(_ValidateCardTransformRules(catalog))
                 .Concat(_ValidateReactionSessionRules(catalog))
-                .Distinct()
+                .Distinct(ValidationIssueMessageComparer.Instance)
                 .ToArray();
         }
 
-        public static IReadOnlyList<string> ValidateContentIntegrity()
+        public static IReadOnlyList<ValidationIssue> ValidateContentIntegrity()
         {
             var catalog = _LoadDefaultCatalog();
             return catalog == null
@@ -45,13 +45,13 @@ namespace MortalGame.Editor
                 : _ValidateContentIntegrity(catalog);
         }
 
-        public static IReadOnlyList<string> ValidateNestedContent(
+        public static IReadOnlyList<ValidationIssue> ValidateNestedContent(
             GameContentCatalog catalog)
         {
             if (catalog == null)
-                return new[] { "GameContentCatalog 為空，無法驗證巢狀內容" };
+                return new[] { new ValidationIssue.MissingCatalogForNestedContent() };
 
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
 
             foreach (var asset in catalog.CardAssets.Where(asset => asset != null))
             {
@@ -83,13 +83,13 @@ namespace MortalGame.Editor
             }
 
             _ValidateContentIds(catalog, errors);
-            return errors.Distinct().ToArray();
+            return errors.Distinct(ValidationIssueMessageComparer.Instance).ToArray();
         }
 
         private static void _ValidateCommonNestedSemantics(
             object data,
             string context,
-            List<string> errors)
+            List<ValidationIssue> errors)
         {
             errors.AddRange(SerializedDataGraphUtility.ValidateRequiredReferences(data, context));
             ValueConditionValidator.ValidateConditions(data, context, errors);
@@ -102,17 +102,17 @@ namespace MortalGame.Editor
             _ValidateCardOperationSemantics(data, context, errors);
         }
 
-        public static IReadOnlyList<string> ValidateLocalization(
+        public static IReadOnlyList<ValidationIssue> ValidateLocalization(
             GameContentCatalog catalog,
             ExcelDatas localizationData,
             IEnumerable<PlayerData> playerDatas)
         {
             if (catalog == null)
-                return new[] { "GameContentCatalog 為空，無法驗證 Localization" };
+                return new[] { new ValidationIssue.MissingCatalogForLocalization() };
             if (localizationData == null)
-                return new[] { "ExcelDatas 為空，無法驗證 Localization" };
+                return new[] { new ValidationIssue.MissingLocalizationData() };
 
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
             var cardKeys = _ValidateTitleInfoTable(
                 localizationData.LocalizeCard,
                 nameof(ExcelDatas.LocalizeCard),
@@ -190,10 +190,10 @@ namespace MortalGame.Editor
                 nameof(ExcelDatas.LocalizePlayer),
                 errors);
 
-            return errors.Distinct().ToArray();
+            return errors.Distinct(ValidationIssueMessageComparer.Instance).ToArray();
         }
 
-        public static IReadOnlyList<string> ValidateCatalogCoverage()
+        public static IReadOnlyList<ValidationIssue> ValidateCatalogCoverage()
         {
             var catalog = _LoadDefaultCatalog();
             return catalog == null
@@ -203,14 +203,14 @@ namespace MortalGame.Editor
                     ProjectAssetPaths.GameContent.SearchFolders);
         }
 
-        public static IReadOnlyList<string> ValidateCatalogCoverage(
+        public static IReadOnlyList<ValidationIssue> ValidateCatalogCoverage(
             GameContentCatalog catalog,
             IReadOnlyList<string> searchFolders)
         {
             if (catalog == null)
-                return new[] { "GameContentCatalog 為空，無法驗證內容覆蓋" };
+                return new[] { new ValidationIssue.MissingCatalogForCoverage() };
 
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
             _ValidateCatalogCollection(
                 catalog.CardAssets,
                 EditorAssetUtility.FindAssets<CardDataScriptableBase>(searchFolders),
@@ -234,7 +234,7 @@ namespace MortalGame.Editor
             return errors;
         }
 
-        public static IReadOnlyList<string> ValidateReactionSessionRules()
+        public static IReadOnlyList<ValidationIssue> ValidateReactionSessionRules()
         {
             var catalog = _LoadDefaultCatalog();
             return catalog == null
@@ -242,10 +242,10 @@ namespace MortalGame.Editor
                 : _ValidateReactionSessionRules(catalog);
         }
 
-        private static IReadOnlyList<string> _ValidateReactionSessionRules(
+        private static IReadOnlyList<ValidationIssue> _ValidateReactionSessionRules(
             GameContentCatalog catalog)
         {
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
 
             foreach (var asset in catalog.PlayerBuffAssets.Where(asset => asset != null))
             {
@@ -280,21 +280,21 @@ namespace MortalGame.Editor
             return errors;
         }
 
-        public static IReadOnlyList<string> ValidateReactionSessionRules(
+        public static IReadOnlyList<ValidationIssue> ValidateReactionSessionRules(
             IReadOnlyDictionary<string, IReactionSessionData> sessions,
             string context)
         {
             if (sessions == null)
-                return Array.Empty<string>();
+                return Array.Empty<ValidationIssue>();
 
             return sessions
                 .SelectMany(pair => GetDuplicateTimings(pair.Value)
                     .Select(timing =>
-                        $"{context}[{pair.Key}] 的 TimingRule 重複：{timing}"))
+                        new ValidationIssue.DuplicateReactionTiming(context, pair.Key, timing)))
                 .ToArray();
         }
 
-        public static IReadOnlyList<string> ValidateCardTransformRules()
+        public static IReadOnlyList<ValidationIssue> ValidateCardTransformRules()
         {
             var catalog = _LoadDefaultCatalog();
             return catalog == null
@@ -302,7 +302,7 @@ namespace MortalGame.Editor
                 : _ValidateCardTransformRules(catalog);
         }
 
-        private static IReadOnlyList<string> _ValidateCardTransformRules(
+        private static IReadOnlyList<ValidationIssue> _ValidateCardTransformRules(
             GameContentCatalog catalog)
         {
             return catalog.CardAssets
@@ -313,7 +313,7 @@ namespace MortalGame.Editor
                 .ToArray();
         }
 
-        public static IReadOnlyList<string> ValidateCardScriptableTypes()
+        public static IReadOnlyList<ValidationIssue> ValidateCardScriptableTypes()
         {
             var catalog = _LoadDefaultCatalog();
             if (catalog == null)
@@ -325,21 +325,21 @@ namespace MortalGame.Editor
                     ProjectAssetPaths.GameContent.SearchFolders));
         }
 
-        public static IReadOnlyList<string> ValidateCardScriptableTypes(
+        public static IReadOnlyList<ValidationIssue> ValidateCardScriptableTypes(
             IEnumerable<CardDataScriptableBase> cardAssets,
             IEnumerable<DeckScriptable> deckAssets)
         {
             var cards = (cardAssets ?? Enumerable.Empty<CardDataScriptableBase>())
                 .Where(asset => asset != null)
                 .ToArray();
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
 
             foreach (var duplicateId in cards
                 .Where(asset => asset.CardData != null)
                 .GroupBy(asset => asset.CardData.ID)
                 .Where(group => !string.IsNullOrWhiteSpace(group.Key) && group.Count() > 1))
             {
-                errors.Add($"CardData ID 在 Standard／Override 資產間重複：{duplicateId.Key}");
+                errors.Add(new ValidationIssue.DuplicateCardDataId(duplicateId.Key));
             }
 
             var assetsById = cards
@@ -354,7 +354,7 @@ namespace MortalGame.Editor
                 var cardData = cardAsset.CardData;
                 if (cardData == null)
                 {
-                    errors.Add($"{context} 的 CardData 為空");
+                    errors.Add(new ValidationIssue.MissingCardData(context));
                     continue;
                 }
 
@@ -373,14 +373,12 @@ namespace MortalGame.Editor
                     if (!assetsById.TryGetValue(applyOperation.TargetCardDataId, out var targetAsset))
                     {
                         errors.Add(
-                            $"{context} / CardData[{cardData.ID}] 的 Self Transform Target " +
-                            $"指向不存在的 CardData：{applyOperation.TargetCardDataId}");
+                            new ValidationIssue.MissingSelfTransformTarget(context, cardData.ID, applyOperation.TargetCardDataId));
                     }
                     else if (targetAsset is not StandardCardDataScriptable)
                     {
                         errors.Add(
-                            $"{context} / CardData[{cardData.ID}] 的 Self Transform Target " +
-                            $"必須是 Standard CardData：{applyOperation.TargetCardDataId}");
+                            new ValidationIssue.WrongSelfTransformTargetType(context, cardData.ID, applyOperation.TargetCardDataId));
                     }
                 }
             }
@@ -391,18 +389,18 @@ namespace MortalGame.Editor
                     continue;
 
                 if ((deck.Cards ?? Array.Empty<StandardCardDataScriptable>()).Any(card => card == null))
-                    errors.Add($"{GetAssetContext(deck)} 的 DeckScriptable.Cards 含有空卡牌引用");
+                    errors.Add(new ValidationIssue.NullDeckCardReference(GetAssetContext(deck)));
             }
 
             return errors;
         }
 
-        private static IReadOnlyList<string> ValidateCardFormOverrideEffects(
+        private static IReadOnlyList<ValidationIssue> ValidateCardFormOverrideEffects(
             CardData cardData,
             string context,
             IReadOnlyDictionary<string, CardDataScriptableBase> assetsById)
         {
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
             var effects = EnumerateCardEffects(cardData)
                 .OfType<ApplyCardFormOverrideEffect>()
                 .ToArray();
@@ -414,29 +412,29 @@ namespace MortalGame.Editor
                     $"{context} / CardData[{cardData.ID}].ApplyCardFormOverrideEffect[{index}]";
 
                 if (effect.TargetCards == null)
-                    errors.Add($"{effectContext} 的 TargetCards 為空");
+                    errors.Add(new ValidationIssue.MissingOverrideTargets(effectContext));
                 if (string.IsNullOrWhiteSpace(effect.OverrideKey))
-                    errors.Add($"{effectContext} 的 OverrideKey 為空");
+                    errors.Add(new ValidationIssue.MissingOverrideKey(effectContext));
 
                 if (string.IsNullOrWhiteSpace(effect.TargetCardDataId))
                 {
-                    errors.Add($"{effectContext} 的 TargetCardDataId 為空");
+                    errors.Add(new ValidationIssue.MissingOverrideTargetId(effectContext));
                 }
                 else if (!assetsById.TryGetValue(effect.TargetCardDataId, out var targetAsset))
                 {
                     errors.Add(
-                        $"{effectContext} 指向不存在的 Override CardData：{effect.TargetCardDataId}");
+                        new ValidationIssue.MissingOverrideTarget(effectContext, effect.TargetCardDataId));
                 }
                 else if (targetAsset is not OverrideCardDataScriptable)
                 {
                     errors.Add(
-                        $"{effectContext} 的 Target 必須是 Override CardData：{effect.TargetCardDataId}");
+                        new ValidationIssue.WrongOverrideTargetType(effectContext, effect.TargetCardDataId));
                 }
 
                 var releaseRules = effect.ReleaseRules;
                 if (releaseRules == null || releaseRules.Count == 0)
                 {
-                    errors.Add($"{effectContext} 的 ReleaseRules 不可為空");
+                    errors.Add(new ValidationIssue.MissingOverrideReleaseRules(effectContext));
                 }
                 else
                 {
@@ -446,14 +444,14 @@ namespace MortalGame.Editor
                         var ruleContext = $"{effectContext}.ReleaseRules[{ruleIndex}]";
                         if (rule == null)
                         {
-                            errors.Add($"{ruleContext} 為空");
+                            errors.Add(new ValidationIssue.MissingRequiredValue(ruleContext));
                             continue;
                         }
 
                         if (rule.Timing == GameTiming.None)
-                            errors.Add($"{ruleContext} 的 Timing 不可為 None");
+                            errors.Add(new ValidationIssue.MissingTiming(ruleContext));
                         else if (!IsTimingDispatchSupported(rule.Timing))
-                            errors.Add($"{ruleContext} 的 Timing 不會進入 Timing Dispatch：{rule.Timing}");
+                            errors.Add(new ValidationIssue.UndispatchedTiming(ruleContext, rule.Timing));
 
                         ValidateOverrideReleaseRuleConditions(
                             rule.Conditions,
@@ -465,16 +463,16 @@ namespace MortalGame.Editor
 
                 if (effect.ReactionSessions == null)
                 {
-                    errors.Add($"{effectContext} 的 ReactionSessions 為空");
+                    errors.Add(new ValidationIssue.MissingOverrideSessions(effectContext));
                     continue;
                 }
 
                 foreach (var session in effect.ReactionSessions)
                 {
                     if (string.IsNullOrWhiteSpace(session.Key))
-                        errors.Add($"{effectContext} 的 ReactionSession Key 為空");
+                        errors.Add(new ValidationIssue.EmptyOverrideSessionKey(effectContext));
                     if (session.Value == null)
-                        errors.Add($"{effectContext}.ReactionSessions[{session.Key}] 的資料為空");
+                        errors.Add(new ValidationIssue.MissingOverrideSessionData(effectContext, session.Key));
                 }
 
                 errors.AddRange(ValidateReactionSessionRules(
@@ -489,11 +487,11 @@ namespace MortalGame.Editor
             IReadOnlyList<ICondition> conditions,
             string context,
             IReadOnlyDictionary<string, IReactionSessionData> reactionSessions,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (conditions == null)
             {
-                errors.Add($"{context} 的 Conditions 含有空值");
+                errors.Add(new ValidationIssue.NullConditions(context));
                 return;
             }
 
@@ -503,7 +501,7 @@ namespace MortalGame.Editor
                 var conditionContext = $"{context}.Conditions[{index}]";
                 if (condition == null)
                 {
-                    errors.Add($"{context} 的 Conditions 含有空值");
+                    errors.Add(new ValidationIssue.NullConditions(context));
                     continue;
                 }
 
@@ -533,39 +531,38 @@ namespace MortalGame.Editor
                     case CardFormOverrideSessionCondition sessionCondition:
                         if (string.IsNullOrWhiteSpace(sessionCondition.SessionKey))
                         {
-                            errors.Add($"{conditionContext} 的 Override SessionKey 為空");
+                            errors.Add(new ValidationIssue.MissingOverrideConditionSessionKey(conditionContext));
                         }
                         else if (reactionSessions == null ||
                             !reactionSessions.ContainsKey(sessionCondition.SessionKey))
                         {
                             errors.Add(
-                                $"{conditionContext} 引用不存在的 Override SessionKey：" +
-                                sessionCondition.SessionKey);
+                                new ValidationIssue.UnknownOverrideConditionSession(conditionContext, sessionCondition.SessionKey));
                         }
 
                         if (sessionCondition.Conditions == null ||
                             sessionCondition.Conditions.Any(valueCondition => valueCondition == null))
                         {
-                            errors.Add($"{conditionContext} 的 Session Conditions 含有空值");
+                            errors.Add(new ValidationIssue.NullSessionConditions(conditionContext));
                         }
                         break;
                 }
             }
         }
 
-        public static IReadOnlyList<string> ValidateCardTransformRules(
+        public static IReadOnlyList<ValidationIssue> ValidateCardTransformRules(
             StandardCardData cardData,
             string context)
         {
             if (cardData == null)
-                return new[] { $"{context} 的 CardData 為空" };
+                return new[] { new ValidationIssue.MissingCardData(context) };
 
             var rules = cardData.TransformRules ?? new List<CardTransformRule>();
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
             var validRules = rules.Where(rule => rule != null).ToArray();
 
             if (rules.Any(rule => rule == null))
-                errors.Add($"{context} / CardData[{cardData.ID}].TransformRules 含有空規則");
+                errors.Add(new ValidationIssue.NullTransformRule(context, cardData.ID));
 
             var transformKeys = validRules
                 .Select(rule => rule.TransformKey)
@@ -573,37 +570,37 @@ namespace MortalGame.Editor
                 .Distinct()
                 .ToArray();
             if (transformKeys.Length > 1)
-                errors.Add($"{context} / CardData[{cardData.ID}].TransformRules 第一版只能使用一個 TransformKey");
+                errors.Add(new ValidationIssue.MultipleTransformKeys(context, cardData.ID));
 
             foreach (var ruleGroup in validRules
                 .Where(rule => !string.IsNullOrWhiteSpace(rule.RuleId))
                 .GroupBy(rule => rule.RuleId)
                 .Where(group => group.Count() > 1))
             {
-                errors.Add($"{context} / CardData[{cardData.ID}].TransformRules 的 RuleId 重複：{ruleGroup.Key}");
+                errors.Add(new ValidationIssue.DuplicateTransformRuleId(context, cardData.ID, ruleGroup.Key));
             }
 
             foreach (var rule in validRules)
             {
                 var ruleContext = $"{context} / CardData[{cardData.ID}].TransformRules[{rule.RuleId}]";
                 if (string.IsNullOrWhiteSpace(rule.RuleId))
-                    errors.Add($"{ruleContext} 的 RuleId 為空");
+                    errors.Add(new ValidationIssue.MissingTransformRuleId(ruleContext));
                 if (string.IsNullOrWhiteSpace(rule.TransformKey))
-                    errors.Add($"{ruleContext} 的 TransformKey 為空");
+                    errors.Add(new ValidationIssue.MissingTransformKey(ruleContext));
                 if (rule.Timing == GameTiming.None)
-                    errors.Add($"{ruleContext} 的 Timing 不可為 None");
+                    errors.Add(new ValidationIssue.MissingTiming(ruleContext));
                 else if (!IsTimingDispatchSupported(rule.Timing))
-                    errors.Add($"{ruleContext} 的 Timing 不會進入 Timing Dispatch：{rule.Timing}");
+                    errors.Add(new ValidationIssue.UndispatchedTiming(ruleContext, rule.Timing));
                 if (rule.Conditions == null || rule.Conditions.Any(condition => condition == null))
-                    errors.Add($"{ruleContext} 的 Conditions 含有空值");
+                    errors.Add(new ValidationIssue.NullConditions(ruleContext));
                 switch (rule.Operation)
                 {
                     case null:
-                        errors.Add($"{ruleContext} 的 Operation 為空");
+                        errors.Add(new ValidationIssue.MissingTransformOperation(ruleContext));
                         break;
                     case ApplyCardTransformOperationData apply
                         when string.IsNullOrWhiteSpace(apply.TargetCardDataId):
-                        errors.Add($"{ruleContext} 的 Apply 缺少 TargetCardDataId");
+                        errors.Add(new ValidationIssue.MissingApplyTargetId(ruleContext));
                         break;
                 }
             }
@@ -611,15 +608,15 @@ namespace MortalGame.Editor
             return errors;
         }
 
-        public static IReadOnlyList<string> ValidateEffectCommandHandlers()
+        public static IReadOnlyList<ValidationIssue> ValidateEffectCommandHandlers()
         {
             return GetConcreteTypes<IEffectCommand>()
                 .Where(type => !EffectCommandExecutor.HasEffectCommandHandler(type))
-                .Select(type => $"{type.Name} 缺少 IEffectCommandHandler 註冊")
+                .Select(type => new ValidationIssue.MissingCommandHandler(type))
                 .ToArray();
         }
 
-        public static IReadOnlyList<string> ValidateEffectResolvers()
+        public static IReadOnlyList<ValidationIssue> ValidateEffectResolvers()
         {
             var catalog = _LoadDefaultCatalog();
             return catalog == null
@@ -627,18 +624,18 @@ namespace MortalGame.Editor
                 : _ValidateEffectResolvers(catalog);
         }
 
-        public static IReadOnlyList<string> ValidateEffectResolvers(
+        public static IReadOnlyList<ValidationIssue> ValidateEffectResolvers(
             GameContentCatalog catalog)
         {
             return catalog == null
-                ? new[] { "GameContentCatalog 為空，無法驗證 Effect Resolver" }
+                ? new[] { new ValidationIssue.MissingCatalogForResolvers() }
                 : _ValidateEffectResolvers(catalog);
         }
 
-        private static IReadOnlyList<string> _ValidateEffectResolvers(
+        private static IReadOnlyList<ValidationIssue> _ValidateEffectResolvers(
             GameContentCatalog catalog)
         {
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
 
             foreach (var cardAsset in catalog.CardAssets.Where(asset => asset != null))
                 ValidateCardEffects(cardAsset.CardData, AssetDatabase.GetAssetPath(cardAsset), errors);
@@ -655,7 +652,7 @@ namespace MortalGame.Editor
             return errors;
         }
 
-        public static IReadOnlyList<string> ValidateReferenceIds()
+        public static IReadOnlyList<ValidationIssue> ValidateReferenceIds()
         {
             var catalog = _LoadDefaultCatalog();
             return catalog == null
@@ -663,15 +660,15 @@ namespace MortalGame.Editor
                 : _ValidateReferenceIds(catalog);
         }
 
-        public static IReadOnlyList<string> ValidateReferenceIds(
+        public static IReadOnlyList<ValidationIssue> ValidateReferenceIds(
             GameContentCatalog catalog)
         {
             return catalog == null
-                ? new[] { "GameContentCatalog 為空，無法驗證參照 ID" }
+                ? new[] { new ValidationIssue.MissingCatalogForReferenceIds() }
                 : _ValidateReferenceIds(catalog);
         }
 
-        private static IReadOnlyList<string> _ValidateReferenceIds(
+        private static IReadOnlyList<ValidationIssue> _ValidateReferenceIds(
             GameContentCatalog catalog)
         {
             var cardIds = catalog.CardAssets
@@ -694,7 +691,7 @@ namespace MortalGame.Editor
                 .Where(asset => asset.Data != null)
                 .Select(asset => asset.Data.ID)
                 .ToHashSet();
-            var errors = new List<string>();
+            var errors = new List<ValidationIssue>();
 
             foreach (var cardAsset in catalog.CardAssets.Where(asset => asset != null))
             {
@@ -818,7 +815,7 @@ namespace MortalGame.Editor
             string assetPath,
             ISet<string> playerBuffIds,
             ISet<string> cardBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var effect in SerializedDataGraphUtility.Find<AddPlayerBuffEffect>(data))
             {
@@ -872,7 +869,7 @@ namespace MortalGame.Editor
             ISet<string> playerBuffIds,
             ISet<string> characterBuffIds,
             ISet<string> cardBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             _ValidateBuffQueryIds(
                 SerializedDataGraphUtility.Find<PlayerBuffById>(data).Select(value => value.BuffId)
@@ -905,20 +902,20 @@ namespace MortalGame.Editor
             ISet<string> validIds,
             string buffType,
             string assetPath,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var queryId in queryIds.Where(id => !string.IsNullOrWhiteSpace(id)).Distinct())
             {
                 if (!validIds.Contains(queryId))
-                    errors.Add($"{assetPath} 的 {buffType} 查詢引用不存在的 Buff ID：{queryId}");
+                    errors.Add(new ValidationIssue.UnknownBuffQueryId(assetPath, buffType, queryId));
             }
         }
 
-        private static void ValidateCardEffects(CardData cardData, string assetPath, ICollection<string> errors)
+        private static void ValidateCardEffects(CardData cardData, string assetPath, ICollection<ValidationIssue> errors)
         {
             if (cardData == null)
             {
-                errors.Add($"{assetPath} 的 CardData 為空");
+                errors.Add(new ValidationIssue.MissingCardData(assetPath));
                 return;
             }
 
@@ -946,11 +943,11 @@ namespace MortalGame.Editor
             }
         }
 
-        private static void ValidatePlayerBuffEffects(PlayerBuffData buffData, string assetPath, ICollection<string> errors)
+        private static void ValidatePlayerBuffEffects(PlayerBuffData buffData, string assetPath, ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
             {
-                errors.Add($"{assetPath} 的 PlayerBuffData 為空");
+                errors.Add(new ValidationIssue.MissingPlayerBuffData(assetPath));
                 return;
             }
 
@@ -962,17 +959,17 @@ namespace MortalGame.Editor
                     if (effect != null && !EffectDataResolver.HasPlayerBuffEffectResolver(effect.GetType()))
                     {
                         errors.Add(
-                            $"{assetPath} / PlayerBuffData[{buffData.ID}].BuffEffects[{pair.Key}] 的 {effect.GetType().Name} 缺少 IPlayerBuffEffectResolver 註冊");
+                            new ValidationIssue.MissingPlayerBuffResolver(assetPath, buffData.ID, pair.Key, effect.GetType()));
                     }
                 }
             }
         }
 
-        private static void ValidateCharacterBuffEffects(CharacterBuffData buffData, string assetPath, ICollection<string> errors)
+        private static void ValidateCharacterBuffEffects(CharacterBuffData buffData, string assetPath, ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
             {
-                errors.Add($"{assetPath} 的 CharacterBuffData 為空");
+                errors.Add(new ValidationIssue.MissingCharacterBuffData(assetPath));
                 return;
             }
 
@@ -984,17 +981,17 @@ namespace MortalGame.Editor
                     if (effect != null && !EffectDataResolver.HasCharacterBuffEffectResolver(effect.GetType()))
                     {
                         errors.Add(
-                            $"{assetPath} / CharacterBuffData[{buffData.ID}].BuffEffects[{pair.Key}] 的 {effect.GetType().Name} 缺少 ICharacterBuffEffectResolver 註冊");
+                            new ValidationIssue.MissingCharacterBuffResolver(assetPath, buffData.ID, pair.Key, effect.GetType()));
                     }
                 }
             }
         }
 
-        private static void ValidateCardBuffEffects(CardBuffData buffData, string assetPath, ICollection<string> errors)
+        private static void ValidateCardBuffEffects(CardBuffData buffData, string assetPath, ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
             {
-                errors.Add($"{assetPath} 的 CardBuffData 為空");
+                errors.Add(new ValidationIssue.MissingCardBuffData(assetPath));
                 return;
             }
 
@@ -1027,7 +1024,7 @@ namespace MortalGame.Editor
             ISet<string> cardIds,
             ISet<string> cardBuffIds,
             ISet<string> playerBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (cardData == null)
                 return;
@@ -1068,7 +1065,7 @@ namespace MortalGame.Editor
             string assetPath,
             ISet<string> cardIds,
             ISet<string> cardBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
                 return;
@@ -1086,7 +1083,7 @@ namespace MortalGame.Editor
             string assetPath,
             ISet<string> cardIds,
             ISet<string> cardBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
                 return;
@@ -1104,7 +1101,7 @@ namespace MortalGame.Editor
             string assetPath,
             ISet<string> cardIds,
             ISet<string> cardBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
                 return;
@@ -1121,7 +1118,7 @@ namespace MortalGame.Editor
             DeckScriptable deck,
             string assetPath,
             ISet<string> cardIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (deck == null)
                 return;
@@ -1130,7 +1127,7 @@ namespace MortalGame.Editor
             {
                 if (cardAsset == null)
                 {
-                    errors.Add($"{assetPath} 的 DeckScriptable.Cards 含有空卡牌引用");
+                    errors.Add(new ValidationIssue.NullDeckCardReference(assetPath));
                     continue;
                 }
 
@@ -1138,39 +1135,39 @@ namespace MortalGame.Editor
             }
         }
 
-        private static void ValidatePlayerDeck(PlayerData playerData, string assetPath, ICollection<string> errors)
+        private static void ValidatePlayerDeck(PlayerData playerData, string assetPath, ICollection<ValidationIssue> errors)
         {
             if (playerData == null)
             {
-                errors.Add($"{assetPath} 的 PlayerData 為空");
+                errors.Add(new ValidationIssue.MissingPlayerData(assetPath));
                 return;
             }
 
             if (playerData.Deck == null)
-                errors.Add($"{assetPath} / PlayerData[{playerData.ID}] 缺少 Deck 引用");
+                errors.Add(new ValidationIssue.MissingPlayerDeck(assetPath, playerData.ID));
         }
 
-        private static void ValidateCardEffectResolver(ICardEffect effect, string context, ICollection<string> errors)
+        private static void ValidateCardEffectResolver(ICardEffect effect, string context, ICollection<ValidationIssue> errors)
         {
             if (effect != null && !EffectDataResolver.HasCardEffectResolver(effect.GetType()))
-                errors.Add($"{context} 的 {effect.GetType().Name} 缺少 ICardEffectResolver 註冊");
+                errors.Add(new ValidationIssue.MissingCardResolver(context, effect.GetType()));
         }
 
-        private static void ValidateCardBuffEffectResolver(ICardBuffEffect effect, string context, ICollection<string> errors)
+        private static void ValidateCardBuffEffectResolver(ICardBuffEffect effect, string context, ICollection<ValidationIssue> errors)
         {
             if (effect != null && !EffectDataResolver.HasCardBuffEffectResolver(effect.GetType()))
-                errors.Add($"{context} 的 {effect.GetType().Name} 缺少 ICardBuffEffectResolver 註冊");
+                errors.Add(new ValidationIssue.MissingCardBuffResolver(context, effect.GetType()));
         }
 
         private static void _ValidateDamageEffectSemantics(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var effect in SerializedDataGraphUtility.Find<DamageEffect>(data))
             {
                 if (!Enum.IsDefined(typeof(DamageType), effect.Type))
-                    errors.Add($"{context} 的 DamageEffect.Type 無效：{effect.Type}");
+                    errors.Add(new ValidationIssue.InvalidDamageType(context, effect.Type));
             }
         }
 
@@ -1223,13 +1220,13 @@ namespace MortalGame.Editor
             IEnumerable<AddCardBuffData> addCardBuffDatas,
             string context,
             ISet<string> cardBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var addCardBuffData in addCardBuffDatas ?? Enumerable.Empty<AddCardBuffData>())
             {
                 if (addCardBuffData == null)
                 {
-                    errors.Add($"{context} 含有空 AddCardBuffData");
+                    errors.Add(new ValidationIssue.NullAddedCardBuff(context));
                     continue;
                 }
 
@@ -1237,19 +1234,19 @@ namespace MortalGame.Editor
             }
         }
 
-        private static void ValidateId(ISet<string> validIds, string id, string context, ICollection<string> errors)
+        private static void ValidateId(ISet<string> validIds, string id, string context, ICollection<ValidationIssue> errors)
         {
             if (string.IsNullOrWhiteSpace(id))
             {
-                errors.Add($"{context} 為空");
+                errors.Add(new ValidationIssue.MissingRequiredValue(context));
                 return;
             }
 
             if (!validIds.Contains(id))
-                errors.Add($"{context} 指向不存在的 ID：{id}");
+                errors.Add(new ValidationIssue.UnknownReferenceId(context, id));
         }
 
-        private static IReadOnlyList<string> _ValidateContentIntegrity(
+        private static IReadOnlyList<ValidationIssue> _ValidateContentIntegrity(
             GameContentCatalog catalog)
         {
             var localizationData = AssetDatabase.LoadAssetAtPath<ExcelDatas>(
@@ -1266,14 +1263,14 @@ namespace MortalGame.Editor
             return ValidateNestedContent(catalog)
                 .Concat(_ValidateReferenceIds(catalog))
                 .Concat(ValidateLocalization(catalog, localizationData, playerDatas))
-                .Distinct()
+                .Distinct(ValidationIssueMessageComparer.Instance)
                 .ToArray();
         }
 
         private static void _ValidateCardNestedSemantics(
             CardData cardData,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (cardData == null)
                 return;
@@ -1284,14 +1281,14 @@ namespace MortalGame.Editor
             {
                 if (string.IsNullOrWhiteSpace(create.TemplateSelectionId) ||
                     !subSelections.OfType<CardTemplateSelectionGroup>().Any(group => group.Id == create.TemplateSelectionId))
-                    errors.Add($"{context} 的 CreateComposedCardEffect.TemplateSelectionId 找不到模板群組");
+                    errors.Add(new ValidationIssue.UnknownCompositionTemplate(context));
             }
             foreach (var pair in subSelections
                 .Select((selection, index) => (Selection: selection, Index: index))
                 .Where(pair => pair.Selection != null))
             {
                 if (string.IsNullOrWhiteSpace(pair.Selection.Id))
-                    errors.Add($"{context}.SubSelects[{pair.Index}].Id 為空");
+                    errors.Add(new ValidationIssue.EmptySubSelectionId(context, pair.Index));
             }
 
             foreach (var duplicateId in subSelections
@@ -1302,7 +1299,7 @@ namespace MortalGame.Editor
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key))
             {
-                errors.Add($"{context}.SubSelects 的 Id 重複：{duplicateId}");
+                errors.Add(new ValidationIssue.DuplicateSubSelectionId(context, duplicateId));
             }
 
             var existCardIds = subSelections
@@ -1318,14 +1315,14 @@ namespace MortalGame.Editor
                     continue;
                 var groupContext = $"{context}.SubSelects[{index}]";
                 if (!Enum.IsDefined(typeof(CardSelectionCountRule), group.CountRule))
-                    errors.Add($"{groupContext}.CountRule 無效：{group.CountRule}");
+                    errors.Add(new ValidationIssue.InvalidSelectionCountRule(groupContext, group.CountRule));
                 if (ValueConditionValidator.TryEvaluateStaticInteger(group.SelectCount, out var count) && count < 0)
-                    errors.Add($"{groupContext}.SelectCount 不得為負數：{count}");
+                    errors.Add(new ValidationIssue.NegativeSelectionCount(groupContext, count));
 
                 foreach (var reference in SerializedDataGraphUtility.Find<SubSelectedCardCollection>(group))
                 {
                     if (!string.IsNullOrWhiteSpace(reference.SelectionId) && !precedingIds.Contains(reference.SelectionId))
-                        errors.Add($"{groupContext} 的 SubSelectedCardCollection.SelectionId 必須引用前面的 ExistCard 群組：{reference.SelectionId}");
+                        errors.Add(new ValidationIssue.InvalidPriorSelectionReference(groupContext, reference.SelectionId));
                 }
                 if (!string.IsNullOrWhiteSpace(group.Id))
                     precedingIds.Add(group.Id);
@@ -1336,7 +1333,7 @@ namespace MortalGame.Editor
                 if (!string.IsNullOrWhiteSpace(selectedCards.SelectionId) &&
                     !existCardIds.Contains(selectedCards.SelectionId))
                 {
-                    errors.Add($"{context} 的 SubSelectedCardCollection.SelectionId 找不到 ExistCard 群組：{selectedCards.SelectionId}");
+                    errors.Add(new ValidationIssue.UnknownExistCardSelection(context, selectedCards.SelectionId));
                 }
             }
 
@@ -1354,7 +1351,7 @@ namespace MortalGame.Editor
                 for (var index = 0; index < conditionalEffects.Length; index++)
                 {
                     if (conditionalEffects[index] == null)
-                        errors.Add($"{context}.TriggeredEffects[{pair.Key}][{index}] 為空");
+                        errors.Add(new ValidationIssue.NullTriggeredEffect(context, pair.Key, index));
                 }
             }
 
@@ -1365,7 +1362,7 @@ namespace MortalGame.Editor
             string context,
             ISet<string> cardIds,
             ISet<string> cardBuffIds,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var createCard in SerializedDataGraphUtility.Find<CreateCardEffect>(data))
             {
@@ -1394,18 +1391,18 @@ namespace MortalGame.Editor
         private static void _ValidateCardCollectionSemantics(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var collection in SerializedDataGraphUtility.Find<CombinedCardCollection>(data))
             {
                 if (!Enum.IsDefined(typeof(SetOperationType), collection.Operation))
-                    errors.Add($"{context} 的 CombinedCardCollection.Operation 無效：{collection.Operation}");
+                    errors.Add(new ValidationIssue.InvalidCardSetOperation(context, collection.Operation));
             }
 
             foreach (var selectedCards in SerializedDataGraphUtility.Find<SubSelectedCardCollection>(data))
             {
                 if (string.IsNullOrWhiteSpace(selectedCards.SelectionId))
-                    errors.Add($"{context} 的 SubSelectedCardCollection.SelectionId 為空");
+                    errors.Add(new ValidationIssue.MissingSubSelectionId(context));
             }
 
             foreach (var cards in SerializedDataGraphUtility.Find<CardsOfPlayer>(data))
@@ -1414,7 +1411,7 @@ namespace MortalGame.Editor
                     !Enum.IsDefined(typeof(CardCollectionType), cards.Zone))
                 {
                     errors.Add(
-                        $"{context} 的 CardsOfPlayer.Zone 必須是有效的一般卡片區域：{cards.Zone}");
+                        new ValidationIssue.InvalidCardZone(context, cards.Zone));
                 }
             }
 
@@ -1423,7 +1420,7 @@ namespace MortalGame.Editor
                 if (cards.Conditions == null || cards.Conditions.Count == 0)
                 {
                     errors.Add(
-                        $"{context} 的 FilteredCardCollection.Conditions 至少需要一項");
+                        new ValidationIssue.EmptyFilteredCardConditions(context));
                 }
             }
 
@@ -1432,7 +1429,7 @@ namespace MortalGame.Editor
                 if (condition.Conditions == null || condition.Conditions.Count == 0)
                 {
                     errors.Add(
-                        $"{context} 的 CardCollectionAnyCondition.Conditions 至少需要一項");
+                        new ValidationIssue.EmptyAnyCardConditions(context));
                 }
             }
 
@@ -1441,7 +1438,7 @@ namespace MortalGame.Editor
                 if (condition.Conditions == null || condition.Conditions.Count == 0)
                 {
                     errors.Add(
-                        $"{context} 的 CardCollectionAllCondition.Conditions 至少需要一項");
+                        new ValidationIssue.EmptyAllCardConditions(context));
                 }
             }
         }
@@ -1449,37 +1446,37 @@ namespace MortalGame.Editor
         private static void _ValidateCardOperationSemantics(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var effect in SerializedDataGraphUtility.Find<CreateComposedCardEffect>(data))
             {
-                if (effect.Target == null) errors.Add($"{context} 的 CreateComposedCardEffect.Target 為空");
+                if (effect.Target == null) errors.Add(new ValidationIssue.MissingComposedCardTarget(context));
                 if (!effect.CreateDestination.IsNormalCardZone())
-                    errors.Add($"{context} 的 CreateComposedCardEffect.CreateDestination 必須是有效的一般卡片區域");
+                    errors.Add(new ValidationIssue.InvalidComposedCardDestination(context));
             }
             foreach (var effect in SerializedDataGraphUtility.Find<CreateCardEffect>(data))
             {
                 if (effect.Target == null)
-                    errors.Add($"{context} 的 CreateCardEffect.Target 為空");
+                    errors.Add(new ValidationIssue.MissingCreateCardTarget(context));
                 if (!effect.CreateDestination.IsNormalCardZone())
                 {
                     errors.Add(
-                        $"{context} 的 CreateCardEffect.CreateDestination 必須是有效的一般卡片區域：{effect.CreateDestination}");
+                        new ValidationIssue.InvalidCreateCardDestination(context, effect.CreateDestination));
                 }
                 if (effect.CardDataIds == null || effect.CardDataIds.Count == 0)
-                    errors.Add($"{context} 的 CreateCardEffect.CardDataIds 至少需要一項");
+                    errors.Add(new ValidationIssue.EmptyCreatedCardIds(context));
             }
 
             foreach (var effect in SerializedDataGraphUtility.Find<CloneCardEffect>(data))
             {
                 if (effect.Target == null)
-                    errors.Add($"{context} 的 CloneCardEffect.Target 為空");
+                    errors.Add(new ValidationIssue.MissingCloneCardTarget(context));
                 if (effect.ClonedCards == null)
-                    errors.Add($"{context} 的 CloneCardEffect.ClonedCards 為空");
+                    errors.Add(new ValidationIssue.MissingClonedCards(context));
                 if (!effect.CloneDestination.IsNormalCardZone())
                 {
                     errors.Add(
-                        $"{context} 的 CloneCardEffect.CloneDestination 必須是有效的一般卡片區域：{effect.CloneDestination}");
+                        new ValidationIssue.InvalidCloneCardDestination(context, effect.CloneDestination));
                 }
             }
         }
@@ -1487,7 +1484,7 @@ namespace MortalGame.Editor
         private static void _ValidateCardStateSemantics(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var condition in SerializedDataGraphUtility.Find<CardTypesCondition>(data))
                 _ValidateCardStateSet(
@@ -1511,32 +1508,32 @@ namespace MortalGame.Editor
             SetConditionType setCondition,
             string conditionName,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
             where T : Enum
         {
             if (setCondition == SetConditionType.None ||
                 !Enum.IsDefined(typeof(SetConditionType), setCondition))
             {
-                errors.Add($"{context} 的 {conditionName}.Condition 無效：{setCondition}");
+                errors.Add(new ValidationIssue.InvalidSetCondition(context, conditionName, setCondition));
             }
 
             if (values == null || values.Count == 0)
             {
-                errors.Add($"{context} 的 {conditionName} 比較值至少需要一項");
+                errors.Add(new ValidationIssue.EmptyComparisonValues(context, conditionName));
                 return;
             }
 
             foreach (var value in values)
             {
                 if (!Enum.IsDefined(typeof(T), value) || Convert.ToInt64(value) == 0)
-                    errors.Add($"{context} 的 {conditionName} 比較值無效：{value}");
+                    errors.Add(new ValidationIssue.InvalidComparisonValue<T>(context, conditionName, value));
             }
         }
 
         private static void _ValidateBuffStateSemantics(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var value in SerializedDataGraphUtility.Find<PlayerBuffIntegerProperty>(data))
             {
@@ -1545,7 +1542,7 @@ namespace MortalGame.Editor
                     value.Property))
                 {
                     errors.Add(
-                        $"{context} 的 PlayerBuffIntegerProperty.Property 無效：{value.Property}");
+                        new ValidationIssue.InvalidPlayerBuffProperty(context, value.Property));
                 }
             }
 
@@ -1556,7 +1553,7 @@ namespace MortalGame.Editor
                     value.Property))
                 {
                     errors.Add(
-                        $"{context} 的 CharacterBuffIntegerProperty.Property 無效：{value.Property}");
+                        new ValidationIssue.InvalidCharacterBuffProperty(context, value.Property));
                 }
             }
 
@@ -1567,7 +1564,7 @@ namespace MortalGame.Editor
                     value.Property))
                 {
                     errors.Add(
-                        $"{context} 的 CardBuffIntegerProperty.Property 無效：{value.Property}");
+                        new ValidationIssue.InvalidCardBuffProperty(context, value.Property));
                 }
             }
 
@@ -1598,19 +1595,19 @@ namespace MortalGame.Editor
             IEnumerable<string> buffIds,
             string buffType,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var buffId in buffIds)
             {
                 if (string.IsNullOrWhiteSpace(buffId))
-                    errors.Add($"{context} 的 {buffType} 查詢 BuffId 為空");
+                    errors.Add(new ValidationIssue.MissingBuffQueryId(context, buffType));
             }
         }
 
         private static void _ValidateTargetSemantics(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var player in SerializedDataGraphUtility.Find<PlayerByFaction>(data))
             {
@@ -1618,7 +1615,7 @@ namespace MortalGame.Editor
                     !Enum.IsDefined(typeof(Faction), player.Faction))
                 {
                     errors.Add(
-                        $"{context} 的 PlayerByFaction.Faction 必須是 Ally 或 Enemy：{player.Faction}");
+                        new ValidationIssue.InvalidPlayerFaction(context, player.Faction));
                 }
             }
 
@@ -1627,7 +1624,7 @@ namespace MortalGame.Editor
                 if (index.Order is not (OrderType.Ascending or OrderType.Descending))
                 {
                     errors.Add(
-                        $"{context} 的 IndexOfCardCollection.Order 必須是 Ascending 或 Descending：{index.Order}");
+                        new ValidationIssue.InvalidCardOrder(context, index.Order));
                 }
             }
         }
@@ -1635,7 +1632,7 @@ namespace MortalGame.Editor
         private static void _ValidateCardBuffNestedSemantics(
             CardBuffData buffData,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
                 return;
@@ -1651,20 +1648,20 @@ namespace MortalGame.Editor
                 buffData.LifeTimeData is not HandCardLifeTimeCardBuffData)
             {
                 errors.Add(
-                    $"{context}.LifeTimeData 使用未註冊型別：{buffData.LifeTimeData.GetType().Name}");
+                    new ValidationIssue.UnregisteredLifeTime(context, buffData.LifeTimeData.GetType()));
             }
         }
 
         private static void _ValidatePlayerBuffNestedSemantics(
             PlayerBuffData buffData,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
                 return;
 
             if (buffData.MaxLevel <= 0)
-                errors.Add($"{context}.MaxLevel 必須大於 0");
+                errors.Add(new ValidationIssue.NonPositiveMaxLevel(context));
 
             _ValidateSessionSemantics(buffData.Sessions, $"{context}.Sessions", errors);
             _ValidateTimingKeys(buffData.BuffEffects, $"{context}.BuffEffects", errors);
@@ -1675,7 +1672,7 @@ namespace MortalGame.Editor
                 buffData.LifeTimeData is not PlayerBuffTurnLifeTimeData)
             {
                 errors.Add(
-                    $"{context}.LifeTimeData 使用未註冊型別：{buffData.LifeTimeData.GetType().Name}");
+                    new ValidationIssue.UnregisteredLifeTime(context, buffData.LifeTimeData.GetType()));
             }
 
             var sessions = buffData.Sessions ??
@@ -1684,12 +1681,12 @@ namespace MortalGame.Editor
             {
                 if (string.IsNullOrWhiteSpace(condition.SessionKey))
                 {
-                    errors.Add($"{context} 的 PlayerBuffSessionCondition.SessionKey 為空");
+                    errors.Add(new ValidationIssue.MissingPlayerBuffConditionSession(context));
                 }
                 else if (!sessions.ContainsKey(condition.SessionKey))
                 {
                     errors.Add(
-                        $"{context} 的 PlayerBuffSessionCondition 引用不存在的 Session：{condition.SessionKey}");
+                        new ValidationIssue.UnknownPlayerBuffConditionSession(context, condition.SessionKey));
                 }
             }
 
@@ -1697,17 +1694,17 @@ namespace MortalGame.Editor
             {
                 if (string.IsNullOrWhiteSpace(value.SessionIntegerId))
                 {
-                    errors.Add($"{context} 的 PlayerBuffSessionInteger.SessionIntegerId 為空");
+                    errors.Add(new ValidationIssue.MissingPlayerBuffIntegerSession(context));
                 }
                 else if (!sessions.TryGetValue(value.SessionIntegerId, out var session))
                 {
                     errors.Add(
-                        $"{context} 的 PlayerBuffSessionInteger 引用不存在的 Session：{value.SessionIntegerId}");
+                        new ValidationIssue.UnknownPlayerBuffIntegerSession(context, value.SessionIntegerId));
                 }
                 else if (session is not SessionInteger)
                 {
                     errors.Add(
-                        $"{context} 的 PlayerBuffSessionInteger 必須引用 SessionInteger：{value.SessionIntegerId}");
+                        new ValidationIssue.WrongPlayerBuffIntegerSessionType(context, value.SessionIntegerId));
                 }
             }
         }
@@ -1715,13 +1712,13 @@ namespace MortalGame.Editor
         private static void _ValidateCharacterBuffNestedSemantics(
             CharacterBuffData buffData,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (buffData == null)
                 return;
 
             if (buffData.MaxLevel <= 0)
-                errors.Add($"{context}.MaxLevel 必須大於 0");
+                errors.Add(new ValidationIssue.NonPositiveMaxLevel(context));
 
             _ValidateSessionSemantics(buffData.Sessions, $"{context}.Sessions", errors);
             _ValidateTimingKeys(buffData.BuffEffects, $"{context}.BuffEffects", errors);
@@ -1731,25 +1728,25 @@ namespace MortalGame.Editor
                 buffData.LifeTimeData is not TurnLifeTimeCharacterBuffData)
             {
                 errors.Add(
-                    $"{context}.LifeTimeData 使用未註冊型別：{buffData.LifeTimeData.GetType().Name}");
+                    new ValidationIssue.UnregisteredLifeTime(context, buffData.LifeTimeData.GetType()));
             }
 
             if (buffData.LifeTimeData is TurnLifeTimeCharacterBuffData turnLifeTime &&
                 turnLifeTime.Turn <= 0)
             {
-                errors.Add($"{context}.LifeTimeData.Turn 必須大於 0");
+                errors.Add(new ValidationIssue.NonPositiveLifeTimeTurn(context));
             }
         }
 
         private static void _ValidateAddCardBuffDataSemantics(
             object data,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var addCardBuffData in SerializedDataGraphUtility.Find<AddCardBuffData>(data))
             {
                 if (addCardBuffData.Level is ConstInteger { Value: < 0 })
-                    errors.Add($"{context} 的 AddCardBuffData.Level 不可為負數");
+                    errors.Add(new ValidationIssue.NegativeAddedCardBuffLevel(context));
             }
         }
 
@@ -1757,7 +1754,7 @@ namespace MortalGame.Editor
         private static void _ValidateSessionSemantics(
             IReadOnlyDictionary<string, IReactionSessionData> sessions,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (sessions == null)
                 return;
@@ -1765,7 +1762,7 @@ namespace MortalGame.Editor
             foreach (var pair in sessions)
             {
                 if (string.IsNullOrWhiteSpace(pair.Key))
-                    errors.Add($"{context} 含有空 Session Key");
+                    errors.Add(new ValidationIssue.EmptySessionKey(context));
 
                 switch (pair.Value)
                 {
@@ -1787,7 +1784,7 @@ namespace MortalGame.Editor
                         break;
                     default:
                         errors.Add(
-                            $"{context}[{pair.Key}] 使用未註冊型別：{pair.Value.GetType().Name}");
+                            new ValidationIssue.UnregisteredSessionType(context, pair.Key, pair.Value.GetType()));
                         break;
                 }
             }
@@ -1797,7 +1794,7 @@ namespace MortalGame.Editor
             IReadOnlyList<T> rules,
             string context,
             Func<T, GameTiming> getTiming,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
             where T : class
         {
             if (rules == null)
@@ -1807,14 +1804,14 @@ namespace MortalGame.Editor
             {
                 var rule = rules[index];
                 if (rule != null && getTiming(rule) == GameTiming.None)
-                    errors.Add($"{context}[{index}].Timing 不可為 None");
+                    errors.Add(new ValidationIssue.MissingIndexedTiming(context, index));
             }
         }
 
         private static void _ValidateTimingKeys<T>(
             IReadOnlyDictionary<T, ConditionalCardEffect[]> effects,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
             where T : struct, Enum
         {
             if (effects == null)
@@ -1823,16 +1820,16 @@ namespace MortalGame.Editor
             foreach (var timing in effects.Keys)
             {
                 if (Convert.ToInt32(timing) == 0)
-                    errors.Add($"{context} 的 Timing 不可為 None");
+                    errors.Add(new ValidationIssue.MissingTiming(context));
                 else if (!Enum.IsDefined(typeof(T), timing))
-                    errors.Add($"{context} 的 Timing 無效：{timing}");
+                    errors.Add(new ValidationIssue.InvalidTiming<T>(context, timing));
             }
         }
 
         private static void _ValidateTimingKeys<T>(
             IReadOnlyDictionary<T, ConditionalCardBuffEffect[]> effects,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
             where T : struct, Enum
         {
             if (effects == null)
@@ -1841,14 +1838,14 @@ namespace MortalGame.Editor
             foreach (var timing in effects.Keys)
             {
                 if (Convert.ToInt32(timing) == 0)
-                    errors.Add($"{context} 的 Timing 不可為 None");
+                    errors.Add(new ValidationIssue.MissingTiming(context));
             }
         }
 
         private static void _ValidateTimingKeys<T>(
             IReadOnlyDictionary<T, ConditionalPlayerBuffEffect[]> effects,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
             where T : struct, Enum
         {
             if (effects == null)
@@ -1857,14 +1854,14 @@ namespace MortalGame.Editor
             foreach (var timing in effects.Keys)
             {
                 if (Convert.ToInt32(timing) == 0)
-                    errors.Add($"{context} 的 Timing 不可為 None");
+                    errors.Add(new ValidationIssue.MissingTiming(context));
             }
         }
 
         private static void _ValidateTimingKeys<T>(
             IReadOnlyDictionary<T, ConditionalCharacterBuffEffect[]> effects,
             string context,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
             where T : struct, Enum
         {
             if (effects == null)
@@ -1873,13 +1870,13 @@ namespace MortalGame.Editor
             foreach (var timing in effects.Keys)
             {
                 if (Convert.ToInt32(timing) == 0)
-                    errors.Add($"{context} 的 Timing 不可為 None");
+                    errors.Add(new ValidationIssue.MissingTiming(context));
             }
         }
 
         private static void _ValidateContentIds(
             GameContentCatalog catalog,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             _ValidateIdCollection(
                 catalog.CardAssets
@@ -1918,11 +1915,11 @@ namespace MortalGame.Editor
         private static void _ValidateIdCollection(
             IEnumerable<(string Id, string Context)> entries,
             string dataType,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             var values = entries.ToArray();
             foreach (var entry in values.Where(entry => string.IsNullOrWhiteSpace(entry.Id)))
-                errors.Add($"{entry.Context} 的 {dataType}.ID 為空");
+                errors.Add(new ValidationIssue.MissingContentId(entry.Context, dataType));
 
             foreach (var duplicateId in values
                 .Where(entry => !string.IsNullOrWhiteSpace(entry.Id))
@@ -1930,7 +1927,7 @@ namespace MortalGame.Editor
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key))
             {
-                errors.Add($"{dataType}.ID 重複：{duplicateId}");
+                errors.Add(new ValidationIssue.DuplicateContentId(dataType, duplicateId));
             }
         }
 
@@ -1938,11 +1935,11 @@ namespace MortalGame.Editor
             IReadOnlyList<LocalizeExcelTitleData> rows,
             string tableName,
             bool requireInfo,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (rows == null)
             {
-                errors.Add($"ExcelDatas.{tableName} 為空");
+                errors.Add(new ValidationIssue.MissingLocalizationTable(tableName));
                 return new HashSet<string>();
             }
 
@@ -1951,16 +1948,16 @@ namespace MortalGame.Editor
                 var row = rows[index];
                 if (row == null)
                 {
-                    errors.Add($"ExcelDatas.{tableName}[{index}] 為空");
+                    errors.Add(new ValidationIssue.NullLocalizationRow(tableName, index));
                     continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(row.Id))
-                    errors.Add($"ExcelDatas.{tableName}[{index}].Id 為空");
+                    errors.Add(new ValidationIssue.EmptyLocalizationId(tableName, index));
                 if (string.IsNullOrWhiteSpace(row.Title))
-                    errors.Add($"ExcelDatas.{tableName}[{index}].Title 為空");
+                    errors.Add(new ValidationIssue.EmptyLocalizationTitle(tableName, index));
                 if (requireInfo && string.IsNullOrWhiteSpace(row.Info))
-                    errors.Add($"ExcelDatas.{tableName}[{index}].Info 為空");
+                    errors.Add(new ValidationIssue.EmptyLocalizationInfo(tableName, index));
             }
 
             foreach (var duplicateId in rows
@@ -1969,7 +1966,7 @@ namespace MortalGame.Editor
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key))
             {
-                errors.Add($"ExcelDatas.{tableName} 的 Id 重複：{duplicateId}");
+                errors.Add(new ValidationIssue.DuplicateLocalizationId(tableName, duplicateId));
             }
 
             return rows
@@ -1981,11 +1978,11 @@ namespace MortalGame.Editor
         private static void _ValidateInfoTable(
             IReadOnlyList<LocalizeExcelData> rows,
             string tableName,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             if (rows == null)
             {
-                errors.Add($"ExcelDatas.{tableName} 為空");
+                errors.Add(new ValidationIssue.MissingLocalizationTable(tableName));
                 return;
             }
 
@@ -1994,14 +1991,14 @@ namespace MortalGame.Editor
                 var row = rows[index];
                 if (row == null)
                 {
-                    errors.Add($"ExcelDatas.{tableName}[{index}] 為空");
+                    errors.Add(new ValidationIssue.NullLocalizationRow(tableName, index));
                     continue;
                 }
 
                 if (string.IsNullOrWhiteSpace(row.Id))
-                    errors.Add($"ExcelDatas.{tableName}[{index}].Id 為空");
+                    errors.Add(new ValidationIssue.EmptyLocalizationId(tableName, index));
                 if (string.IsNullOrWhiteSpace(row.Info))
-                    errors.Add($"ExcelDatas.{tableName}[{index}].Info 為空");
+                    errors.Add(new ValidationIssue.EmptyLocalizationInfo(tableName, index));
             }
 
             foreach (var duplicateId in rows
@@ -2010,7 +2007,7 @@ namespace MortalGame.Editor
                 .Where(group => group.Count() > 1)
                 .Select(group => group.Key))
             {
-                errors.Add($"ExcelDatas.{tableName} 的 Id 重複：{duplicateId}");
+                errors.Add(new ValidationIssue.DuplicateLocalizationId(tableName, duplicateId));
             }
         }
 
@@ -2018,18 +2015,18 @@ namespace MortalGame.Editor
             IEnumerable<(string Key, string Context)> references,
             ISet<string> validKeys,
             string tableName,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
         {
             foreach (var reference in references)
             {
                 if (string.IsNullOrWhiteSpace(reference.Key))
                 {
-                    errors.Add($"{reference.Context} 為空");
+                    errors.Add(new ValidationIssue.MissingRequiredValue(reference.Context));
                 }
                 else if (!validKeys.Contains(reference.Key))
                 {
                     errors.Add(
-                        $"{reference.Context} 在 ExcelDatas.{tableName} 找不到 Localization Key");
+                        new ValidationIssue.MissingLocalizationKey(reference.Context, tableName));
                 }
             }
         }
@@ -2038,7 +2035,7 @@ namespace MortalGame.Editor
             IReadOnlyList<T> catalogAssets,
             IReadOnlyList<T> scannedAssets,
             string collectionName,
-            ICollection<string> errors)
+            ICollection<ValidationIssue> errors)
             where T : UnityEngine.Object
         {
             var catalogItems = catalogAssets ?? Array.Empty<T>();
@@ -2050,7 +2047,7 @@ namespace MortalGame.Editor
                 var asset = catalogItems[index];
                 if (asset == null)
                 {
-                    errors.Add($"GameContentCatalog.{collectionName}[{index}] 是空資產引用");
+                    errors.Add(new ValidationIssue.NullCatalogAsset(collectionName, index));
                     continue;
                 }
 
@@ -2058,7 +2055,7 @@ namespace MortalGame.Editor
                 if (string.IsNullOrWhiteSpace(assetPath))
                 {
                     errors.Add(
-                        $"GameContentCatalog.{collectionName}[{index}] 不是已儲存的專案資產：{asset.name}");
+                        new ValidationIssue.UnsavedCatalogAsset(collectionName, index, asset.name));
                     continue;
                 }
 
@@ -2071,7 +2068,7 @@ namespace MortalGame.Editor
                 .Select(group => group.Key))
             {
                 errors.Add(
-                    $"GameContentCatalog.{collectionName} 重複收錄資產：{duplicatePath}");
+                    new ValidationIssue.DuplicateCatalogAsset(collectionName, duplicatePath));
             }
 
             var scannedPaths = scannedItems
@@ -2085,7 +2082,7 @@ namespace MortalGame.Editor
             foreach (var missingPath in scannedPaths.Where(path => !catalogPathSet.Contains(path)))
             {
                 errors.Add(
-                    $"GameContentCatalog.{collectionName} 未收錄掃描到的資產：{missingPath}");
+                    new ValidationIssue.MissingCatalogAsset(collectionName, missingPath));
             }
 
             foreach (var extraPath in catalogPaths
@@ -2093,7 +2090,7 @@ namespace MortalGame.Editor
                 .Where(path => !scannedPathSet.Contains(path)))
             {
                 errors.Add(
-                    $"GameContentCatalog.{collectionName} 收錄了掃描範圍外的資產：{extraPath}");
+                    new ValidationIssue.OutOfScopeCatalogAsset(collectionName, extraPath));
             }
 
             var hasValidSet = catalogPaths.Count == catalogPathSet.Count &&
@@ -2101,7 +2098,7 @@ namespace MortalGame.Editor
             if (hasValidSet && !catalogPaths.SequenceEqual(scannedPaths, StringComparer.Ordinal))
             {
                 errors.Add(
-                    $"GameContentCatalog.{collectionName} 的順序與資產路徑排序不一致，請重新產生內容目錄");
+                    new ValidationIssue.UnsortedCatalogAssets(collectionName));
             }
         }
 
@@ -2111,11 +2108,10 @@ namespace MortalGame.Editor
                 ProjectAssetPaths.GameContent.Catalog);
         }
 
-        private static string _GetMissingCatalogError()
+        private static ValidationIssue _GetMissingCatalogError()
         {
             return
-                $"找不到遊戲內容目錄：{ProjectAssetPaths.GameContent.Catalog}，" +
-                "請執行 MortalGame/遊戲內容/重新產生內容目錄";
+                new ValidationIssue.MissingDefaultCatalog(ProjectAssetPaths.GameContent.Catalog);
         }
 
         private static string GetAssetContext(UnityEngine.Object asset)

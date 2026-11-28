@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -14,6 +15,20 @@ namespace MortalGame.Tests
 {
     public sealed class CardCompositionFlowTests
     {
+        [Test]
+        public void Prepare_AfterSessionDisposed_ReportsCardWithoutCreatingNewSession()
+        {
+            using var setup = _Create();
+            var draft = CardSelectionDraft.Create(setup.Card, setup.Built.Ally, MainSelectionAction.Empty);
+            setup.Session.Dispose();
+
+            var error = Assert.Throws<MissingCardSelectionSessionException>(() => _Prepare(setup.Built, draft));
+
+            Assert.That(error.CardIdentity, Is.EqualTo(setup.Card.Identity));
+            using var nextSession = CardSelectionSession.Begin(setup.Built.Manager, setup.Card.Identity);
+            Assert.That(_Prepare(setup.Built, draft), Is.TypeOf<CardTemplateSelectionInfo>());
+        }
+
         [Test]
         public void Prepare_CachesOffersWhileQueryAndValidationDoNotResample()
         {

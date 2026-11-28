@@ -154,8 +154,8 @@ namespace MortalGame.Tests
                 _SetCatalogArray(catalog, "_playerBuffAssets", loadedPlayer);
                 _SetCatalogArray(catalog, "_characterBuffAssets", loadedCharacter);
                 _SetCatalogArray(catalog, "_cardBuffAssets", loadedCard);
-                Assert.That(GameDataValidator.ValidateNestedContent(catalog), Is.Empty);
-                Assert.That(GameDataValidator.ValidateEffectResolvers(catalog), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog)), Is.Empty);
+                Assert.That(ValidationTestMessages.Of(GameDataValidator.ValidateEffectResolvers(catalog)), Is.Empty);
             }
             finally
             {
@@ -237,7 +237,7 @@ namespace MortalGame.Tests
                 _SetCatalogArray(catalog, "_playerBuffAssets", playerAsset);
                 _SetCatalogArray(catalog, "_characterBuffAssets", characterAsset);
                 _SetCatalogArray(catalog, "_cardBuffAssets", cardAsset);
-                var errors = GameDataValidator.ValidateReferenceIds(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateReferenceIds(catalog));
 
                 Assert.That(errors, Has.Some.Contains("AddPlayerBuffEffect.BuffId 指向不存在的 ID：missing-player-buff"));
                 Assert.That(errors, Has.Some.Contains("AddCardBuffEffect.AddCardBuffDatas.CardBuffId 指向不存在的 ID：missing-card-buff"));

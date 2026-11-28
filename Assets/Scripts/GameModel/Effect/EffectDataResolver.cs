@@ -175,7 +175,7 @@ namespace MortalGame.GameModel
             if (_resolverRegistry.TryGetValue(cardEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, cardEffect);
 
-            Debug.LogWarning($"[EffectDataResolver] 未知的 ICardEffect 類型：{cardEffect.GetType().Name}，回傳空 CommandSet");
+            EffectResolverDiagnosticLogger.LogUnknownEffect(typeof(ICardEffect), cardEffect.GetType());
             return EffectCommandSet.Empty;
         }
         #endregion
@@ -188,7 +188,7 @@ namespace MortalGame.GameModel
             if (_playerBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
-            Debug.LogWarning($"[EffectDataResolver] 未知的 IPlayerBuffEffect 類型：{buffEffect.GetType().Name}，回傳空 CommandSet");
+            EffectResolverDiagnosticLogger.LogUnknownEffect(typeof(IPlayerBuffEffect), buffEffect.GetType());
             return EffectCommandSet.Empty;
         }
         #endregion
@@ -201,7 +201,7 @@ namespace MortalGame.GameModel
             if (_characterBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
-            Debug.LogWarning($"[EffectDataResolver] 未知的 ICharacterBuffEffect 類型：{buffEffect.GetType().Name}，回傳空 CommandSet");
+            EffectResolverDiagnosticLogger.LogUnknownEffect(typeof(ICharacterBuffEffect), buffEffect.GetType());
             return EffectCommandSet.Empty;
         }
         #endregion
@@ -214,7 +214,7 @@ namespace MortalGame.GameModel
             if (_cardBuffResolverRegistry.TryGetValue(buffEffect.GetType(), out var resolver))
                 return resolver.Resolve(context, buffEffect);
 
-            Debug.LogWarning($"[EffectDataResolver] 未知的 ICardBuffEffect 類型：{buffEffect.GetType().Name}，回傳空 CommandSet");
+            EffectResolverDiagnosticLogger.LogUnknownEffect(typeof(ICardBuffEffect), buffEffect.GetType());
             return EffectCommandSet.Empty;
         }
         #endregion

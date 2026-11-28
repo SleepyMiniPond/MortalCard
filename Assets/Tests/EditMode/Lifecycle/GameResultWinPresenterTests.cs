@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections;
 using System.Linq;
 using System.Threading;
@@ -108,7 +109,8 @@ namespace MortalGame.Tests
             var count = 0;
             var completed = false;
             using var subscription = first.ContinueRequested.Subscribe(_ => count++, () => completed = true);
-            Assert.Throws<InvalidOperationException>(() => s.Panel.Open());
+            var error = Assert.Throws<SessionAlreadyOpenException>(() => s.Panel.Open());
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(GameResultWinPanel)));
             first.Dispose();
             Assert.That(completed, Is.True);
             Assert.That(count, Is.Zero, "釋放不應偽造繼續操作");

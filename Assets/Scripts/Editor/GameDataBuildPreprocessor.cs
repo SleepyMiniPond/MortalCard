@@ -1,6 +1,6 @@
 using System;
+using MortalGame.Editor.Exceptions;
 using System.Collections.Generic;
-using System.Linq;
 using UnityEditor.Build;
 using UnityEditor.Build.Reporting;
 
@@ -18,18 +18,13 @@ namespace MortalGame.Editor
 
     internal static class GameDataBuildGate
     {
-        internal static void EnsureValid(IReadOnlyList<string> errors)
+        internal static void EnsureValid(IReadOnlyList<ValidationIssue> errors)
         {
-            var validationErrors = errors ?? Array.Empty<string>();
+            var validationErrors = errors ?? Array.Empty<ValidationIssue>();
             if (validationErrors.Count == 0)
                 return;
 
-            var details = string.Join(
-                Environment.NewLine,
-                validationErrors.Select(error => $"- {error}"));
-            throw new BuildFailedException(
-                $"遊戲資料驗證失敗，共 {validationErrors.Count} 個錯誤：" +
-                Environment.NewLine + details);
+            throw new GameDataValidationBuildFailedException(validationErrors);
         }
     }
 }

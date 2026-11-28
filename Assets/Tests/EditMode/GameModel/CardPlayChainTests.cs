@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -89,7 +90,7 @@ namespace MortalGame.Tests
         {
             var built = new GameplayManagerTestBuilder().Build();
             built.Manager.CardPlayChainBudget = 2;
-            LogAssert.Expect(LogType.Error, new Regex("執行預算已耗盡"));
+            LogAssert.Expect(LogType.Error, new Regex("執行預算已耗盡.*TriggerPath=CardPlayRequest:[0-9a-f-]+;Source:SystemSource"));
             built.Manager.RunEffectBatch(new[] { new CallbackItem(_Context(built), () =>
             {
                 for (var i = 0; i < 3; i++)
@@ -115,7 +116,7 @@ namespace MortalGame.Tests
             var card = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(card);
             built.Manager.CardPlayChainBudget = 30;
-            LogAssert.Expect(LogType.Error, new Regex("執行預算已耗盡"));
+            LogAssert.Expect(LogType.Error, new Regex($"執行預算已耗盡.*TriggerPath=CardEffectRepeat:{card.Identity}:[0-9]+"));
             using (built.Status.SetCurrentPlayer(built.Ally))
                 _UseCard(built, card);
 
@@ -382,7 +383,8 @@ namespace MortalGame.Tests
             Assert.That(events.OfType<MoveCardEvent>().Count(), Is.EqualTo(1));
             Assert.That(built.Ally.CardManager.PlayingCard.HasValue, Is.False);
             Assert.That(built.ContextManager.Context, Is.EqualTo(GameContext.EMPTY));
-            Assert.Throws<InvalidOperationException>(() => _Enqueue(_Context(built), card, built.Ally));
+            var chainError = Assert.Throws<CardPlayChainRequiredException>(() => _Enqueue(_Context(built), card, built.Ally));
+            Assert.That(chainError.CardIdentity, Is.EqualTo(card.Identity));
             data.TriggeredEffects.Clear();
             var next = CardTestBuilder.CreateCard(built.ContextManager.CardLibrary);
             built.Ally.CardManager.HandCard.AddCard(next);

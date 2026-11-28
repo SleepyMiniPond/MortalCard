@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.GameData;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -151,7 +152,7 @@ namespace MortalGame.GameModel
                 var completion = gameEndEx.IsAllyWin
                     ? new AllyBattleCompletion(
                         _gameStatus.Ally.OriginPlayerInstanceGuid.ValueOr(() =>
-                            throw new InvalidOperationException("勝利玩家缺少來源 AllyInstance 身份。")),
+                            throw new MissingAllySourceIdentityException(_gameStatus.Ally.Identity)),
                         _gameStatus.Ally.MainCharacter.CurrentHealth,
                         _gameStatus.Ally.DispositionManager.CurrentDisposition,
                         CardInstanceChangeSetCollector.Collect(
@@ -491,7 +492,7 @@ namespace MortalGame.GameModel
         private bool _UseCard(IPlayerEntity player, UseCardAction action)
         {
             if (_activeCardPlayChain.HasValue)
-                throw new InvalidOperationException("完整出牌流程不可重入；請改為排入出牌請求。");
+                throw new ReentrantCardPlayException();
 
             var result = _RunCardPlayChain(new ActiveCardPlayRoot(player, action));
             _gameEvents.AddRange(result.Effects.Events);
@@ -537,7 +538,7 @@ namespace MortalGame.GameModel
         public void EnqueueCardPlay(CardPlayRequest request)
         {
             if (!_activeCardPlayChain.TryGetValue(out var chain))
-                throw new InvalidOperationException("出牌請求必須由效果根批次提交。");
+                throw new CardPlayChainRequiredException(request.CardIdentity);
             chain.Enqueue(request);
         }
 
@@ -568,20 +569,20 @@ namespace MortalGame.GameModel
                     switch (root)
                     {
                         case ActiveCardPlayRoot active:
-                            chain.BeginStep($"ActiveCard:{active.Action.CardIndentity}");
+                            chain.BeginStep(CardPlayTrace.ActiveCard(active.Action.CardIndentity));
                             cardPlayed = _ExecuteSelectedCard(chain, active.Player, active.Action, CardPlayReason.Active);
                             break;
                         case EffectBatchRoot batch:
                             result = chain.RunEffects(batch.Items);
                             break;
                         default:
-                            throw new InvalidOperationException("不支援的出牌鏈根工作。");
+                            throw new UnsupportedInputTypeException(typeof(GameplayManager), root.GetType());
                     }
                     rootCompleted = true;
                     
                     while (chain.TryDequeue(out var request))
                     {
-                        chain.BeginStep($"CardPlayRequest:{request.CardIdentity};Source:{request.RequestedBy.GetType().Name}");
+                        chain.BeginStep(CardPlayTrace.RequestedCard(request.CardIdentity, request.RequestedBy.GetType()));
                         _ExecuteCardPlayRequest(chain, request);
                     }
                 }

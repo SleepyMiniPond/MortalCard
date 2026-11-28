@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using MortalGame.Presentation.Abstractions;
 using UniRx;
 using UnityEngine;
@@ -21,7 +22,7 @@ namespace MortalGame.GameView
         public IGameResultWinSession Open()
         {
             if (_activeSession != null)
-                throw new InvalidOperationException("勝利面板尚未釋放，不能重複開啟。");
+                throw new SessionAlreadyOpenException(typeof(GameResultWinPanel));
             var session = new Session(this);
             _activeSession = session;
             try

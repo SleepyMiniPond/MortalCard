@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using System.Linq;
 using System.Threading;
 using Cysharp.Threading.Tasks;
@@ -59,7 +60,7 @@ namespace MortalGame.Presenter
                         {
                             case GameplayWinResult:
                                 _context.CommitBattleCompletion(result.AllyCompletion.ValueOr(() =>
-                                    throw new InvalidOperationException("正常勝利結果缺少玩家完成快照。")));
+                                    throw new MissingBattleCompletionException()));
                                 route.CompleteStage();
                                 continue;
                             case GameplayLoseResult { ReactionType: LoseReactionType.Restart }:
@@ -69,10 +70,10 @@ namespace MortalGame.Presenter
                             case GameplayLoseResult { ReactionType: LoseReactionType.Quit }:
                                 return;
                             default:
-                                throw new InvalidOperationException($"未支援的戰鬥結果：{result.Result}");
+                                throw new UnsupportedGameplayResultException(result.Result);
                         }
                     default:
-                        throw new InvalidOperationException($"未支援的地圖操作：{command.ReactionType}");
+                        throw new UnsupportedLevelMapReactionException(command.ReactionType);
                 }
             }
         }

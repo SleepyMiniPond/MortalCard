@@ -528,7 +528,7 @@ namespace MortalGame.Tests
                 });
                 _SetCatalogCard(catalog, card);
 
-                var errors = GameDataValidator.ValidateNestedContent(catalog);
+                var errors = ValidationTestMessages.Of(GameDataValidator.ValidateNestedContent(catalog));
 
                 Assert.That(errors, Has.Some.Contains("PlayerBuffIntegerProperty.Property 無效：999"));
                 Assert.That(errors, Has.Some.Contains("CharacterBuffIntegerProperty.Property 無效：999"));

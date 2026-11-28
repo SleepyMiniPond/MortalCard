@@ -1,4 +1,5 @@
 using System;
+using MortalGame.Exceptions;
 using NUnit.Framework;
 using MortalGame.GameData;
 using MortalGame.GameModel;
@@ -36,7 +37,10 @@ namespace MortalGame.Tests
             var factory = new CardBuffPropertyEntityFactory(
                 Array.Empty<ICardBuffPropertyEntityCreator>());
 
-            Assert.Throws<ArgumentException>(() => factory.Create(new SealedCardBuffPropertyData()));
+            var error = Assert.Throws<UnregisteredDataTypeException>(() => factory.Create(new SealedCardBuffPropertyData()));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CardBuffPropertyEntityFactory)));
+            Assert.That(error.ActualType, Is.EqualTo(typeof(SealedCardBuffPropertyData)));
+            Assert.That(error.ParamName, Is.EqualTo("data"));
         }
 
         [TestCase(typeof(AlwaysLifeTimeCardBuffData), typeof(AlwaysLifeTimeCardBuffEntity))]
@@ -71,7 +75,10 @@ namespace MortalGame.Tests
             var factory = new CardBuffLifeTimeEntityFactory(
                 Array.Empty<ICardBuffLifeTimeEntityCreator>());
 
-            Assert.Throws<ArgumentException>(() => factory.Create(new AlwaysLifeTimeCardBuffData(), null));
+            var error = Assert.Throws<UnregisteredDataTypeException>(() => factory.Create(new AlwaysLifeTimeCardBuffData(), null));
+            Assert.That(error.OwnerType, Is.EqualTo(typeof(CardBuffLifeTimeEntityFactory)));
+            Assert.That(error.ActualType, Is.EqualTo(typeof(AlwaysLifeTimeCardBuffData)));
+            Assert.That(error.ParamName, Is.EqualTo("data"));
         }
     }
 
