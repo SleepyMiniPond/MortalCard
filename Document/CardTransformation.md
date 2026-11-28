@@ -1,6 +1,6 @@
 # 卡片形態系統
 
-> 核對日期：2026-11-22
+> 核對日期：2026-11-28
 
 形態改變同一張卡的有效設計資料，不更換 Identity、區域或順序。有效形態優先順序固定為 External Override > Self Form > Base Form。
 
@@ -44,7 +44,7 @@ Clone 以來源當下有效 CardData 建立全新的 Base Form，不複製來源
 
 資料來源統一經 ICardDefinition.CopyForNewCard。有效定義為合成卡時，Clone 深複製普通／觸發效果與描述來源；有效定義為 Self／Override 時，Clone 以該形態的 Catalog 定義建立。原卡保留自己的底層合成定義，解除形態後恢復，不會把其他形態的效果永久追加到組成。
 
-只有來源 Instance 相符的 Persistent Self Form 可收集為勝利 ChangeSet；BattleOnly 或已還原會清除持久形態，Override 不寫回。戰鬥外套用與磁碟存檔尚未接線，見 [Instance](Instance.md)。
+只有來源 Instance 相符的 Persistent Self Form 可收集為勝利 ChangeSet；BattleOnly 或已還原會清除持久形態，Override 不寫回。正常勝利操作與清理完成後，由 GameFlow 提交至跨戰鬥 Instance；磁碟存檔尚未實作，見 [Instance](Instance.md)。
 
 ## 畫面與驗證
 

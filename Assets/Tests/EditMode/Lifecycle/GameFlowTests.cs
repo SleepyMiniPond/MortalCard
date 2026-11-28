@@ -6,11 +6,15 @@ using System.Threading;
 using Cysharp.Threading.Tasks;
 using MortalGame.GameData;
 using MortalGame.GameModel;
+using MortalGame.GameView;
 using MortalGame.Presenter;
 using NUnit.Framework;
+using Optional;
 using UnityEditor;
+using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.TestTools;
+using TMPro;
 
 namespace MortalGame.Tests
 {
@@ -67,13 +71,78 @@ namespace MortalGame.Tests
             _objects.Clear();
         }
 
+        [Test]
+        public void CommitBattleCompletion_ReplacesAllyAfterCompleteApply()
+        {
+            var source = _context.Ally;
+            var originalDeck = source.Deck;
+            var form = new PersistentCardFormState("commit-form", "commit-target");
+            var completion = new AllyBattleCompletion(source.Identity, 17, 6, new[]
+            {
+                new CardInstanceChangeSet(source.Deck[0].InstanceGuid, form.Some())
+            });
+
+            _context.CommitBattleCompletion(completion);
+
+            Assert.That(_context.Ally, Is.Not.SameAs(source));
+            Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(17));
+            Assert.That(_context.Ally.CurrentDisposition, Is.EqualTo(6));
+            Assert.That(_context.Ally.CurrentEnergy, Is.EqualTo(5));
+            Assert.That(_context.Ally.Deck[0].PersistentFormState, Is.EqualTo(form.Some()));
+            Assert.That(source.Deck, Is.SameAs(originalDeck));
+            Assert.That(source.Deck[0].PersistentFormState.HasValue, Is.False);
+            Assert.That(source.CurrentHealth, Is.EqualTo(30));
+            Assert.That(source.CurrentDisposition, Is.EqualTo(3));
+        }
+
+        [Test]
+        public void CommitBattleCompletion_InvalidLastCardKeepsEntireOriginalState()
+        {
+            var source = _context.Ally;
+            source.Deck.Add(source.Deck[0] with { InstanceGuid = Guid.NewGuid() });
+            var originalDeck = source.Deck;
+            var originalCards = source.Deck.ToArray();
+            var completion = new AllyBattleCompletion(source.Identity, 17, 6, new[]
+            {
+                new CardInstanceChangeSet(source.Deck[0].InstanceGuid,
+                    new PersistentCardFormState("valid-first", "target").Some()),
+                new CardInstanceChangeSet(Guid.NewGuid(), default)
+            });
+
+            Assert.Throws<InvalidOperationException>(() => _context.CommitBattleCompletion(completion));
+
+            Assert.That(_context.Ally, Is.SameAs(source));
+            Assert.That(_context.Ally.Deck, Is.SameAs(originalDeck));
+            Assert.That(_context.Ally.Deck, Is.EqualTo(originalCards));
+            Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(30));
+            Assert.That(_context.Ally.CurrentDisposition, Is.EqualTo(3));
+            Assert.That(_context.Ally.CurrentEnergy, Is.EqualTo(5));
+            Assert.That(_context.Ally.Deck[0].PersistentFormState.HasValue, Is.False);
+        }
+
+        [Test]
+        public void CommitBattleCompletion_AfterResetRejectsPreviousRun()
+        {
+            var oldAlly = _context.Ally;
+            var completion = new AllyBattleCompletion(oldAlly.Identity, 17, 6, oldAlly.Deck.Select(card =>
+                new CardInstanceChangeSet(card.InstanceGuid, card.PersistentFormState)).ToArray());
+            _context.ResetRun();
+            var newAlly = _context.Ally;
+
+            Assert.Throws<InvalidOperationException>(() => _context.CommitBattleCompletion(completion));
+
+            Assert.That(_context.Ally, Is.SameAs(newAlly));
+            Assert.That(newAlly.Identity, Is.Not.EqualTo(oldAlly.Identity));
+            Assert.That(newAlly.CurrentHealth, Is.EqualTo(30));
+        }
+
         [UnityTest]
         public IEnumerator RetryThenQuit_ReturnsToMenuWithoutAnotherBattle() => UniTask.ToCoroutine(async () =>
         {
             using var stop = new CancellationTokenSource();
             var scenes = new FakeScenes(stop, _context);
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Retry));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Retry));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.Trace, Is.EqualTo(new[] { "menu", "map", "battle", "battle", "menu" }));
             Assert.That(scenes.Operations, Is.EqualTo(new[]
@@ -89,9 +158,9 @@ namespace MortalGame.Tests
         {
             using var stop = new CancellationTokenSource();
             var scenes = new FakeScenes(stop, _context);
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Retry));
-            scenes.Results.Enqueue(new GameplayResultCommand(new GameplayWinResult(), Array.Empty<CardInstanceChangeSet>()));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Retry));
+            scenes.Results.Enqueue(new GameplayWinResult());
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.Trace, Is.EqualTo(new[] { "menu", "map", "battle", "battle", "map", "battle", "menu" }));
             Assert.That(scenes.Attempts[2].Ally.Identity, Is.EqualTo(scenes.Attempts[0].Ally.Identity));
@@ -102,13 +171,15 @@ namespace MortalGame.Tests
         {
             using var stop = new CancellationTokenSource();
             var scenes = new FakeScenes(stop, _context);
-            scenes.Results.Enqueue(new GameplayResultCommand(new GameplayWinResult(), Array.Empty<CardInstanceChangeSet>()));
-            scenes.Results.Enqueue(new GameplayResultCommand(new GameplayWinResult(), Array.Empty<CardInstanceChangeSet>()));
+            scenes.BattleRun = (setting, token) => UniTask.FromResult(
+                _Victory(setting, scenes.Attempts.Count == 1 ? 17 : 9, 6));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.Trace, Is.EqualTo(new[] { "menu", "map", "battle", "map", "battle", "menu" }));
             Assert.That(scenes.Attempts.Select(s => s.StageID), Is.EqualTo(new[] { "TemporaryStage1", "TemporaryStage2" }));
             Assert.That(scenes.Attempts[1].Enemy, Is.SameAs(scenes.Attempts[0].Enemy));
             Assert.That(scenes.Attempts[1].Ally.Identity, Is.EqualTo(scenes.Attempts[0].Ally.Identity));
+            Assert.That(scenes.Attempts[1].Ally.CurrentHealth, Is.EqualTo(17));
+            Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(9), "第二勝仍須先提交再回選單");
         });
 
         [UnityTest]
@@ -116,9 +187,9 @@ namespace MortalGame.Tests
         {
             using var stop = new CancellationTokenSource();
             var scenes = new FakeScenes(stop, _context);
-            scenes.Results.Enqueue(new GameplayResultCommand(new GameplayWinResult(), Array.Empty<CardInstanceChangeSet>()));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Retry));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayWinResult());
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Retry));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.Attempts.Select(s => s.StageID),
                 Is.EqualTo(new[] { "TemporaryStage1", "TemporaryStage2", "TemporaryStage2" }));
@@ -131,9 +202,9 @@ namespace MortalGame.Tests
         {
             using var stop = new CancellationTokenSource();
             var scenes = new FakeScenes(stop, _context);
-            scenes.Results.Enqueue(new GameplayResultCommand(new GameplayWinResult(), Array.Empty<CardInstanceChangeSet>()));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Restart));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayWinResult());
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Restart));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.Attempts.Select(s => s.StageID),
                 Is.EqualTo(new[] { "TemporaryStage1", "TemporaryStage2", "TemporaryStage1" }));
@@ -154,8 +225,8 @@ namespace MortalGame.Tests
                     setting.Ally.Deck.Clear();
                 }
             };
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Retry));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Retry));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             var first = scenes.Attempts[0];
             var retry = scenes.Attempts[1];
@@ -181,9 +252,9 @@ namespace MortalGame.Tests
             using var stop = new CancellationTokenSource();
             var scenes = new FakeScenes(stop, _context);
             scenes.OnBattle = setting => _context.Ally.Deck.Clear();
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Retry));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Restart));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Retry));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Restart));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.Trace, Is.EqualTo(new[] { "menu", "map", "battle", "battle", "map", "battle", "menu" }));
             Assert.That(scenes.Attempts[2].Ally.Identity, Is.Not.EqualTo(scenes.Attempts[0].Ally.Identity));
@@ -200,8 +271,8 @@ namespace MortalGame.Tests
             using var stop = new CancellationTokenSource();
             var scenes = new FakeScenes(stop, _context) { AllowedMenus = 2 };
             scenes.OnBattle = setting => _context.Ally.Deck.Clear();
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.Trace, Is.EqualTo(new[] { "menu", "map", "battle", "menu", "map", "battle", "menu" }));
             Assert.That(scenes.Attempts[1].Ally.Identity, Is.Not.EqualTo(scenes.Attempts[0].Ally.Identity));
@@ -228,8 +299,8 @@ namespace MortalGame.Tests
             var scenes = new FakeScenes(stop, _context);
             scenes.MapResults.Enqueue(LevelMapReactionType.StartGamePlay);
             scenes.MapResults.Enqueue(LevelMapReactionType.Restart);
-            scenes.Results.Enqueue(new GameplayResultCommand(new GameplayWinResult(), Array.Empty<CardInstanceChangeSet>()));
-            scenes.Results.Enqueue(_Lose(LoseReactionType.Quit));
+            scenes.Results.Enqueue(new GameplayWinResult());
+            scenes.Results.Enqueue(new GameplayLoseResult(LoseReactionType.Quit));
             await _RunUntilCancelled(scenes, stop);
             Assert.That(scenes.MapAllies[2].Identity, Is.Not.EqualTo(scenes.MapAllies[1].Identity));
             Assert.That(scenes.Attempts.Select(s => s.StageID), Is.EqualTo(new[] { "TemporaryStage1", "TemporaryStage1" }));
@@ -243,7 +314,7 @@ namespace MortalGame.Tests
             {
                 using var stop = new CancellationTokenSource();
                 var scenes = new FakeScenes(stop, _context) { CancelAt = boundary };
-                scenes.Results.Enqueue(new GameplayResultCommand(new GameplayWinResult(), Array.Empty<CardInstanceChangeSet>()));
+                scenes.Results.Enqueue(new GameplayWinResult());
                 await _RunUntilCancelled(scenes, stop);
                 Assert.That(scenes.Trace.Last(), Is.EqualTo(boundary));
             }
@@ -312,6 +383,280 @@ namespace MortalGame.Tests
             Assert.That(scenes.Trace, Is.EqualTo(new[] { "menu", "map", "battle" }));
         });
 
+        [UnityTest]
+        public IEnumerator Victory_WaitsForContinueAndCleanupBeforeCommit() => UniTask.ToCoroutine(async () =>
+        {
+            using var stop = new CancellationTokenSource();
+            var continued = new UniTaskCompletionSource();
+            var cleaned = new UniTaskCompletionSource();
+            var scenes = new FakeScenes(stop, _context);
+            var cleanupStarted = false;
+            scenes.BattleRun = async (setting, token) =>
+            {
+                if (scenes.Attempts.Count > 1)
+                    return new GameplayResultCommand(new GameplayLoseResult(LoseReactionType.Quit), default);
+                await continued.Task.AttachExternalCancellation(token);
+                cleanupStarted = true;
+                await cleaned.Task.AttachExternalCancellation(token);
+                return _Victory(setting, 17, 6);
+            };
+            var run = new GameFlow(_context, scenes).Run(stop.Token).Preserve();
+            var original = _context.Ally;
+            try
+            {
+                Assert.That(scenes.Attempts, Has.Count.EqualTo(1));
+                Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(30));
+                continued.TrySetResult();
+                await UniTask.WaitUntil(() => cleanupStarted, cancellationToken: stop.Token);
+                Assert.That(_context.Ally, Is.SameAs(original), "按繼續後仍須等待場景清理");
+                cleaned.TrySetResult();
+                await run.SuppressCancellationThrow();
+                Assert.That(_context.Ally, Is.Not.SameAs(original));
+                Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(17));
+                Assert.That(_context.Ally.CurrentDisposition, Is.EqualTo(6));
+                Assert.That(_context.Ally.CurrentEnergy, Is.EqualTo(5));
+                Assert.That(scenes.MapAllies[1], Is.SameAs(_context.Ally));
+                Assert.That(scenes.Attempts[1].Ally.CurrentHealth, Is.EqualTo(17));
+                Assert.That(scenes.Attempts[1].Ally.Deck[0].PersistentFormState,
+                    Is.EqualTo(new PersistentCardFormState("victory-form", "flow-form").Some()));
+            }
+            finally { stop.Cancel(); await run.SuppressCancellationThrow(); }
+        });
+
+        [UnityTest]
+        public IEnumerator VictoryThenSecondStageRetry_UsesCommittedOpeningState() => UniTask.ToCoroutine(async () =>
+        {
+            using var stop = new CancellationTokenSource();
+            var scenes = new FakeScenes(stop, _context);
+            scenes.BattleRun = (setting, token) =>
+            {
+                if (scenes.Attempts.Count == 1) return UniTask.FromResult(_Victory(setting, 17, 6));
+                if (scenes.Attempts.Count == 2) setting.Ally.Deck.Clear();
+                return UniTask.FromResult(new GameplayResultCommand(new GameplayLoseResult(
+                    scenes.Attempts.Count == 2 ? LoseReactionType.Retry : LoseReactionType.Quit), default));
+            };
+            await _RunUntilCancelled(scenes, stop);
+            var opening = scenes.Attempts[1];
+            var retry = scenes.Attempts[2];
+            Assert.That(retry.StageID, Is.EqualTo("TemporaryStage2"));
+            Assert.That(retry.RandomSeed, Is.EqualTo(opening.RandomSeed));
+            Assert.That(retry.Enemy, Is.SameAs(opening.Enemy));
+            Assert.That(retry.Ally.CurrentHealth, Is.EqualTo(17));
+            Assert.That(retry.Ally.CurrentDisposition, Is.EqualTo(6));
+            Assert.That(retry.Ally.CurrentEnergy, Is.EqualTo(5));
+            Assert.That(retry.Ally.Deck.Single().InstanceGuid, Is.EqualTo(_context.Ally.Deck.Single().InstanceGuid));
+            Assert.That(retry.Ally.Deck[0].PersistentFormState,
+                Is.EqualTo(new PersistentCardFormState("victory-form", "flow-form").Some()));
+            Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(17), "失敗與 Quit 不覆寫上一場已提交狀態");
+        });
+
+        [UnityTest]
+        public IEnumerator VictoryThenRestart_RestoresInitialRunInsteadOfCommittedState() => UniTask.ToCoroutine(async () =>
+        {
+            using var stop = new CancellationTokenSource();
+            var scenes = new FakeScenes(stop, _context);
+            scenes.BattleRun = (setting, token) => UniTask.FromResult(scenes.Attempts.Count == 1
+                ? _Victory(setting, 17, 6)
+                : new GameplayResultCommand(new GameplayLoseResult(scenes.Attempts.Count == 2
+                    ? LoseReactionType.Restart : LoseReactionType.Quit), default));
+            await _RunUntilCancelled(scenes, stop);
+            Assert.That(scenes.Attempts[2].StageID, Is.EqualTo("TemporaryStage1"));
+            Assert.That(scenes.Attempts[2].Ally.Identity, Is.Not.EqualTo(scenes.Attempts[0].Ally.Identity));
+            Assert.That(scenes.Attempts[2].Ally.CurrentHealth, Is.EqualTo(30));
+            Assert.That(scenes.Attempts[2].Ally.CurrentDisposition, Is.EqualTo(3));
+            Assert.That(scenes.Attempts[2].Ally.CurrentEnergy, Is.EqualTo(5));
+            Assert.That(scenes.Attempts[2].Ally.Deck[0].PersistentFormState.HasValue, Is.False);
+        });
+
+        [UnityTest]
+        public IEnumerator VictoryCanceledAtReturn_DoesNotCommit() => UniTask.ToCoroutine(async () =>
+        {
+            using var stop = new CancellationTokenSource();
+            var scenes = new FakeScenes(stop, _context);
+            AllyInstance original = null;
+            scenes.BattleRun = (setting, token) =>
+            {
+                original = _context.Ally;
+                var victory = _Victory(setting, 17, 6);
+                stop.Cancel();
+                return UniTask.FromResult(victory);
+            };
+            await _RunUntilCancelled(scenes, stop);
+            Assert.That(_context.Ally, Is.SameAs(original));
+            Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(30));
+            Assert.That(_context.Ally.Deck[0].PersistentFormState.HasValue, Is.False);
+            Assert.That(scenes.Trace.Last(), Is.EqualTo("battle"));
+        });
+
+        [UnityTest]
+        public IEnumerator VictoryCleanupException_DoesNotCommitOrAdvance() => UniTask.ToCoroutine(async () =>
+        {
+            using var stop = new CancellationTokenSource();
+            var scenes = new FakeScenes(stop, _context);
+            var expected = new InvalidOperationException("測試場景結果清理失敗");
+            AllyInstance original = null;
+            scenes.BattleRun = async (setting, token) =>
+            {
+                original = _context.Ally;
+                try { await UniTask.Yield(); return _Victory(setting, 17, 6); }
+                finally { throw expected; }
+            };
+            Exception actual = null;
+            try { await new GameFlow(_context, scenes).Run(stop.Token); }
+            catch (InvalidOperationException error) { actual = error; }
+            Assert.That(actual, Is.SameAs(expected));
+            Assert.That(_context.Ally, Is.SameAs(original));
+            Assert.That(scenes.Trace, Is.EqualTo(new[] { "menu", "map", "battle" }));
+        });
+
+        [UnityTest]
+        public IEnumerator NextSceneException_KeepsAlreadyCommittedVictory() => UniTask.ToCoroutine(async () =>
+        {
+            using var stop = new CancellationTokenSource();
+            var scenes = new FakeScenes(stop, _context);
+            var expected = new InvalidOperationException("測試下一張地圖載入失敗");
+            scenes.BattleRun = (setting, token) => UniTask.FromResult(_Victory(setting, 17, 6));
+            scenes.OnLoad = name =>
+            {
+                if (name == "map" && scenes.Attempts.Count == 1) throw expected;
+            };
+            Exception actual = null;
+            try { await new GameFlow(_context, scenes).Run(stop.Token); }
+            catch (InvalidOperationException error) { actual = error; }
+            Assert.That(actual, Is.SameAs(expected));
+            Assert.That(_context.Ally.CurrentHealth, Is.EqualTo(17));
+            Assert.That(_context.Ally.CurrentDisposition, Is.EqualTo(6));
+        });
+
+        [UnityTest]
+        public IEnumerator InvalidVictoryOutput_DoesNotCommitOrAdvance() => UniTask.ToCoroutine(async () =>
+        {
+            foreach (var missing in new[] { true, false })
+            {
+                using var stop = new CancellationTokenSource();
+                var scenes = new FakeScenes(stop, _context);
+                AllyInstance original = null;
+                scenes.BattleRun = (setting, token) =>
+                {
+                    original = _context.Ally;
+                    return UniTask.FromResult(new GameplayResultCommand(new GameplayWinResult(), missing
+                        ? Option.None<AllyBattleCompletion>()
+                        : new AllyBattleCompletion(setting.Ally.Identity, 17, 6, Array.Empty<CardInstanceChangeSet>()).Some()));
+                };
+                Exception failure = null;
+                try { await new GameFlow(_context, scenes).Run(stop.Token); }
+                catch (InvalidOperationException error) { failure = error; }
+                Assert.That(failure, Is.Not.Null);
+                Assert.That(_context.Ally, Is.SameAs(original));
+                Assert.That(scenes.Trace.Last(), Is.EqualTo("battle"));
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator NextBattle_CommittedStateReachesModelAndSceneViews() => UniTask.ToCoroutine(async () =>
+        {
+            _context.CommitBattleCompletion(new AllyBattleCompletion(_context.Ally.Identity, 17, 6,
+                _context.Ally.Deck.Select(card => new CardInstanceChangeSet(card.InstanceGuid,
+                    new PersistentCardFormState("victory-form", "flow-form").Some())).ToArray()));
+            var localize = new LocalizeLibrary(
+                new Dictionary<LocalizeTitleInfoType, IReadOnlyDictionary<string, LocalizeTitleInfoData>>
+                {
+                    [LocalizeTitleInfoType.Player] = new Dictionary<string, LocalizeTitleInfoData>
+                    {
+                        ["flow-player"] = new("玩家", ""), ["next-enemy"] = new("敵人", "")
+                    },
+                    [LocalizeTitleInfoType.KeyWord] = new Dictionary<string, LocalizeTitleInfoData>
+                    {
+                        ["flow-disposition"] = new("好感度階段", "")
+                    },
+                    [LocalizeTitleInfoType.Card] = new Dictionary<string, LocalizeTitleInfoData>
+                    {
+                        ["flow-card"] = new("原卡", ""), ["flow-form"] = new("延續形態", "")
+                    }
+                }, new Dictionary<LocalizeInfoType, IReadOnlyDictionary<string, LocalizeInfoData>>());
+            var gameContext = GameContextTestBuilder.CreateContextManager(
+                cardLibrary: new CardLibrary(new Dictionary<string, CardData>
+                {
+                    ["flow-card"] = new StandardCardData { ID = "flow-card", Themes = Array.Empty<CardTheme>() },
+                    ["flow-form"] = new StandardCardData { ID = "flow-form", Cost = 2, Power = 9, Themes = Array.Empty<CardTheme>() }
+                }),
+                dispositionLibrary: new DispositionLibrary(new[] { new DispositionData("flow-disposition", 10, 0, 0) }),
+                localizeLibrary: localize);
+            var setting = new GameStageSetting("next-battle", 1, _context.Ally,
+                new EnemyData
+                {
+                    EnemyID = "next-enemy", SelectedCardMaxCount = 0,
+                    PlayerData = new PlayerData
+                    {
+                        NameKey = "next-enemy", InitialHealth = 20, MaxHealth = 20, MaxEnergy = 3,
+                        HandCardMaxCount = 5, Deck = _Create<DeckScriptable>()
+                    }
+                });
+            var scene = EditorSceneManager.OpenScene("Assets/Scenes/Gameplay.unity", OpenSceneMode.Additive);
+            using var stop = new CancellationTokenSource();
+            UniTask<Option<BattleResult>> run = default;
+            var started = false;
+            try
+            {
+                var objects = scene.GetRootGameObjects();
+                var view = objects.SelectMany(go => go.GetComponentsInChildren<GameplayView>(true)).Single();
+                var win = objects.SelectMany(go => go.GetComponentsInChildren<GameResultWinPanel>(true)).Single();
+                var lose = objects.SelectMany(go => go.GetComponentsInChildren<GameResultLosePanel>(true)).Single();
+                var presenter = new GameplayPresenter(view, win, lose, setting, gameContext);
+                var manager = (GameplayManager)typeof(GameplayPresenter).GetField("_gameplayManager",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(presenter);
+                var viewModel = (GameViewModel)typeof(GameplayPresenter).GetField("_gameInfoModel",
+                    System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic).GetValue(presenter);
+                run = manager.StartBattle(stop.Token).Preserve();
+                started = true;
+                var events = manager.PopAllEvents();
+                var round = events.OfType<RoundStartEvent>().Single();
+                Assert.That(round.Player.MainCharacter.CurrentHealth, Is.EqualTo(17));
+                Assert.That(round.Player.CurrentEnergy, Is.EqualTo(5));
+                Assert.That(round.Player.DispositionManager.CurrentDisposition, Is.EqualTo(6));
+                var card = events.OfType<AddCardEvent>().Single(evt => evt.Faction == Faction.Ally).CardInfo;
+                view.Render(events.Where(evt => evt is RoundStartEvent || evt is AddCardEvent).ToArray(), presenter);
+                Assert.That(card.CardDataID, Is.EqualTo("flow-form"));
+                Assert.That(viewModel.GetCardInfoOrNone(card.Identity).HasValue, Is.True);
+                Assert.That(viewModel.ObservableDispositionInfo.Value.CurrentDisposition, Is.EqualTo(6));
+
+                var info = _Reference<AllyInfoView>(view, "_allyInfoView");
+                Assert.That(_Reference<TextMeshProUGUI>(_Reference<HealthBarView>(info, "_healthBarView"), "_hpText").text,
+                    Is.EqualTo("17"));
+                Assert.That(_Reference<TextMeshProUGUI>(_Reference<EnergyBarView>(info, "_energyBarView"), "_energyText").text,
+                    Is.EqualTo("5"));
+                var disposition = _Reference<DispositionView>(info, "_dispositionView");
+                Assert.That(_Reference<UnityEngine.UI.Image>(disposition, "_image").fillAmount,
+                    Is.EqualTo(6f / 9f).Within(0.0001f));
+                var cardView = _Reference<CardView>(((IGameplayView)view).FocusCardDetailView, "_cardView");
+                cardView.RenderSnapshot(card);
+                Assert.That(_Reference<TextMeshProUGUI>(cardView, "_title").text, Is.EqualTo("延續形態"));
+                Assert.That(_Reference<TextMeshProUGUI>(cardView, "_cost").text, Is.EqualTo("2"));
+            }
+            finally
+            {
+                stop.Cancel();
+                if (started)
+                {
+                    for (var i = 0; i < 100 && run.Status == UniTaskStatus.Pending; i++)
+                    {
+                        EditorApplication.QueuePlayerLoopUpdate();
+                        await UniTask.Yield();
+                    }
+                    await run.SuppressCancellationThrow();
+                }
+                EditorSceneManager.CloseScene(scene, true);
+            }
+        });
+
+        private static T _Reference<T>(UnityEngine.Object owner, string name) where T : UnityEngine.Object
+            => (T)new SerializedObject(owner).FindProperty(name).objectReferenceValue;
+
+        private static GameplayResultCommand _Victory(GameStageSetting setting, int health, int disposition)
+            => new(new GameplayWinResult(), new AllyBattleCompletion(setting.Ally.Identity, health, disposition,
+                setting.Ally.Deck.Select(card => new CardInstanceChangeSet(card.InstanceGuid,
+                    new PersistentCardFormState("victory-form", "flow-form").Some())).ToArray()).Some());
+
         private async UniTask _RunUntilCancelled(FakeScenes scenes, CancellationTokenSource stop)
         {
             try
@@ -329,9 +674,6 @@ namespace MortalGame.Tests
             return obj;
         }
 
-        private static GameplayResultCommand _Lose(LoseReactionType reaction) =>
-            new(new GameplayLoseResult(reaction), Array.Empty<CardInstanceChangeSet>());
-
         private sealed class FakeScenes : ISceneLoader, IMenuScene, ILevelMapScene, IGameplayScene
         {
             private readonly CancellationTokenSource _stop;
@@ -341,11 +683,12 @@ namespace MortalGame.Tests
             public string CancelAt;
             public Action<GameStageSetting> OnBattle;
             public Action<string> OnLoad;
+            public Func<GameStageSetting, CancellationToken, UniTask<GameplayResultCommand>> BattleRun;
             public readonly List<string> Trace = new();
             public readonly List<string> Operations = new();
             public readonly List<GameStageSetting> Attempts = new();
             public readonly List<AllyInstance> MapAllies = new();
-            public readonly Queue<GameplayResultCommand> Results = new();
+            public readonly Queue<GameplayResult> Results = new();
             public readonly Queue<LevelMapReactionType> MapResults = new();
 
             public FakeScenes(CancellationTokenSource stop, Context context)
@@ -393,8 +736,15 @@ namespace MortalGame.Tests
                 _Visit("battle");
                 Attempts.Add(setting);
                 OnBattle?.Invoke(setting);
+                if (BattleRun != null) return BattleRun(setting, cancellationToken);
                 Assert.That(Results.Count, Is.GreaterThan(0), "不得多執行一次戰鬥。");
-                return UniTask.FromResult(Results.Dequeue());
+                var result = Results.Dequeue();
+                var completion = result is GameplayWinResult
+                    ? new AllyBattleCompletion(setting.Ally.Identity, setting.Ally.CurrentHealth,
+                        setting.Ally.CurrentDisposition, setting.Ally.Deck.Select(card =>
+                            new CardInstanceChangeSet(card.InstanceGuid, card.PersistentFormState)).ToArray()).Some()
+                    : Option.None<AllyBattleCompletion>();
+                return UniTask.FromResult(new GameplayResultCommand(result, completion));
             }
 
             private void _Visit(string scene)

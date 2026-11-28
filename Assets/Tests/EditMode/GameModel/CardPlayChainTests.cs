@@ -273,8 +273,9 @@ namespace MortalGame.Tests
             Assert.That(result.Events.OfType<GainEnergyEvent>(), Is.Not.Empty);
         }
 
-        [Test]
-        public void InitializeRequestedCardCanEndBattleInsideStartBattleResultBoundary()
+        [TestCase(true)]
+        [TestCase(false)]
+        public void InitializeRequestedCardCanEndBattleInsideStartBattleResultBoundary(bool isAllyWin)
         {
             var data = CardTestBuilder.CreateCardData();
             _OnTiming(data, CardTriggeredTiming.Initialize, context =>
@@ -285,12 +286,19 @@ namespace MortalGame.Tests
                 _Enqueue(context, card, owner);
             });
             _OnTiming(data, CardTriggeredTiming.EffectPlayed, context =>
-                context.Model.GameStatus.Enemy.MainCharacter.HealthManager.TakeDamage(100, GameContext.EMPTY, DamageType.Normal));
+            {
+                var ally = context.Model.GameStatus.Ally;
+                ally.MainCharacter.HealthManager.TakeDamage(7, GameContext.EMPTY, DamageType.Normal);
+                ally.DispositionManager.IncreaseDisposition(1);
+                var defeated = isAllyWin ? context.Model.GameStatus.Enemy : (IPlayerEntity)ally;
+                defeated.MainCharacter.HealthManager.TakeDamage(100, GameContext.EMPTY, DamageType.Normal);
+            });
             var deck = ScriptableObject.CreateInstance<DeckScriptable>();
             try
             {
                 var context = GameContextTestBuilder.CreateContextManager(
-                    cardLibrary: new CardLibrary(new Dictionary<string, CardData> { [data.ID] = data }));
+                    cardLibrary: new CardLibrary(new Dictionary<string, CardData> { [data.ID] = data }),
+                    dispositionLibrary: new DispositionLibrary(new[] { new DispositionData("completion", 10, 0, 0) }));
                 var stage = new GameStageSetting("chain-initialize", 1,
                     new AllyInstance(Guid.NewGuid(), "ally", 0, 100, 100, 0, 3,
                         new List<CardInstance> { CardInstance.Create(data) }, 5),
@@ -308,6 +316,26 @@ namespace MortalGame.Tests
                 var result = manager.StartBattle(CancellationToken.None).GetAwaiter().GetResult();
 
                 Assert.That(result.HasValue, Is.True);
+                var battleResult = result.ValueOr(() => throw new InvalidOperationException("預期戰鬥結果"));
+                Assert.That(battleResult.IsAllyWin, Is.EqualTo(isAllyWin));
+                Assert.That(battleResult.AllyCompletion.HasValue, Is.EqualTo(isAllyWin));
+                if (isAllyWin)
+                {
+                    var completion = battleResult.AllyCompletion.ValueOr(() =>
+                        throw new InvalidOperationException("預期勝利快照"));
+                    Assert.That(completion.OriginAllyInstanceGuid, Is.EqualTo(stage.Ally.Identity));
+                    Assert.That(completion.CurrentHealth, Is.EqualTo(93));
+                    Assert.That(completion.CurrentDisposition, Is.EqualTo(1));
+                    Assert.That(completion.CardInstanceChanges.Select(change => change.InstanceGuid),
+                        Is.EqualTo(stage.Ally.Deck.Select(card => card.InstanceGuid)));
+                    Assert.That(stage.Ally.CurrentHealth, Is.EqualTo(100));
+                    Assert.That(stage.Ally.CurrentDisposition, Is.Zero);
+                    ((IGameplayModel)manager).GameStatus.Ally.MainCharacter.HealthManager
+                        .TakeDamage(10, GameContext.EMPTY, DamageType.Normal);
+                    ((IGameplayModel)manager).GameStatus.Ally.DispositionManager.DecreaseDisposition(1);
+                    Assert.That(completion.CurrentHealth, Is.EqualTo(93), "輸出不應隨 Entity 後續變動");
+                    Assert.That(completion.CurrentDisposition, Is.EqualTo(1));
+                }
                 Assert.That(manager.PopAllEvents().OfType<UsedCardEvent>().Count(), Is.EqualTo(1));
                 Assert.That(context.Context, Is.EqualTo(GameContext.EMPTY));
             }

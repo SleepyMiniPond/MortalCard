@@ -84,10 +84,10 @@ OpenHandInput 只管理子 View 的輸入生命週期，因此不另外建立顯
 
 - [ScriptableDataLoader](../Assets/Scripts/Presenter/Gameplay/ScriptableDataLoader.cs) 從 Catalog、玩家配置與 Excel 表讀取內容。
 - [Context](../Assets/Scripts/Presenter/Gameplay/Context.cs) 保存載入資料，由 Main 建立及持有，並非單例服務。
-- [BattleBuilder.cs](../Assets/Scripts/Presenter/Gameplay/BattleBuilder.cs) 內的類別目前拼為 BattleBuidler，組裝 Library、Factory 與種子亂數。正式建構仍使用測試關卡 ID、第一個敵人與即時種子，尚無完整選關參數傳遞。
+- [BattleBuilder.cs](../Assets/Scripts/Presenter/Gameplay/BattleBuilder.cs) 內的類別目前拼為 BattleBuidler，依傳入種子組裝 Library、Factory 與本場亂數；GameFlow 傳遞 GameStageSetting。臨時兩關設定與種子產生集中於 TemporaryBattleRoute，正式地圖結構尚未設計。
 - [GameStageSetting](../Assets/Scripts/GameModel/GameStageSetting.cs) 位於 GameModel。
 - [GameInfoModel.cs](../Assets/Scripts/Presenter/Gameplay/GameInfoModel.cs) 內的 GameViewModel 管理卡片與 Buff 等可觀察顯示資料，並非所有 UI 數值的唯一更新途徑。
 
 ## 結果與地圖限制
 
-Lose 面板透過 Session 提供 Retry／Restart／Quit 操作；Win 面板透過 Session 的 ContinueRequested 正常完成。Presenter 只有正常操作完成後才回傳結果，取消／例外清理面板並向上傳遞。結果去向由 GameFlow 決定，戰後 Domain 套用尚未接入。地圖目前只有點擊開戰入口；完整場景結果處理見 [Scene](Scene.md)，缺口列於 [TODO](TODO.md)。
+Lose 面板透過 Session 提供 Retry／Restart／Quit 操作；Win 面板透過 Session 的 ContinueRequested 正常完成。Presenter 只有正常操作與角色清理完成後才回傳結果，取消／例外清理面板並向上傳遞。GameFlow 於正常勝利分支提交戰後 Domain 快照，再決定場景去向；Presenter 不直接寫回 Context。地圖目前只有點擊開戰入口；完整場景結果處理見 [Scene](Scene.md)，缺口列於 [TODO](TODO.md)。

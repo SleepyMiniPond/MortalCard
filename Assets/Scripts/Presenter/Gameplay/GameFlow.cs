@@ -58,7 +58,8 @@ namespace MortalGame.Presenter
                         switch (result.Result)
                         {
                             case GameplayWinResult:
-                                // 戰後資料套用於後續工作接入；目前只處理結果去向。
+                                _context.CommitBattleCompletion(result.AllyCompletion.ValueOr(() =>
+                                    throw new InvalidOperationException("正常勝利結果缺少玩家完成快照。")));
                                 route.CompleteStage();
                                 continue;
                             case GameplayLoseResult { ReactionType: LoseReactionType.Restart }:

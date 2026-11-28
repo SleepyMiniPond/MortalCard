@@ -148,13 +148,19 @@ namespace MortalGame.GameModel
             }
             catch (GameEndException gameEndEx)
             {
-                var cardInstanceChanges = CardInstanceChangeSetCollector.CollectForBattleResult(
-                    gameEndEx.IsAllyWin,
-                    _gameStageSetting.Ally.Deck,
-                    _gameStatus.Ally.CardManager);
+                var completion = gameEndEx.IsAllyWin
+                    ? new AllyBattleCompletion(
+                        _gameStatus.Ally.OriginPlayerInstanceGuid.ValueOr(() =>
+                            throw new InvalidOperationException("勝利玩家缺少來源 AllyInstance 身份。")),
+                        _gameStatus.Ally.MainCharacter.CurrentHealth,
+                        _gameStatus.Ally.DispositionManager.CurrentDisposition,
+                        CardInstanceChangeSetCollector.Collect(
+                            _gameStageSetting.Ally.Deck,
+                            _gameStatus.Ally.CardManager)).Some()
+                    : Option.None<AllyBattleCompletion>();
                 _battleResult = new BattleResult(
                     gameEndEx.IsAllyWin,
-                    cardInstanceChanges).Some();
+                    completion).Some();
             }
         }
 

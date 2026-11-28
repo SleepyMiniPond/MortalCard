@@ -147,6 +147,7 @@ namespace MortalGame.Tests
             Assert.That(uiSawDisabled, Is.True, "啟動工作前須關閉互動，等待開始事件啟用");
             Assert.That(s.View.Events, Is.Empty);
             Assert.That(s.View.Disabled, Is.True);
+            Assert.That(s.Model.BattleResult.HasValue, Is.False);
         });
 
         [UnityTest]
@@ -160,8 +161,11 @@ namespace MortalGame.Tests
             {
                 s.Presenter.RecieveEvent(new UseCardCommand(s.Card.Identity, Option.None<ISelectionTarget>()));
                 await _Wait(() => s.Selection.RunCount == 1);
+                var ally = ((IGameplayModel)s.Model).GameStatus.Ally;
+                var completion = new AllyBattleCompletion(ally.OriginPlayerInstanceGuid.ValueOr(Guid.Empty),
+                    100, 0, Array.Empty<CardInstanceChangeSet>());
                 typeof(GameplayManager).GetField("_battleResult", BindingFlags.Instance | BindingFlags.NonPublic)
-                    .SetValue(s.Model, Option.Some(new BattleResult(true, Array.Empty<CardInstanceChangeSet>())));
+                    .SetValue(s.Model, Option.Some(new BattleResult(true, completion.Some())));
                 _AddEvent(s, new PlayerExecuteStartEvent(Faction.Ally, default, default));
                 _AddEvent(s, new CardPlayRejectedEvent(Faction.Ally, s.Card.Identity));
                 await _Wait(() => s.View.Events.OfType<CardPlayRejectedEvent>().Any());
@@ -759,6 +763,168 @@ namespace MortalGame.Tests
                 GameplayPresenter presenter, View view, Selection selection, Warning warning)
             { Model = model; Card = card; Draft = draft; Presenter = presenter; View = view; Selection = selection; Warning = warning; }
         }
+        [UnityTest]
+        public IEnumerator VictoryCompletion_WaitsForContinueAndPreservesSnapshot() => UniTask.ToCoroutine(async () =>
+        {
+            var setup = _Create();
+            using var lifetime = new CancellationTokenSource();
+            var win = new WinResultWorker();
+            _SetResultPresenter(setup.Presenter, "_gameResultWinPresenter", win);
+            var completion = new AllyBattleCompletion(Guid.NewGuid(), 17, 4,
+                new[] { new CardInstanceChangeSet(Guid.NewGuid(), default) });
+            var run = _PresentResult(setup.Presenter, new BattleResult(true, completion.Some()), lifetime.Token).Preserve();
+            try
+            {
+                Assert.That(win.RunCount, Is.EqualTo(1));
+                Assert.That(run.Status, Is.EqualTo(UniTaskStatus.Pending));
+                win.Continue.TrySetResult(new GameplayWinResult());
+                var result = await run;
+                Assert.That(result.Result, Is.TypeOf<GameplayWinResult>());
+                Assert.That(result.AllyCompletion.ValueOr((AllyBattleCompletion)null), Is.SameAs(completion));
+            }
+            finally { lifetime.Cancel(); }
+        });
+
+        [UnityTest]
+        public IEnumerator VictoryCompletion_CancellationDoesNotReturnResult() => UniTask.ToCoroutine(async () =>
+        {
+            var setup = _Create();
+            using var lifetime = new CancellationTokenSource();
+            var win = new WinResultWorker();
+            _SetResultPresenter(setup.Presenter, "_gameResultWinPresenter", win);
+            var completion = new AllyBattleCompletion(Guid.NewGuid(), 17, 4, Array.Empty<CardInstanceChangeSet>());
+            var run = _PresentResult(setup.Presenter, new BattleResult(true, completion.Some()), lifetime.Token).Preserve();
+            lifetime.Cancel();
+            var canceled = await run.SuppressCancellationThrow();
+            Assert.That(canceled.IsCanceled, Is.True);
+            Assert.That(canceled.Result, Is.Null);
+        });
+
+        [UnityTest]
+        public IEnumerator DefeatCompletion_HasNoPersistentOutput() => UniTask.ToCoroutine(async () =>
+        {
+            foreach (var reaction in new[] { LoseReactionType.Retry, LoseReactionType.Restart, LoseReactionType.Quit })
+            {
+                var setup = _Create();
+                _SetResultPresenter(setup.Presenter, "_gameResultLosePresenter", new LoseResultWorker(reaction));
+                var result = await _PresentResult(setup.Presenter,
+                    new BattleResult(false, Option.None<AllyBattleCompletion>()), CancellationToken.None);
+                Assert.That(result.Result, Is.EqualTo(new GameplayLoseResult(reaction)));
+                Assert.That(result.AllyCompletion.HasValue, Is.False);
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator InconsistentCompletion_IsRejectedBeforeOpeningResultPanel() => UniTask.ToCoroutine(async () =>
+        {
+            var setup = _Create();
+            var win = new WinResultWorker();
+            _SetResultPresenter(setup.Presenter, "_gameResultWinPresenter", win);
+            foreach (var battle in new[]
+            {
+                new BattleResult(true, Option.None<AllyBattleCompletion>()),
+                new BattleResult(false, new AllyBattleCompletion(Guid.NewGuid(), 17, 4,
+                    Array.Empty<CardInstanceChangeSet>()).Some())
+            })
+            {
+                Exception failure = null;
+                try { await _PresentResult(setup.Presenter, battle, CancellationToken.None); }
+                catch (InvalidOperationException error) { failure = error; }
+                Assert.That(failure, Is.Not.Null);
+            }
+            Assert.That(win.RunCount, Is.Zero);
+        });
+
+        [UnityTest]
+        public IEnumerator Run_AfterContinueWaitsForCharacterCleanupAndPropagatesFailure() => UniTask.ToCoroutine(async () =>
+        {
+            var setup = _Create();
+            using var lifetime = new CancellationTokenSource();
+            var deck = UnityEngine.ScriptableObject.CreateInstance<DeckScriptable>();
+            var stage = new GameStageSetting("cleanup", 1,
+                new AllyInstance(Guid.NewGuid(), "ally", 0, 30, 30, 3, 3, new List<CardInstance>(), 5),
+                new EnemyData
+                {
+                    SelectedCardMaxCount = 0,
+                    PlayerData = new PlayerData { NameKey = "enemy", InitialHealth = 0, MaxHealth = 30, MaxEnergy = 3, Deck = deck }
+                });
+            typeof(GameplayManager).GetField("_gameStageSetting", BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(setup.Model, stage);
+            _SetResultPresenter(setup.Presenter, "_uiPresenter", new UIWorker(() => { }));
+            var win = new WinResultWorker();
+            _SetResultPresenter(setup.Presenter, "_gameResultWinPresenter", win);
+            var cleanup = new UniTaskCompletionSource();
+            var cleanupStarted = false;
+            setup.View.Cleanup = () => { cleanupStarted = true; return cleanup.Task; };
+            var run = setup.Presenter.Run(lifetime.Token).Preserve();
+            try
+            {
+                await _Wait(() => win.RunCount == 1);
+                Assert.That(run.Status, Is.EqualTo(UniTaskStatus.Pending));
+                win.Continue.TrySetResult(new GameplayWinResult());
+                await _Wait(() => cleanupStarted);
+                Assert.That(run.Status, Is.EqualTo(UniTaskStatus.Pending), "角色清理未完成不能交出勝利結果");
+                var expected = new InvalidOperationException("測試角色清理失敗");
+                cleanup.TrySetException(expected);
+                Exception actual = null;
+                try { await run; }
+                catch (InvalidOperationException error) { actual = error; }
+                Assert.That(actual, Is.SameAs(expected));
+            }
+            finally
+            {
+                lifetime.Cancel();
+                cleanup.TrySetResult();
+                try { await run; } catch (Exception) { }
+                UnityEngine.Object.DestroyImmediate(deck);
+            }
+        });
+
+        [UnityTest]
+        public IEnumerator VictoryCompletion_PanelExceptionPropagatesWithoutResult() => UniTask.ToCoroutine(async () =>
+        {
+            var setup = _Create();
+            var win = new WinResultWorker();
+            _SetResultPresenter(setup.Presenter, "_gameResultWinPresenter", win);
+            var completion = new AllyBattleCompletion(Guid.NewGuid(), 17, 4, Array.Empty<CardInstanceChangeSet>());
+            var run = _PresentResult(setup.Presenter, new BattleResult(true, completion.Some()), CancellationToken.None);
+            var expected = new InvalidOperationException("測試勝利面板失敗");
+            win.Continue.TrySetException(expected);
+            Exception actual = null;
+            try { await run; }
+            catch (InvalidOperationException error) { actual = error; }
+            Assert.That(actual, Is.SameAs(expected));
+        });
+
+        private static UniTask<GameplayResultCommand> _PresentResult(
+            GameplayPresenter presenter, BattleResult result, CancellationToken token)
+            => (UniTask<GameplayResultCommand>)typeof(GameplayPresenter)
+                .GetMethod("_PresentResult", BindingFlags.Instance | BindingFlags.NonPublic)
+                .Invoke(presenter, new object[] { result, token });
+
+        private static void _SetResultPresenter(GameplayPresenter presenter, string field, object value)
+            => typeof(GameplayPresenter).GetField(field, BindingFlags.Instance | BindingFlags.NonPublic)
+                .SetValue(presenter, value);
+
+        private sealed class WinResultWorker : IGameResultWinPresenter
+        {
+            public int RunCount;
+            public readonly UniTaskCompletionSource<GameplayWinResult> Continue = new();
+            public UniTask<GameplayWinResult> Run(CancellationToken token)
+            {
+                RunCount++;
+                return Continue.Task.AttachExternalCancellation(token);
+            }
+        }
+
+        private sealed class LoseResultWorker : IGameResultLosePresenter
+        {
+            private readonly LoseReactionType _reaction;
+            public LoseResultWorker(LoseReactionType reaction) => _reaction = reaction;
+            public UniTask<GameplayLoseResult> Run(CancellationToken token)
+                => UniTask.FromResult(new GameplayLoseResult(_reaction));
+        }
+
         private sealed class Selection : ICardSelectionFlow
         {
             public int RunCount;
@@ -799,6 +965,7 @@ namespace MortalGame.Tests
 
         private sealed class View : IGameplayView
         {
+            public Func<UniTask> Cleanup;
             public int RestoreCount;
             public int RenderCount;
             public Action OnRender;
@@ -832,7 +999,7 @@ namespace MortalGame.Tests
             public void DisableAllInteraction() => Disabled = true;
             public void RestorePlayerInteraction(CardManagerInfo manager, CardCollectionInfo hand)
             { RestoreCount++; Hand = hand; Disabled = false; OnRestore?.Invoke(); }
-            public UniTask DisposeCharacterViews() => UniTask.CompletedTask;
+            public UniTask DisposeCharacterViews() => Cleanup?.Invoke() ?? UniTask.CompletedTask;
         }
     }
 }

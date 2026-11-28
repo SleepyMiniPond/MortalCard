@@ -100,11 +100,11 @@ namespace MortalGame.GameModel
 
     public record BattleResult(
         bool IsAllyWin,
-        IReadOnlyList<CardInstanceChangeSet> CardInstanceChanges);
+        Option<AllyBattleCompletion> AllyCompletion);
 
     public record GameplayResultCommand(
         GameplayResult Result,
-        IReadOnlyList<CardInstanceChangeSet> CardInstanceChanges);
+        Option<AllyBattleCompletion> AllyCompletion);
 
     public abstract record GameplayResult;
     public record GameplayWinResult() : GameplayResult;

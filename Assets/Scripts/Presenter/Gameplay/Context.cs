@@ -38,6 +38,11 @@ namespace MortalGame.Presenter
             LocalizeInfoSetting = scriptableDataLoader.LocalizeInfoSetting();
         }
 
+        public void CommitBattleCompletion(AllyBattleCompletion completion)
+        {
+            Ally = Ally.ApplyBattleCompletion(completion);
+        }
+
         public void ResetRun()
         {
             Ally = new AllyInstance(
