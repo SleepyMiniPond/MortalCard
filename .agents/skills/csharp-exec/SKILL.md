@@ -1,12 +1,12 @@
 ---
-name: script-execute
+name: csharp-exec
 description: "Compiles and runs C# in the Unity Editor (Roslyn): plain statements with the last expression as the result, or a full class with a static method. See the skill body for the modes, usings/include and Unity object parameters."
 metadata:
   generated-by: unity-mcp
   ai-game-dev: exclude
 ---
 
-# Script / Execute
+# C# / Execute
 
 ## Modes
 
@@ -27,7 +27,7 @@ Compile errors point at your own lines (`snippet.cs(2,5)`).
 
 ## Deleting
 
-Deleting (DeleteAsset, Destroy, script-delete, or AssetDatabase / File deletes in script-execute) takes two turns unless the user named the exact items or you created them yourself in this task: first list the exact candidates (rql-query, a dry_run=true mutation or a read-only snippet), show them and end your turn; delete only that list, in a separate call, after the user confirms. Otherwise never find and delete candidates in the same turn.
+Deleting (DeleteAsset, Destroy, script-delete, or AssetDatabase / File deletes in csharp-exec) takes two turns unless the user named the exact items or you created them yourself in this task: first list the exact candidates (rql-query, a dry_run=true mutation or a read-only snippet), show them and end your turn; delete only that list, in a separate call, after the user confirms. Otherwise never find and delete candidates in the same turn.
 
 ## Packages
 
@@ -63,7 +63,7 @@ Parameters become the snippet's variables (or the method's arguments, in order):
   "timeout": 0
 }
 '@)
-unity-mcp-cli.cmd run-tool script-execute --input-file args.json
+unity-mcp-cli.cmd run-tool csharp-exec --input-file args.json
 ```
 
 > CLI installation and usage: see the `unity-cli` skill.

@@ -1,6 +1,6 @@
 ---
 name: assetstore-add
-description: "Import a downloaded Asset Store package into the project, all of it, without the import dialog. Returns its prefabs, materials, models, scenes and notes (render pipeline, scripts compiling, nested pipeline packages). Status 'awaiting-user': Unity shows 'Missing signature' (Asset Store packages are unsigned) and waits for the user's Import Anyway; ask the user, never press it yourself, then check 'assetstore-library' Imported (or ImportError). If the user cancels, stop: never import an Asset Store package another way (script-execute, AssetDatabase.ImportPackage, unpacking the .unitypackage). Find the productId with 'assetstore-library'."
+description: "Import a downloaded Asset Store package into the project, all of it, without the import dialog. Returns its prefabs, materials, models, scenes and notes (render pipeline, scripts compiling, nested pipeline packages). Status 'awaiting-user': Unity shows 'Missing signature' (Asset Store packages are unsigned) and waits for the user's Import Anyway; ask the user, never press it yourself, then check 'assetstore-library' Imported (or ImportError). If the user cancels, stop: never import an Asset Store package another way (csharp-exec, AssetDatabase.ImportPackage, unpacking the .unitypackage). Find the productId with 'assetstore-library'."
 metadata:
   generated-by: unity-mcp
   ai-game-dev: exclude

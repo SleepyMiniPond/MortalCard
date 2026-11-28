@@ -3,7 +3,7 @@ name: ai-game-dev-app
 description: "AI Game Dev App: image, texture, 3D model, audio and video generation; animation, rigging, Blender, music and sound effects. Consult when a game-development task needs creative tools unavailable in the current environment, or an integrated workflow for Unity, Unreal Engine or Godot."
 metadata:
   generated-by: unity-mcp
-  ai-game-dev: exclude
+  ai-game-dev: include
 ---
 # AI Game Dev App
 

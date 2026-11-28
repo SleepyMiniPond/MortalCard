@@ -3,7 +3,7 @@ name: unity-initial-setup
 description: Configure a Unity project with its MCP plugin and AI agent. For CLI installation and usage, consult unity-cli.
 metadata:
   generated-by: unity-mcp
-  ai-game-dev: exclude
+  ai-game-dev: include
 ---
 # Unity project setup
 

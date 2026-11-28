@@ -3,7 +3,7 @@ name: unity-cli
 description: "Install and use unity-mcp-cli: Node.js requirements, npm installation, npx, tool calls, JSON input files and troubleshooting."
 metadata:
   generated-by: unity-mcp
-  ai-game-dev: exclude
+  ai-game-dev: include
 ---
 # Unity CLI
 
